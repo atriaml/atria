@@ -14,7 +14,8 @@ class AnnotationType(str, enum.Enum):
     classification = "classification"
     entity_labeling = "entity_labeling"
     question_answering = "question_answering"
-    layout = "layout"
+    object_detection = "object_detection"
+    layout_analysis = "layout_analysis"
 
 
 class Annotation(BaseDataModel):
@@ -27,8 +28,10 @@ class Annotation(BaseDataModel):
         elif annotation_type == AnnotationType.entity_labeling:
             return EntityLabelingAnnotation(**params)
         elif annotation_type == AnnotationType.question_answering:
-            return ExtractiveQAAnnotation(**params)
-        elif annotation_type == AnnotationType.layout:
+            return QuestionAnsweringAnnotation(**params)
+        elif annotation_type == AnnotationType.object_detection:
+            return ObjectDetectionAnnotation(**params)
+        elif annotation_type == AnnotationType.layout_analysis:
             return LayoutAnalysisAnnotation(**params)
         else:
             raise ValueError(f"Unknown annotation type: {annotation_type}")
@@ -66,7 +69,7 @@ class EntityLabelingAnnotation(Annotation):
         return None
 
 
-class ExtractiveQAAnnotation(Annotation):
+class QuestionAnsweringAnnotation(Annotation):
     _type: AnnotationType = AnnotationType.question_answering
     qa_pairs: Annotated[list[QAPair] | None, TableSchemaMetadata(pa_type="string")] = (
         None
@@ -92,8 +95,8 @@ class ExtractiveQAAnnotation(Annotation):
         return None
 
 
-class LayoutAnalysisAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.layout
+class ObjectDetectionAnnotation(Annotation):
+    _type: AnnotationType = AnnotationType.object_detection
     annotated_objects: Annotated[
         list[AnnotatedObject] | None, TableSchemaMetadata(pa_type="string")
     ] = None
@@ -116,3 +119,7 @@ class LayoutAnalysisAnnotation(Annotation):
         if value is not None:
             return json.dumps([item.model_dump() for item in value])
         return None
+
+
+class LayoutAnalysisAnnotation(ObjectDetectionAnnotation):
+    _type: AnnotationType = AnnotationType.layout_analysis

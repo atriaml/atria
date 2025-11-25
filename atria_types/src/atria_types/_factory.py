@@ -10,8 +10,9 @@ from atria_types._generic._annotated_object import (
 from atria_types._generic._annotations import (
     ClassificationAnnotation,
     EntityLabelingAnnotation,
-    ExtractiveQAAnnotation,
     LayoutAnalysisAnnotation,
+    ObjectDetectionAnnotation,
+    QuestionAnsweringAnnotation,
 )
 from atria_types._generic._bounding_box import BoundingBox
 from atria_types._generic._doc_content import DocumentContent, TextElement
@@ -214,9 +215,9 @@ class EntityLabelingAnnotationFactory(factory.Factory):
     word_labels = factory.List([factory.SubFactory(LabelFactory) for _ in range(3)])
 
 
-class ExtractiveQAAnnotationFactory(factory.Factory):
+class QuestionAnsweringAnnotationFactory(factory.Factory):
     class Meta:
-        model = ExtractiveQAAnnotation
+        model = QuestionAnsweringAnnotation
 
     qa_pairs = factory.List([factory.SubFactory(QAPairFactory) for _ in range(3)])
 
@@ -224,6 +225,15 @@ class ExtractiveQAAnnotationFactory(factory.Factory):
 class LayoutAnalysisAnnotationFactory(factory.Factory):
     class Meta:
         model = LayoutAnalysisAnnotation
+
+    annotated_objects = factory.List(
+        [factory.SubFactory(AnnotatedObjectFactory) for _ in range(3)]
+    )
+
+
+class ObjectDetectionAnnotationFactory(factory.Factory):
+    class Meta:
+        model = ObjectDetectionAnnotation
 
     annotated_objects = factory.List(
         [factory.SubFactory(AnnotatedObjectFactory) for _ in range(3)]
@@ -241,8 +251,8 @@ class ImageInstanceFactory(factory.Factory):
         [
             factory.SubFactory(ClassificationAnnotationFactory),
             factory.SubFactory(EntityLabelingAnnotationFactory),
-            factory.SubFactory(LayoutAnalysisAnnotationFactory),
-            factory.SubFactory(ExtractiveQAAnnotationFactory),
+            factory.SubFactory(ObjectDetectionAnnotationFactory),
+            factory.SubFactory(QuestionAnsweringAnnotationFactory),
         ]
     )
 
@@ -261,6 +271,6 @@ class DocumentInstanceFactory(factory.Factory):
             factory.SubFactory(ClassificationAnnotationFactory),
             factory.SubFactory(EntityLabelingAnnotationFactory),
             factory.SubFactory(LayoutAnalysisAnnotationFactory),
-            factory.SubFactory(ExtractiveQAAnnotationFactory),
+            factory.SubFactory(QuestionAnsweringAnnotationFactory),
         ]
     )
