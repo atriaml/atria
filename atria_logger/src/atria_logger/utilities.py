@@ -9,7 +9,7 @@ Utilities to configure and manage loggers in the Atria library. Includes:
 import logging
 from typing import Any, TextIO
 
-import coloredlogs
+import coloredlogs  # type: ignore[import-untyped]
 
 
 def _enable_colored_logging(

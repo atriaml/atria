@@ -1,12 +1,12 @@
 from typing import Self
 
 from atria_logger import get_logger
+from atria_types.utilities.repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict
 
 from atria_types._base._mixins._file_path_convertible import FilePathConvertible
 from atria_types._base._mixins._loadable import Loadable
 from atria_types._base._mixins._table_serializable import TableSerializable
-from atria_types.utilities.repr import RepresentationMixin
 
 logger = get_logger(__name__)
 

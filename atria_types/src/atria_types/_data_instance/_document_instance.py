@@ -18,11 +18,14 @@ class DocumentInstance(BaseDataInstance):
     text_elements: list[TextElement] | None = None
 
     @model_validator(mode="after")
-    def validate_fields(self) -> "DocumentInstance":
+    def validate_fields(self) -> "Self":
         # Ensure we have either image or PDF
         if self.image is None and self.pdf is None:
             raise ValueError("Either image or pdf must be provided")
-
+        return self
+        
+        return self
+    
     def load(
         self,
     ) -> Self:  # this is the top level load that loads all children fields _load

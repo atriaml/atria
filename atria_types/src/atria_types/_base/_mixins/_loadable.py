@@ -19,5 +19,6 @@ class Loadable(BaseModel):
 
     def _load(self) -> None:
         """
-        Placeholder for custom load logic.
+        This method is intended to be overridden by subclasses to implement custom loading logic.
+        It is called automatically during the ``load()`` process after a new instance is created.
         """

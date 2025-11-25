@@ -68,8 +68,8 @@ def _load_bytes_from_uri(uri: str) -> bytes:
 
             with open(local_path, "rb") as f:
                 f.seek(offset)
-                bytes = f.read(length)
-                return bytes
+                data = f.read(length)
+                return data
         else:
             local_path = Path(path if parsed.scheme != "file" else parsed.path)
             if not local_path.exists():

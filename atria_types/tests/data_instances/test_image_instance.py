@@ -1,5 +1,5 @@
 import pyarrow as pa
-from atria_typesdata_instance.image_instance import ImageInstance
+from atria_types.data_instance.image_instance import ImageInstance
 from atria_typesfactory import ImageInstanceFactory
 from tests.types.data_model_test_base import DataModelTestBase
 from tests.utilities.common import _assert_values_equal

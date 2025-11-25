@@ -35,8 +35,8 @@ class OCR(BaseDataModel):
                 raise ValueError("Either file_path or content must be provided.")
 
             content = _load_bytes_from_uri(self.file_path)
-            if content.startswith("b'"):
-                content = ast.literal_eval(self.content).decode("utf-8")
+            if content.startswith(b"b'"):
+                content = ast.literal_eval(content.decode("utf-8")).decode("utf-8")
             return OCR(
                 file_path=self.file_path,
                 type=self.type,

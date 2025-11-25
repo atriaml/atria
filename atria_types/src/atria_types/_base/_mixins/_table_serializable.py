@@ -3,7 +3,7 @@ from functools import lru_cache
 from types import NoneType
 from typing import TYPE_CHECKING, Any, Self, Union, get_args, get_origin, get_type_hints
 
-from atria_core.logger.root import get_logger
+from atria_logger import get_logger
 from pydantic import BaseModel
 
 if TYPE_CHECKING:

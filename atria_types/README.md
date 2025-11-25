@@ -1,4 +1,4 @@
-# Atria Logger
+# Atria Types
 
 Atria Logger is a lightweight and flexible Python logging library designed to simplify
 logging and monitoring application behavior. It provides an easy-to-use interface

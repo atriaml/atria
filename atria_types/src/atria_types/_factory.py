@@ -1,6 +1,6 @@
 import factory
-from atria_typesdata_instance.document_instance import DocumentInstance
-from atria_typesdata_instance.image_instance import ImageInstance
+from atria_types.data_instance.document_instance import DocumentInstance
+from atria_types.data_instance.image_instance import ImageInstance
 from faker import Faker
 
 from atria_types._common import OCRType
