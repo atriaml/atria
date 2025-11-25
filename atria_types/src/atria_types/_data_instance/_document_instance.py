@@ -2,12 +2,13 @@ from typing import Self
 
 from pydantic import model_validator
 
+from atria_types._base._data_model import _load_any
 from atria_types._data_instance._base import BaseDataInstance
+from atria_types._generic._doc_content import DocumentContent
 from atria_types._generic._image import Image
 from atria_types._generic._ocr import OCR
 from atria_types._generic._pdf import PDF
-from atria_types._generic._text_elements import TextElement
-from atria_types.ocr_parsers.hocr_parser import OCRProcessor
+from atria_types._utilities._ocr_processors._base import OCRProcessor
 
 
 class DocumentInstance(BaseDataInstance):
@@ -15,7 +16,7 @@ class DocumentInstance(BaseDataInstance):
     pdf: PDF | None = None
     image: Image | None = None
     ocr: OCR | None = None
-    text_elements: list[TextElement] | None = None
+    content: DocumentContent | None = None
 
     @model_validator(mode="after")
     def validate_fields(self) -> "Self":
@@ -23,19 +24,21 @@ class DocumentInstance(BaseDataInstance):
         if self.image is None and self.pdf is None:
             raise ValueError("Either image or pdf must be provided")
         return self
-        
+
         return self
-    
+
     def load(
         self,
-    ) -> Self:  # this is the top level load that loads all children fields _load
-        loaded_fields = {
-            name: self._load(getattr(self, name))
-            for name in self.__class__.model_fields
-        }
+    ) -> Self:
+        loaded_fields = {}
+        for name in self.__class__.model_fields:
+            loaded_fields[name] = _load_any(getattr(self, name))
 
-        if loaded_fields["ocr"] is not None and loaded_fields["text_elements"] is None:
-            loaded_fields["text_elements"] = OCRProcessor.parse(
+        if (
+            loaded_fields["ocr"] is not None
+            and loaded_fields["content"].text_elements is None
+        ):
+            loaded_fields["content"] = OCRProcessor.parse(
                 raw_ocr=self.ocr.content, ocr_type=self.ocr.type
             )
 

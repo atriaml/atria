@@ -2,9 +2,10 @@ import factory
 import pyarrow as pa
 import pytest
 from atria_logger import get_logger
-from tests.utilities.common import _assert_values_equal, _validate_batched_values
+from pydantic import ValidationError
 
-from atria_types.base._data_model import BaseDataModel
+from atria_types._base._data_model import BaseDataModel
+from tests.utilities import _compare_dicts_recursively
 
 logger = get_logger(__name__)
 
@@ -28,7 +29,7 @@ class DataModelTestBase:
         """
         Fixture to provide an instance of the BaseDataModel for testing.
         """
-        return self.factory.build()
+        return self.factory.build().load()
 
     def test_initialize(self, model_instance: BaseDataModel) -> None:
         """
@@ -38,15 +39,22 @@ class DataModelTestBase:
             "Model instance is not a BaseDataModel"
         )
 
+    def test_assert_instance_frozen(self, model_instance: BaseDataModel) -> None:
+        """
+        Test that the model instance is frozen (immutable).
+        """
+        for field in model_instance.__class__.model_fields:
+            with pytest.raises(ValidationError):
+                setattr(model_instance, field, None)
+
     def test_load_unload(self, model_instance: BaseDataModel) -> None:
         """
         Test the load method of the model instance.
         """
-        assert not model_instance._is_loaded, "Model instance should be unloaded"
-        model_instance.load()
-        assert model_instance._is_loaded, "Model instance should be loaded"
-        model_instance.unload()
-        assert not model_instance._is_loaded, "Model instance should be unloaded again"
+        loaded_model_instance = model_instance.load()
+        assert type(loaded_model_instance) is type(model_instance), (
+            "Loaded model instance type mismatch"
+        )
 
     def test_to_from_row(self, model_instance: BaseDataModel) -> None:
         """
@@ -70,25 +78,7 @@ class DataModelTestBase:
         schema = model_instance.table_schema()
         expected = self.expected_table_schema()
 
-        def compare_dicts_recursively(dict1, dict2, path=""):
-            differences = []
-            all_keys = set(dict1.keys()) | set(dict2.keys())
-
-            for key in all_keys:
-                current_path = f"{path}.{key}" if path else str(key)
-
-                if key not in dict1:
-                    differences.append(f"Missing key in actual: {current_path}")
-                elif key not in dict2:
-                    differences.append(f"Unexpected key in actual: {current_path}")
-                elif dict1[key] != dict2[key]:
-                    differences.append(
-                        f"Value mismatch at {current_path}: expected {dict2[key]}, got {dict1[key]}"
-                    )
-
-            return differences
-
-        differences = compare_dicts_recursively(schema, expected)
+        differences = _compare_dicts_recursively(schema, expected)
         assert schema == expected, (
             "Schema does not match expected schema.\n"
             "Differences found:\n" + "\n".join(differences)
@@ -100,93 +90,8 @@ class DataModelTestBase:
         """
         schema = model_instance.table_schema_flattened()
         expected = self.expected_table_schema_flattened()
-        mismatched_keys = []
-        for key in set(schema.keys()) | set(expected.keys()):
-            if key not in schema:
-                mismatched_keys.append(f"Missing key: {key}")
-            elif key not in expected:
-                mismatched_keys.append(f"Unexpected key: {key}")
-            elif schema[key] != expected[key]:
-                mismatched_keys.append(
-                    f"Type mismatch for {key}: expected {expected[key]}, got {schema[key]}"
-                )
-
+        differences = _compare_dicts_recursively(schema, expected)
         assert schema == expected, (
-            f"Schema does not match expected schema. Mismatched keys: {mismatched_keys}. "
-            f"Expected: {expected}, Got: {schema}"
+            "Schema does not match expected schema.\n"
+            "Differences found:\n" + "\n".join(differences)
         )
-
-    def test_to_from_tensor(self, model_instance: BaseDataModel) -> None:
-        """
-        Test the conversion of the model instance to a tensor.
-        """
-
-        model_instance.load()
-
-        if self.throws_error_on_operations:
-            with pytest.raises(RuntimeError):
-                model_instance.load().to_tensor()
-            return
-
-        tensor_model = model_instance.to_tensor()
-        assert tensor_model is not None, "Tensor conversion returned None"
-        roundtrip_model = tensor_model.to_raw()
-        assert isinstance(roundtrip_model, model_instance.__class__), (
-            "Raw conversion did not return a BaseDataModel"
-        )
-
-        _assert_values_equal(roundtrip_model, model_instance)
-
-    def test_to_device(self, model_instance):
-        """
-        Test the to_device method of the tensor data model.
-        """
-        import torch
-
-        if self.throws_error_on_operations:
-            with pytest.raises(RuntimeError):
-                model_instance.load().to_tensor()
-            return
-
-        def validate_device(device: str | torch.device):
-            instance = model_instance.load().to_tensor().to_device(device)
-            for key, value in instance.__dict__.items():
-                if isinstance(value, torch.Tensor):
-                    assert value.device.type == torch.device(device).type, (
-                        f"Field {key} is not on the correct device: {value.device.type} != {torch.device(device).type}"
-                    )
-
-        validate_device(torch.device("cpu"))
-        if not torch.cuda.is_available():
-            pytest.skip("CUDA is not available, skipping CUDA tests.")
-        validate_device("cuda")
-        validate_device(torch.device(0))
-        validate_device(torch.device("cuda:0"))
-        validate_device(0)
-
-    def test_batched_instances(self, model_instance):
-        """
-        Test the collation of multiple instances of the child class.
-        """
-        import torch
-
-        if self.throws_error_on_operations:
-            with pytest.raises(RuntimeError):
-                model_instance.load().to_tensor()
-            return
-
-        instances = [
-            model_instance.load().to_tensor(),
-            model_instance.load().to_tensor(),
-        ]
-        model_instance = instances[0].batched(instances)
-        assert model_instance._is_batched, (
-            "Batched instances should be marked as batched"
-        )
-
-        for key, value in model_instance.__dict__.items():
-            if isinstance(value, torch.Tensor):
-                assert value.shape[0] == len(instances)
-                for i in range(1, len(instances)):
-                    _assert_values_equal(value[i], getattr(instances[i], key))
-        _validate_batched_values(model_instance, instances)

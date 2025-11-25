@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from rich.pretty import pretty_repr
 
 from atria_types._common import DatasetSplitType
-from atria_types.utilities.repr import RepresentationMixin
+from atria_types._utilities._repr import RepresentationMixin
 
 if TYPE_CHECKING:
     from datasets.info import DatasetInfo  # type: ignore[import-not-found]

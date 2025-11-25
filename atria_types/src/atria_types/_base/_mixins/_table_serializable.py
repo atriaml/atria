@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def _flatten_dict(
-    d: dict[str, Any], parent_key: str = "", sep: str = "_"
+    d: dict[str, Any], parent_key: str = "", sep: str = "__"
 ) -> dict[str, Any]:
     """
     Recursively flatten a nested dictionary.
@@ -41,18 +41,25 @@ def _flatten_dict(
     return dict(items)
 
 
-def _unflatten_dict(flat: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+def _unflatten_dict(
+    flat: dict[str, Any], schema: dict[str, Any], sep: str = "__"
+) -> dict[str, Any]:
     result = {}
 
     for key, sub_schema in schema.items():
         if isinstance(sub_schema, dict):
             nested = {
-                k[len(key) + 1 :]: v for k, v in flat.items() if k.startswith(f"{key}_")
+                k.replace(f"{key}{sep}", ""): v
+                for k, v in flat.items()
+                if k.startswith(f"{key}{sep}")
             }
             if all(value is None for value in nested.values()):
                 result[key] = None
             else:
-                result[key] = _unflatten_dict(nested, sub_schema)
+                result[key] = _unflatten_dict(
+                    nested,
+                    sub_schema,
+                )
         else:
             # Primitive value
             if key in flat:

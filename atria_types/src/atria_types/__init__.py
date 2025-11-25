@@ -24,7 +24,7 @@ from ._datasets import (
     SplitConfig,
     SplitInfo,
 )
-from ._generic._text_elements import TextElement
+from ._generic._doc_content import TextElement, DocumentContent
 from ._generic._annotated_object import AnnotatedObject
 from ._generic._bounding_box import BoundingBox, BoundingBoxMode
 from ._generic._annotations import (
@@ -62,7 +62,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "SplitConfig",
             "SplitInfo",
         ],
-        "_generic._text_elements": ["TextElement"],
+        "_generic._doc_content": ["DocumentContent", "TextElement"],
         "_generic._annotated_object": ["AnnotatedObject"],
         "_generic._bounding_box": ["BoundingBox", "BoundingBoxMode"],
         "_generic._annotations": [

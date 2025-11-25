@@ -1,29 +1,24 @@
 import factory
-from atria_types.data_instance.document_instance import DocumentInstance
-from atria_types.data_instance.image_instance import ImageInstance
 from faker import Faker
 
 from atria_types._common import OCRType
-from atria_types.generic.annotated_object import (
+from atria_types._data_instance._document_instance import DocumentInstance
+from atria_types._data_instance._image_instance import ImageInstance
+from atria_types._generic._annotated_object import (
     AnnotatedObject,
-    AnnotatedObjectList,
 )
-from atria_types.generic.annotations import (
+from atria_types._generic._annotations import (
     ClassificationAnnotation,
     EntityLabelingAnnotation,
     ExtractiveQAAnnotation,
-    GenerativeQAAnnotation,
     LayoutAnalysisAnnotation,
 )
-from atria_types.generic.bounding_box import BoundingBox, BoundingBoxList
-from atria_types.generic.document_content import DocumentContent
-from atria_types.generic.image import Image
-from atria_types.generic.label import Label, LabelList
-from atria_types.generic.ocr import OCR
-from atria_types.generic.qa_pair import (
-    ExtractiveQAPair,
-    GenerativeQAItem,
-)
+from atria_types._generic._bounding_box import BoundingBox
+from atria_types._generic._doc_content import DocumentContent, TextElement
+from atria_types._generic._image import Image
+from atria_types._generic._label import Label
+from atria_types._generic._ocr import OCR
+from atria_types._generic._qa_pair import AnswerSpan, QAPair
 
 MOCK_HOCR_TESSERACT = """
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -70,19 +65,6 @@ class LabelFactory(factory.Factory):
     value = factory.LazyFunction(lambda: fake.random_int(0, 10))
 
 
-class LabelListFactory(factory.Factory):
-    class Meta:
-        model = LabelList
-
-    @classmethod
-    def _create(cls, model_class: LabelList, *args, **kwargs):
-        return model_class.from_list(LabelFactory.build_batch(10))
-
-    @classmethod
-    def _build(cls, model_class: LabelList, *args, **kwargs):
-        return model_class.from_list(LabelFactory.build_batch(10))
-
-
 class BoundingBoxFactory(factory.Factory):
     class Meta:
         model = BoundingBox
@@ -97,37 +79,24 @@ class BoundingBoxFactory(factory.Factory):
     )
 
 
-class BoundingBoxListFactory(factory.Factory):
+class AnswerSpanFactory(factory.Factory):
     class Meta:
-        model = BoundingBoxList
+        model = AnswerSpan
 
-    @classmethod
-    def _create(cls, model_class: BoundingBoxList, *args, **kwargs):
-        return model_class.from_list(BoundingBoxFactory.build_batch(10))
-
-    @classmethod
-    def _build(cls, model_class: BoundingBoxList, *args, **kwargs):
-        return model_class.from_list(BoundingBoxFactory.build_batch(10))
+    start = factory.LazyFunction(lambda: fake.random_int(0, 50))
+    end = factory.LazyFunction(lambda: fake.random_int(51, 100))
+    text = factory.LazyFunction(lambda: fake.sentence())
 
 
-class ExtractiveQAPairFactory(factory.Factory):
+class QAPairFactory(factory.Factory):
     class Meta:
-        model = ExtractiveQAPair
+        model = QAPair
 
     id = factory.LazyFunction(lambda: fake.random_int(1, 1000))
     question_text = factory.LazyFunction(lambda: fake.sentence())
-    answer_start = factory.LazyFunction(lambda: [fake.random_int(0, 50)])
-    answer_end = factory.LazyFunction(lambda: [fake.random_int(51, 100)])
-    answer_text = factory.LazyFunction(lambda: [fake.sentence()])
-
-
-class GenerativeQAItemFactory(factory.Factory):
-    class Meta:
-        model = GenerativeQAItem
-
-    input_prefix = factory.LazyFunction(lambda: fake.sentence())
-    output_prefix = factory.LazyFunction(lambda: fake.sentence())
-    output = factory.LazyFunction(lambda: fake.paragraph())
+    answer_spans = factory.List(
+        [factory.SubFactory(AnswerSpanFactory) for _ in range(2)]
+    )
 
 
 class AnnotatedObjectFactory(factory.Factory):
@@ -148,19 +117,6 @@ class AnnotatedObjectFactory(factory.Factory):
         )
     )
     iscrowd = factory.LazyFunction(lambda: fake.boolean())
-
-
-class AnnotatedObjectListFactory(factory.Factory):
-    class Meta:
-        model = AnnotatedObjectList
-
-    @classmethod
-    def _create(cls, model_class: AnnotatedObjectList, *args, **kwargs):
-        return model_class.from_list(AnnotatedObjectFactory.build_batch(10))
-
-    @classmethod
-    def _build(cls, model_class: AnnotatedObjectList, *args, **kwargs):
-        return model_class.from_list(AnnotatedObjectFactory.build_batch(10))
 
 
 class OCRFactory(factory.Factory):
@@ -193,11 +149,6 @@ class ImageFactory(factory.Factory):
                 0, 256, (self._image_size[1], self._image_size[0], 3), dtype=np.uint8
             )
 
-        elif self._backend == "torch":
-            import torch
-
-            return torch.randn((3, self._image_size[1], self._image_size[0]))
-
         elif self._backend == "pil_file":
             return None
 
@@ -229,20 +180,23 @@ class ImageFactory(factory.Factory):
         return model_class(*args, **kwargs)
 
 
+class TextElementFactory(factory.Factory):
+    class Meta:
+        model = TextElement
+
+    text = factory.LazyFunction(lambda: fake.sentence())
+    bbox = factory.SubFactory(BoundingBoxFactory)
+    segment_bbox = factory.SubFactory(BoundingBoxFactory)
+    conf = factory.LazyFunction(lambda: fake.pyfloat(min_value=0.0, max_value=1.0))
+    angle = factory.LazyFunction(lambda: fake.pyfloat(min_value=0.0, max_value=360.0))
+
+
 class DocumentContentFactory(factory.Factory):
     class Meta:
         model = DocumentContent
 
-    words: list[str] = factory.LazyFunction(lambda: fake.words(nb=20))
-    word_confs: list[float] = factory.LazyFunction(
-        lambda: [fake.pyfloat(min_value=0.0, max_value=1.0) for _ in range(20)]
-    )
-    word_angles: list[float] = factory.LazyFunction(
-        lambda: [fake.pyfloat(min_value=0.0, max_value=360.0) for _ in range(20)]
-    )
-    word_bboxes: BoundingBoxList = factory.SubFactory(BoundingBoxListFactory)
-    word_segment_level_bboxes: BoundingBoxList = factory.SubFactory(
-        BoundingBoxListFactory
+    text_elements = factory.List(
+        [factory.SubFactory(TextElementFactory) for _ in range(5)]
     )
 
 
@@ -257,32 +211,23 @@ class EntityLabelingAnnotationFactory(factory.Factory):
     class Meta:
         model = EntityLabelingAnnotation
 
-    word_labels = factory.SubFactory(LabelListFactory)
+    word_labels = factory.List([factory.SubFactory(LabelFactory) for _ in range(3)])
 
 
 class ExtractiveQAAnnotationFactory(factory.Factory):
     class Meta:
         model = ExtractiveQAAnnotation
 
-    qa_pairs = factory.List(
-        [factory.SubFactory(ExtractiveQAPairFactory) for _ in range(3)]
-    )
-
-
-class GenerativeQAAnnotationFactory(factory.Factory):
-    class Meta:
-        model = GenerativeQAAnnotation
-
-    qa_pairs = factory.List(
-        [factory.SubFactory(GenerativeQAItemFactory) for _ in range(3)]
-    )
+    qa_pairs = factory.List([factory.SubFactory(QAPairFactory) for _ in range(3)])
 
 
 class LayoutAnalysisAnnotationFactory(factory.Factory):
     class Meta:
         model = LayoutAnalysisAnnotation
 
-    annotated_objects = factory.SubFactory(AnnotatedObjectListFactory)
+    annotated_objects = factory.List(
+        [factory.SubFactory(AnnotatedObjectFactory) for _ in range(3)]
+    )
 
 
 class ImageInstanceFactory(factory.Factory):
@@ -298,7 +243,6 @@ class ImageInstanceFactory(factory.Factory):
             factory.SubFactory(EntityLabelingAnnotationFactory),
             factory.SubFactory(LayoutAnalysisAnnotationFactory),
             factory.SubFactory(ExtractiveQAAnnotationFactory),
-            factory.SubFactory(GenerativeQAAnnotationFactory),
         ]
     )
 
@@ -318,6 +262,5 @@ class DocumentInstanceFactory(factory.Factory):
             factory.SubFactory(EntityLabelingAnnotationFactory),
             factory.SubFactory(LayoutAnalysisAnnotationFactory),
             factory.SubFactory(ExtractiveQAAnnotationFactory),
-            factory.SubFactory(GenerativeQAAnnotationFactory),
         ]
     )

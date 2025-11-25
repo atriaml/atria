@@ -1,6 +1,7 @@
 import pyarrow as pa
-from atria_typesfactory import ExtractiveQAPairFactory
-from tests.types.data_model_test_base import DataModelTestBase
+
+from atria_types._factory import QAPairFactory
+from tests.data_model_test_base import DataModelTestBase
 
 
 class TestExtractiveQAPair(DataModelTestBase):
@@ -8,7 +9,7 @@ class TestExtractiveQAPair(DataModelTestBase):
     Test class for ExtractiveQAPair.
     """
 
-    factory = ExtractiveQAPairFactory
+    factory = QAPairFactory
 
     def expected_table_schema(self) -> dict[str, pa.DataType]:
         """
@@ -18,9 +19,7 @@ class TestExtractiveQAPair(DataModelTestBase):
         return {
             "id": pa.int64(),
             "question_text": pa.string(),
-            "answer_start": pa.list_(pa.int64()),
-            "answer_end": pa.list_(pa.int64()),
-            "answer_text": pa.list_(pa.string()),
+            "answer_spans": pa.string(),
         }
 
     def expected_table_schema_flattened(self) -> dict[str, pa.DataType]:
@@ -31,7 +30,5 @@ class TestExtractiveQAPair(DataModelTestBase):
         return {
             "id": pa.int64(),
             "question_text": pa.string(),
-            "answer_start": pa.list_(pa.int64()),
-            "answer_end": pa.list_(pa.int64()),
-            "answer_text": pa.list_(pa.string()),
+            "answer_spans": pa.string(),
         }

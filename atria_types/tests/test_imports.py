@@ -19,27 +19,23 @@ IMPORT_CHECK = [
     "SplitInfo",
     # generic types
     "AnnotatedObject",
-    "AnnotatedObjectList",
     "BoundingBox",
-    "BoundingBoxList",
     "BoundingBoxMode",
-    "DocumentContent",
+    "TextElement",
     "Annotation",
     "ClassificationAnnotation",
     "EntityLabelingAnnotation",
     "LayoutAnalysisAnnotation",
     "ExtractiveQAAnnotation",
-    "GenerativeQAAnnotation",
     "Image",
     "Label",
-    "LabelList",
     "OCR",
-    "ExtractiveQAPair",
-    "GenerativeQAItem",
+    "QAPair",
+    "AnswerSpan",
 ]
 
 
 def test_imports():
     for name in IMPORT_CHECK:
-        module = __import__("atria_types.types", fromlist=[name])
-        assert hasattr(module, name), f"Cannot import {name} from atria_types.types"
+        module = __import__("atria_types", fromlist=[name])
+        assert hasattr(module, name), f"Cannot import {name} from atria_types"

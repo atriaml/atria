@@ -2,12 +2,12 @@ import ast
 from pathlib import Path
 from typing import Annotated, Any
 
-from atria_types.utilities.file import _load_bytes_from_uri
 from pydantic import field_serializer, field_validator
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._common import OCRType
 from atria_types._pydantic import OptStrField, TableSchemaMetadata
+from atria_types._utilities._url_fetchers import _load_bytes_from_uri
 
 
 class OCR(BaseDataModel):
@@ -29,7 +29,7 @@ class OCR(BaseDataModel):
             return OCRType(value)
         return value
 
-    def _load(self):
+    def load(self):
         if self.content is None:
             if self.file_path is None:
                 raise ValueError("Either file_path or content must be provided.")
@@ -46,7 +46,7 @@ class OCR(BaseDataModel):
 
     @field_serializer("content")
     def _serialize_content(self, value: str | None) -> bytes | None:
-        from atria_types.utilities.encoding import _compress_string
+        from atria_types._utilities._string_encoding import _compress_string
 
         if value is None:
             return None
@@ -54,7 +54,7 @@ class OCR(BaseDataModel):
 
     @field_validator("content", mode="before")
     def _validate_content(cls, value: Any) -> str | None:
-        from atria_types.utilities.encoding import _decompress_string
+        from atria_types._utilities._string_encoding import _decompress_string
 
         if value is None:
             return None

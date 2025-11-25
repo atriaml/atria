@@ -1,6 +1,7 @@
 import pyarrow as pa
-from atria_typesfactory import AnnotatedObjectFactory
-from tests.types.data_model_test_base import DataModelTestBase
+
+from atria_types._factory import AnnotatedObjectFactory
+from tests.data_model_test_base import DataModelTestBase
 
 
 class TestAnnotatedObject(DataModelTestBase):
@@ -28,10 +29,10 @@ class TestAnnotatedObject(DataModelTestBase):
         This should be overridden by child classes to provide specific schemas.
         """
         return {
-            "label_value": pa.int64(),
-            "label_name": pa.string(),
-            "bbox_value": pa.list_(pa.float64()),
-            "bbox_mode": pa.string(),
+            "label__value": pa.int64(),
+            "label__name": pa.string(),
+            "bbox__value": pa.list_(pa.float64()),
+            "bbox__mode": pa.string(),
             "segmentation": pa.list_(pa.list_(pa.float64())),
             "iscrowd": pa.bool_(),
         }

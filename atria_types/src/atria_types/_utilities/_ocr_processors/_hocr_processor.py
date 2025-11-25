@@ -1,7 +1,7 @@
 import bs4
 
 from atria_types._generic._bounding_box import BoundingBox
-from atria_types._generic._text_elements import TextElement
+from atria_types._generic._doc_content import TextElement
 
 
 class HOCRProcessor:

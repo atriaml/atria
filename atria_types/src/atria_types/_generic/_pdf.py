@@ -1,14 +1,14 @@
 from functools import cached_property
 
-from atria_types.base._data_model import BaseDataModel
 from PIL.Image import Image as PILImage
 
-from atria_types._pydantic import IntField, OptStrField
+from atria_types._base._data_model import BaseDataModel
+from atria_types._pydantic import OptIntField, OptStrField
 
 
 class PDF(BaseDataModel):
     file_path: OptStrField = None
-    num_pages: IntField = None
+    num_pages: OptIntField = None
 
     @cached_property
     def pages(self) -> list[PILImage]:
@@ -44,11 +44,26 @@ class PDF(BaseDataModel):
                 import pymupdf
 
                 doc = pymupdf.open(self.file_path)
-                self.num_pages = doc.page_count
+                num_pages = doc.page_count
                 doc.close()
-            except (ImportError, Exception):
+
+                return PDF(
+                    file_path=self.file_path,
+                    num_pages=num_pages,
+                )
+            except ImportError:
                 # Fallback to pdf2image if pymupdf is not available or fails
                 from pdf2image import convert_from_path
 
                 pages = convert_from_path(self.file_path)
-                self.num_pages = len(pages)
+                num_pages = len(pages)
+
+                return PDF(
+                    file_path=self.file_path,
+                    num_pages=num_pages,
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to load PDF metadata from {self.file_path}: {e}"
+                ) from e
+        return self

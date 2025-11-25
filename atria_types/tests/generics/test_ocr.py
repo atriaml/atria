@@ -1,10 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
-from atria_typesfactory import MOCK_HOCR_TESSERACT, OCRFactory
-from tests.types.data_model_test_base import DataModelTestBase
 
-from atria_types.generic.ocr import OCR
+from atria_types._factory import MOCK_HOCR_TESSERACT, OCRFactory
+from atria_types._generic._ocr import OCR
+from tests.data_model_test_base import DataModelTestBase
 
 
 class TestOCR(DataModelTestBase):
@@ -40,5 +40,5 @@ def test_load_from_url(mock_get: MagicMock) -> None:
     mock_get.return_value = mock_response
 
     raw_image = OCR(file_path="https://example.com/test_image.txt")
-    raw_image.load()
-    assert raw_image.content is not None
+    loaded_raw_image = raw_image.load()
+    assert loaded_raw_image.content is not None

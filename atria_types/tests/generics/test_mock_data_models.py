@@ -1,7 +1,7 @@
 import pyarrow as pa
 
-from tests.types.data_model_test_base import DataModelTestBase
-from tests.utilities.mock_data_models import MockDataModelParentFactory
+from tests.data_model_test_base import DataModelTestBase
+from tests.mock_data_models import MockDataModelParentFactory
 
 
 class TestMockDataModelParent(DataModelTestBase):
@@ -54,15 +54,15 @@ class TestMockDataModelParent(DataModelTestBase):
             "integer_list_attribute": pa.list_(pa.int64()),
             "float_list_attribute": pa.list_(pa.float64()),
             "string_list_attribute": pa.list_(pa.string()),
-            "example_data_model_child_required_integer_attribute": pa.int64(),
-            "example_data_model_child_required_integer_list_attribute": pa.list_(
+            "example_data_model_child__required_integer_attribute": pa.int64(),
+            "example_data_model_child__required_integer_list_attribute": pa.list_(
                 pa.int64()
             ),
-            "example_data_model_child_integer_attribute": pa.int64(),
-            "example_data_model_child_float_attribute": pa.float64(),
-            "example_data_model_child_string_attribute": pa.string(),
-            "example_data_model_child_list_attribute": pa.list_(pa.int64()),
-            "example_data_model_child_integer_list_attribute": pa.list_(pa.int64()),
-            "example_data_model_child_float_list_attribute": pa.list_(pa.float64()),
-            "example_data_model_child_string_list_attribute": pa.list_(pa.string()),
+            "example_data_model_child__integer_attribute": pa.int64(),
+            "example_data_model_child__float_attribute": pa.float64(),
+            "example_data_model_child__string_attribute": pa.string(),
+            "example_data_model_child__list_attribute": pa.list_(pa.int64()),
+            "example_data_model_child__integer_list_attribute": pa.list_(pa.int64()),
+            "example_data_model_child__float_list_attribute": pa.list_(pa.float64()),
+            "example_data_model_child__string_list_attribute": pa.list_(pa.string()),
         }

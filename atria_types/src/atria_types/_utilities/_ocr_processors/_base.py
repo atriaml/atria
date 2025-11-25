@@ -1,5 +1,5 @@
 from atria_types._common import OCRType
-from atria_types._generic._text_elements import TextElement
+from atria_types._generic._doc_content import TextElement
 from atria_types._utilities._ocr_processors._hocr_processor import HOCRProcessor
 
 

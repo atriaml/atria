@@ -24,7 +24,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/3e/38/7859ff46355f76f8d
 [[package]]
 name = "atria-logger"
 version = "0.1.8"
-source = { editable = "atria_logger" }
+source = { directory = "../atria_logger" }
 dependencies = [
     { name = "coloredlogs" },
     { name = "lazy-loader" },
@@ -52,7 +52,7 @@ dev = [
 [[package]]
 name = "atria-types"
 version = "0.0.0"
-source = { editable = "atria_types" }
+source = { editable = "." }
 dependencies = [
     { name = "atria-logger" },
     { name = "beautifulsoup4" },
@@ -75,9 +75,23 @@ dependencies = [
     { name = "torchvision" },
 ]
 
+[package.optional-dependencies]
+test = [
+    { name = "coverage" },
+    { name = "pytest" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
-    { name = "atria-logger", directory = "atria_logger" },
+    { name = "atria-logger", directory = "../atria_logger" },
     { name = "beautifulsoup4", specifier = ">=4.12.2" },
     { name = "codename", specifier = ">=1.1" },
     { name = "coverage", marker = "extra == 'test'" },
@@ -104,43 +118,6 @@ provides-extras = ["test"]
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = ">=7.12.0" },
-    { name = "mypy", specifier = ">=1.18.2" },
-    { name = "pytest", specifier = ">=9.0.1" },
-    { name = "ruff", specifier = ">=0.14.6" },
-]
-
-[[package]]
-name = "atriaml"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "atria-logger" },
-    { name = "atria-types" },
-    { name = "torch" },
-    { name = "torchvision" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "faker" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "atria-logger", editable = "atria_logger" },
-    { name = "atria-types", editable = "atria_types" },
-    { name = "torch", specifier = ">=2.9.1" },
-    { name = "torchvision", specifier = ">=0.24.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "coverage", specifier = ">=7.12.0" },
-    { name = "faker", specifier = ">=38.2.0" },
     { name = "mypy", specifier = ">=1.18.2" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "ruff", specifier = ">=0.14.6" },

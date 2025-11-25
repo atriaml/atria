@@ -26,7 +26,7 @@ class Annotation(BaseDataModel):
             return ClassificationAnnotation(**params)
         elif annotation_type == AnnotationType.entity_labeling:
             return EntityLabelingAnnotation(**params)
-        elif annotation_type == AnnotationType.extractive_qa:
+        elif annotation_type == AnnotationType.question_answering:
             return ExtractiveQAAnnotation(**params)
         elif annotation_type == AnnotationType.layout:
             return LayoutAnalysisAnnotation(**params)
@@ -67,7 +67,7 @@ class EntityLabelingAnnotation(Annotation):
 
 
 class ExtractiveQAAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.extractive_qa
+    _type: AnnotationType = AnnotationType.question_answering
     qa_pairs: Annotated[list[QAPair] | None, TableSchemaMetadata(pa_type="string")] = (
         None
     )

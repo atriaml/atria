@@ -39,7 +39,7 @@ from pydantic import (
     WrapValidator,
 )
 
-from atria_types.utilities.encoding import (
+from atria_types._utilities._image_encoding import (
     _base64_to_image,
     _bytes_to_image,
     _image_to_bytes,
@@ -166,7 +166,12 @@ def _is_tensor_type(value: Any) -> bool:
         bool: True if the value is a tensor-like object, False otherwise.
     """
     if hasattr(value, "__class__") and "torch" in value.__class__.__module__:
-        import torch
+        try:
+            import torch
+        except ImportError:
+            raise ImportError(
+                "PyTorch is required to use tensor types. Please install PyTorch."
+            ) from None
 
         return isinstance(value, torch.Tensor)
     return False
