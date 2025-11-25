@@ -1,0 +1,17 @@
+[project]
+name = "atriaml"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "atria-logger",
+    "atria-types",
+]
+
+[tool.setuptools]
+packages = ["atria_types", "atria_logger"]
+
+[tool.uv.sources]
+atria-logger = { path = "atria_logger", editable = true }
+atria-types = { path = "atria_types", editable = true }
