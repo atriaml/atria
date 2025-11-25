@@ -19,9 +19,9 @@ class AnswerSpan(BaseDataModel):
 class QAPair(BaseDataModel):
     id: IntField
     question_text: StrField
-    answer_spans: Annotated[list[AnswerSpan], TableSchemaMetadata(pa_type="string")] = (
-        None
-    )
+    answer_spans: Annotated[
+        list[AnswerSpan] | None, TableSchemaMetadata(pa_type="string")
+    ] = None
 
     @field_validator("answer_spans", mode="before")
     def validate_answer_spans(cls, value) -> list[AnswerSpan]:

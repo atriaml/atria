@@ -3,12 +3,12 @@ from functools import cached_property
 from atria_types.base._data_model import BaseDataModel
 from PIL.Image import Image as PILImage
 
-from atria_types._pydantic import IntField, OptStrField
+from atria_types._pydantic import OptIntField, OptStrField
 
 
 class PDF(BaseDataModel):
     file_path: OptStrField = None
-    num_pages: IntField = None
+    num_pages: OptIntField = None
 
     @cached_property
     def pages(self) -> list[PILImage]:

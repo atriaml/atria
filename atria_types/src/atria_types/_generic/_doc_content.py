@@ -18,7 +18,7 @@ class TextElement(BaseDataModel):
 class DocumentContent(BaseDataModel):
     text: OptStrField = None
     text_elements: Annotated[
-        list[TextElement], TableSchemaMetadata(pa_type="string")
+        list[TextElement] | None, TableSchemaMetadata(pa_type="string")
     ] = None
 
     @model_validator(mode="before")

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from atria_logger import get_logger
 
+from atria_types._base._ops._base_ops import StandardOps
 from atria_types._generic._bounding_box import BoundingBox, BoundingBoxMode
 
 logger = get_logger(__name__)
 
 
-class BoundingBoxOps:
+class BoundingBoxOps(StandardOps[BoundingBox]):
     """Operations for BoundingBox
 
     A mixin class that provides operations for BoundingBox.

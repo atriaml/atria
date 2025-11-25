@@ -14,8 +14,8 @@ def _load_bytes_from_uri(uri: str) -> bytes:
     if parsed.scheme in ["http", "https", "ftp"]:
         if path.endswith(".tar"):
             try:
-                offset = int(query.get("offset", [None])[0])
-                length = int(query.get("length", [None])[0])
+                offset = int(query.get("offset", [None])[0])  # type: ignore
+                length = int(query.get("length", [None])[0])  # type: ignore
             except (TypeError, ValueError):
                 raise ValueError(
                     f"Missing or invalid 'offset' and 'length' in tar URI: {uri}"
@@ -55,8 +55,8 @@ def _load_bytes_from_uri(uri: str) -> bytes:
         # local file or tar file with offset/length
         if path.endswith(".tar"):
             try:
-                offset = int(query.get("offset", [None])[0])
-                length = int(query.get("length", [None])[0])
+                offset = int(query.get("offset", [None])[0])  # type: ignore
+                length = int(query.get("length", [None])[0])  # type: ignore
             except (TypeError, ValueError):
                 raise ValueError(
                     f"Missing or invalid 'offset' and 'length' in tar URI: {uri}"

@@ -6,6 +6,7 @@ import numpy as np
 from atria_logger import get_logger
 from PIL.Image import Resampling
 
+from atria_types._base._ops._base_ops import StandardOps
 from atria_types._generic._image import Image
 
 logger = get_logger(__name__)
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
     import torch
 
 
-class ImageOps:
+class ImageOps(StandardOps[Image]):
     """
     All image operations live here.
     Bound service object used through: image.ops

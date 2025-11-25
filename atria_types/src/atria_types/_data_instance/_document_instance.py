@@ -39,7 +39,7 @@ class DocumentInstance(BaseDataInstance):
             and loaded_fields["content"].text_elements is None
         ):
             loaded_fields["content"] = OCRProcessor.parse(
-                raw_ocr=self.ocr.content, ocr_type=self.ocr.type
+                raw_ocr=loaded_fields["ocr"].content, ocr_type=loaded_fields["ocr"].type
             )
 
         new_instance = self.model_copy(update=loaded_fields)

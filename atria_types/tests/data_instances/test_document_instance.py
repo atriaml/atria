@@ -31,6 +31,7 @@ class TestDocumentInstance(DataModelTestBase):
             },
             "content": {
                 "text_elements": pa.string(),
+                "text": pa.string(),
             },
             "annotations": pa.string(),
             "ocr": {
@@ -55,6 +56,7 @@ class TestDocumentInstance(DataModelTestBase):
             "pdf__num_pages": pa.int64(),
             "pdf__file_path": pa.string(),
             "content__text_elements": pa.string(),
+            "content__text": pa.string(),
             "annotations": pa.string(),
             "ocr__file_path": pa.string(),
             "ocr__content": pa.binary(),

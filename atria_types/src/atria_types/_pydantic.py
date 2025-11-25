@@ -94,7 +94,7 @@ def _resolve_pyarrow_type(type_str: str) -> pa.DataType:
     try:
         return mapping[type_str]
     except KeyError:
-        raise ValueError(f"Unsupported pyarrow type string: '{type_str}'")
+        raise ValueError(f"Unsupported pyarrow type string: '{type_str}'") from None
 
 
 def _path_serializer(value: str, nxt: SerializerFunctionWrapHandler) -> str:
