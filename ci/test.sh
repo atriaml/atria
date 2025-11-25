@@ -2,10 +2,7 @@
 
 PACKAGE=$1
 
-declare -a packages=(
-    atria_logger
-    atria_types
-)
+source ./ci/packages.sh
 
 for package in "${packages[@]}"; do
     if [[ -n "$PACKAGE" && "$PACKAGE" != "$package" ]]; then
