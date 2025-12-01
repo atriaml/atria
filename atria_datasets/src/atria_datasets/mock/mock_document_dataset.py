@@ -10,7 +10,7 @@ from atria_types import (
 )
 from atria_types.factory import DocumentInstanceFactory
 
-from atria_datasets.core.dataset.atria_dataset import AtriaDataset
+from atria_datasets.core.dataset._datasets import Dataset
 
 TRAIN_SIZE = 100
 TEST_SIZE = 20
@@ -51,9 +51,7 @@ class MockDocumentDatasetMixin:
         return sample
 
 
-class MockDocumentIndexableDataset(
-    MockDocumentDatasetMixin, AtriaDataset[DocumentInstance]
-):
+class MockDocumentIndexableDataset(MockDocumentDatasetMixin, Dataset[DocumentInstance]):
     def _split_iterator(
         self, split: DatasetSplitType, **kwargs
     ) -> Sequence[DocumentInstance]:
@@ -61,9 +59,7 @@ class MockDocumentIndexableDataset(
         return DocumentInstanceFactory.build_batch(size)
 
 
-class MockDocumentIterableDataset(
-    MockDocumentDatasetMixin, AtriaDataset[DocumentInstance]
-):
+class MockDocumentIterableDataset(MockDocumentDatasetMixin, Dataset[DocumentInstance]):
     def _split_iterator(
         self, split: DatasetSplitType, **kwargs
     ) -> Generator[DocumentInstance, None, None]:

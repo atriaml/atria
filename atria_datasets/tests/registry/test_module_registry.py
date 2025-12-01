@@ -1,4 +1,4 @@
-from atria_registry.module_registry import ModuleRegistry
+from atria_registry._module_registry import ModuleRegistry
 from atria_registry.registry_group import RegistryGroup
 from utilities import MockClass3, MockClass4, MockDatasetClass
 

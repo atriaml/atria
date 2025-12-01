@@ -36,7 +36,7 @@ class FilePathOps(OpsBase[T]):
         updates = {}
         for field_name in self.model.__class__.model_fields:
             try:
-                field_value = getattr(self, field_name)
+                field_value = getattr(self.model, field_name)
                 if isinstance(field_value, BaseDataModel):
                     updates[field_name] = (
                         field_value.ops.convert_file_paths_to_relative(
@@ -66,7 +66,7 @@ class FilePathOps(OpsBase[T]):
         updates = {}
         for field_name in self.model.__class__.model_fields:
             try:
-                field_value = getattr(self, field_name)
+                field_value = getattr(self.model, field_name)
                 if isinstance(field_value, BaseDataModel):
                     updates[field_name] = (
                         field_value.ops.convert_file_paths_to_absolute(

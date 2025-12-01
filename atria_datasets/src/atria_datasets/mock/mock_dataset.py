@@ -10,14 +10,14 @@ from atria_types import (
     SplitConfig,
 )
 
-from atria_datasets.core.dataset.atria_dataset import AtriaDataset
+from atria_datasets.core.dataset._datasets import Dataset
 
 DATASET_SIZE = 100
 NUM_LABELS = 10
 LABELS = [f"class_{idx}" for idx in range(NUM_LABELS)]
 
 
-class MockAtriaIndexableDataset(AtriaDataset[BaseDataInstance]):
+class MockAtriaIndexableDataset(Dataset[BaseDataInstance]):
     _REGISTRY_CONFIGS = [
         AtriaDatasetConfig(dataset_name="default", data_urls=["http://example.com"]),
         AtriaDatasetConfig(
@@ -52,7 +52,7 @@ class MockAtriaIndexableDataset(AtriaDataset[BaseDataInstance]):
         return BaseDataInstance(index=sample["index"])
 
 
-class MockAtriaIterableDataset(AtriaDataset[BaseDataInstance]):
+class MockAtriaIterableDataset(Dataset[BaseDataInstance]):
     _REGISTRY_CONFIGS = [
         AtriaDatasetConfig(dataset_name="default", data_urls=["http://example.com"]),
         AtriaDatasetConfig(

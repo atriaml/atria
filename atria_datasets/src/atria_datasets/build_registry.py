@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from atria_registry.utilities import write_registry_to_yaml
+from atria_registry._utilities import write_registry_to_yaml
 
 from atria_datasets.document_classification.rvlcdip import *  # noqa
 from atria_datasets.document_classification.tobacco3482 import *  # noqa

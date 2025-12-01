@@ -12,7 +12,7 @@ from atria_types import (
     SplitConfig,
 )
 
-from atria_datasets.core.dataset.atria_dataset import AtriaDataset
+from atria_datasets.core.dataset._datasets import Dataset
 
 TRAIN_SIZE = 100
 TEST_SIZE = 20
@@ -22,7 +22,7 @@ NUM_LABELS = 10
 LABELS = [f"class_{idx}" for idx in range(NUM_LABELS)]
 
 
-class MockImageDatasetMixin(AtriaDataset[BaseDataInstance]):
+class MockImageDatasetMixin(Dataset[BaseDataInstance]):
     _REGISTRY_CONFIGS = [
         AtriaDatasetConfig(config_name="default", data_urls=["http://example.com"]),
         AtriaDatasetConfig(
@@ -60,7 +60,7 @@ class MockImageDatasetMixin(AtriaDataset[BaseDataInstance]):
         return image_instance
 
 
-class MockImageIndexableDataset(MockImageDatasetMixin, AtriaDataset[ImageInstance]):
+class MockImageIndexableDataset(MockImageDatasetMixin, Dataset[ImageInstance]):
     def _split_iterator(
         self, split: DatasetSplitType, **kwargs
     ) -> Sequence[tuple[Image, int]]:
@@ -71,7 +71,7 @@ class MockImageIndexableDataset(MockImageDatasetMixin, AtriaDataset[ImageInstanc
         return [(mock_image, i // 10) for i in range(size)]
 
 
-class MockImageIterableDataset(MockImageDatasetMixin, AtriaDataset[ImageInstance]):
+class MockImageIterableDataset(MockImageDatasetMixin, Dataset[ImageInstance]):
     def _split_iterator(  # type: ignore
         self, split: DatasetSplitType, **kwargs
     ) -> Generator[tuple[Image, int], None, None]:

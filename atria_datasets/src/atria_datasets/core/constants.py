@@ -23,6 +23,25 @@ by setting the `ATRIA_CACHE_DIR` environment variable. If not set, it defaults t
 `~/.cache/atria/`.
 """
 
+_DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR = "storage"
+"""
+str: The default subdirectory name for storing dataset-related resources within
+the Atria datasets cache directory.
+"""
+
+_DEFAULT_ATRIA_DATASETS_CONFIG_PATH = "config.yaml"
+"""
+Path: The default path template for dataset configuration files. The
+`{config_name}` placeholder should be replaced with the actual configuration name
+when constructing the full path to a specific dataset configuration file.
+"""
+
+_DEFAULT_ATRIA_DATASETS_METADATA_PATH = "metadata.yaml"
+"""
+Path: The default path for dataset metadata files within the dataset storage
+directory.
+"""
+
 _DEFAULT_ATRIA_FILE_STORAGE_DIR = Path(DEFAULT_ATRIA_CACHE_DIR) / "fs/"
 """
 Path: The default directory for Atria file storage. This is a subdirectory of

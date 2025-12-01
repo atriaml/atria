@@ -14,8 +14,9 @@ class BoundingBoxOps(StandardOps[BoundingBox]):
     A mixin class that provides operations for BoundingBox.
     """
 
-    def __init__(self, bbox: BoundingBox):
-        self.bbox = bbox
+    @property
+    def bbox(self) -> BoundingBox:
+        return self.model
 
     def switch_mode(self) -> BoundingBox:
         """

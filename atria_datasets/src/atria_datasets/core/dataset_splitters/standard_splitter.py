@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 from atria_types._utilities._repr import RepresentationMixin
 
 if TYPE_CHECKING:
-    from atria_datasets.core.dataset.split_iterator import SplitIterator
+    from atria_datasets.core.dataset._split_iterators import SplitIterator
 
 
 class StandardSplitter(RepresentationMixin):
@@ -42,7 +42,7 @@ class StandardSplitter(RepresentationMixin):
         shuffle (bool): Whether to shuffle the dataset before splitting. Defaults to True.
     """
 
-    def __init__(self, split_ratio: float = 0.8, shuffle: bool = True):
+    def __init__(self, split_ratio: float = 0.8, shuffle: bool = True, seed: int = 42):
         """
         Initializes the `StandardSplitter`.
 
@@ -52,6 +52,7 @@ class StandardSplitter(RepresentationMixin):
         """
         self.split_ratio = split_ratio
         self.shuffle = shuffle
+        self.seed = seed
 
     def create_sequential_split(
         self, train: "SplitIterator"
@@ -104,7 +105,9 @@ class StandardSplitter(RepresentationMixin):
         train_dataset_size = len(train)
         validation = copy.deepcopy(train)
         train_subset, validation_subset = train_test_split(
-            list(range(train_dataset_size)), test_size=1 - self.split_ratio
+            list(range(train_dataset_size)),
+            test_size=1 - self.split_ratio,
+            random_state=self.seed,
         )
         train.subset_indices = list(train_subset.indices)  # type: ignore
         validation.subset_indices = list(validation_subset.indices)  # type: ignore
@@ -128,7 +131,7 @@ class StandardSplitter(RepresentationMixin):
             AssertionError: If the dataset is not an instance of `AtriaDataset` or if the
                             dataset size is unknown (e.g., in iterable mode).
         """
-        from atria_datasets.core.dataset.split_iterator import SplitIterator
+        from atria_datasets.core.dataset._split_iterators import SplitIterator
 
         assert isinstance(train_split, SplitIterator), (
             "The dataset must be a PyTorch or Hugging Face dataset."

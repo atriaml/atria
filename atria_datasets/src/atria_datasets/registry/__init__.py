@@ -1,27 +1,12 @@
-"""
-Registry Initialization Module
-
-This module initializes the registry system for the Atria application. It imports
-and initializes various registry groups from the `ModuleRegistry` class, making
-them accessible as module-level constants. These registry groups are used to
-manage datasets, data pipelines, data transformations, and other components
-within the application.
+"""Datasets registry initialization module
 
 The registry system provides a centralized way to register and retrieve components
 such as datasets, models, transformations, and pipelines throughout the application.
 
-Constants:
+Attributes:
     DATASET: Registry group for dataset components
     DATA_PIPELINE: Registry group for data pipeline components
-    DATA_TRANSFORM: Registry group for data transformation components
-    BATCH_SAMPLER: Registry group for batch sampling components
-    MODEL_PIPELINE: Registry group for model pipeline components
-    MODEL: Registry group for model components
-    TASK_PIPELINE: Registry group for task pipeline components
-    METRIC: Registry group for metric components
-    LR_SCHEDULER: Registry group for learning rate scheduler components
-    OPTIMIZER: Registry group for optimizer components
-    ENGINE: Registry group for engine components
+    BATCH_SAMPLER: Registry group for batch sampler components
 
 Example:
     >>> from atria_registry import DATA_TRANSFORM, MODEL
@@ -31,21 +16,30 @@ Example:
     ...     pass
     >>> # Get a registered model
     >>> model_cls = MODEL.get("my_model")
-
-Dependencies:
-    atria_registry.module_registry: Provides the ModuleRegistry class
-    atria_registry.registry_group: Provides registry group classes
-
-Author: Atria Development Team
-Date: 2025-07-10
-Version: 1.2.0
-License: MIT
 """
 
-from atria_registry import ModuleRegistry
+from atria_registry import ModuleRegistry, RegistryGroup
 
-from atria_datasets.registry.module_registry import *  # noqa: F401, F403
-from atria_datasets.registry.registry_groups import DatasetRegistryGroup
+from atria_datasets.core.dataset._datasets import Dataset
+
+
+class DatasetRegistryGroup(RegistryGroup[Dataset]):
+    pass
+
+
+ModuleRegistry().add_registry_group(
+    name="DATASET",
+    registry_group=DatasetRegistryGroup(name="dataset", package="atria_datasets"),
+)
+ModuleRegistry().add_registry_group(
+    name="DATA_PIPELINE",
+    registry_group=RegistryGroup(name="data_pipeline", package="atria_datasets"),
+)
+ModuleRegistry().add_registry_group(
+    name="BATCH_SAMPLER",
+    registry_group=RegistryGroup(name="batch_sampler", package="atria_datasets"),
+)
+
 
 DATASET: DatasetRegistryGroup = ModuleRegistry().DATASET
 """Registry group for datasets.

@@ -28,11 +28,12 @@ import lazy_loader as lazy
 import atria_datasets.registry  # noqa: F401
 
 if TYPE_CHECKING:
+    from atria_datasets.api.datasets import load_dataset, load_dataset_config  # noqa
     import atria_datasets.registry  # noqa: F401 # Import the registry to ensure it is initialized
-    from atria_datasets.core.dataset.atria_dataset import (
-        AtriaDataset,
-        AtriaDocumentDataset,
-        AtriaImageDataset,
+    from atria_datasets.core.dataset._datasets import (
+        Dataset,
+        DocumentDataset,
+        ImageDataset,
         DatasetLoadingMode,
     )
     from atria_datasets.core.dataset.atria_hub_dataset import AtriaHubDataset
@@ -41,7 +42,7 @@ if TYPE_CHECKING:
         AtriaHuggingfaceDocumentDataset,
         AtriaHuggingfaceImageDataset,
     )
-    from atria_datasets.core.dataset.split_iterator import SplitIterator
+    from atria_datasets.core.dataset._split_iterator import SplitIterator
     from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
     from atria_datasets.core.download_manager.download_file_info import DownloadFileInfo
     from atria_datasets.core.download_manager.download_manager import DownloadManager
@@ -71,6 +72,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
     submodules={"registry"},
     submod_attrs={
+        "api.datasets": ["load_dataset", "load_dataset_config"],
         "core.dataset.atria_dataset": [
             "AtriaDataset",
             "AtriaDocumentDataset",

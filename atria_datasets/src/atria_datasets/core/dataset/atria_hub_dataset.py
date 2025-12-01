@@ -37,9 +37,9 @@ from atria_types import (
     SplitConfig,
 )
 
-from atria_datasets.core.dataset.atria_dataset import (
-    AtriaDataset,
-    AtriaDatasetConfig,
+from atria_datasets.core.dataset._datasets import (
+    Dataset,
+    DatasetConfig,
     DatasetLoadingMode,
 )
 from atria_datasets.core.storage.deltalake_reader import DeltalakeReader
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class AtriaHubDatasetConfig(AtriaDatasetConfig):
+class AtriaHubDatasetConfig(DatasetConfig):
     """
     Configuration class for Atria Hub datasets.
 
@@ -67,7 +67,7 @@ class AtriaHubDatasetConfig(AtriaDatasetConfig):
     branch: str = "main"
 
 
-class AtriaHubDataset(AtriaDataset[T_BaseDataInstance]):
+class AtriaHubDataset(Dataset[T_BaseDataInstance]):
     """
     A dataset class for loading and managing datasets from the Atria Hub.
 

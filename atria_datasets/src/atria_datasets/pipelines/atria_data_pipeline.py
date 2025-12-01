@@ -33,7 +33,7 @@ from atria_types._utilities._repr import RepresentationMixin
 from rich.pretty import pretty_repr
 
 from atria_datasets.core.batch_samplers.batch_samplers_dict import BatchSamplersDict
-from atria_datasets.core.dataset.atria_dataset import AtriaDataset, DatasetLoadingMode
+from atria_datasets.core.dataset._datasets import Dataset, DatasetLoadingMode
 from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_datasets.pipelines.utilities import (
@@ -100,7 +100,7 @@ class AtriaDataPipeline(RepresentationMixin):
 
     def __init__(
         self,
-        dataset: AtriaDataset,
+        dataset: Dataset,
         data_dir: str | None = None,
         dataloader_config: DataloaderConfig = DataloaderConfig(
             train_batch_size=64,

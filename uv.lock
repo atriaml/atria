@@ -393,6 +393,7 @@ dependencies = [
     { name = "atria-logger" },
     { name = "atria-registry" },
     { name = "atria-types" },
+    { name = "coloredlogs" },
 ]
 
 [package.dev-dependencies]
@@ -411,6 +412,7 @@ requires-dist = [
     { name = "atria-logger", editable = "atria_logger" },
     { name = "atria-registry", editable = "atria_registry" },
     { name = "atria-types", editable = "atria_types" },
+    { name = "coloredlogs", specifier = ">=15.0.1" },
 ]
 
 [package.metadata.requires-dev]

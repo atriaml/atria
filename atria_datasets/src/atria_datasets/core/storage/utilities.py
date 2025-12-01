@@ -41,10 +41,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from atria_logger import get_logger
 
-from atria_datasets.core.utilities import (
-    _get_atria_core_base_path,
-    _get_package_base_path,
-)
+from atria_datasets.core.utilities import _get_package_base_path
 
 if TYPE_CHECKING:
     from ray.data.block import Block
@@ -52,10 +49,10 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 _BASE_SRC_PATH = str(Path(_get_package_base_path("atria_datasets")).parent)
-_BASE_CORE_SRC_PATH = str(Path(_get_atria_core_base_path()).parent)
-_RAY_RUNTIME_ENV = {
-    "env_vars": {"PYTHONPATH": f"{_BASE_SRC_PATH}:{_BASE_CORE_SRC_PATH}/"}
-}
+# _BASE_CORE_SRC_PATH = str(Path(_get_atria_core_base_path()).parent)
+# _RAY_RUNTIME_ENV = {
+#     "env_vars": {"PYTHONPATH": f"{_BASE_SRC_PATH}:{_BASE_CORE_SRC_PATH}/"}
+# }
 T = TypeVar("T")
 
 

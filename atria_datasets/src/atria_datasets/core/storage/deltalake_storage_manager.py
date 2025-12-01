@@ -47,13 +47,13 @@ import pyarrow as pa
 import tqdm
 from atria_logger import get_logger
 
-from atria_datasets.core.dataset.atria_dataset import DatasetLoadingMode
+from atria_datasets.core.dataset._datasets import DatasetLoadingMode
 from atria_datasets.core.storage.deltalake_reader import DeltalakeReader
 
 if TYPE_CHECKING:
     from atria_types import BaseDataInstance, DatasetSplitType
 
-    from atria_datasets.core.dataset.atria_dataset import SplitIterator
+    from atria_datasets.core.dataset._datasets import SplitIterator
 
 
 logger = get_logger(__name__)
@@ -392,7 +392,7 @@ class DeltalakeStorageManager:
         allowed_keys: set[str] | None = None,
         streaming_mode: bool = False,
     ) -> "SplitIterator":
-        from atria_datasets.core.dataset.atria_dataset import SplitIterator
+        from atria_datasets.core.dataset._datasets import SplitIterator
 
         if not self.split_exists(split):
             raise RuntimeError(

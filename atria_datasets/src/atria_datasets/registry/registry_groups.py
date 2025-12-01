@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from atria_registry import RegistryGroup
 
 if TYPE_CHECKING:
-    from atria_datasets.core.dataset.atria_dataset import AtriaDatasetConfig
+    from atria_datasets.core.dataset._datasets import DatasetConfig
 
 
 class DatasetRegistryGroup(RegistryGroup):
@@ -20,7 +20,7 @@ class DatasetRegistryGroup(RegistryGroup):
     def register(
         self,
         name: str,
-        configs: list[AtriaDatasetConfig] | None = None,
+        configs: list[DatasetConfig] | None = None,
         builds_to_file_store: bool = True,
         **kwargs,
     ):
@@ -34,10 +34,7 @@ class DatasetRegistryGroup(RegistryGroup):
         Returns:
             function: A decorator function for registering the module with configurations.
         """
-        from atria_datasets.core.dataset.atria_dataset import (
-            AtriaDataset,
-            AtriaDatasetConfig,
-        )
+        from atria_datasets.core.dataset._datasets import Dataset, DatasetConfig
         from atria_datasets.core.dataset.atria_huggingface_dataset import (
             AtriaHuggingfaceDataset,
         )
@@ -60,7 +57,7 @@ class DatasetRegistryGroup(RegistryGroup):
         def decorator(module):
             from atria_registry.module_spec import ModuleSpec
 
-            assert issubclass(module, AtriaDataset), (
+            assert issubclass(module, Dataset), (
                 f"Expected {module.__name__} to be a subclass of AtriaDataset, got {type(module)} instead."
             )
             if not issubclass(module, AtriaHuggingfaceDataset):
@@ -70,7 +67,7 @@ class DatasetRegistryGroup(RegistryGroup):
                     )
                 )
             assert isinstance(configs, list) and all(
-                isinstance(config, AtriaDatasetConfig) for config in configs
+                isinstance(config, DatasetConfig) for config in configs
             ), (
                 f"Expected configs to be a list of AtriaDatasetConfig, got {type(configs)} instead."
             )

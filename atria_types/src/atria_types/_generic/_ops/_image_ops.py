@@ -21,8 +21,9 @@ class ImageOps(StandardOps[Image]):
     Bound service object used through: image.ops
     """
 
-    def __init__(self, image: Image):
-        self.image = image
+    @property
+    def image(self) -> Image:
+        return self.model
 
     @property
     def content(self):

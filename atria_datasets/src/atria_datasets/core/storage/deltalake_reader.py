@@ -8,7 +8,7 @@ from atria_logger import get_logger
 if TYPE_CHECKING:
     import pandas as pd
 
-    from atria_datasets.core.dataset.atria_dataset import DatasetLoadingMode
+    from atria_datasets.core.dataset._datasets import DatasetLoadingMode
     from atria_datasets.core.typing.common import T_BaseDataInstance
 
 logger = get_logger(__name__)
@@ -114,7 +114,7 @@ class DeltalakeReader(Sequence["T_BaseDataInstance"]):
         storage_options: dict | None = None,
         presign_expiry: int = 3600,
     ) -> DeltalakeReader:
-        from atria_datasets.core.dataset.atria_dataset import DatasetLoadingMode
+        from atria_datasets.core.dataset._datasets import DatasetLoadingMode
 
         kwargs = {
             "table_path": table_path,

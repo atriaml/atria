@@ -15,6 +15,7 @@ License: MIT
 from __future__ import annotations
 
 import itertools
+import queue
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -28,7 +29,7 @@ from atria_datasets.core.storage.utilities import FileStorageType
 if TYPE_CHECKING:
     from atria_types import BaseDataInstance, DatasetSplitType
 
-    from atria_datasets.core.dataset.atria_dataset import SplitIterator
+    from atria_datasets.core.dataset._datasets import SplitIterator
 
 
 logger = get_logger(__name__)
@@ -46,6 +47,10 @@ def shard_writer_worker(
     preprocess_transform,
 ):
     import queue
+
+    # if exceptions are more than 100 we stop the worker
+
+    exception_count = 0
 
     try:
         shard_file_pattern = str(
@@ -74,16 +79,21 @@ def shard_writer_worker(
             except queue.Empty:
                 # Timeout occurred, continue waiting
                 continue
-            except Exception as e:
-                logger.warning(
-                    f"Error while writing sample {idx}. Skipping sample. Error: {e}"
-                )
+            except Exception:
+                exception_count += 1
+                if exception_count >= 100:
+                    # REPORT ERROR TO PARENT
+                    result_queue.put(
+                        ("error", worker_id, RuntimeError("Too many worker exceptions"))
+                    )
+                    return
                 continue
 
-        result_queue.put(writer.close())
+        result_queue.put(("result", worker_id, writer.close()))
     except Exception as e:
-        logger.exception(e)
-        result_queue.put([])  # Put empty result to avoid blocking
+        # MOST IMPORTANT: REPORT INIT/OUTER ERRORS
+        result_queue.put(("error", worker_id, e))
+        return
 
 
 def write_split_parallel(
@@ -94,13 +104,12 @@ def write_split_parallel(
     split_name = split_iterator.split.value
     data_iterator = iter(split_iterator)
 
-    # create one queue per worker for samples
     sample_queues = [mp.Queue(maxsize=10) for _ in range(num_processes)]
     result_queue = mp.Queue()
 
-    # start workers
     workers = []
     try:
+        # START WORKERS
         for i in range(num_processes):
             worker = mp.Process(
                 target=shard_writer_worker,
@@ -119,59 +128,72 @@ def write_split_parallel(
             worker.start()
             workers.append(worker)
 
-        # feed samples round-robin
+        # FEED SAMPLES
         worker_cycle = itertools.cycle(range(num_processes))
-        try:
-            for idx, sample in tqdm.tqdm(
-                data_iterator, desc=f"Writing split {split_name}"
-            ):
-                worker_id = next(worker_cycle)
-                sample_queues[worker_id].put((idx, sample))
-        except Exception as e:
-            logger.error(f"Error feeding samples to workers: {e}")
-            raise
+        for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
+            worker_id = next(worker_cycle)
+            q = sample_queues[worker_id]
 
-        # send sentinel to stop workers
+            while True:
+                try:
+                    # Try to put with timeout to avoid getting stuck forever
+                    q.put((idx, sample), timeout=0.1)
+                    break  # success → go to next sample
+
+                except queue.Full:
+                    # While waiting for space, poll workers for exceptions
+                    try:
+                        msg_type, wid, payload = result_queue.get_nowait()
+                    except queue.Empty:
+                        continue  # no error, keep waiting
+
+                    if msg_type == "error":
+                        # Kill all workers immediately
+                        logger.error(f"Worker {wid} failed: {payload}")
+                        for w in workers:
+                            if w.is_alive():
+                                w.terminate()
+                        raise RuntimeError(f"Worker {wid} failed: {payload}")
+
+        # SEND STOP SIGNALS
         for q in sample_queues:
             q.put(None)
 
-        # collect results
+        # COLLECT RESULTS **OR ERRORS**
         write_info = []
         for _ in range(num_processes):
-            try:
-                result = result_queue.get(timeout=30)
-                write_info.extend(result)
-            except Exception as e:
-                logger.error(f"Error collecting results from worker: {e}")
-                raise
+            msg_type, worker_id, payload = result_queue.get()
 
-        # wait for all workers to finish
-        for w in workers:
-            w.join(timeout=10)  # 10 second timeout for join
-            if w.is_alive():
-                logger.warning(
-                    f"Worker {w.pid} did not terminate gracefully, forcing termination"
-                )
-                w.terminate()
-                w.join()
+            if msg_type == "error":
+                logger.error(f"Worker {worker_id} failed: {payload}")
 
-    except Exception as e:
-        # cleanup: terminate all workers if something goes wrong
-        logger.error(f"Error in parallel writing: {e}")
+                # TERMINATE ALL WORKERS IMMEDIATELY
+                for w in workers:
+                    if w.is_alive():
+                        w.terminate()
+                        w.join()
+
+                raise RuntimeError(f"Worker {worker_id} failed: {payload}")
+
+            elif msg_type == "result":
+                write_info.extend(payload)
+
+        # WAIT FOR WORKERS
         for w in workers:
+            w.join(timeout=5)
             if w.is_alive():
                 w.terminate()
                 w.join()
-        raise
+
     finally:
-        # ensure all queues are closed
+        # CLEANUP QUEUES
         for q in sample_queues:
             q.close()
             q.join_thread()
         result_queue.close()
         result_queue.join_thread()
 
-    # renumber shards
+    # SHARD RENUMBERING
     write_info = [x for x in write_info if x.nsamples > 0]
     for i, shard in enumerate(write_info):
         shard.shard = i + 1
@@ -289,7 +311,7 @@ class MsgpackStorageManager:
         except Exception as e:
             self.purge_split(split_iterator.split)
             raise RuntimeError(
-                f"Error while writing dataset split {split_iterator.split.value} to storage"
+                f"Error while writing dataset split {split_iterator.split.value} to storage. Cleaning up..."
             ) from e
         except KeyboardInterrupt as e:
             self.purge_split(split_iterator.split)
@@ -313,7 +335,7 @@ class MsgpackStorageManager:
         output_transform: Callable | None = None,
         allowed_keys: set[str] | None = None,
     ) -> SplitIterator:
-        from atria_datasets.core.dataset.atria_dataset import SplitIterator
+        from atria_datasets.core.dataset._datasets import SplitIterator
         from atria_datasets.core.storage.shard_list_datasets import (
             MsgpackShardListDataset,
         )

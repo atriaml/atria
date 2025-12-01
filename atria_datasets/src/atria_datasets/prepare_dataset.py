@@ -2,7 +2,7 @@ import fire
 import matplotlib.pyplot as plt
 from atria_logger import get_logger
 
-from atria_datasets.core.dataset.atria_dataset import DatasetLoadingMode
+from atria_datasets.core.dataset._datasets import DatasetLoadingMode
 from atria_datasets.core.storage.utilities import FileStorageType
 
 logger = get_logger(__name__)
@@ -68,9 +68,9 @@ def main(
     print_samples: bool = True,
     max_samples: int | None = None,
 ):
-    from atria_datasets import AtriaDataset
+    from atria_datasets import Dataset
 
-    dataset = AtriaDataset.load_from_registry(
+    dataset = Dataset.load_from_registry(
         name=name,
         data_dir=data_dir + "/" + name.split("/")[0],
         overwrite_existing_cached=overwrite_existing_cached,

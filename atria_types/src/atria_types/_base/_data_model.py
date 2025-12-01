@@ -105,3 +105,6 @@ class BaseDataModel(  # type: ignore[misc]
         schema_fields = set(self.table_schema_flattened().keys())
         flattened_data = _flatten_dict(self.model_dump())
         return {k: v for k, v in flattened_data.items() if k in schema_fields}
+
+    def update(self, **kwargs: Any) -> Self:
+        return self.model_copy(update=kwargs)

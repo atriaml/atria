@@ -9,6 +9,7 @@ dependencies = [
     "atria-logger",
     "atria-registry",
     "atria-types",
+    "coloredlogs>=15.0.1",
 ]
 
 [tool.setuptools]
