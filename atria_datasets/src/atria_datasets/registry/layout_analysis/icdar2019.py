@@ -3,7 +3,6 @@ from pathlib import Path
 
 from atria_types import (
     AnnotatedObject,
-    AnnotatedObjectList,
     BoundingBox,
     BoundingBoxMode,
     DatasetLabels,
@@ -92,11 +91,7 @@ class SplitIterator:
                 sample_id=Path(sample["file_name"]).name,
                 image=Image(file_path=sample["file_name"]),
                 annotations=[
-                    LayoutAnalysisAnnotation(
-                        annotated_objects=AnnotatedObjectList.from_list(
-                            annotated_objects
-                        )
-                    )
+                    LayoutAnalysisAnnotation(annotated_objects=annotated_objects)
                 ],
             )
 

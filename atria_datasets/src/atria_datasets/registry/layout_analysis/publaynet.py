@@ -2,7 +2,6 @@ from typing import Any
 
 from atria_types import (
     AnnotatedObject,
-    AnnotatedObjectList,
     BoundingBox,
     BoundingBoxMode,
     DatasetLabels,
@@ -71,9 +70,5 @@ class PubLayNet(HuggingfaceDocumentDataset):
         return DocumentInstance(
             sample_id=str(sample["id"]),
             image=image,
-            annotations=[
-                LayoutAnalysisAnnotation(
-                    annotated_objects=AnnotatedObjectList.from_list(annotated_objects)
-                )
-            ],
+            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
         )

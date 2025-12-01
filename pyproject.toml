@@ -3,11 +3,12 @@ name = "atriaml"
 version = "0.1.0"
 description = "AtriaML is a machine learning library providing core types and logging utilities for Atria-based projects."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 dependencies = [
     "atria-datasets",
     "atria-logger",
     "atria-registry",
+    "atria-transforms",
     "atria-types",
     "coloredlogs>=15.0.1",
 ]
@@ -20,6 +21,7 @@ atria-logger = { path = "atria_logger", editable = true }
 atria-types = { path = "atria_types", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-registry = { path = "atria_registry", editable = true }
+atria-transforms = { path = "atria_transforms", editable = true }
 
 [dependency-groups]
 dev = [

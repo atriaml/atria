@@ -6,16 +6,18 @@ import PIL
 from atria_logger import get_logger
 from atria_types import (
     PDF,
-    BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
+    Image,
+    QAPair,
+    QuestionAnsweringAnnotation,
 )
-from atria_types.generic.annotations import ExtractiveQAAnnotation
-from atria_types.generic.document_content import DocumentContent
-from atria_types.generic.image import Image
-from atria_types.generic.question_answer_pair import ExtractiveQAPair
+from atria_types._generic._bounding_box import BoundingBox
+from atria_types._generic._doc_content import TextElement
+from atria_types._generic._qa_pair import AnswerSpan
 from pdf2image import convert_from_path
 from PIL.Image import Image as PILImage
 
@@ -61,7 +63,7 @@ class DueBenchmarkExtractiveQAConfig(DatasetConfig):
 
 
 def find_answers_in_words(words, answers, extraction_method="v1"):
-    from atria_datasets.vqa.utilities import (
+    from .utilities import (
         extract_start_end_index_v1,
         extract_start_end_index_v2,
         extract_start_end_index_v3,
@@ -372,22 +374,33 @@ class DueBenchmarkExtractiveQA(DocumentDataset):
             pdf=PDF(file_path=str(pdf_file_path)),
             image=Image(content=page_image),
             content=DocumentContent(
-                words=sample["tokens_in_page"],
-                word_bboxes=BoundingBoxList(
-                    value=sample["token_bboxes_in_page"], normalized=True
-                ),
+                text_elements=[
+                    TextElement(
+                        text=token,  # type: ignore
+                        bbox=BoundingBox(value=bbox, normalized=True),
+                    )
+                    for token, bbox in zip(  # type: ignore
+                        sample["tokens_in_page"],
+                        sample["token_bboxes_in_page"],
+                        strict=True,
+                    )
+                ]
             ),
             annotations=[
-                ExtractiveQAAnnotation(
+                QuestionAnsweringAnnotation(
                     qa_pairs=[
-                        ExtractiveQAPair(
+                        QAPair(
                             id=i,
                             question_text=question["question"],
-                            answer_start=[
-                                int(x) for x in question["answer_start_indices"]
+                            answer_spans=[
+                                AnswerSpan(start=int(start), end=int(end), text=answer)
+                                for start, end, answer in zip(
+                                    question["answer_start_indices"],
+                                    question["answer_end_indices"],
+                                    question["answers"],
+                                    strict=True,
+                                )
                             ],
-                            answer_end=[int(x) for x in question["answer_end_indices"]],
-                            answer_text=question["answers"],
                         )
                         for i, question in enumerate(sample["annotations"])
                     ]

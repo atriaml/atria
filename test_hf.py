@@ -1,12 +1,13 @@
 from atria_datasets.api.datasets import load_dataset
 from atria_datasets.core.dataset._dataset_processor import DatasetProcessor
-
-# from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
+from atria_datasets.registry.image_classification.cifar10_huggingface import (
+    HuggingfaceCifar10,  # noqa
+)
 
 # dataset = Cifar10()
 # print(f"Dataset instantiated: {dataset}")
 
-cifar10_from_registry = load_dataset("cifar10/1k")
+cifar10_from_registry = load_dataset("huggingface_cifar10/plain_text")
 print("cifar10_from_registry", cifar10_from_registry)
 
 # now lets say we try to rebuild cache

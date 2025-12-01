@@ -37,6 +37,8 @@ class RepresentationMixin:
         """
         import types
 
+        yield "__class__", self.__repr_name__()
+
         repr_fields = getattr(self.__class__, "__repr_fields__", set())  # type: ignore
         if len(repr_fields) == 0:
             repr_fields = self.__dict__.keys()

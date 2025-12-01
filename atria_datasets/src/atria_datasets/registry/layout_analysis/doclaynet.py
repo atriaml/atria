@@ -12,7 +12,6 @@ from atria_types import (
     Label,
     LayoutAnalysisAnnotation,
 )
-from atria_types.generic.annotated_object import AnnotatedObjectList
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset._hf_datasets import (
@@ -107,8 +106,6 @@ class DocLayNet(HuggingfaceDocumentDataset):
                         name=sample["doc_category"],
                     )
                 ),
-                LayoutAnalysisAnnotation(
-                    annotated_objects=AnnotatedObjectList.from_list(annotated_objects)
-                ),
+                LayoutAnalysisAnnotation(annotated_objects=annotated_objects),
             ],
         )

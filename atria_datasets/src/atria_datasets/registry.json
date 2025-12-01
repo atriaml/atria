@@ -324,5 +324,212 @@
                 "task": "structure"
             }
         }
+    },
+    "doclaynet": {
+        "default": {
+            "module": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNet",
+            "hash": "822768b9",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "hf_repo": "ds4sd/DocLayNet",
+                "hf_config_name": "2022.08"
+            }
+        },
+        "1k": {
+            "module": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNet",
+            "hash": "5d121a1f",
+            "config": {
+                "name": null,
+                "max_train_samples": 1000,
+                "max_validation_samples": 1000,
+                "max_test_samples": null,
+                "hf_repo": "ds4sd/DocLayNet",
+                "hf_config_name": "2022.08"
+            }
+        }
+    },
+    "icdar2019": {
+        "trackA_modern": {
+            "module": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019",
+            "hash": "0c8ac881",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null
+            }
+        },
+        "trackA_archival": {
+            "module": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019",
+            "hash": "3f76618e",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null
+            }
+        }
+    },
+    "publaynet": {
+        "default": {
+            "module": "atria_datasets.registry.layout_analysis.publaynet.PubLayNet",
+            "hash": "8e283c6c",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "hf_repo": "jordanparker6/publaynet",
+                "hf_config_name": "default"
+            }
+        },
+        "1k": {
+            "module": "atria_datasets.registry.layout_analysis.publaynet.PubLayNet",
+            "hash": "163081a6",
+            "config": {
+                "name": null,
+                "max_train_samples": 1000,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "hf_repo": "jordanparker6/publaynet",
+                "hf_config_name": "default"
+            }
+        }
+    },
+    "docvqa": {
+        "default": {
+            "module": "atria_datasets.registry.vqa.docvqa.DocVQA",
+            "hash": "1a60bad6",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null
+            }
+        }
+    },
+    "due_benchmark": {
+        "ExDocVQA": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "eca7ab91",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "microsoft_cv",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExPWC": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "7d92a7f0",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "tesseract",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExDeepForm": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "7407aab7",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "microsoft_cv",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExTabFact": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "f2b996db",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "tesseract",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExWikiTableQuestions": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "e56d202e",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "microsoft_cv",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExInfographicsVQA": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "ff13c4f8",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "microsoft_cv",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        },
+        "ExKleisterCharity": {
+            "module": "atria_datasets.registry.vqa.due.DueBenchmarkExtractiveQA",
+            "hash": "bee547cb",
+            "config": {
+                "name": null,
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "segment_levels": [
+                    "tokens",
+                    "pages"
+                ],
+                "ocr_engine": "microsoft_cv",
+                "answers_extraction_method": "v1",
+                "image_dpi": 72
+            }
+        }
     }
 }

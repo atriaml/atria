@@ -8,16 +8,18 @@ import pandas as pd
 import tqdm
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBoxList,
+    AnswerSpan,
+    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
-    ExtractiveQAPair,
     Image,
+    QAPair,
+    QuestionAnsweringAnnotation,
+    TextElement,
 )
-from atria_types.generic.annotations import ExtractiveQAAnnotation
-from atria_types.generic.document_content import DocumentContent
 from datasets import load_from_disk
 
 from atria_datasets import DATASET, DocumentDataset
@@ -386,21 +388,35 @@ class DocVQA(DocumentDataset):
             sample_id=Path(sample["image_file_path"]).name + "-" + uuid.uuid4().hex[:8],
             image=Image(file_path=sample["image_file_path"]),
             content=DocumentContent(
-                words=sample["words"],
-                word_bboxes=BoundingBoxList(value=sample["word_bboxes"]),
-                word_segment_level_bboxes=BoundingBoxList(
-                    value=sample["segment_level_bboxes"]
-                ),
+                text_elements=[
+                    TextElement(
+                        text=word,
+                        bbox=BoundingBox(value=word_bbox, normalized=True),
+                        segment_bbox=BoundingBox(value=segment_bbox, normalized=True),
+                    )
+                    for word, word_bbox, segment_bbox in zip(
+                        sample["words"],
+                        sample["word_bboxes"],
+                        sample["segment_level_bboxes"],
+                        strict=True,
+                    )
+                ]
             ),
             annotations=[
-                ExtractiveQAAnnotation(
+                QuestionAnsweringAnnotation(
                     qa_pairs=[
-                        ExtractiveQAPair(
+                        QAPair(
                             id=question["question_id"],
                             question_text=question["question"],
-                            answer_start=question["answer_start_indices"],
-                            answer_end=question["answer_end_indices"],
-                            answer_text=question["gold_answers"],
+                            answer_spans=[
+                                AnswerSpan(start=start, end=end, text=text)
+                                for start, end, text in zip(
+                                    question["answer_start_indices"],
+                                    question["answer_end_indices"],
+                                    question["gold_answers"],
+                                    strict=True,
+                                )
+                            ],
                         )
                         for question in sample["questions"]
                     ]
