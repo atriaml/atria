@@ -1,6 +1,5 @@
 def test_imports():
     from atria_datasets import (
-        AtriaHuggingfaceDataset,  # noqa
         Dataset,  # noqa  # noqa
         DeltalakeReader,  # noqa
         DeltalakeStorageManager,  # noqa
@@ -11,6 +10,7 @@ def test_imports():
         FTPFileDownloader,  # noqa
         GoogleDriveDownloader,  # noqa
         HTTPDownloader,  # noqa
+        HuggingfaceDataset,  # noqa
         ImageDataset,  # noqa
         MsgpackFileWriter,  # noqa
         MsgpackShardWriter,  # noqa

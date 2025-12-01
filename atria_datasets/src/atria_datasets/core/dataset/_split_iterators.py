@@ -11,7 +11,7 @@ from atria_logger import get_logger
 from atria_types import BaseDataInstance, DatasetSplitType
 from atria_types._utilities._repr import RepresentationMixin
 
-from atria_datasets.core.typing.common import T_BaseDataInstance
+from atria_datasets.core.dataset._common import T_BaseDataInstance
 
 if TYPE_CHECKING:
     import pandas as pd

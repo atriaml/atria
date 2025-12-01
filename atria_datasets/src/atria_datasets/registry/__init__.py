@@ -18,49 +18,10 @@ Example:
     >>> model_cls = MODEL.get("my_model")
 """
 
-from atria_registry import ModuleRegistry, RegistryGroup
-
-from atria_datasets.core.dataset._datasets import Dataset
-
-
-class DatasetRegistryGroup(RegistryGroup[Dataset]):
-    pass
-
-
-ModuleRegistry().add_registry_group(
-    name="DATASET",
-    registry_group=DatasetRegistryGroup(name="dataset", package="atria_datasets"),
+from atria_datasets.registry.registry_groups import (
+    BATCH_SAMPLER,
+    DATA_PIPELINE,
+    DATASET,
 )
-ModuleRegistry().add_registry_group(
-    name="DATA_PIPELINE",
-    registry_group=RegistryGroup(name="data_pipeline", package="atria_datasets"),
-)
-ModuleRegistry().add_registry_group(
-    name="BATCH_SAMPLER",
-    registry_group=RegistryGroup(name="batch_sampler", package="atria_datasets"),
-)
-
-
-DATASET: DatasetRegistryGroup = ModuleRegistry().DATASET
-"""Registry group for datasets.
-
-Used to register and manage dataset-related components throughout the application.
-Provides methods to register new datasets and retrieve existing ones by name.
-"""
-
-DATA_PIPELINE = ModuleRegistry().DATA_PIPELINE
-"""Registry group for data pipelines.
-
-Used to register and manage data pipeline components that handle data processing
-workflows and transformations.
-"""
-
-BATCH_SAMPLER = ModuleRegistry().BATCH_SAMPLER
-"""Registry group for batch samplers.
-
-Used to register and manage batch sampling strategies that determine how data
-is grouped into batches during training and inference.
-"""
-
 
 __all__ = ["DATASET", "DATA_PIPELINE", "BATCH_SAMPLER"]

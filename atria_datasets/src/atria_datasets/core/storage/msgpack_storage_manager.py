@@ -79,13 +79,11 @@ def shard_writer_worker(
             except queue.Empty:
                 # Timeout occurred, continue waiting
                 continue
-            except Exception:
+            except Exception as e:
                 exception_count += 1
                 if exception_count >= 100:
                     # REPORT ERROR TO PARENT
-                    result_queue.put(
-                        ("error", worker_id, RuntimeError("Too many worker exceptions"))
-                    )
+                    result_queue.put(("error", worker_id, e))
                     return
                 continue
 

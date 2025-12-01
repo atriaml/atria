@@ -13,10 +13,8 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, AtriaHuggingfaceDocumentDataset
-from atria_datasets.core.dataset.atria_huggingface_dataset import (
-    AtriaHuggingfaceDatasetConfig,
-)
+from atria_datasets import DATASET, HuggingfaceDocumentDataset
+from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
 _CLASSES = ["text", "title", "list", "table", "figure"]
 
@@ -24,10 +22,10 @@ _CLASSES = ["text", "title", "list", "table", "figure"]
 @DATASET.register(
     "publaynet",
     configs=[
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             hf_repo="jordanparker6/publaynet", hf_config_name="default"
         ),
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             config_name="1k",
             hf_repo="jordanparker6/publaynet",
             hf_config_name="default",
@@ -35,7 +33,7 @@ _CLASSES = ["text", "title", "list", "table", "figure"]
         ),
     ],
 )
-class PubLayNet(AtriaHuggingfaceDocumentDataset):
+class PubLayNet(HuggingfaceDocumentDataset):
     def _metadata(self) -> DatasetMetadata:
         metadata = super()._metadata()
         metadata.dataset_labels = DatasetLabels(layout=_CLASSES)

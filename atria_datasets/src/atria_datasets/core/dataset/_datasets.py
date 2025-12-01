@@ -17,10 +17,13 @@ from atria_types import (
     ImageInstance,
 )
 
-from atria_datasets.core.dataset._common import DatasetConfig, T_AtriaDatasetConfig
+from atria_datasets.core.dataset._common import (
+    DatasetConfig,
+    T_BaseDataInstance,
+    T_DatasetConfig,
+)
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
-from atria_datasets.core.typing.common import T_BaseDataInstance
 
 logger = get_logger(__name__)
 
@@ -29,8 +32,7 @@ if TYPE_CHECKING:
 
 
 class Dataset(
-    RegisterableModule[T_AtriaDatasetConfig],
-    Generic[T_AtriaDatasetConfig, T_BaseDataInstance],
+    RegisterableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
 ):
     """
     Generic base class for datasets in the Atria application.
@@ -78,11 +80,11 @@ class Dataset(
     __extract_downloads__ = True
     __data_model__: type[T_BaseDataInstance] = None
     __repr_fields__ = ["data_model", "data_dir", "train", "validation", "test"]
-    __config__: type[T_AtriaDatasetConfig] = DatasetConfig
+    __config__: type[T_DatasetConfig] = DatasetConfig
 
     def __init__(
         self,
-        config: T_AtriaDatasetConfig | None = None,
+        config: T_DatasetConfig | None = None,
         data_dir: str | None = None,
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
@@ -324,7 +326,7 @@ class Dataset(
         )
 
 
-class ImageDataset(Dataset[DatasetConfig, ImageInstance]):
+class ImageDataset(Dataset[T_DatasetConfig, ImageInstance], Generic[T_DatasetConfig]):
     """
     Specialized dataset class for handling image datasets.
 
@@ -357,7 +359,9 @@ class ImageDataset(Dataset[DatasetConfig, ImageInstance]):
     __data_model__ = ImageInstance
 
 
-class DocumentDataset(Dataset[DatasetConfig, DocumentInstance]):
+class DocumentDataset(
+    Dataset[T_DatasetConfig, DocumentInstance], Generic[T_DatasetConfig]
+):
     """
     Specialized dataset class for handling document datasets.
 

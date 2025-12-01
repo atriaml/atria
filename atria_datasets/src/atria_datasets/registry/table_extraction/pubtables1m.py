@@ -4,7 +4,6 @@ from pathlib import Path
 
 from atria_logger import get_logger
 from atria_types import (
-    AnnotatedObjectList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
@@ -174,11 +173,7 @@ class SplitIterator:
                     sample_id=Path(img_file).name,
                     image=Image(file_path=img_file),
                     annotations=[
-                        LayoutAnalysisAnnotation(
-                            annotated_objects=AnnotatedObjectList.from_list(
-                                annotated_objects
-                            )
-                        )
+                        LayoutAnalysisAnnotation(annotated_objects=annotated_objects)
                     ],
                 )
 

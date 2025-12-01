@@ -4,15 +4,16 @@ from pathlib import Path
 
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBoxList,
+    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
     Image,
     LayoutAnalysisAnnotation,
+    TextElement,
 )
-from atria_types.generic.document_content import DocumentContent
 
 from atria_datasets import DATASET, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
@@ -89,7 +90,13 @@ class SplitIterator:
                 sample_id=Path(image_file_path).name,
                 image=Image(file_path=image_file_path),
                 content=DocumentContent(
-                    words=words, word_bboxes=BoundingBoxList.from_list(word_bboxes)
+                    text_elements=[
+                        TextElement(
+                            text=word,
+                            bbox=BoundingBox(value=word_bbox, normalized=True),
+                        )
+                        for word, word_bbox in zip(words, word_bboxes, strict=True)
+                    ]
                 ),
                 annotations=[
                     LayoutAnalysisAnnotation(annotated_objects=annotated_objects)

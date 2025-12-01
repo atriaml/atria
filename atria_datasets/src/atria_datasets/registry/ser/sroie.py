@@ -4,7 +4,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 from atria_types import (
-    BoundingBoxList,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
@@ -13,8 +12,9 @@ from atria_types import (
     EntityLabelingAnnotation,
     Image,
     Label,
-    LabelList,
+    TextElement,
 )
+from atria_types._generic._bounding_box import BoundingBox
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset._datasets import DocumentDataset
@@ -86,16 +86,18 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True),
+                text_elements=[
+                    TextElement(
+                        text=word, bbox=BoundingBox(value=word_bbox, normalized=True)
+                    )
+                    for word, word_bbox in zip(words, word_bboxes, strict=True)
+                ]
             ),
             EntityLabelingAnnotation(
-                word_labels=LabelList.from_list(
-                    [
-                        Label(value=_CLASSES.index(label), name=label)
-                        for label in word_labels
-                    ]
-                )
+                word_labels=[
+                    Label(value=_CLASSES.index(label), name=label)
+                    for label in word_labels
+                ]
             ),
         )
 

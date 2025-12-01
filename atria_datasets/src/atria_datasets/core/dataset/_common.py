@@ -34,6 +34,11 @@ class DatasetConfig(ModuleConfig):
     #     return self
 
 
+class HuggingfaceDatasetConfig(DatasetConfig):
+    hf_repo: str
+    hf_config_name: str
+
+
 class DatasetLoadingMode(str, enum.Enum):
     """
     Enum to represent the streaming mode of the dataset.
@@ -109,5 +114,12 @@ def _get_storage_manager(
         raise ValueError(f"Unsupported storage type: {cached_storage_type}")
 
 
-T_AtriaDatasetConfig = TypeVar("T_AtriaDatasetConfig", bound=DatasetConfig)
-T_BaseDataInstance = TypeVar("T_BaseDataInstance", bound=BaseDataInstance)
+T_DatasetConfig = TypeVar("T_DatasetConfig", bound=DatasetConfig, default=DatasetConfig)
+T_HuggingfaceDatasetConfig = TypeVar(
+    "T_HuggingfaceDatasetConfig",
+    bound=HuggingfaceDatasetConfig,
+    default=HuggingfaceDatasetConfig,
+)
+T_BaseDataInstance = TypeVar(
+    "T_BaseDataInstance", bound=BaseDataInstance, default=BaseDataInstance
+)

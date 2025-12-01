@@ -92,7 +92,7 @@ class SplitIterator:
         Tobacco3482Config(config_name="image_with_ocr", load_ocr=True),
     ],
 )
-class Tobacco3482(DocumentDataset):
+class Tobacco3482(DocumentDataset[Tobacco3482Config]):
     __config_cls__ = Tobacco3482Config
 
     def _download_urls(self) -> list[str]:

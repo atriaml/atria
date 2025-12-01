@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
 from atria_types import DatasetSplitType
@@ -24,6 +25,9 @@ from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
+if TYPE_CHECKING:
+    pass
+
 logger = get_logger(__name__)
 
 
@@ -43,7 +47,6 @@ class DefaultOutputTransformer:
     def __call__(self, sample: BaseDataInstance) -> BaseDataInstance:
         if self._store_artifact_content:
             sample = sample.load()
-        print(x)
         if (
             self._resize_images
             and isinstance(sample, (ImageInstance, DocumentInstance))
@@ -65,6 +68,7 @@ class DatasetBuilder:
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
         allowed_keys: set[str] | None = None,
+        split_iterator_type: type[SplitIterator] = SplitIterator,
     ):
         self._dataset = dataset
         self._downloads_prepared = False
@@ -80,6 +84,7 @@ class DatasetBuilder:
         self._storage_dir = (
             Path(self.default_data_dir) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
         )
+        self._split_iterator_type = split_iterator_type
 
     @property
     def dataset(self) -> Dataset:
@@ -226,7 +231,7 @@ class DatasetBuilder:
         resize_images: bool = False,
         image_max_size: int = 1024,
     ) -> SplitIterator:
-        return SplitIterator(
+        return self._split_iterator_type(
             split=split,
             data_model=self.data_model,
             input_transform=self.dataset._input_transform,
@@ -255,6 +260,7 @@ class CachedDatasetBuilder(DatasetBuilder):
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
         num_processes: int = 8,
+        split_iterator_type: type[SplitIterator] = SplitIterator,
     ):
         super().__init__(
             dataset=dataset,
@@ -262,6 +268,7 @@ class CachedDatasetBuilder(DatasetBuilder):
             split=split,
             access_token=access_token,
             allowed_keys=allowed_keys,
+            split_iterator_type=split_iterator_type,
         )
         self._cached_storage_type = cached_storage_type
         self._enable_cached_splits = enable_cached_splits

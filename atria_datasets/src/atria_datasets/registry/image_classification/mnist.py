@@ -2,19 +2,17 @@ from typing import Any
 
 from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
-from atria_datasets import DATASET, AtriaHuggingfaceImageDataset
-from atria_datasets.core.dataset.atria_huggingface_dataset import (
-    AtriaHuggingfaceDatasetConfig,
-)
+from atria_datasets import DATASET, HuggingfaceImageDataset
+from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
 
 @DATASET.register(
     "mnist",
     configs=[
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             config_name="mnist", hf_repo="ylecun/mnist", hf_config_name="mnist"
         ),
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             config_name="mnist_1k",
             hf_repo="ylecun/mnist",
             hf_config_name="mnist",
@@ -24,7 +22,7 @@ from atria_datasets.core.dataset.atria_huggingface_dataset import (
         ),
     ],
 )
-class MNIST(AtriaHuggingfaceImageDataset):
+class MNIST(HuggingfaceImageDataset):
     def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:
         return ImageInstance(
             image=Image(content=sample["image"]),

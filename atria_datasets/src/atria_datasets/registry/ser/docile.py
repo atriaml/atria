@@ -5,17 +5,17 @@ from pathlib import Path
 import PIL
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBoxList,
+    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
+    EntityLabelingAnnotation,
     Image,
     Label,
-    LabelList,
+    TextElement,
 )
-from atria_types.generic.annotations import EntityLabelingAnnotation
-from atria_types.generic.document_content import DocumentContent
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
 
 from atria_datasets import DATASET
@@ -120,17 +120,20 @@ class SplitIterator:
                     content=PIL.Image.open(io.BytesIO(base64.b64decode(row["img"])))
                 ),
                 content=DocumentContent(
-                    words=row["tokens"],
-                    word_bboxes=BoundingBoxList(value=bboxes, normalized=True),
+                    text_elements=[
+                        TextElement(
+                            text=word,
+                            bbox=BoundingBox(value=word_bbox, normalized=True),
+                        )
+                        for word, word_bbox in zip(row["tokens"], bboxes, strict=True)
+                    ]
                 ),
                 annotations=[
                     EntityLabelingAnnotation(
-                        word_labels=LabelList.from_list(
-                            [
-                                Label(value=label, name=self.label_names[label])
-                                for label in row["ner_tags"]
-                            ]
-                        )
+                        word_labels=[
+                            Label(value=label, name=self.label_names[label])
+                            for label in row["ner_tags"]
+                        ]
                     )
                 ],
             )
@@ -139,10 +142,10 @@ class SplitIterator:
 @DATASET.register(
     "docile",
     configs=[
-        DocileConfig(synthetic=False, type="kile"),
-        DocileConfig(synthetic=False, type="lir"),
-        DocileConfig(synthetic=True, type="kile"),
-        DocileConfig(synthetic=True, type="lir"),
+        DocileConfig(synthetic=False, type="kile", config_name="kile"),
+        DocileConfig(synthetic=False, type="lir", config_name="lir"),
+        DocileConfig(synthetic=True, type="kile", config_name="kile_synthetic"),
+        DocileConfig(synthetic=True, type="lir", config_name="lir_synthetic"),
     ],
 )
 class Docile(DocumentDataset):

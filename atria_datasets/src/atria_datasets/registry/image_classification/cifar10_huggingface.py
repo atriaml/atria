@@ -2,21 +2,18 @@ from typing import Any
 
 from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
-from atria_datasets import DATASET, AtriaHuggingfaceImageDataset
-from atria_datasets.core.dataset.atria_huggingface_dataset import (
-    AtriaHuggingfaceDatasetConfig,
-)
+from atria_datasets import DATASET, HuggingfaceDatasetConfig, HuggingfaceImageDataset
 
 
 @DATASET.register(
     "huggingface_cifar10",
     configs=[
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             config_name="plain_text",
             hf_repo="uoft-cs/cifar10",
             hf_config_name="plain_text",
         ),
-        AtriaHuggingfaceDatasetConfig(
+        HuggingfaceDatasetConfig(
             config_name="plain_text_1k",
             hf_repo="uoft-cs/cifar10",
             hf_config_name="plain_text",
@@ -26,7 +23,7 @@ from atria_datasets.core.dataset.atria_huggingface_dataset import (
         ),
     ],
 )
-class HuggingfaceCifar10(AtriaHuggingfaceImageDataset):
+class HuggingfaceCifar10(HuggingfaceImageDataset):
     def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:
         return ImageInstance(
             image=Image(content=sample["img"]),

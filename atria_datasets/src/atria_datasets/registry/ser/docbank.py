@@ -20,17 +20,17 @@ from pathlib import Path
 
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBoxList,
+    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
+    DocumentContent,
     DocumentInstance,
+    EntityLabelingAnnotation,
     Image,
     Label,
-    LabelList,
+    TextElement,
 )
-from atria_types.generic.annotations import EntityLabelingAnnotation
-from atria_types.generic.document_content import DocumentContent
 
 from atria_datasets import DATASET
 from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
@@ -158,16 +158,18 @@ class SplitIterator:
 
         return (
             DocumentContent(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=False),
+                text_elements=[
+                    TextElement(
+                        text=word, bbox=BoundingBox(value=word_bbox, normalized=False)
+                    )
+                    for word, word_bbox in zip(words, word_bboxes, strict=True)
+                ]
             ),
             EntityLabelingAnnotation(
-                word_labels=LabelList.from_list(
-                    [
-                        Label(value=_CLASSES.index(word_label), name=word_label)
-                        for word_label in word_labels
-                    ]
-                )
+                word_labels=[
+                    Label(value=_CLASSES.index(word_label), name=word_label)
+                    for word_label in word_labels
+                ]
             ),
         )
 

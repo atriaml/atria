@@ -1,100 +1,63 @@
-from __future__ import annotations
+"""Datasets registry initialization module
 
-import copy
-from typing import TYPE_CHECKING
+The registry system provides a centralized way to register and retrieve components
+such as datasets, models, transformations, and pipelines throughout the application.
 
-from atria_registry import RegistryGroup
+Attributes:
+    DATASET: Registry group for dataset components
+    DATA_PIPELINE: Registry group for data pipeline components
+    BATCH_SAMPLER: Registry group for batch sampler components
 
-if TYPE_CHECKING:
-    from atria_datasets.core.dataset._datasets import DatasetConfig
+Example:
+    >>> from atria_registry import DATA_TRANSFORM, MODEL
+    >>> # Register a new data transform
+    >>> @DATA_TRANSFORM.register()
+    >>> class MyTransform:
+    ...     pass
+    >>> # Get a registered model
+    >>> model_cls = MODEL.get("my_model")
+"""
+
+from atria_registry import ModuleRegistry, RegistryGroup
+
+from atria_datasets.core.dataset._datasets import Dataset
 
 
-class DatasetRegistryGroup(RegistryGroup):
-    """
-    A specialized registry group for managing datasets.
+class DatasetRegistryGroup(RegistryGroup[Dataset]):
+    pass
 
-    This class provides additional methods for registering and managing datasets
-    within the registry system.
-    """
 
-    def register(
-        self,
-        name: str,
-        configs: list[DatasetConfig] | None = None,
-        builds_to_file_store: bool = True,
-        **kwargs,
-    ):
-        """
-        Decorator for registering a module with configurations.
+ModuleRegistry().add_registry_group(
+    name="DATASET",
+    registry_group=DatasetRegistryGroup(name="dataset", package="atria_datasets"),
+)
+ModuleRegistry().add_registry_group(
+    name="DATA_PIPELINE",
+    registry_group=RegistryGroup(name="data_pipeline", package="atria_datasets"),
+)
+ModuleRegistry().add_registry_group(
+    name="BATCH_SAMPLER",
+    registry_group=RegistryGroup(name="batch_sampler", package="atria_datasets"),
+)
 
-        Args:
-            name (str): The name of the module.
-            **kwargs: Additional keyword arguments for the registration.
 
-        Returns:
-            function: A decorator function for registering the module with configurations.
-        """
-        from atria_datasets.core.dataset._datasets import Dataset, DatasetConfig
-        from atria_datasets.core.dataset.atria_huggingface_dataset import (
-            AtriaHuggingfaceDataset,
-        )
+DATASET: DatasetRegistryGroup = ModuleRegistry().DATASET
+"""Registry group for datasets.
 
-        if builds_to_file_store and not self._file_store_build_enabled:
+Used to register and manage dataset-related components throughout the application.
+Provides methods to register new datasets and retrieve existing ones by name.
+"""
 
-            def noop_(module):
-                return module
+DATA_PIPELINE = ModuleRegistry().DATA_PIPELINE
+"""Registry group for data pipelines.
 
-            return noop_
+Used to register and manage data pipeline components that handle data processing
+workflows and transformations.
+"""
 
-        # get spec params
-        configs = configs or []
-        provider = kwargs.pop("provider", None)
-        is_global_package = kwargs.pop("is_global_package", False)
-        registers_target = kwargs.pop("registers_target", True)
-        defaults = kwargs.pop("defaults", None)
-        assert defaults is None, "Dataset registry does not support defaults."
+BATCH_SAMPLER = ModuleRegistry().BATCH_SAMPLER
+"""Registry group for batch samplers.
 
-        def decorator(module):
-            from atria_registry.module_spec import ModuleSpec
-
-            assert issubclass(module, Dataset), (
-                f"Expected {module.__name__} to be a subclass of AtriaDataset, got {type(module)} instead."
-            )
-            if not issubclass(module, AtriaHuggingfaceDataset):
-                configs.append(
-                    module.__config_cls__(
-                        config_name="default", dataset_name=name, **kwargs
-                    )
-                )
-            assert isinstance(configs, list) and all(
-                isinstance(config, DatasetConfig) for config in configs
-            ), (
-                f"Expected configs to be a list of AtriaDatasetConfig, got {type(configs)} instead."
-            )
-            assert len(configs) > 0, (
-                f"{module.__name__} must provide at least one config."
-            )
-
-            # build the module spec
-            module_spec = ModuleSpec(
-                module=module,
-                name=name,
-                group=self.name,
-                provider=provider or self._default_provider,
-                is_global_package=is_global_package,
-                registers_target=registers_target,
-                defaults=defaults,
-            )
-
-            for config in configs:
-                config.dataset_name = name
-                config_module_spec = copy.deepcopy(module_spec)
-                config_module_spec.name = config.dataset_name + "/" + config.config_name
-                config_module_spec.model_extra.update(
-                    {k: getattr(config, k) for k in config.__class__.model_fields}
-                )
-                config_module_spec.model_extra.update({**kwargs})
-                self.register_module(config_module_spec)
-            return module
-
-        return decorator
+Used to register and manage batch sampling strategies that determine how data
+is grouped into batches during training and inference.
+"""

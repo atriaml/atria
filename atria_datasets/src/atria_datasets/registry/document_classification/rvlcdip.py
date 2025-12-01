@@ -123,7 +123,7 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
         ),
     ],
 )
-class RvlCdip(DocumentDataset):
+class RvlCdip(DocumentDataset[RvlCdipConfig]):
     """Ryerson Vision Lab Complex Document Information Processing dataset."""
 
     __config_cls__ = RvlCdipConfig

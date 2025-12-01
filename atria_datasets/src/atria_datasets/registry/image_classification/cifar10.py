@@ -44,6 +44,7 @@ class Cifar10(ImageDataset):
         CIFAR10(root=data_dir, train=False, download=True)
 
     def _metadata(self):
+        self.config.config_name
         return DatasetMetadata(
             description="CIFAR-10 dataset",
             dataset_labels=DatasetLabels(classification=_CLASSES),

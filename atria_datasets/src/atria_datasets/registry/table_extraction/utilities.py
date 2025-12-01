@@ -1,14 +1,10 @@
 import json
 import xml.etree.ElementTree as ET
 
-from atria_types.generic.annotated_object import AnnotatedObject, AnnotatedObjectList
-from atria_types.generic.bounding_box import BoundingBox
-from atria_types.generic.label import Label
+from atria_types import AnnotatedObject, BoundingBox, Label
 
 
-def read_pascal_voc(
-    xml_file: str, labels: list[str]
-) -> tuple[list[BoundingBox], list[Label]]:
+def read_pascal_voc(xml_file: str, labels: list[str]) -> list[AnnotatedObject]:
     tree = ET.parse(xml_file)
     root = tree.getroot()
     annotated_object = []
@@ -30,7 +26,7 @@ def read_pascal_voc(
                 label=Label(value=label, name=labels[label]),
             )
         )
-    return AnnotatedObjectList.from_list(annotated_object)
+    return annotated_object
 
 
 def read_words_json(words_file: str):

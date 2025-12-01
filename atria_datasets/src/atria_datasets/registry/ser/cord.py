@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBoxList,
+    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
@@ -14,7 +14,7 @@ from atria_types import (
     DocumentInstance,
     EntityLabelingAnnotation,
     Label,
-    LabelList,
+    TextElement,
 )
 
 from atria_datasets import DATASET
@@ -172,19 +172,22 @@ class SplitIterator:
         return (
             annotation["meta"]["image_id"],
             DocumentContent(
-                words=words,
-                word_bboxes=BoundingBoxList(value=word_bboxes, normalized=True),
-                word_segment_level_bboxes=BoundingBoxList(
-                    value=word_segment_level_bboxes, normalized=True
-                ),
+                text_elements=[
+                    TextElement(
+                        text=word,
+                        bbox=BoundingBox(value=word_bbox, normalized=True),
+                        segment_bbox=BoundingBox(value=segment_bbox, normalized=True),
+                    )
+                    for word, word_bbox, segment_bbox in zip(
+                        words, word_bboxes, word_segment_level_bboxes, strict=True
+                    )
+                ]
             ),
             EntityLabelingAnnotation(
-                word_labels=LabelList.from_list(
-                    [
-                        Label(value=_CLASSES.index(word_label), name=word_label)
-                        for word_label in word_labels
-                    ]
-                )
+                word_labels=[
+                    Label(value=_CLASSES.index(word_label), name=word_label)
+                    for word_label in word_labels
+                ]
             ),
         )
 
