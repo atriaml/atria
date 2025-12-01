@@ -59,7 +59,6 @@ coverage.xml
 .ipynb_checkpoints
 
 # IDEs
-.vscode/
 .idea/
 *.sublime-workspace
 *.sublime-project
