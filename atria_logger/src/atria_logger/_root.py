@@ -15,10 +15,9 @@ import logging
 import os
 from pathlib import Path
 
-from atria_logger.filters import DistributedFilter
-
-from .constants import _DEFAULT_COLOR_STYLES, _DEFAULT_LOG_FORMAT, _ROOT_LOGGER_NAME
-from .utilities import _attach_file_handler, _enable_colored_logging, _reset_logger
+from ._constants import _DEFAULT_COLOR_STYLES, _DEFAULT_LOG_FORMAT, _ROOT_LOGGER_NAME
+from ._filters import DistributedFilter
+from ._utilities import _attach_file_handler, _enable_colored_logging, _reset_logger
 
 # Module-level root logger
 _root_logger: logging.Logger = logging.getLogger(_ROOT_LOGGER_NAME)

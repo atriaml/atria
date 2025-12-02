@@ -37,14 +37,16 @@ class RepresentationMixin:
         """
         import types
 
-        yield "__class__", self.__repr_name__()
-
         repr_fields = getattr(self.__class__, "__repr_fields__", set())  # type: ignore
         if len(repr_fields) == 0:
             repr_fields = self.__dict__.keys()
 
         for field_name in repr_fields:
             if not hasattr(self, field_name):
+                continue
+
+            # do not add private fields
+            if field_name.startswith("_"):
                 continue
 
             value = getattr(self, field_name)

@@ -1,4 +1,5 @@
-from collections.abc import Callable
+"""Base types for tensor data models."""
+
 from typing import Any, Self, TypeVar
 
 import torch
@@ -6,44 +7,11 @@ from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 
-class TensorOperations:
-    def __init__(self, model: "TensorDataModel"):
-        self.model = model
-
-    @property
-    def model_fields(self):
-        return self.model.__class__.model_fields
-
-    def _map_tensors(self, fn: Callable) -> "TensorDataModel":
-        """Apply function to all tensor fields."""
-        updates = {}
-        for field_name in self.model_fields.keys():
-            if field_name == "metadata":
-                continue
-            val = getattr(self.model, field_name)
-            updates[field_name] = fn(val) if isinstance(val, torch.Tensor) else val
-
-        return self.model.model_copy(update=updates)
-
-    def to(self, device: torch.device) -> "TensorDataModel":
-        return self._map_tensors(lambda t: t.to(device))
-
-    def cpu(self) -> "TensorDataModel":
-        return self._map_tensors(lambda t: t.cpu())
-
-    def cuda(self) -> "TensorDataModel":
-        return self._map_tensors(lambda t: t.cuda())
-
-    def numpy(self) -> "TensorDataModel":
-        return self._map_tensors(lambda t: t.detach().cpu().numpy())
-
-
-class MetadataBase(RepresentationMixin, BaseModel):
-    pass
-
-
 class TensorDataModel(RepresentationMixin, BaseModel):
-    """Base model where all declared fields must be tensors."""
+    """
+    Base model where all declared fields must be tensors. Any additional fields are
+    stored in the `metadata` field and must be defined via an inner `Metadata` class.
+    """
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
@@ -62,7 +30,9 @@ class TensorDataModel(RepresentationMixin, BaseModel):
     @classmethod
     def metadata_model(cls) -> type[BaseModel] | None:
         """Return the user-defined inner Metadata class if present."""
-        return getattr(cls, "Metadata", None)
+        Metadata = getattr(cls, "Metadata", None)
+        assert Metadata is None or issubclass(Metadata, BaseModel)
+        return Metadata
 
     @model_validator(mode="before")
     @classmethod
@@ -172,4 +142,4 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         yield "batch_size", len(self) if self._is_batched else 1
 
 
-T_TensorDataModel = TypeVar("T_TensorDataModel", bound=TensorDataModel)
+T_TensorDataModel = TypeVar("T_TensorDataModel", bound=TensorDataModel | Any)

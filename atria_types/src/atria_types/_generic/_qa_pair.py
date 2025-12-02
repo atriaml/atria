@@ -23,6 +23,12 @@ class QAPair(BaseDataModel):
         list[AnswerSpan] | None, TableSchemaMetadata(pa_type="string")
     ] = None
 
+    @property
+    def answers(self) -> list[str]:
+        if not self.answer_spans:
+            return []
+        return [span.text for span in self.answer_spans]
+
     @field_validator("answer_spans", mode="before")
     def validate_answer_spans(cls, value) -> list[AnswerSpan]:
         if isinstance(value, str):

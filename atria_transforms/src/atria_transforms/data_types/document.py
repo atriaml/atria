@@ -1,15 +1,19 @@
 from typing import Optional
 
 import torch
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 
-from atria_transforms.types._base import MetadataBase, TensorDataModel
+from atria_transforms.core import TensorDataModel
 
 
 class DocumentTensorDataModel(TensorDataModel):
-    class Metadata(MetadataBase):
+    class Metadata(BaseModel):
+        index: int | None
         sample_id: str
-        words: list[str] = None
+        words: list[str]
+        question_id: int | None = None
+        qa_question: str | None = None
+        qa_answers: list[str] | None = None
 
     token_ids: torch.Tensor
     word_ids: torch.Tensor
@@ -31,9 +35,6 @@ class DocumentTensorDataModel(TensorDataModel):
     label: torch.Tensor | None = None
 
     # extractive QA specific fields
-    question_id: int | None = None
-    qa_question: str | None = None
-    qa_answers: list[str] | None = None
     token_answer_start: Optional["torch.Tensor"] = None
     token_answer_end: Optional["torch.Tensor"] = None
 

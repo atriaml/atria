@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import importlib
 import re
+from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 from atria_logger import get_logger
 
@@ -144,7 +146,7 @@ def _get_package_base_path(package: str) -> str | None:
     return str(Path(spec.origin).parent) if spec else None
 
 
-def _resolve_module_from_path(module_path: str) -> object:
+def _resolve_module_from_path(module_path: str) -> type[Any | Callable[..., Any]]:
     """
     Resolves a class or function from a module path string.
 

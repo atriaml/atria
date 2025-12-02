@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import ConfigDict
 
-from atria_registry._module_base import ModuleConfig, RegisterableModule
-from atria_registry._utilities import _resolve_module_from_path
+from ._module_base import ModuleConfig, RegisterableModule
+from ._utilities import _resolve_module_from_path
 
 
 class ModuleBuilderConfig(ModuleConfig):
@@ -18,7 +18,7 @@ class ModuleBuilderConfig(ModuleConfig):
     """
 
     model_config = ConfigDict(extra="allow", frozen=True)
-    module: Any = None
+    module: type[Any] | Callable[..., Any]
 
 
 class ModuleBuilder(RegisterableModule[ModuleBuilderConfig]):
@@ -67,7 +67,7 @@ class ModuleBuilder(RegisterableModule[ModuleBuilderConfig]):
         Returns:
             Callable[..., Any]: An instance of the module.
         """
-        kwargs = self.config.model_extra.update()
+        kwargs = self.config.model_dump()
         if isfunction(self.module):
             return partial(self.module, **kwargs)
         return self.module(**kwargs)

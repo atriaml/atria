@@ -1,10 +1,19 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal, overload
 
 from pydantic import Field, field_serializer, field_validator
 
 from atria_types._base._data_model import BaseDataModel
-from atria_types._generic._annotations import Annotation, AnnotationType
+from atria_types._data_instance._exceptions import AnnotationNotFoundError
+from atria_types._generic._annotations import (
+    Annotation,
+    AnnotationType,
+    ClassificationAnnotation,
+    EntityLabelingAnnotation,
+    LayoutAnalysisAnnotation,
+    ObjectDetectionAnnotation,
+    QuestionAnsweringAnnotation,
+)
 from atria_types._pydantic import OptIntField, StrField, TableSchemaMetadata
 
 
@@ -27,9 +36,32 @@ class BaseDataInstance(BaseDataModel):
         """
         return str(self.sample_id.replace(".", "_"))
 
+    @overload
     def get_annotation_by_type(
-        self, annotation_type: AnnotationType
-    ) -> Annotation | None:
+        self, annotation_type: Literal[AnnotationType.classification]
+    ) -> ClassificationAnnotation: ...
+
+    @overload
+    def get_annotation_by_type(
+        self, annotation_type: Literal[AnnotationType.entity_labeling]
+    ) -> EntityLabelingAnnotation: ...
+
+    @overload
+    def get_annotation_by_type(
+        self, annotation_type: Literal[AnnotationType.question_answering]
+    ) -> QuestionAnsweringAnnotation: ...
+
+    @overload
+    def get_annotation_by_type(
+        self, annotation_type: Literal[AnnotationType.object_detection]
+    ) -> ObjectDetectionAnnotation: ...
+
+    @overload
+    def get_annotation_by_type(
+        self, annotation_type: Literal[AnnotationType.layout_analysis]
+    ) -> LayoutAnalysisAnnotation: ...
+
+    def get_annotation_by_type(self, annotation_type: AnnotationType) -> Annotation:
         """
         Retrieves the first annotation of the specified type.
 
@@ -37,14 +69,15 @@ class BaseDataInstance(BaseDataModel):
             annotation_type (AnnotationType): The type of annotation to retrieve.
 
         Returns:
-            Annotation | None: The first annotation of the specified type, or None if not found.
+            Annotation: The first annotation of the specified type.
         """
-        if self.annotations is None:
-            return None
-        for annotation in self.annotations:
-            if annotation.type == annotation_type:
-                return annotation
-        return None
+        if self.annotations is not None:
+            for annotation in self.annotations:
+                if annotation._type == annotation_type:
+                    return annotation
+        raise AnnotationNotFoundError(
+            f"No annotation of type {annotation_type} found in the data instance."
+        )
 
     @field_validator("annotations", mode="before")
     def validate_annotations(cls, value) -> list[Annotation] | None:

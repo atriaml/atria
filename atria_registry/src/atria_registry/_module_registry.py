@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from atria_registry.registry_group import RegistryGroup
+    from ._registry_group import RegistryGroup
 
 
 class ModuleRegistry:

@@ -4,20 +4,23 @@ from __future__ import annotations
 
 import importlib
 import json
-from functools import partial
 from pathlib import Path
-from typing import Generic
+from typing import Any, Generic
 
 from atria_logger import get_logger
+from pydantic import BaseModel
 
-from atria_registry._module_base import (
-    ModuleConfig,
-    RegisterableModule,
-    T_RegisterableModule,
-)
-from atria_registry._module_builder import ModuleBuilder
+from ._common import T_RegisterableModule
+from ._module_base import ModuleConfig, RegisterableModule, RegisterablePydanticModule
+from ._module_builder import ModuleBuilder
 
 logger = get_logger(__name__)
+
+
+class ModuleSpec(BaseModel):
+    module: str
+    hash: str
+    config: dict[str, Any]
 
 
 class RegistryGroup(Generic[T_RegisterableModule]):
@@ -35,7 +38,7 @@ class RegistryGroup(Generic[T_RegisterableModule]):
 
         self._name = name
         self._package = package
-        self._store: dict[str, ModuleConfig] = {}
+        self._store: dict[str, Any] = {}
         self.load()
 
     @property
@@ -62,6 +65,12 @@ class RegistryGroup(Generic[T_RegisterableModule]):
     def _package_dir(self) -> Path:
         """Return the filesystem path of the package passed at construction."""
         module = importlib.import_module(self._package)
+        assert module is not None, (
+            f"Could not find module for package '{self._package}'"
+        )
+        assert module.__file__ is not None, (
+            f"Module '{self._package}' does not have a __file__ attribute."
+        )
         return Path(module.__file__).parent
 
     def register(self, module_name: str, configs: list[ModuleConfig] | None = None):
@@ -80,11 +89,35 @@ class RegistryGroup(Generic[T_RegisterableModule]):
                             module=module, module_name=module_name, config=config
                         )
                 return module
+            elif issubclass(module, RegisterablePydanticModule):
+                # check if configs are provided, if not register with default config
+                assert configs is None, (
+                    "Cannot provide configs when registering a RegisterablePydanticModule."
+                )
+                logger.debug(
+                    f"Registering {module=} with {module_name=} and default config in registry group {self._name}."
+                )
+
+                # initialized
+                initialized = module()
+
+                logger.debug(
+                    f"Registered module at path: {module_name} with config: {initialized.model_dump()}"
+                )
+
+                self._register_module(
+                    module=module,
+                    module_name=module_name,
+                    config=initialized,  # initialize with default
+                )
+                return module
             else:  # else we wrap it with ModuleBuilder
                 if configs is None:
                     builder = self.__module_builder_class__(module=module)
                     self._register_module(
-                        module=builder, module_name=module_name, config=builder.config
+                        module=builder.__class__,
+                        module_name=module_name,
+                        config=builder.config,
                     )
                 else:
                     for config in configs:
@@ -92,7 +125,7 @@ class RegistryGroup(Generic[T_RegisterableModule]):
                             module=module, **config.model_dump()
                         )
                         self._register_module(
-                            module=builder,
+                            module=builder.__class__,
                             module_name=module_name,
                             config=builder.config,
                         )
@@ -100,7 +133,14 @@ class RegistryGroup(Generic[T_RegisterableModule]):
 
         return decorator
 
-    def _register_module(self, module, module_name, config: ModuleConfig):
+    def _register_module(
+        self,
+        module: type[RegisterableModule]
+        | type[RegisterablePydanticModule]
+        | type[ModuleBuilder],
+        module_name: str,
+        config: ModuleConfig | RegisterablePydanticModule,
+    ):
         logger.debug(
             f"Registering {module=} with {module_name=} and {config=} in registry group {self._name}."
         )
@@ -130,30 +170,20 @@ class RegistryGroup(Generic[T_RegisterableModule]):
                 f"Module '{module_path}' with config name '{config.config_name}' is already registered with a different configuration."
             )
 
-        cur[config.config_name] = {
-            "module": module.__module__ + "." + module.__name__
+        cur[config.config_name] = ModuleSpec(
+            module=module.__module__ + "." + module.__name__
             if module.__module__ != "__main__"
             else module.__name__,
-            "hash": config.hash(),
-            "config": config.model_dump(exclude={"config_name"}),
-        }
+            hash=config.hash(),
+            config=config.model_dump(exclude={"config_name"}),
+        ).model_dump()
 
         # log registration for debugging
         logger.debug(
             f"Registered module at path: {module_path} with config: {config.model_dump()}"
         )
 
-    def load_module(self, module_path: str, **kwargs) -> T_RegisterableModule | partial:
-        """Dynamically load all registered modules in the registry group."""
-        module, config = self.load_module_config(module_path, **kwargs)
-
-        # we need to check if the module is a ModuleBuilder or a RegisterableModule
-        # regenerate the config
-        return module(config=config, **kwargs)
-
-    def load_module_config(
-        self, module_path: str, **kwargs
-    ) -> T_RegisterableModule | partial:
+    def _load_module_and_config(self, module_path: str) -> tuple[Any, dict[str, Any]]:
         """Dynamically load all registered modules in the registry group."""
         cur = self._store
         parent_key = None
@@ -175,18 +205,65 @@ class RegistryGroup(Generic[T_RegisterableModule]):
         module = node.get("module", None)
         config = node.get("config", None)
         assert module is not None, f"No module found at path: {module_path}"
+        assert isinstance(config, dict), f"No config found at path: {module_path}"
 
         # import the module
         module_path, class_name = module.rsplit(".", 1)
         imported_module = importlib.import_module(module_path)
         module = getattr(imported_module, class_name)
+        return module, config
 
-        return module, module.__config__(**config)
+    def load_module(self, module_path: str, **kwargs) -> Any:
+        """Dynamically load all registered modules in the registry group."""
+        module, config = self._load_module_and_config(module_path, **kwargs)
 
-    def dump(self):
+        # we need to check if the module is a ModuleBuilder or a RegisterableModule
+        # regenerate the config
+        if issubclass(module, ModuleBuilder):
+            builder = module(**config, **kwargs)
+            initialized = builder()
+            config = builder.config
+            return initialized, config
+        elif issubclass(module, RegisterablePydanticModule):
+            initialized = module(**config, **kwargs)
+            return initialized, initialized  # config is the instance itself
+        elif issubclass(module, RegisterableModule):
+            config = module.__config__(**config)
+            initialized = module(config=config, **kwargs)
+            return initialized, config
+        else:
+            raise TypeError(
+                f"Loaded module '{module.__name__}' is not a valid RegisterableModule or ModuleBuilder."
+            )
+
+    def load_module_config(
+        self, module_path: str, init_module: bool = True, **kwargs
+    ) -> BaseModel | ModuleConfig:
+        """Dynamically load all registered modules in the registry group."""
+        module, config = self._load_module_and_config(module_path, **kwargs)
+
+        # we need to check if the module is a ModuleBuilder or a RegisterableModule
+        # regenerate the config
+        if issubclass(module, ModuleBuilder):
+            builder = module(**config, **kwargs)
+            config = builder.config
+            return config
+        elif issubclass(module, RegisterablePydanticModule):
+            initialized = module(**config, **kwargs)
+            return initialized  # config is the instance itself
+        elif issubclass(module, RegisterableModule):
+            config = module.__config__(**config)
+            return config
+        else:
+            raise TypeError(
+                f"Loaded module '{module.__name__}' is not a valid RegisterableModule or ModuleBuilder."
+            )
+
+    def dump(self, path: Path | None = None) -> Path:
         """Dump registry.json into the package folder."""
-        pkg_dir = self._package_dir()
-        path = pkg_dir / "registry.json"
+        if path is None:
+            pkg_dir = self._package_dir()
+            path = pkg_dir / "registry.json"
 
         with open(path, "w") as f:
             logger.debug(f"Dumping '{self._name}' group registry to {path}")

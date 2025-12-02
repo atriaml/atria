@@ -10,7 +10,6 @@ from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict
 from rich.pretty import pretty_repr
 
-T_RegisterableModule = TypeVar("T_RegisterableModule", bound="RegisterableModule")
 T_ModuleConfig = TypeVar("T_ModuleConfig", bound="ModuleConfig")
 
 logger = get_logger(__name__)
@@ -43,9 +42,9 @@ class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     __config__: type[T_ModuleConfig]
 
     def __init__(
-        self, config: ModuleConfig | None = None, **overrides: dict[str, Any]
+        self, config: T_ModuleConfig | None = None, **overrides: dict[str, Any]
     ) -> None:
-        self._config = config or self.__config__(**overrides)  # type: ignore
+        self._config: T_ModuleConfig = config or self.__config__(**overrides)  # type: ignore
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -73,3 +72,19 @@ class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
 
     def __str__(self) -> str:
         return self.__repr__()
+
+
+class RegisterablePydanticModule(RepresentationMixin, BaseModel):
+    """
+    Base class for Atria modules that can be registered in the Atria registry.
+    All modules that are to be registered must inherit from this class.
+    """
+
+    name: str | None = None
+    config_name: str = "default"
+
+    def hash(self):
+        params = self.model_dump()
+        return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[
+            :8
+        ]

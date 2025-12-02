@@ -21,6 +21,26 @@ class DocumentContent(BaseDataModel):
         list[TextElement] | None, TableSchemaMetadata(pa_type="string")
     ] = None
 
+    @property
+    def text_list(self) -> list[str]:
+        if self.text_elements is None:
+            return []
+        return [te.text for te in self.text_elements if te.text is not None]
+
+    @property
+    def bbox_list(self) -> list[BoundingBox]:
+        if self.text_elements is None:
+            return []
+        return [te.bbox for te in self.text_elements if te.bbox is not None]
+
+    @property
+    def segment_bbox_list(self) -> list[BoundingBox]:
+        if self.text_elements is None:
+            return []
+        return [
+            te.segment_bbox for te in self.text_elements if te.segment_bbox is not None
+        ]
+
     @model_validator(mode="before")
     def validate_content(cls, values: Any) -> Any:
         if values.get("text") is None and values.get("text_elements") is not None:

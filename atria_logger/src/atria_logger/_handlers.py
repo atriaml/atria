@@ -1,3 +1,5 @@
+"""A custom logging handler that forwards log records to another logger."""
+
 import logging
 
 

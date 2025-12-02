@@ -1,5 +1,5 @@
 import torch
-from atria_transforms.types._document import DocumentTensorDataModel
+from atria_transforms.data_types._document import DocumentTensorDataModel
 
 model = DocumentTensorDataModel(
     sample_id="sample_001",

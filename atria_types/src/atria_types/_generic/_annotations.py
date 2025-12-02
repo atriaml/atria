@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 from typing import Annotated
 
@@ -22,7 +24,7 @@ class Annotation(BaseDataModel):
     _type: AnnotationType
 
     @classmethod
-    def from_type(cls, annotation_type: AnnotationType, params: dict) -> "Annotation":
+    def from_type(cls, annotation_type: AnnotationType, params: dict) -> Annotation:
         if annotation_type == AnnotationType.classification:
             return ClassificationAnnotation(**params)
         elif annotation_type == AnnotationType.entity_labeling:
