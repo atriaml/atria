@@ -8,6 +8,13 @@ from atria_transforms.registry import DATA_TRANSFORM
 
 logger = get_logger(__name__)
 
+IMAGENET_DEFAULT_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_DEFAULT_STD = [0.229, 0.224, 0.225]
+IMAGENET_STANDARD_MEAN = [0.5, 0.5, 0.5]
+IMAGENET_STANDARD_STD = [0.5, 0.5, 0.5]
+OPENAI_CLIP_MEAN = [0.48145466, 0.4578275, 0.40821073]
+OPENAI_CLIP_STD = [0.26862954, 0.26130258, 0.27577711]
+
 
 class ToRGB(DataTransform[PILImage]):
     def __call__(self, image: PILImage) -> PILImage:
@@ -26,13 +33,6 @@ class ImageProcessor(DataTransform[PILImage]):
     image_std: list[float] | None = None
 
     def model_post_init(self, context) -> None:
-        from transformers.utils.constants import (
-            IMAGENET_DEFAULT_MEAN,
-            IMAGENET_DEFAULT_STD,
-            IMAGENET_STANDARD_MEAN,
-            IMAGENET_STANDARD_STD,
-        )
-
         self.image_mean = self.image_mean or IMAGENET_STANDARD_MEAN
         self.image_std = self.image_std or IMAGENET_STANDARD_STD
         if self.use_imagenet_mean_std:
@@ -40,7 +40,7 @@ class ImageProcessor(DataTransform[PILImage]):
             self.image_std = IMAGENET_DEFAULT_STD
 
         # prepare image transform
-        self._transform = self._prepare_image_transform()
+        self._transform = None
 
     def _prepare_image_transform(self):
         from torchvision.transforms import Compose, Normalize, Resize, ToTensor
@@ -60,4 +60,6 @@ class ImageProcessor(DataTransform[PILImage]):
         return transform
 
     def __call__(self, image: PILImage) -> PILImage:
+        if not self._transform:
+            self._transform = self._prepare_image_transform()
         return self._transform(image)

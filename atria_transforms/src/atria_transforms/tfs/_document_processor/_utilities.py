@@ -1,25 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import torch
 from atria_logger import get_logger
 from atria_types import DocumentInstance
 from atria_types._data_instance._exceptions import AnnotationNotFoundError
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._qa_pair import QAPair
-from transformers.tokenization_utils_base import BatchEncoding
+
+if TYPE_CHECKING:
+    import torch
+    from transformers.tokenization_utils_base import BatchEncoding
 
 logger = get_logger(__name__)
-
-# qa_ann = document_instance.get_annotation_by_type(
-#     AnnotationType.question_answering
-# )
-# qa_pairs = qa_ann.qa_pairs if qa_ann is not None else None
-# assert qa_pairs is not None and len(qa_pairs) > 0, (
-#     "No QA pairs found in the document instance for extractive QA task."
-# )
 
 
 def _document_instance_to_hf_processor_inputs(
@@ -87,6 +81,8 @@ def _document_instance_to_hf_processor_inputs(
 def _extract_sequence_and_word_ids(
     tokenization_data: BatchEncoding,
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    import torch
+
     sequence_ids = []
     word_ids = []
     input_ids = tokenization_data["input_ids"]
@@ -120,6 +116,8 @@ def _extract_sequence_and_word_ids(
 def _extract_token_bboxes_from_word_bboxes(
     word_bboxes: list[list[float]], word_ids: torch.Tensor
 ) -> torch.Tensor:
+    import torch
+
     token_bboxes = []
     for word_ids_per_sample in word_ids:
         token_bboxes_per_sample = [
@@ -133,6 +131,8 @@ def _extract_token_bboxes_from_word_bboxes(
 def _extract_token_labels_from_word_labels(
     word_labels: list[int], word_ids: Any
 ) -> torch.Tensor:
+    import torch
+
     token_labels = []
     for word_ids_per_sample in word_ids:
         token_labels_per_sample = []
@@ -350,6 +350,8 @@ def _generate_segment_level_bbox_ranks(
 
 
 def _generate_segment_level_inner_ranks(line_rank_id: torch.Tensor):
+    import torch
+
     # line_inner_rank_id is the inner rank as follows 1 means start 2 for all middle tokens 3 for end token ... for each token in the line/segment.
     # if there is no middle token, start token will be 1 and end token will be 3.
     inner_ranks = []
@@ -387,6 +389,8 @@ def _generate_segment_level_inner_ranks(line_rank_id: torch.Tensor):
 
 
 def _generate_first_token_idxes(line_rank_id: torch.Tensor, max_segment_num: int = 150):
+    import torch
+
     first_token_idxes = []
     first_token_idxes_mask = []
     for line_ranks_per_sample in line_rank_id:

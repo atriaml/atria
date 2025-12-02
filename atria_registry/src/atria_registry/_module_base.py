@@ -26,12 +26,6 @@ class ModuleConfig(BaseModel, RepresentationMixin):
     name: str | None = None
     config_name: str = "default"
 
-    def hash(self):
-        params = self.model_dump()
-        return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[
-            :8
-        ]
-
 
 class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     """

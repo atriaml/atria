@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
 from atria_logger import get_logger
 from atria_types import DocumentInstance
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._qa_pair import QAPair
-from transformers.tokenization_utils_base import BatchEncoding
 
 from atria_transforms.data_types.document import DocumentTensorDataModel
 
@@ -17,6 +15,10 @@ from ._utilities import (
     _document_instance_to_hf_processor_inputs,
     _generate_qa_token_ids,
 )
+
+if TYPE_CHECKING:
+    from transformers.tokenization_utils_base import BatchEncoding
+
 
 logger = get_logger(__name__)
 
@@ -53,6 +55,8 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
     def _is_no_answer_sample(
         self, token_answer_start, token_answer_end, tokenization_data
     ):
+        import numpy as np
+
         total_answers = len(token_answer_start)
         for key, value in tokenization_data.items():
             if value is None:

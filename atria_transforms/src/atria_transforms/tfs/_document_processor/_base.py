@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
 from atria_types import DocumentInstance
 from pydantic import Field
-from transformers.tokenization_utils_base import BatchEncoding
 
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import DocumentTensorDataModel
@@ -16,6 +15,9 @@ from ._utilities import (
     _document_instance_to_hf_processor_inputs,
     _post_process_tokenizer_outputs,
 )
+
+if TYPE_CHECKING:
+    from transformers.tokenization_utils_base import BatchEncoding
 
 logger = get_logger(__name__)
 

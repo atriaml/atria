@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Generic, Self, TypeVar
+from typing import Any, Generic, TypeVar
 
-import typeguard
 from atria_logger import get_logger
 from atria_registry._module_base import RegisterablePydanticModule
 from pydantic import ConfigDict
@@ -31,9 +30,8 @@ class DataTransform(RegisterablePydanticModule, Generic[T_TensorDataModel]):
         super().__init_subclass__(**kwargs)
         original_call = cls.__call__
 
-        @typeguard.typechecked
         def wrapped_call(
-            self: Self, input: Any
+            self, input: Any
         ) -> T_TensorDataModel | list[T_TensorDataModel]:
             logger.debug(f"Calling transform: {cls.__name__}")
             result = original_call(self, input)

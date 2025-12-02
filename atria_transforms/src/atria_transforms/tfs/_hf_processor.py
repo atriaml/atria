@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
-from transformers import AutoProcessor, BertTokenizerFast, RobertaTokenizerFast
-from transformers.tokenization_utils_base import BatchEncoding, PreTrainedTokenizerBase
+
+if TYPE_CHECKING:
+    from transformers.tokenization_utils_base import (
+        BatchEncoding,
+        PreTrainedTokenizerBase,
+    )
 
 from atria_transforms.core import DataTransform
 from atria_transforms.registry import DATA_TRANSFORM
@@ -14,9 +18,7 @@ logger = get_logger(__name__)
 
 
 @DATA_TRANSFORM.register("hf_processor")
-class HuggingfaceProcessor(DataTransform[BatchEncoding]):
-    _TOKENIZERS_REQUIRING_SPLIT_TEXT = (BertTokenizerFast, RobertaTokenizerFast)
-
+class HuggingfaceProcessor(DataTransform):
     tokenizer_name: str = "microsoft/layoutlmv3-base"
 
     # tokenizer config
@@ -72,7 +74,7 @@ class HuggingfaceProcessor(DataTransform[BatchEncoding]):
             "return_first_n",
         ], f"Overflow sampling strategy {self.overflow_sampling} is not supported."
 
-        self._hf_processor = self._initialize_transform()
+        self._hf_processor = None
 
     def _prepare_init_kwargs(self) -> dict:
         init_kwargs = {
@@ -132,8 +134,13 @@ class HuggingfaceProcessor(DataTransform[BatchEncoding]):
             raise ValueError("Input text must be a string or a list of strings.")
 
     def __call__(self, input: dict) -> BatchEncoding:
+        from transformers import BertTokenizerFast, RobertaTokenizerFast
+
+        if not self._hf_processor:
+            self._hf_processor = self._initialize_transform()
+
         filtered_inputs = {k: v for k, v in input.items() if k in self._possible_args}
-        if isinstance(self.tokenizer, self._TOKENIZERS_REQUIRING_SPLIT_TEXT):
+        if isinstance(self.tokenizer, (BertTokenizerFast, RobertaTokenizerFast)):
             text = input.get("text", None)
             text_pair = input.get("text_pair", None)
 

@@ -6,14 +6,18 @@ writing the module registry to YAML, and instantiating objects from configuratio
 
 from __future__ import annotations
 
+import hashlib
 import importlib
+import json
 import re
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args, get_origin
 
 from atria_logger import get_logger
+from pydantic import BaseModel
+from pydantic_core import PydanticUndefined
 
 logger = get_logger(__name__)
 
@@ -193,3 +197,87 @@ def _convert_to_snake_case(s: str) -> str:
         str: The snake case string (underscored and lowercase).
     """
     return re.sub(r"([A-Z])", r"_\1", s).lower().lstrip("_")
+
+
+def _annotation_contains_submodel(tp: Any) -> bool:
+    """
+    Returns True if the annotation tp eventually contains a BaseModel subclass.
+    Handles unions, optionals, containers, annotated, etc.
+    """
+    if tp is None:
+        return False
+
+    # Direct model class
+    if isinstance(tp, type) and issubclass(tp, BaseModel):
+        return True
+
+    origin = get_origin(tp)
+    args = get_args(tp)
+
+    # No origin: not a container, nothing else to check
+    if origin is None:
+        return False
+
+    # Check all args of unions/containers/etc.
+    return any(_annotation_contains_submodel(arg) for arg in args)
+
+
+def _extract_nested_defaults(model: type[BaseModel]) -> dict[str, Any]:
+    defaults: dict[str, Any] = {}
+
+    for name, field in model.model_fields.items():
+        # Determine usable default
+        if field.default is not PydanticUndefined:
+            value = field.default
+        else:
+            continue  # no default defined
+
+        # -----------------------------
+        # Case 1: the field default is a BaseModel instance
+        # -----------------------------
+        if isinstance(value, BaseModel):
+            defaults[name] = _extract_nested_defaults(value.__class__)
+            continue
+
+        # -----------------------------
+        # Case 2: containers containing BaseModels
+        # -----------------------------
+        if isinstance(value, (list, tuple)):
+            processed = []
+            for item in value:
+                if isinstance(item, BaseModel):
+                    processed.append(_extract_nested_defaults(item.__class__))
+                else:
+                    processed.append(item)
+            defaults[name] = processed
+            continue
+
+        if isinstance(value, dict):
+            processed = {}
+            for k, v in value.items():
+                if isinstance(v, BaseModel):
+                    processed[k] = _extract_nested_defaults(v.__class__)
+                else:
+                    processed[k] = v
+            defaults[name] = processed
+            continue
+
+        # -----------------------------
+        # Case 3: annotation says it's a model,
+        # but the default is not an instance.
+        # (This means the default is ill-formed or missing.)
+        # -----------------------------
+        if _annotation_contains_submodel(field.annotation):
+            # We cannot instantiate the model (by your rules), so skip.
+            continue
+
+        # -----------------------------
+        # Case 4: primitive default
+        # -----------------------------
+        defaults[name] = value
+
+    return defaults
+
+
+def _get_config_hash(params: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[:8]

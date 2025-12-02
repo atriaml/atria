@@ -1,9 +1,13 @@
-from typing import Optional
+from __future__ import annotations
 
-import torch
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, model_validator
 
 from atria_transforms.core import TensorDataModel
+
+if TYPE_CHECKING:
+    import torch
 
 
 class DocumentTensorDataModel(TensorDataModel):
@@ -35,11 +39,11 @@ class DocumentTensorDataModel(TensorDataModel):
     label: torch.Tensor | None = None
 
     # extractive QA specific fields
-    token_answer_start: Optional["torch.Tensor"] = None
-    token_answer_end: Optional["torch.Tensor"] = None
+    token_answer_start: torch.Tensor | None = None
+    token_answer_end: torch.Tensor | None = None
 
     @model_validator(mode="after")
-    def validate_tensor_fields(self) -> "DocumentTensorDataModel":
+    def validate_tensor_fields(self) -> DocumentTensorDataModel:
         # ensure that each of the tensor fields are tensors of batch size 1
         for name, _ in self.__class__.model_fields.items():
             if name == "metadata":

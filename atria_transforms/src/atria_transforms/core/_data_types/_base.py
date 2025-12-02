@@ -2,7 +2,6 @@
 
 from typing import Any, Self, TypeVar
 
-import torch
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
@@ -79,6 +78,8 @@ class TensorDataModel(RepresentationMixin, BaseModel):
     #
     @model_validator(mode="after")
     def validate_tensor_fields(self) -> Self:
+        import torch
+
         for name, _ in self.__class__.model_fields.items():
             if name == "metadata":
                 continue
@@ -93,6 +94,8 @@ class TensorDataModel(RepresentationMixin, BaseModel):
 
     @classmethod
     def batch(cls, items: list[Self]) -> Self:
+        import torch
+
         """Create a batched instance from a list of instances."""
         if not items:
             raise ValueError("Cannot batch empty list")
@@ -124,6 +127,8 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         return batched_instance
 
     def __len__(self):
+        import torch
+
         """Return batch size if batched, else 1."""
         if not self._is_batched:
             return 1
