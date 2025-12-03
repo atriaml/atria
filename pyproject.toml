@@ -7,6 +7,7 @@ requires-python = "==3.11.*"
 dependencies = [
     "atria-datasets",
     "atria-logger",
+    "atria-models",
     "atria-registry",
     "atria-transforms",
     "atria-types",
@@ -22,6 +23,12 @@ atria-types = { path = "atria_types", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-registry = { path = "atria_registry", editable = true }
 atria-transforms = { path = "atria_transforms", editable = true }
+atria-models = { workspace = true, editable = true }
+
+[tool.uv.workspace]
+members = [
+    "atria_models",
+]
 
 [dependency-groups]
 dev = [

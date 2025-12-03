@@ -17,11 +17,7 @@ from atria_types import (
     ImageInstance,
 )
 
-from atria_datasets.core.dataset._common import (
-    DatasetConfig,
-    T_BaseDataInstance,
-    T_DatasetConfig,
-)
+from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
@@ -80,7 +76,7 @@ class Dataset(
     __extract_downloads__ = True
     __data_model__: type[T_BaseDataInstance] = None
     __repr_fields__ = ["data_model", "data_dir", "train", "validation", "test"]
-    __config__: type[T_DatasetConfig] = DatasetConfig
+    __config__: type[T_DatasetConfig]
 
     def __init__(
         self,

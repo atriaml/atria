@@ -1,0 +1,413 @@
+"""Checkpoint Utilities"""
+
+from __future__ import annotations
+
+import io
+from collections import OrderedDict
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from atria_logger import get_logger
+from fsspec.core import url_to_fs
+from fsspec.implementations.local import AbstractFileSystem
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    import torch
+    from torch import nn
+
+
+logger = get_logger(__name__)
+
+
+def _checkpoint_to_bytes(checkpoint: dict[str, Any]) -> io.BytesIO:
+    import torch
+
+    buffer = io.BytesIO()
+    torch.save(checkpoint, buffer)
+    buffer.seek(0)
+    return buffer.read()
+
+
+def _bytes_to_checkpoint(buffer: bytes) -> torch.nn.Module:
+    import torch
+
+    buffer = io.BytesIO(buffer)
+    buffer.seek(0)
+
+    # Load the state dict
+    return torch.load(buffer, map_location=torch.device("cpu"))
+
+
+def _load_checkpoint_from_path_or_url(path_or_url: str | Path) -> Any:
+    """
+    Loads a checkpoint from a file or URL.
+
+    Args:
+        path_or_url (Union[str, Path]): The path or URL of the checkpoint.
+
+    Returns:
+        Any: The loaded checkpoint.
+
+    Raises:
+        Exception: If an error occurs while loading the checkpoint.
+    """
+    import ignite.distributed as idist
+    import torch
+
+    map_location = idist.device()
+    if idist.get_world_size() > 1:
+        map_location = "cpu"
+
+    if str(path_or_url).startswith("http"):
+        return torch.hub.load_state_dict_from_url(
+            str(path_or_url), map_location=map_location
+        )
+    if str(path_or_url).startswith("hf://"):
+        from transformers import (
+            AutoModel,
+            AutoModelForQuestionAnswering,
+            AutoModelForSequenceClassification,
+            AutoModelForTokenClassification,
+        )
+
+        HF_MODEL_MAP = OrderedDict(
+            {
+                "hf://sequence_classification/": AutoModelForSequenceClassification,
+                "hf://token_classification/": AutoModelForTokenClassification,
+                "hf://question_answering/": AutoModelForQuestionAnswering,
+                "hf://": AutoModel,
+            }
+        )
+
+        for key in HF_MODEL_MAP:
+            if str(path_or_url).startswith(key):
+                model_class = HF_MODEL_MAP[key]
+                path_or_url = str(path_or_url).replace(key, "")
+                model = model_class.from_pretrained(path_or_url)
+                return model.state_dict()
+    fs = _get_filesystem(path_or_url)
+    try:
+        with fs.open(path_or_url, "rb") as f:
+            return torch.load(f, map_location=map_location)
+    except Exception as e:
+        logger.error(f"Error loading the checkpoint: {e}")
+        raise e
+
+
+def _resolve_state_dict_path(
+    checkpoint: dict[str, Any], key: str, target_key: str | None = None
+) -> dict[str, Any]:
+    """
+    Resolves a nested path within a checkpoint's state dictionary.
+
+    Args:
+        checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+        path_str (str): The dot-separated path string to resolve.
+
+    Returns:
+        Dict[str, Any]: The resolved state dictionary.
+
+    Raises:
+        KeyError: If the path part is not found in the checkpoint.
+    """
+    resolved = checkpoint
+
+    if key is not None:
+        path_parts = key.split(".")
+        for part in path_parts:
+            if part in resolved:
+                resolved = resolved[part]
+            else:
+                # Try to match key by prefix
+                matching_keys = [k for k in resolved if part in k]
+                if matching_keys:
+                    resolved = _filter_with_prefix(resolved, part)
+                else:
+                    available_keys = ", ".join(list(resolved.keys())[:10])
+                    raise KeyError(
+                        f"Path part '{part}' not found. Available keys: {available_keys}..."
+                    )
+
+    if target_key is not None:
+        parts = target_key.split(".")
+        resolved_nested = resolved
+        for key in reversed(parts):
+            resolved_nested = {key: resolved_nested}
+        return resolved_nested
+
+    return resolved
+
+
+class Checkpoint(BaseModel):
+    """
+    CheckpointBuilder is a configuration model for managing checkpoint-related settings.
+
+    Attributes:
+        path (str): The path to the main checkpoint file.
+        key (Optional[str]): The path to the checkpoint's state dictionary file. Defaults to None.
+        target_key (Optional[str]): The path to the model's state dictionary file. Defaults to None.
+        strict (bool): A flag indicating whether to strictly enforce that the keys in the checkpoint match
+            the keys in the model. Defaults to False.
+    """
+
+    path: str
+    key: str | None = None
+    target_key: str | None = None
+    strict: bool = False
+
+    def load(self, model: torch.nn.Module) -> dict[str, Any]:
+        """
+        Loads the checkpoint from the specified path and updates the state_dict attribute.
+        If the path is a URL, it will download the checkpoint.
+        """
+        from ignite.handlers import Checkpoint
+
+        logger.info(
+            f"Loading checkpoint from path: {self.path} (key: {self.key}, target_key: {self.target_key}) with strict={self.strict})"
+        )
+        state_dict = _load_checkpoint_from_path_or_url(self.path)
+
+        # reoslve the state_dict path
+        resolved_state_dict = _resolve_state_dict_path(
+            state_dict, self.key, self.target_key
+        )
+        Checkpoint.load_objects(
+            to_load={key: getattr(model, key) for key in resolved_state_dict.keys()},
+            checkpoint=resolved_state_dict,
+            strict=self.strict,
+        )
+
+
+class CheckpointManager:
+    """
+    CheckpointManager provides static methods for loading and applying checkpoints to PyTorch models.
+
+    Methods:
+        - load_checkpoints: Loads multiple checkpoints into a model based on a list of configurations.
+        - _resolve_state_dict_path: Resolves a nested path within a checkpoint's state dictionary.
+        - _load_checkpoint_from_path_or_url: Loads a checkpoint from a file or URL.
+        - _apply_checkpoint_to_model: Applies a checkpoint to a PyTorch model.
+    """
+
+    @staticmethod
+    def load_checkpoints(
+        model: torch.nn.Module, checkpoints: Checkpoint | list[Checkpoint]
+    ) -> None:
+        """
+        Loads multiple checkpoints into a model based on a list of configurations.
+
+        Args:
+            model (torch.nn.Module): The PyTorch model to load the checkpoints into.
+            checkpoint_configs (List[CheckpointBuilder]): A list of checkpoint configurations.
+
+        Returns:
+            None
+        """
+        if not isinstance(checkpoints, list):
+            checkpoints = [checkpoints]
+        for checkpoint in checkpoints:
+            logger.info(f"Loading checkpoint from path: {checkpoint.path}")
+            checkpoint = CheckpointManager._load_checkpoint_from_path_or_url(
+                checkpoint.path
+            )
+            if checkpoint.key:
+                checkpoint = CheckpointManager._resolve_state_dict_path(
+                    checkpoint, checkpoint.key, checkpoint.target_key
+                )
+            logger.info(
+                f"Loading checkpoint into model at path [{checkpoint.target_key}] "
+                f"(state dict path: [{checkpoint.key}], strict={checkpoint.strict})"
+            )
+            CheckpointManager._apply_checkpoint_to_model(
+                model=model, checkpoint=checkpoint, strict=checkpoint.strict
+            )
+
+    @staticmethod
+    def load_checkpoint(
+        model: torch.nn.Module,
+        checkpoint: dict[str, Any],
+        key: str | None = "state_dict",
+        target_key: str | None = None,
+        strict: bool = False,
+    ) -> None:
+        checkpoint = CheckpointManager._resolve_state_dict_path(
+            checkpoint, key, target_key
+        )
+        logger.info(
+            f"Loading checkpoint into model at path [{target_key}] "
+            f"(state dict path: [{key}], strict={strict})"
+        )
+        CheckpointManager._apply_checkpoint_to_model(
+            model=model, checkpoint=checkpoint, strict=strict
+        )
+        return checkpoint
+
+    @staticmethod
+    def _resolve_state_dict_path(
+        checkpoint: dict[str, Any], key: str, target_key: str | None = None
+    ) -> dict[str, Any]:
+        """
+        Resolves a nested path within a checkpoint's state dictionary.
+
+        Args:
+            checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+            path_str (str): The dot-separated path string to resolve.
+
+        Returns:
+            Dict[str, Any]: The resolved state dictionary.
+
+        Raises:
+            KeyError: If the path part is not found in the checkpoint.
+        """
+        resolved = checkpoint
+
+        if key is not None:
+            path_parts = key.split(".")
+            for part in path_parts:
+                if part in resolved:
+                    resolved = resolved[part]
+                else:
+                    # Try to match key by prefix
+                    matching_keys = [k for k in resolved if part in k]
+                    if matching_keys:
+                        resolved = _filter_with_prefix(resolved, part)
+                    else:
+                        available_keys = ", ".join(list(resolved.keys())[:10])
+                        raise KeyError(
+                            f"Path part '{part}' not found. Available keys: {available_keys}..."
+                        )
+
+        if target_key is not None:
+            parts = target_key.split(".")
+            resolved_nested = resolved
+            for key in reversed(parts):
+                resolved_nested = {key: resolved_nested}
+            return resolved_nested
+
+        return resolved
+
+    @staticmethod
+    def _apply_checkpoint_to_model(
+        model: nn.Module,
+        checkpoint: dict[str, Any],
+        target_key: str | None = None,
+        strict: bool = True,
+    ) -> None:
+        """
+        Applies a checkpoint to a PyTorch model.
+
+        Args:
+            model (nn.Module): The model to load the checkpoint into.
+            checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+            target_key (Optional[str]): The path to the model's state dictionary.
+            strict (bool): Whether to enforce strict loading of the checkpoint. Defaults to True.
+
+        Raises:
+            RuntimeError: If the model is a `TorchModelDict` and cannot load the checkpoint.
+        """
+        from ignite.handlers import Checkpoint
+
+        Checkpoint.load_objects(
+            to_load={key: getattr(model, key) for key in checkpoint.keys()},
+            checkpoint=checkpoint,
+            strict=strict,
+        )
+
+
+def _get_filesystem(path: Path, **kwargs: Any) -> AbstractFileSystem:
+    """
+    Retrieves the filesystem for a given path or URL.
+
+    Args:
+        path (Path): The path or URL to retrieve the filesystem for.
+        **kwargs (Any): Additional arguments for the filesystem.
+
+    Returns:
+        AbstractFileSystem: The filesystem object.
+    """
+    fs, _ = url_to_fs(str(path), **kwargs)
+    return fs
+
+
+def _filter_keys(checkpoint: dict[str, Any], keys: list[str]) -> dict[str, Any]:
+    """
+    Removes specific keys from checkpoint state dictionaries.
+
+    Args:
+        checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+        keys (List[str]): The keys to remove.
+
+    Returns:
+        Dict[str, Any]: The filtered checkpoint state dictionary.
+    """
+    checkpoint_filtered = {}
+    for state in checkpoint:
+        updated_state = state
+        for key in keys:
+            if key in updated_state:
+                updated_state = updated_state.replace(key, "")
+        checkpoint_filtered[updated_state] = checkpoint[state]
+    return checkpoint_filtered
+
+
+def _prepend_keys(checkpoint: dict[str, Any], keys: list[str]) -> dict[str, Any]:
+    """
+    Prepends specific keys to checkpoint state dictionaries.
+
+    Args:
+        checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+        keys (List[str]): The keys to prepend.
+
+    Returns:
+        Dict[str, Any]: The updated checkpoint state dictionary.
+    """
+    checkpoint_prepended = {}
+    for state in checkpoint:
+        updated_state = state
+        for key in keys:
+            if key not in updated_state:
+                updated_state = key + updated_state
+        checkpoint_prepended[updated_state] = checkpoint[state]
+    return checkpoint_prepended
+
+
+def _replace_keys(
+    checkpoint: dict[str, Any], key: str, replacement: str
+) -> dict[str, Any]:
+    """
+    Replaces specific keys in checkpoint state dictionaries.
+
+    Args:
+        checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+        key (str): The key to replace.
+        replacement (str): The replacement value.
+
+    Returns:
+        Dict[str, Any]: The updated checkpoint state dictionary.
+    """
+    checkpoint_filtered = {}
+    for state in checkpoint:
+        updated_state = state
+        if key in updated_state:
+            updated_state = updated_state.replace(key, replacement)
+        checkpoint_filtered[updated_state] = checkpoint[state]
+    return checkpoint_filtered
+
+
+def _filter_with_prefix(checkpoint: dict[str, Any], prefix_key: str) -> dict[str, Any]:
+    """
+    Filters checkpoint keys based on a prefix.
+
+    Args:
+        checkpoint (Dict[str, Any]): The checkpoint state dictionary.
+        prefix_key (str): The prefix to filter keys by.
+
+    Returns:
+        Dict[str, Any]: The filtered checkpoint state dictionary.
+    """
+    checkpoint_filtered = {}
+    for state in checkpoint:
+        if state.startswith(prefix_key):
+            checkpoint_filtered[state[len(prefix_key) + 1 :]] = checkpoint[state]
+    return checkpoint_filtered

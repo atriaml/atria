@@ -1,3 +1,3 @@
-from .document import DocumentTensorDataModel
+from ._document import DocumentTensorDataModel
 
 __all__ = ["DocumentTensorDataModel"]

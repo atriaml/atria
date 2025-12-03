@@ -77,7 +77,7 @@ class ConfigType(str, enum.Enum):
     task_pipeline = "task_pipeline"
 
 
-class TrainingStage:
+class TrainingStage(str, enum.Enum):
     """
     Defines constants for various training stages.
 

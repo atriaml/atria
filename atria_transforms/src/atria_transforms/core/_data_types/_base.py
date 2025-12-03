@@ -80,16 +80,21 @@ class TensorDataModel(RepresentationMixin, BaseModel):
     def validate_tensor_fields(self) -> Self:
         import torch
 
+        # ensure that each of the tensor fields are tensors of batch size 1
         for name, _ in self.__class__.model_fields.items():
             if name == "metadata":
                 continue
-
             value = getattr(self, name)
-            if value is not None and not isinstance(value, torch.Tensor):
-                raise TypeError(
-                    f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
-                )
-
+            if value is not None:
+                if not isinstance(value, torch.Tensor):
+                    raise TypeError(
+                        f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
+                    )
+                if not self._is_batched:
+                    if value.shape[0] != 1:
+                        raise ValueError(
+                            f"Field '{name}' must have batch size 1, got {value.shape[0]}"
+                        )
         return self
 
     @classmethod

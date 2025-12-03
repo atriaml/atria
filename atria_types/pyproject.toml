@@ -69,7 +69,7 @@ check_untyped_defs = true
 warn_unused_ignores = true
 
 [tool.uv.sources]
-atria-logger = { path = "../atria_logger" }
+atria-logger = { path = "../atria_logger", editable = true }
 
 [dependency-groups]
 dev = [

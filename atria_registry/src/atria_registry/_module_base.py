@@ -34,16 +34,18 @@ class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     """
 
     __config__: type[T_ModuleConfig]
+    __abstract__: bool = True
 
-    def __init__(
-        self, config: T_ModuleConfig | None = None, **overrides: dict[str, Any]
-    ) -> None:
+    def __init__(self, config: T_ModuleConfig | None = None, **overrides: Any) -> None:
         self._config: T_ModuleConfig = config or self.__config__(**overrides)  # type: ignore
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
         # Validate presence of Config at class definition time
+        if hasattr(cls, "__abstract__") and cls.__abstract__:
+            return
+
         if not hasattr(cls, "__config__"):
             raise TypeError(
                 f"{cls.__name__} must define a nested `__config__` class inherited from ModuleConfig."

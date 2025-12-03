@@ -7,7 +7,7 @@ from atria_types import DocumentInstance
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._qa_pair import QAPair
 
-from atria_transforms.data_types.document import DocumentTensorDataModel
+from atria_transforms.data_types._document import DocumentTensorDataModel
 
 from ...registry import DATA_TRANSFORM
 from ._base import DocumentProcessor

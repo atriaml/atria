@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 from atria_transforms.core import TensorDataModel
 
@@ -18,6 +18,7 @@ class DocumentTensorDataModel(TensorDataModel):
         question_id: int | None = None
         qa_question: str | None = None
         qa_answers: list[str] | None = None
+        bbox_normalized: bool = True
 
     token_ids: torch.Tensor
     word_ids: torch.Tensor
@@ -41,21 +42,3 @@ class DocumentTensorDataModel(TensorDataModel):
     # extractive QA specific fields
     token_answer_start: torch.Tensor | None = None
     token_answer_end: torch.Tensor | None = None
-
-    @model_validator(mode="after")
-    def validate_tensor_fields(self) -> DocumentTensorDataModel:
-        # ensure that each of the tensor fields are tensors of batch size 1
-        for name, _ in self.__class__.model_fields.items():
-            if name == "metadata":
-                continue
-            value = getattr(self, name)
-            if value is not None:
-                if not isinstance(value, torch.Tensor):
-                    raise TypeError(
-                        f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
-                    )
-                if value.shape[0] != 1:
-                    raise ValueError(
-                        f"Field '{name}' must have batch size 1, got {value.shape[0]}"
-                    )
-        return self
