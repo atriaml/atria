@@ -1,16 +1,23 @@
-"""
-Optimizers Package
+from atria_ml.optimizers._api import load_optimizer_config
+from atria_ml.optimizers._base import OptimizerConfig
+from atria_ml.optimizers._torch import (
+    AdadeltaOptimizerConfig,
+    AdagradOptimizerConfig,
+    AdamOptimizerConfig,
+    AdamWOptimizerConfig,
+    LARSOptimizerConfig,
+    RMSpropOptimizerConfig,
+    SGDOptimizerConfig,
+)
 
-This package provides implementations and configurations for optimizers used in the
-Atria framework. It includes custom optimizers such as LARS and utilities for optimizer
-management.
-
-Modules:
-    - lars: Implementation of the Layer-wise Adaptive Rate Scaling (LARS) optimizer.
-    - ext_modules: Additional external modules for optimizer extensions.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-14
-Version: 1.0.0
-License: MIT
-"""
+__all__ = [
+    "load_optimizer_config",
+    "OptimizerConfig",
+    "SGDOptimizerConfig",
+    "AdamOptimizerConfig",
+    "AdamWOptimizerConfig",
+    "AdagradOptimizerConfig",
+    "RMSpropOptimizerConfig",
+    "AdadeltaOptimizerConfig",
+    "LARSOptimizerConfig",
+]

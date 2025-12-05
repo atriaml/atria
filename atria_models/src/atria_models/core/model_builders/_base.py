@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
-from rich.pretty import pretty_repr
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
 from atria_models.core.model_builders._constants import _DEFAULT_ATRIA_MODELS_CACHE_DIR
@@ -17,6 +16,10 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def pretty_kwargs(kwargs: dict) -> str:
+    return ", ".join(f"{k}={v}" for k, v in kwargs.items())
 
 
 class ModelBuilder:
@@ -152,6 +155,6 @@ class ModelBuilder:
         valid_params = signature.parameters
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in valid_params}
         logger.info(
-            f"Building model '{model_name_or_path}' with parameters:\n{pretty_repr(filtered_kwargs, expand_all=True)}"
+            f"Building model '{model_name_or_path}' with parameters:{pretty_kwargs(filtered_kwargs)}"
         )
         return module(**filtered_kwargs)

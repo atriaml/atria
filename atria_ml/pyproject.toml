@@ -11,13 +11,6 @@ requires-python = "==3.11.*"
 license = { file = "LICENSE.txt" }
 authors = [{ name = "Saifullah", email = "saifullah.saifullah@dfki.de" }]
 dependencies = [
-    "atria-core",
-    "atria-datasets",
-    "atria-hub",
-    "atria-models",
-    "atria-registry",
-    "atria-transforms",
-    "atria-metrics",
     "anls>=0.0.2",
     "diffusers>=0.34.0",
     "mmcv==2.1.0",
@@ -135,13 +128,6 @@ torchvision = [
 ]
 mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
-atria-registry = { path = "../atria_registry", editable = true }
-atria-models = { path = "../atria_models", editable = true }
-atria-hub = { path = "../atria_hub", editable = true }
-atria-core = { path = "../atria_core", editable = true }
-atria-transforms = { path = "../atria_transforms", editable = true }
-atria-datasets = { path = "../atria_datasets", editable = true }
-atria-metrics = { path = "../atria_metrics", editable = true }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

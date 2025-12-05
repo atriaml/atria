@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import ConfigDict
 
-from ._module_base import ModuleConfig, RegisterableModule
+from ._module_base import ConfigurableModule, ModuleConfig
 from ._utilities import _resolve_module_from_path
 
 
@@ -21,7 +21,7 @@ class ModuleBuilderConfig(ModuleConfig):
     module: type[Any] | Callable[..., Any]
 
 
-class ModuleBuilder(RegisterableModule[ModuleBuilderConfig]):
+class ModuleBuilder(ConfigurableModule[ModuleBuilderConfig]):
     __config__ = ModuleBuilderConfig
 
     def __init__(self, module: str | Any, **kwargs):

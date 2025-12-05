@@ -88,6 +88,12 @@ class ModuleRegistry:
             )
         return self._registry_groups[name.upper()]
 
+    def dump_to_yaml(self) -> dict[str, list[str]]:
+        for group_name, group in self._registry_groups.items():
+            print(f"Registry Group: {group_name}")
+            for module_name in group.dump():
+                print(f"  Module: {module_name}")
+
     def __getattr__(self, name: str) -> RegistryGroup:
         """
         Retrieve a registry group as an attribute.

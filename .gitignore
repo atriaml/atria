@@ -86,3 +86,6 @@ pyrightconfig.json
 # Local scripts / config files
 *.env
 cache/
+data_dir/
+outputs/
+test_data/

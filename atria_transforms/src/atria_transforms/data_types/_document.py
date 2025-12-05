@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+import torch
 from pydantic import BaseModel
 
 from atria_transforms.core import TensorDataModel
-
-if TYPE_CHECKING:
-    import torch
 
 
 class DocumentTensorDataModel(TensorDataModel):

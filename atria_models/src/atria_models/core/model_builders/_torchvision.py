@@ -1,13 +1,15 @@
 """Torchvision model builders."""
 
+from __future__ import annotations
+
 import os
 import typing
 from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
-from rich.pretty import pretty_repr
 
 from atria_models.core.model_builders._base import ModelBuilder
+from atria_models.core.model_builders._timm import pretty_kwargs
 from atria_models.utilities._nn_modules import (
     _get_last_module,
     _replace_module_with_name,
@@ -26,7 +28,7 @@ class TorchvisionModelBuilder(ModelBuilder):
         os.environ["TORCH_HOME"] = str(self._cache_dir)
 
         logger.info(
-            f"Building model '{model_name_or_path}' with parameters:\n{pretty_repr(kwargs, expand_all=True)}"
+            f"Building model '{model_name_or_path}' with parameters:{pretty_kwargs(kwargs)}"
         )
         model = typing.cast(
             nn.Module,

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 import yaml
 from atria_logger import get_logger
 from atria_registry._module_base import ModuleConfig
 from atria_types import BaseDataInstance
+from atria_types._common import DatasetSplitType
 from pydantic import ConfigDict
 
 from atria_datasets.core.constants import (
@@ -18,20 +19,47 @@ from atria_datasets.core.constants import (
 )
 from atria_datasets.core.storage.utilities import FileStorageType
 
+if TYPE_CHECKING:
+    from atria_datasets.core.dataset._datasets import Dataset
+
 logger = get_logger(__name__)
 
 
 class DatasetConfig(ModuleConfig):
     model_config = ConfigDict(extra="forbid")
+    dataset_name: str | None = None
+    config_name: str | None = None
     max_train_samples: int | None = None
     max_validation_samples: int | None = None
     max_test_samples: int | None = None
 
-    # @model_validator(mode="after")
-    # def set_config_name(self) -> "AtriaDatasetConfig":
-    #     if self.config_name == "default":
-    #         self.config_name = f"{self.config_name}-{self.hash()[:8]}"
-    #     return self
+    def build(
+        self,
+        data_dir: str | None = None,
+        split: DatasetSplitType | None = None,
+        access_token: str | None = None,
+        overwrite_existing_cached: bool = False,
+        allowed_keys: set[str] | None = None,
+        num_processes: int = 8,
+        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        enable_cached_splits: bool = False,
+        store_artifact_content: bool = True,
+        max_cache_image_size: int | None = None,
+        **kwargs,
+    ) -> Dataset:
+        return super().build(
+            data_dir=data_dir,
+            split=split,
+            access_token=access_token,
+            overwrite_existing_cached=overwrite_existing_cached,
+            allowed_keys=allowed_keys,
+            num_processes=num_processes,
+            cached_storage_type=cached_storage_type,
+            enable_cached_splits=enable_cached_splits,
+            store_artifact_content=store_artifact_content,
+            max_cache_image_size=max_cache_image_size,
+            **kwargs,
+        )
 
 
 class HuggingfaceDatasetConfig(DatasetConfig):
@@ -114,12 +142,8 @@ def _get_storage_manager(
         raise ValueError(f"Unsupported storage type: {cached_storage_type}")
 
 
-T_DatasetConfig = TypeVar("T_DatasetConfig", bound=DatasetConfig, default=DatasetConfig)
+T_DatasetConfig = TypeVar("T_DatasetConfig", bound=DatasetConfig)
 T_HuggingfaceDatasetConfig = TypeVar(
-    "T_HuggingfaceDatasetConfig",
-    bound=HuggingfaceDatasetConfig,
-    default=HuggingfaceDatasetConfig,
+    "T_HuggingfaceDatasetConfig", bound=HuggingfaceDatasetConfig
 )
-T_BaseDataInstance = TypeVar(
-    "T_BaseDataInstance", bound=BaseDataInstance, default=BaseDataInstance
-)
+T_BaseDataInstance = TypeVar("T_BaseDataInstance", bound=BaseDataInstance)

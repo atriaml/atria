@@ -2,15 +2,37 @@ version = 1
 revision = 3
 requires-python = "==3.11.*"
 resolution-markers = [
-    "sys_platform == 'darwin'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+    "sys_platform == 'darwin' and extra != 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu'",
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')",
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu'",
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')",
+    "sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu'",
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu'",
+    "sys_platform == 'darwin' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')",
 ]
+conflicts = [[
+    { package = "atria-ml", group = "torch-cpu" },
+    { package = "atria-ml", group = "torch-gpu" },
+]]
 
 [manifest]
 members = [
+    "atria-ml",
     "atria-models",
     "atriaml",
+]
+
+[[package]]
+name = "absl-py"
+version = "2.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/2a/c93173ffa1b39c1d0395b7e842bbdc62e556ca9d8d3b5572926f3e4ca752/absl_py-2.3.1.tar.gz", hash = "sha256:a97820526f7fbfd2ec1bce83f3f25e3a14840dac0d8e02a0b71cd75db3f77fc9", size = 116588, upload-time = "2025-07-03T09:31:44.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/aa/ba0014cc4659328dc818a28827be78e6d97312ab0cb98105a770924dc11e/absl_py-2.3.1-py3-none-any.whl", hash = "sha256:eeecf07f0c2a93ace0772c92e596ace6d3d3996c042b2128459aaae2a76de11d", size = 135811, upload-time = "2025-07-03T09:31:42.253Z" },
 ]
 
 [[package]]
@@ -84,6 +106,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/61/62/06741b579156360248d1ec624842ad0edf697050bbaf7c3e46394e106ad1/aiosignal-1.4.0.tar.gz", hash = "sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7", size = 25007, upload-time = "2025-07-03T22:54:43.528Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl", hash = "sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e", size = 7490, upload-time = "2025-07-03T22:54:42.156Z" },
+]
+
+[[package]]
+name = "anls"
+version = "0.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/89/af7f09252bd4e9932893c0f167fe33baf338f673f8fd4130d7f01c170fb0/anls-0.0.2.tar.gz", hash = "sha256:2a0c1223c63a310dca916f130a96cbb33d2145af5fbc6dbb337e160a6e2fbed7", size = 10396, upload-time = "2022-07-14T03:20:22.801Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/16/6f/bd3b85c757a57c38955ae0c705357aac1ec282f5281cff7679d00620440c/anls-0.0.2-py3-none-any.whl", hash = "sha256:f6273fc31188784cd3f6ac083412f70be095ab531847580a88245ee836abe811", size = 12050, upload-time = "2022-07-14T03:20:21.311Z" },
 ]
 
 [[package]]
@@ -273,6 +304,84 @@ dev = [
 ]
 
 [[package]]
+name = "atria-ml"
+version = "0.0.0"
+source = { editable = "atria_ml" }
+dependencies = [
+    { name = "anls" },
+    { name = "codename" },
+    { name = "diffusers" },
+    { name = "h5py" },
+    { name = "mmcv" },
+    { name = "mmdet" },
+    { name = "pyqt5" },
+    { name = "pytorch-ignite" },
+    { name = "tensorboard" },
+    { name = "tensorboardx" },
+    { name = "textdistance" },
+    { name = "timm" },
+    { name = "torchinfo" },
+    { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "ipykernel" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "tuna" },
+]
+torch-cpu = [
+    { name = "torch", version = "2.1.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+torch-gpu = [
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" } },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anls", specifier = ">=0.0.2" },
+    { name = "codename", specifier = ">=1.1" },
+    { name = "diffusers", specifier = ">=0.34.0" },
+    { name = "h5py", specifier = ">=3.14.0" },
+    { name = "mmcv", url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" },
+    { name = "mmdet", specifier = "==3.3.0" },
+    { name = "pyqt5", specifier = ">=5.15.11" },
+    { name = "pytorch-ignite", specifier = ">=0.5.2" },
+    { name = "tensorboard", specifier = ">=2.20.0" },
+    { name = "tensorboardx", specifier = ">=2.6.4" },
+    { name = "textdistance", specifier = ">=4.6.3" },
+    { name = "timm", specifier = ">=1.0.17" },
+    { name = "torchinfo", specifier = ">=1.8.0" },
+    { name = "transformers", specifier = ">=4.37.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.9.2" },
+    { name = "ipykernel", specifier = ">=6.28.1" },
+    { name = "mypy", specifier = ">=1.16.1" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "ruff", specifier = ">=0.12.2" },
+    { name = "tuna", specifier = ">=0.5.11" },
+]
+torch-cpu = [
+    { name = "torch", specifier = "==2.1.2", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "atria-ml", group = "torch-cpu" } },
+    { name = "torchvision", specifier = "==0.16.2", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "atria-ml", group = "torch-cpu" } },
+]
+torch-gpu = [
+    { name = "torch", specifier = "==2.1.2", index = "https://download.pytorch.org/whl/cu121", conflict = { package = "atria-ml", group = "torch-gpu" } },
+    { name = "torchvision", specifier = "==0.16.2", index = "https://download.pytorch.org/whl/cu121", conflict = { package = "atria-ml", group = "torch-gpu" } },
+]
+
+[[package]]
 name = "atria-models"
 version = "0.0.0"
 source = { editable = "atria_models" }
@@ -401,8 +510,15 @@ dependencies = [
     { name = "pypdf2" },
     { name = "requests" },
     { name = "rich" },
-    { name = "torch" },
-    { name = "torchvision" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 
 [package.metadata]
@@ -446,6 +562,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "atria-datasets" },
     { name = "atria-logger" },
+    { name = "atria-ml" },
     { name = "atria-models" },
     { name = "atria-registry" },
     { name = "atria-transforms" },
@@ -467,6 +584,7 @@ dev = [
 requires-dist = [
     { name = "atria-datasets", editable = "atria_datasets" },
     { name = "atria-logger", editable = "atria_logger" },
+    { name = "atria-ml", editable = "atria_ml" },
     { name = "atria-models", editable = "atria_models" },
     { name = "atria-registry", editable = "atria_registry" },
     { name = "atria-transforms", editable = "atria_transforms" },
@@ -557,7 +675,7 @@ name = "cffi"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529", size = 523588, upload-time = "2025-09-08T23:24:04.541Z" }
 wheels = [
@@ -606,7 +724,7 @@ name = "click"
 version = "8.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202", size = 286342, upload-time = "2025-05-20T23:19:49.832Z" }
 wheels = [
@@ -1002,12 +1120,52 @@ wheels = [
 ]
 
 [[package]]
+name = "grpcio"
+version = "1.76.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b6/e0/318c1ce3ae5a17894d5791e87aea147587c9e702f24122cc7a5c8bbaeeb1/grpcio-1.76.0.tar.gz", hash = "sha256:7be78388d6da1a25c0d5ec506523db58b18be22d9c37d8d3a32c08be4987bd73", size = 12785182, upload-time = "2025-10-21T16:23:12.106Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/00/8163a1beeb6971f66b4bbe6ac9457b97948beba8dd2fc8e1281dce7f79ec/grpcio-1.76.0-cp311-cp311-linux_armv7l.whl", hash = "sha256:2e1743fbd7f5fa713a1b0a8ac8ebabf0ec980b5d8809ec358d488e273b9cf02a", size = 5843567, upload-time = "2025-10-21T16:20:52.829Z" },
+    { url = "https://files.pythonhosted.org/packages/10/c1/934202f5cf335e6d852530ce14ddb0fef21be612ba9ecbbcbd4d748ca32d/grpcio-1.76.0-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:a8c2cf1209497cf659a667d7dea88985e834c24b7c3b605e6254cbb5076d985c", size = 11848017, upload-time = "2025-10-21T16:20:56.705Z" },
+    { url = "https://files.pythonhosted.org/packages/11/0b/8dec16b1863d74af6eb3543928600ec2195af49ca58b16334972f6775663/grpcio-1.76.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:08caea849a9d3c71a542827d6df9d5a69067b0a1efbea8a855633ff5d9571465", size = 6412027, upload-time = "2025-10-21T16:20:59.3Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/64/7b9e6e7ab910bea9d46f2c090380bab274a0b91fb0a2fe9b0cd399fffa12/grpcio-1.76.0-cp311-cp311-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:f0e34c2079d47ae9f6188211db9e777c619a21d4faba6977774e8fa43b085e48", size = 7075913, upload-time = "2025-10-21T16:21:01.645Z" },
+    { url = "https://files.pythonhosted.org/packages/68/86/093c46e9546073cefa789bd76d44c5cb2abc824ca62af0c18be590ff13ba/grpcio-1.76.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:8843114c0cfce61b40ad48df65abcfc00d4dba82eae8718fab5352390848c5da", size = 6615417, upload-time = "2025-10-21T16:21:03.844Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/b6/5709a3a68500a9c03da6fb71740dcdd5ef245e39266461a03f31a57036d8/grpcio-1.76.0-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:8eddfb4d203a237da6f3cc8a540dad0517d274b5a1e9e636fd8d2c79b5c1d397", size = 7199683, upload-time = "2025-10-21T16:21:06.195Z" },
+    { url = "https://files.pythonhosted.org/packages/91/d3/4b1f2bf16ed52ce0b508161df3a2d186e4935379a159a834cb4a7d687429/grpcio-1.76.0-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:32483fe2aab2c3794101c2a159070584e5db11d0aa091b2c0ea9c4fc43d0d749", size = 8163109, upload-time = "2025-10-21T16:21:08.498Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/61/d9043f95f5f4cf085ac5dd6137b469d41befb04bd80280952ffa2a4c3f12/grpcio-1.76.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:dcfe41187da8992c5f40aa8c5ec086fa3672834d2be57a32384c08d5a05b4c00", size = 7626676, upload-time = "2025-10-21T16:21:10.693Z" },
+    { url = "https://files.pythonhosted.org/packages/36/95/fd9a5152ca02d8881e4dd419cdd790e11805979f499a2e5b96488b85cf27/grpcio-1.76.0-cp311-cp311-win32.whl", hash = "sha256:2107b0c024d1b35f4083f11245c0e23846ae64d02f40b2b226684840260ed054", size = 3997688, upload-time = "2025-10-21T16:21:12.746Z" },
+    { url = "https://files.pythonhosted.org/packages/60/9c/5c359c8d4c9176cfa3c61ecd4efe5affe1f38d9bae81e81ac7186b4c9cc8/grpcio-1.76.0-cp311-cp311-win_amd64.whl", hash = "sha256:522175aba7af9113c48ec10cc471b9b9bd4f6ceb36aeb4544a8e2c80ed9d252d", size = 4709315, upload-time = "2025-10-21T16:21:15.26Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
+]
+
+[[package]]
+name = "h5py"
+version = "3.15.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4d/6a/0d79de0b025aa85dc8864de8e97659c94cf3d23148394a954dc5ca52f8c8/h5py-3.15.1.tar.gz", hash = "sha256:c86e3ed45c4473564de55aa83b6fc9e5ead86578773dfbd93047380042e26b69", size = 426236, upload-time = "2025-10-16T10:35:27.404Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/fd/8349b48b15b47768042cff06ad6e1c229f0a4bd89225bf6b6894fea27e6d/h5py-3.15.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:5aaa330bcbf2830150c50897ea5dcbed30b5b6d56897289846ac5b9e529ec243", size = 3434135, upload-time = "2025-10-16T10:33:47.954Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/b0/1c628e26a0b95858f54aba17e1599e7f6cd241727596cc2580b72cb0a9bf/h5py-3.15.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c970fb80001fffabb0109eaf95116c8e7c0d3ca2de854e0901e8a04c1f098509", size = 2870958, upload-time = "2025-10-16T10:33:50.907Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/e3/c255cafc9b85e6ea04e2ad1bba1416baa1d7f57fc98a214be1144087690c/h5py-3.15.1-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:80e5bb5b9508d5d9da09f81fd00abbb3f85da8143e56b1585d59bc8ceb1dba8b", size = 4504770, upload-time = "2025-10-16T10:33:54.357Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/23/4ab1108e87851ccc69694b03b817d92e142966a6c4abd99e17db77f2c066/h5py-3.15.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5b849ba619a066196169763c33f9f0f02e381156d61c03e000bb0100f9950faf", size = 4700329, upload-time = "2025-10-16T10:33:57.616Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/e4/932a3a8516e4e475b90969bf250b1924dbe3612a02b897e426613aed68f4/h5py-3.15.1-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:e7f6c841efd4e6e5b7e82222eaf90819927b6d256ab0f3aca29675601f654f3c", size = 4152456, upload-time = "2025-10-16T10:34:00.843Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/0a/f74d589883b13737021b2049ac796328f188dbb60c2ed35b101f5b95a3fc/h5py-3.15.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:ca8a3a22458956ee7b40d8e39c9a9dc01f82933e4c030c964f8b875592f4d831", size = 4617295, upload-time = "2025-10-16T10:34:04.154Z" },
+    { url = "https://files.pythonhosted.org/packages/23/95/499b4e56452ef8b6c95a271af0dde08dac4ddb70515a75f346d4f400579b/h5py-3.15.1-cp311-cp311-win_amd64.whl", hash = "sha256:550e51131376889656feec4aff2170efc054a7fe79eb1da3bb92e1625d1ac878", size = 2882129, upload-time = "2025-10-16T10:34:06.886Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/bb/cfcc70b8a42222ba3ad4478bcef1791181ea908e2adbd7d53c66395edad5/h5py-3.15.1-cp311-cp311-win_arm64.whl", hash = "sha256:b39239947cb36a819147fc19e86b618dcb0953d1cd969f5ed71fc0de60392427", size = 2477121, upload-time = "2025-10-16T10:34:09.579Z" },
 ]
 
 [[package]]
@@ -1060,7 +1218,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
+    { name = "hf-xet", marker = "platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -1077,7 +1235,7 @@ name = "humanfriendly"
 version = "10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyreadline3", marker = "sys_platform == 'win32'" },
+    { name = "pyreadline3", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cc/3f/2c29224acb2e2df4d2046e4c73ee2662023c58ff5b113c4c1adac0886c43/humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc", size = 360702, upload-time = "2021-09-17T21:40:43.31Z" }
 wheels = [
@@ -1156,7 +1314,7 @@ name = "ipykernel"
 version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appnope", marker = "sys_platform == 'darwin'" },
+    { name = "appnope", marker = "sys_platform == 'darwin' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "comm" },
     { name = "debugpy" },
     { name = "ipython" },
@@ -1180,12 +1338,12 @@ name = "ipython"
 version = "9.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "decorator" },
     { name = "ipython-pygments-lexers" },
     { name = "jedi" },
     { name = "matplotlib-inline" },
-    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "pexpect", marker = "(sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'win32' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "prompt-toolkit" },
     { name = "pygments" },
     { name = "stack-data" },
@@ -1404,6 +1562,15 @@ wheels = [
 ]
 
 [[package]]
+name = "markdown"
+version = "3.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/ab/7dd27d9d863b3376fcf23a5a13cb5d024aed1db46f963f1b5735ae43b3be/markdown-3.10.tar.gz", hash = "sha256:37062d4f2aa4b2b6b32aefb80faa300f82cc790cb949a35b8caede34f2b68c0e", size = 364931, upload-time = "2025-11-03T19:51:15.007Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/70/81/54e3ce63502cd085a0c556652a4e1b919c45a446bd1e5300e10c44c8c521/markdown-3.10-py3-none-any.whl", hash = "sha256:b5b99d6951e2e4948d939255596523444c0e677c669700b1d17aa4a8a464cb7c", size = 107678, upload-time = "2025-11-03T19:51:13.887Z" },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1496,7 +1663,7 @@ dependencies = [
     { name = "packaging" },
     { name = "pillow" },
     { name = "pyyaml" },
-    { name = "regex", marker = "sys_platform == 'win32'" },
+    { name = "regex", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "yapf" },
 ]
 wheels = [
@@ -1578,7 +1745,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pyyaml" },
-    { name = "regex", marker = "sys_platform == 'win32'" },
+    { name = "regex", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "rich" },
     { name = "termcolor" },
     { name = "yapf" },
@@ -1755,6 +1922,7 @@ version = "12.1.3.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/37/6d/121efd7382d5b0284239f4ab1fc1590d86d34ed4a4a2fdb13b30ca8e5740/nvidia_cublas_cu12-12.1.3.1-py3-none-manylinux1_x86_64.whl", hash = "sha256:ee53ccca76a6fc08fb9701aa95b6ceb242cdaab118c3bb152af4e579af792728", size = 410594774, upload-time = "2023-04-19T15:50:03.519Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/ef/32a375b74bea706c93deea5613552f7c9104f961b21df423f5887eca713b/nvidia_cublas_cu12-12.1.3.1-py3-none-win_amd64.whl", hash = "sha256:2b964d60e8cf11b5e1073d179d85fa340c120e99b3067558f3cf98dd69d02906", size = 439918445, upload-time = "2023-04-19T15:56:13.346Z" },
 ]
 
 [[package]]
@@ -1763,6 +1931,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/00/6b218edd739ecfc60524e585ba8e6b00554dd908de2c9c66c1af3e44e18d/nvidia_cuda_cupti_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:e54fde3983165c624cb79254ae9818a456eb6e87a7fd4d56a2352c24ee542d7e", size = 14109015, upload-time = "2023-04-19T15:47:32.502Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/56/0021e32ea2848c24242f6b56790bd0ccc8bf99f973ca790569c6ca028107/nvidia_cuda_cupti_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:bea8236d13a0ac7190bd2919c3e8e6ce1e402104276e6f9694479e48bb0eb2a4", size = 10154340, upload-time = "2023-04-19T15:53:33.563Z" },
 ]
 
 [[package]]
@@ -1771,6 +1940,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/9f/c64c03f49d6fbc56196664d05dba14e3a561038a81a638eeb47f4d4cfd48/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:339b385f50c309763ca65456ec75e17bbefcbbf2893f462cb8b90584cd27a1c2", size = 23671734, upload-time = "2023-04-19T15:48:32.42Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/1d/f76987c4f454eb86e0b9a0e4f57c3bf1ac1d13ad13cd1a4da4eb0e0c0ce9/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:0a98a522d9ff138b96c010a65e145dc1b4850e9ecb75a0172371793752fd46ed", size = 19331863, upload-time = "2023-04-19T15:54:34.603Z" },
 ]
 
 [[package]]
@@ -1779,6 +1949,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/d5/c68b1d2cdfcc59e72e8a5949a37ddb22ae6cade80cd4a57a84d4c8b55472/nvidia_cuda_runtime_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:6e258468ddf5796e25f1dc591a31029fa317d97a0a94ed93468fc86301d61e40", size = 823596, upload-time = "2023-04-19T15:47:22.471Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/e2/7a2b4b5064af56ea8ea2d8b2776c0f2960d95c88716138806121ae52a9c9/nvidia_cuda_runtime_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:dfb46ef84d73fababab44cf03e3b83f80700d27ca300e537f85f636fac474344", size = 821226, upload-time = "2023-04-19T15:53:23.082Z" },
 ]
 
 [[package]]
@@ -1786,7 +1957,7 @@ name = "nvidia-cudnn-cu12"
 version = "8.9.2.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "nvidia-cublas-cu12", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ff/74/a2e2be7fb83aaedec84f391f082cf765dfb635e7caa9b49065f73e4835d8/nvidia_cudnn_cu12-8.9.2.26-py3-none-manylinux1_x86_64.whl", hash = "sha256:5ccb288774fdfb07a7e7025ffec286971c06d8d7b4fb162525334616d7629ff9", size = 731725872, upload-time = "2023-06-01T19:24:57.328Z" },
@@ -1798,6 +1969,7 @@ version = "11.0.2.54"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/94/eb540db023ce1d162e7bea9f8f5aa781d57c65aed513c33ee9a5123ead4d/nvidia_cufft_cu12-11.0.2.54-py3-none-manylinux1_x86_64.whl", hash = "sha256:794e3948a1aa71fd817c3775866943936774d1c14e7628c74f6f7417224cdf56", size = 121635161, upload-time = "2023-04-19T15:50:46Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/57/7927a3aa0e19927dfed30256d1c854caf991655d847a4e7c01fe87e3d4ac/nvidia_cufft_cu12-11.0.2.54-py3-none-win_amd64.whl", hash = "sha256:d9ac353f78ff89951da4af698f80870b1534ed69993f10a4cf1d96f21357e253", size = 121344196, upload-time = "2023-04-19T15:56:59.562Z" },
 ]
 
 [[package]]
@@ -1806,6 +1978,7 @@ version = "10.3.2.106"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/31/4890b1c9abc496303412947fc7dcea3d14861720642b49e8ceed89636705/nvidia_curand_cu12-10.3.2.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:9d264c5036dde4e64f1de8c50ae753237c12e0b1348738169cd0f8a536c0e1e0", size = 56467784, upload-time = "2023-04-19T15:51:04.804Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/97/4c9c7c79efcdf5b70374241d48cf03b94ef6707fd18ea0c0f53684931d0b/nvidia_curand_cu12-10.3.2.106-py3-none-win_amd64.whl", hash = "sha256:75b6b0c574c0037839121317e17fd01f8a69fd2ef8e25853d826fec30bdba74a", size = 55995813, upload-time = "2023-04-19T15:57:16.676Z" },
 ]
 
 [[package]]
@@ -1813,12 +1986,13 @@ name = "nvidia-cusolver-cu12"
 version = "11.4.5.107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
-    { name = "nvidia-cusparse-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "nvidia-cublas-cu12", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cusparse-cu12", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/1d/8de1e5c67099015c834315e333911273a8c6aaba78923dd1d1e25fc5f217/nvidia_cusolver_cu12-11.4.5.107-py3-none-manylinux1_x86_64.whl", hash = "sha256:8a7ec542f0412294b15072fa7dab71d31334014a69f953004ea7a118206fe0dd", size = 124161928, upload-time = "2023-04-19T15:51:25.781Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/80/8fca0bf819122a631c3976b6fc517c1b10741b643b94046bd8dd451522c5/nvidia_cusolver_cu12-11.4.5.107-py3-none-win_amd64.whl", hash = "sha256:74e0c3a24c78612192a74fcd90dd117f1cf21dea4822e66d89e8ea80e3cd2da5", size = 121643081, upload-time = "2023-04-19T15:57:43.035Z" },
 ]
 
 [[package]]
@@ -1826,10 +2000,11 @@ name = "nvidia-cusparse-cu12"
 version = "12.1.0.106"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/5b/cfaeebf25cd9fdec14338ccb16f6b2c4c7fa9163aefcf057d86b9cc248bb/nvidia_cusparse_cu12-12.1.0.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:f3b50f42cf363f86ab21f720998517a659a48131e8d538dc02f8768237bd884c", size = 195958278, upload-time = "2023-04-19T15:51:49.939Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/95/48fdbba24c93614d1ecd35bc6bdc6087bd17cbacc3abc4b05a9c2a1ca232/nvidia_cusparse_cu12-12.1.0.106-py3-none-win_amd64.whl", hash = "sha256:b798237e81b9719373e8fae8d4f091b70a0cf09d9d85c95a557e11df2d8e9a5a", size = 195414588, upload-time = "2023-04-19T15:58:08.389Z" },
 ]
 
 [[package]]
@@ -1846,6 +2021,8 @@ version = "12.8.93"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f6/74/86a07f1d0f42998ca31312f998bd3b9a7eff7f52378f4f270c8679c77fb9/nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:81ff63371a7ebd6e6451970684f916be2eab07321b73c9d244dc2b4da7f73b88", size = 39254836, upload-time = "2025-03-07T01:49:55.661Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/a2/8cee5da30d13430e87bf99bb33455d2724d0a4a9cb5d7926d80ccb96d008/nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:adccd7161ace7261e01bb91e44e88da350895c270d23f744f0820c818b7229e7", size = 38386204, upload-time = "2025-03-07T01:49:43.612Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/d7/34f02dad2e30c31b10a51f6b04e025e5dd60e5f936af9045a9b858a05383/nvidia_nvjitlink_cu12-12.8.93-py3-none-win_amd64.whl", hash = "sha256:bd93fbeeee850917903583587f4fc3a4eafa022e34572251368238ab5e6bd67f", size = 268553710, upload-time = "2025-03-07T01:56:24.13Z" },
 ]
 
 [[package]]
@@ -1854,6 +2031,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/d3/8057f0587683ed2fcd4dbfbdfdfa807b9160b809976099d36b8f60d08f03/nvidia_nvtx_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:dc21cf308ca5691e7c04d962e213f8a4aa9bbfa23d95412f452254c2caeb09e5", size = 99138, upload-time = "2023-04-19T15:48:43.556Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/d7/bd7cb2d95ac6ac6e8d05bfa96cdce69619f1ef2808e072919044c2d47a8c/nvidia_nvtx_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:65f4d98982b31b60026e0e6de73fbdfc09d08a96f4656dd3665ca616a11e1e82", size = 66307, upload-time = "2023-04-19T15:54:45.736Z" },
 ]
 
 [[package]]
@@ -1875,7 +2053,7 @@ version = "0.27.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "pydantic" },
@@ -2269,6 +2447,45 @@ wheels = [
 ]
 
 [[package]]
+name = "pyqt5"
+version = "5.15.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyqt5-qt5" },
+    { name = "pyqt5-sip" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0e/07/c9ed0bd428df6f87183fca565a79fee19fa7c88c7f00a7f011ab4379e77a/PyQt5-5.15.11.tar.gz", hash = "sha256:fda45743ebb4a27b4b1a51c6d8ef455c4c1b5d610c90d2934c7802b5c1557c52", size = 3216775, upload-time = "2024-07-19T08:39:57.756Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/64/42ec1b0bd72d87f87bde6ceb6869f444d91a2d601f2e67cd05febc0346a1/PyQt5-5.15.11-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:c8b03dd9380bb13c804f0bdb0f4956067f281785b5e12303d529f0462f9afdc2", size = 6579776, upload-time = "2024-07-19T08:39:19.775Z" },
+    { url = "https://files.pythonhosted.org/packages/49/f5/3fb696f4683ea45d68b7e77302eff173493ac81e43d63adb60fa760b9f91/PyQt5-5.15.11-cp38-abi3-macosx_11_0_x86_64.whl", hash = "sha256:6cd75628f6e732b1ffcfe709ab833a0716c0445d7aec8046a48d5843352becb6", size = 7016415, upload-time = "2024-07-19T08:39:32.977Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/8c/4065950f9d013c4b2e588fe33cf04e564c2322842d84dbcbce5ba1dc28b0/PyQt5-5.15.11-cp38-abi3-manylinux_2_17_x86_64.whl", hash = "sha256:cd672a6738d1ae33ef7d9efa8e6cb0a1525ecf53ec86da80a9e1b6ec38c8d0f1", size = 8188103, upload-time = "2024-07-19T08:39:40.561Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/f0/ae5a5b4f9b826b29ea4be841b2f2d951bcf5ae1d802f3732b145b57c5355/PyQt5-5.15.11-cp38-abi3-win32.whl", hash = "sha256:76be0322ceda5deecd1708a8d628e698089a1cea80d1a49d242a6d579a40babd", size = 5433308, upload-time = "2024-07-19T08:39:46.932Z" },
+    { url = "https://files.pythonhosted.org/packages/56/d5/68eb9f3d19ce65df01b6c7b7a577ad3bbc9ab3a5dd3491a4756e71838ec9/PyQt5-5.15.11-cp38-abi3-win_amd64.whl", hash = "sha256:bdde598a3bb95022131a5c9ea62e0a96bd6fb28932cc1619fd7ba211531b7517", size = 6865864, upload-time = "2024-07-19T08:39:53.572Z" },
+]
+
+[[package]]
+name = "pyqt5-qt5"
+version = "5.15.18"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/90/bf01ac2132400997a3474051dd680a583381ebf98b2f5d64d4e54138dc42/pyqt5_qt5-5.15.18-py3-none-macosx_10_13_x86_64.whl", hash = "sha256:8bb997eb903afa9da3221a0c9e6eaa00413bbeb4394d5706118ad05375684767", size = 39715743, upload-time = "2025-11-09T12:56:42.936Z" },
+    { url = "https://files.pythonhosted.org/packages/24/8e/76366484d9f9dbe28e3bdfc688183433a7b82e314216e9b14c89e5fab690/pyqt5_qt5-5.15.18-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c656af9c1e6aaa7f59bf3d8995f2fa09adbf6762b470ed284c31dca80d686a26", size = 36798484, upload-time = "2025-11-09T12:56:59.998Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/46/ffe177f99f897a59dc237a20059020427bd2d3853d713992b8081933ddfe/pyqt5_qt5-5.15.18-py3-none-manylinux2014_x86_64.whl", hash = "sha256:bf2457e6371969736b4f660a0c153258fa03dbc6a181348218e6f05421682af7", size = 60864590, upload-time = "2025-11-09T12:57:26.724Z" },
+]
+
+[[package]]
+name = "pyqt5-sip"
+version = "12.17.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/08/88a20c862f40b5c178c517cdc7e93767967dec5ac1b994e226d517991c9b/pyqt5_sip-12.17.1.tar.gz", hash = "sha256:0eab72bcb628f1926bf5b9ac51259d4fa18e8b2a81d199071135458f7d087ea8", size = 104136, upload-time = "2025-10-08T09:04:19.893Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/e4/451e465c75584a7cbd10e10404317b7443af83f56a64e02080b1f3cda5b5/pyqt5_sip-12.17.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:5134d637efadd108a70306bab55b3d7feaa951bf6b8162161a67ae847bea9130", size = 122581, upload-time = "2025-10-08T09:04:13.607Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/b2/330f97434b21fbc99ab16f6ce71358ff5ea1bf1f09ed14dfe6b28b5ed8f5/pyqt5_sip-12.17.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:155cf755266c8bf64428916e2ff720d5efa1aec003d4ccc40c003b147dbdac03", size = 276844, upload-time = "2025-10-08T09:15:33.713Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/fd/53925099d0fc8aaf7adee613b6cebfb3fdfcd1238add64ff9edf6711e5f8/pyqt5_sip-12.17.1-cp311-cp311-win32.whl", hash = "sha256:9dfa7fe4ac93b60004430699c4bf56fef842a356d64dfea7cbc6d580d0427d6d", size = 49099, upload-time = "2025-10-08T09:11:23.928Z" },
+    { url = "https://files.pythonhosted.org/packages/33/f8/f47a849c17676557c4220fbce9fcc24e15736af247c4dddcaf9ff0124b57/pyqt5_sip-12.17.1-cp311-cp311-win_amd64.whl", hash = "sha256:2ddd214cf40119b86942a5da2da5a7345334955ab00026d8dcc56326b30e6d3c", size = 58988, upload-time = "2025-10-08T09:08:34.903Z" },
+]
+
+[[package]]
 name = "pyreadline3"
 version = "3.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2291,7 +2508,7 @@ name = "pytest"
 version = "9.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -2320,7 +2537,10 @@ version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
-    { name = "torch" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-8-atria-ml-torch-gpu'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5a/e5/7fe880b24de30b4eadc8d997ea8d3c4a8f507b1a34dcdced08d88f665ee3/pytorch_ignite-0.5.3.tar.gz", hash = "sha256:75c645f02fea66cc80c1998ade3f8402e0e6b6d73f3f4ad727c171f6e93874f4", size = 7506607, upload-time = "2025-10-16T00:42:05.142Z" }
 wheels = [
@@ -2358,7 +2578,7 @@ name = "pyzmq"
 version = "27.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "implementation_name == 'pypy'" },
+    { name = "cffi", marker = "implementation_name == 'pypy' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/04/0b/3c9baedbdf613ecaa7aa07027780b8867f57b6293b6ee50de316c9f3222b/pyzmq-27.1.0.tar.gz", hash = "sha256:ac0765e3d44455adb6ddbf4417dcce460fc40a05978c08efdf2948072f6db540", size = 281750, upload-time = "2025-09-08T23:10:18.157Z" }
 wheels = [
@@ -2519,7 +2739,7 @@ name = "ruamel-yaml"
 version = "0.18.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ruamel-yaml-clib", marker = "platform_python_implementation == 'CPython'" },
+    { name = "ruamel-yaml-clib", marker = "platform_python_implementation == 'CPython' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9f/c7/ee630b29e04a672ecfc9b63227c87fd7a37eb67c1bf30fe95376437f897c/ruamel.yaml-0.18.16.tar.gz", hash = "sha256:a6e587512f3c998b2225d68aa1f35111c29fad14aed561a26e73fab729ec5e5a", size = 147269, upload-time = "2025-10-22T17:54:02.346Z" }
 wheels = [
@@ -2660,6 +2880,15 @@ wheels = [
 ]
 
 [[package]]
+name = "setuptools"
+version = "80.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
+]
+
+[[package]]
 name = "shapely"
 version = "2.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2779,6 +3008,50 @@ wheels = [
 ]
 
 [[package]]
+name = "tensorboard"
+version = "2.20.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "absl-py" },
+    { name = "grpcio" },
+    { name = "markdown" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pillow" },
+    { name = "protobuf" },
+    { name = "setuptools" },
+    { name = "tensorboard-data-server" },
+    { name = "werkzeug" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/d9/a5db55f88f258ac669a92858b70a714bbbd5acd993820b41ec4a96a4d77f/tensorboard-2.20.0-py3-none-any.whl", hash = "sha256:9dc9f978cb84c0723acf9a345d96c184f0293d18f166bb8d59ee098e6cfaaba6", size = 5525680, upload-time = "2025-07-17T19:20:49.638Z" },
+]
+
+[[package]]
+name = "tensorboard-data-server"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/13/e503968fefabd4c6b2650af21e110aa8466fe21432cd7c43a84577a89438/tensorboard_data_server-0.7.2-py3-none-any.whl", hash = "sha256:7e0610d205889588983836ec05dc098e80f97b7e7bbff7e994ebb78f578d0ddb", size = 2356, upload-time = "2023-10-23T21:23:32.16Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/85/dabeaf902892922777492e1d253bb7e1264cadce3cea932f7ff599e53fea/tensorboard_data_server-0.7.2-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:9fe5d24221b29625dbc7328b0436ca7fc1c23de4acf4d272f1180856e32f9f60", size = 4823598, upload-time = "2023-10-23T21:23:33.714Z" },
+    { url = "https://files.pythonhosted.org/packages/73/c6/825dab04195756cf8ff2e12698f22513b3db2f64925bdd41671bfb33aaa5/tensorboard_data_server-0.7.2-py3-none-manylinux_2_31_x86_64.whl", hash = "sha256:ef687163c24185ae9754ed5650eb5bc4d84ff257aabdc33f0cc6f74d8ba54530", size = 6590363, upload-time = "2023-10-23T21:23:35.583Z" },
+]
+
+[[package]]
+name = "tensorboardx"
+version = "2.6.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2b/c5/d4cc6e293fb837aaf9f76dd7745476aeba8ef7ef5146c3b3f9ee375fe7a5/tensorboardx-2.6.4.tar.gz", hash = "sha256:b163ccb7798b31100b9f5fa4d6bc22dad362d7065c2f24b51e50731adde86828", size = 4769801, upload-time = "2025-06-10T22:37:07.419Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/1d/b5d63f1a6b824282b57f7b581810d20b7a28ca951f2d5b59f1eb0782c12b/tensorboardx-2.6.4-py3-none-any.whl", hash = "sha256:5970cf3a1f0a6a6e8b180ccf46f3fe832b8a25a70b86e5a237048a7c0beb18e2", size = 87201, upload-time = "2025-06-10T22:37:05.44Z" },
+]
+
+[[package]]
 name = "termcolor"
 version = "3.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2822,8 +3095,15 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "pyyaml" },
     { name = "safetensors" },
-    { name = "torch" },
-    { name = "torchvision" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torchvision", version = "0.16.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c5/9d/e4670765d1c033f97096c760b3b907eeb659cf80f3678640e5f060b04c6c/timm-1.0.22.tar.gz", hash = "sha256:14fd74bcc17db3856b1a47d26fb305576c98579ab9d02b36714a5e6b25cde422", size = 2382998, upload-time = "2025-11-05T04:06:09.377Z" }
 wheels = [
@@ -2858,26 +3138,53 @@ wheels = [
 [[package]]
 name = "torch"
 version = "2.1.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'",
+]
 dependencies = [
-    { name = "filelock" },
-    { name = "fsspec" },
-    { name = "jinja2" },
-    { name = "networkx" },
-    { name = "nvidia-cublas-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cudnn-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cufft-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-curand-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusolver-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusparse-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nccl-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nvtx-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "sympy" },
-    { name = "triton", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "typing-extensions" },
+    { name = "filelock", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "fsspec", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "jinja2", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "networkx", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "sympy", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.1.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8f32ce591616a30304f37a7d5ea80b69ca9e1b94bba7f308184bf616fdaea155" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.1.2-cp311-none-macosx_10_9_x86_64.whl", hash = "sha256:76d37967c31c99548ad2c4d3f2cf191db48476f2e69b35a0937137116da356a1" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.1.2-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:e2d83f07b4aac983453ea5bf8f9aa9dacf2278a8d31247f5d9037f37befc60e4" },
+]
+
+[[package]]
+name = "torch"
+version = "2.1.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "filelock", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "fsspec", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "jinja2", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "networkx", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "sympy", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "triton", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "typing-extensions", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/6a/7fb9d82db4568834ff6d4df2fe3b143de4ed65a3f8f93e7daed703626cb6/torch-2.1.2-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:a6ebbe517097ef289cc7952783588c72de071d4b15ce0f8b285093f0916b1162", size = 670210421, upload-time = "2023-12-14T21:48:56.191Z" },
@@ -2885,6 +3192,51 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/ae/2ad8820045b6631965750435f28583e80905b8273d57cf026163b51323ee/torch-2.1.2-cp311-cp311-win_amd64.whl", hash = "sha256:e0ee6cf90c8970e05760f898d58f9ac65821c37ffe8b04269ec787aa70962b69", size = 192324585, upload-time = "2023-12-14T21:48:00.722Z" },
     { url = "https://files.pythonhosted.org/packages/dd/a0/6dd8662895ddaffb0ac689037451f93a73e9030d07b1b5965e3e3071f873/torch-2.1.2-cp311-none-macosx_10_9_x86_64.whl", hash = "sha256:76d37967c31c99548ad2c4d3f2cf191db48476f2e69b35a0937137116da356a1", size = 146707942, upload-time = "2023-12-14T21:48:07.812Z" },
     { url = "https://files.pythonhosted.org/packages/1e/86/477ec85bf1f122931f00a2f3889ed9322c091497415a563291ffc119dacc/torch-2.1.2-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:e2d83f07b4aac983453ea5bf8f9aa9dacf2278a8d31247f5d9037f37befc60e4", size = 59576825, upload-time = "2023-12-14T21:48:21.805Z" },
+]
+
+[[package]]
+name = "torch"
+version = "2.1.2+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "fsspec", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "jinja2", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "networkx", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "sympy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "typing-extensions", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.1.2%2Bcpu-cp311-cp311-linux_x86_64.whl", hash = "sha256:6acac7871cca2b72f00b60496dd7d59d7d8247721f374705b8f9c6b9aeea482a" },
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.1.2%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:d7ed25db586afef2c022eb143471c6742088decbe05ed1f879fac770e67df189" },
+]
+
+[[package]]
+name = "torch"
+version = "2.1.2+cu121"
+source = { registry = "https://download.pytorch.org/whl/cu121" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "filelock", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "fsspec", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "jinja2", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "networkx", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "sympy", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+    { name = "triton", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'x86_64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "typing-extensions", marker = "extra == 'group-8-atria-ml-torch-gpu'" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cu121/torch-2.1.2%2Bcu121-cp311-cp311-linux_x86_64.whl", hash = "sha256:ca05cae9334504d1903e16c50ddf045329a859d5b1a27ed2dc1d58ed066df6fa" },
+    { url = "https://download.pytorch.org/whl/cu121/torch-2.1.2%2Bcu121-cp311-cp311-win_amd64.whl", hash = "sha256:c92e9c559a82466fc5989f648807d2c0215bcce09b97ad7a20d038b686783229" },
 ]
 
 [[package]]
@@ -2899,12 +3251,54 @@ wheels = [
 [[package]]
 name = "torchvision"
 version = "0.16.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'",
+]
 dependencies = [
-    { name = "numpy" },
-    { name = "pillow" },
-    { name = "requests" },
-    { name = "torch" },
+    { name = "numpy", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "pillow", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "requests", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/torchvision-0.16.2-cp311-cp311-linux_aarch64.whl", hash = "sha256:e130b08cc9b3cc73a6c59d6edf032394a322f9579bfd21d14bc2e1d0999aa758" },
+    { url = "https://download.pytorch.org/whl/cpu/torchvision-0.16.2-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:67b1aaf8b8cb02ce75dd445f291a27c8036a502f8c0aa76e28c37a0faac2e153" },
+    { url = "https://download.pytorch.org/whl/cpu/torchvision-0.16.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:bef30d03e1d1c629761f4dca51d3b7d8a0dc0acce6f4068ab2a1634e8e7b64e0" },
+]
+
+[[package]]
+name = "torchvision"
+version = "0.16.2"
+source = { registry = "https://download.pytorch.org/whl/cu121" }
+resolution-markers = [
+    "platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "numpy", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "pillow", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "requests", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/torchvision-0.16.2-cp311-cp311-linux_aarch64.whl", hash = "sha256:e130b08cc9b3cc73a6c59d6edf032394a322f9579bfd21d14bc2e1d0999aa758" },
+]
+
+[[package]]
+name = "torchvision"
+version = "0.16.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "numpy", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "pillow", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "requests", marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (extra != 'group-8-atria-ml-torch-cpu' and extra != 'group-8-atria-ml-torch-gpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3b/0a/59f82c490e82c3f3671deb374b1d53e3285ff91b76cae46f99b5b3c3e2d7/torchvision-0.16.2-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:67b1aaf8b8cb02ce75dd445f291a27c8036a502f8c0aa76e28c37a0faac2e153", size = 1588786, upload-time = "2023-12-14T21:50:07.811Z" },
@@ -2912,6 +3306,45 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/c8/cf445dcf86daf1aed298061ad14b8d335fa594596aeaa6b951231328ffd1/torchvision-0.16.2-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:e59cc7b2bd1ab5c0ce4ae382e4e37be8f1c174e8b5de2f6a23c170de9ae28495", size = 6795927, upload-time = "2023-12-14T21:50:01.511Z" },
     { url = "https://files.pythonhosted.org/packages/fa/2b/3177a4e6f0f190a036ec1c64866cf92442919fdfe4a4ee0cccc137e50dfd/torchvision-0.16.2-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:e130b08cc9b3cc73a6c59d6edf032394a322f9579bfd21d14bc2e1d0999aa758", size = 13959338, upload-time = "2023-12-14T21:49:54.95Z" },
     { url = "https://files.pythonhosted.org/packages/f9/e6/3c821e7417acd82df89e39f09156ce80d58817b5b4b1ac5453b522bc5dd4/torchvision-0.16.2-cp311-cp311-win_amd64.whl", hash = "sha256:8692ab1e48807e9604046a6f4beeb67b523294cee1b00828654bb0df2cfce2b2", size = 1137940, upload-time = "2023-12-14T21:50:04.039Z" },
+]
+
+[[package]]
+name = "torchvision"
+version = "0.16.2+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "numpy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "pillow", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "requests", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-cpu') or (sys_platform == 'darwin' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform == 'linux' and extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cpu/torchvision-0.16.2%2Bcpu-cp311-cp311-linux_x86_64.whl", hash = "sha256:a51be39563743c5a4c176e2317c71149f5ee1818d3872b342d656d03b97d3b9d" },
+    { url = "https://download.pytorch.org/whl/cpu/torchvision-0.16.2%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:32a84b015f63a5335f1c761bff78d66fbaab8a0b041e3500ff494c8828efb899" },
+]
+
+[[package]]
+name = "torchvision"
+version = "0.16.2+cu121"
+source = { registry = "https://download.pytorch.org/whl/cu121" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and platform_python_implementation != 'CPython' and sys_platform == 'linux'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "numpy", marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "pillow", marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "requests", marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+    { name = "torch", version = "2.1.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "(platform_machine != 'aarch64' and extra == 'group-8-atria-ml-torch-gpu') or (platform_python_implementation != 'CPython' and extra == 'group-8-atria-ml-torch-gpu') or (sys_platform != 'linux' and extra == 'group-8-atria-ml-torch-gpu') or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cu121/torchvision-0.16.2%2Bcu121-cp311-cp311-linux_x86_64.whl", hash = "sha256:092d59110a9fecf7c3b44d18b1b5aa10ba898e2541e07b674fe59268521eb8cb" },
+    { url = "https://download.pytorch.org/whl/cu121/torchvision-0.16.2%2Bcu121-cp311-cp311-win_amd64.whl", hash = "sha256:55def0091f7079cfbfa83dbf2f91860bf59257c9566eb67a64fb856287079586" },
 ]
 
 [[package]]
@@ -2938,7 +3371,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-8-atria-ml-torch-cpu' and extra == 'group-8-atria-ml-torch-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737, upload-time = "2024-11-24T20:12:22.481Z" }
 wheels = [
@@ -2980,10 +3413,19 @@ name = "triton"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
+    { name = "filelock", marker = "extra == 'group-8-atria-ml-torch-gpu' or extra != 'group-8-atria-ml-torch-cpu'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/c1/54fffb2eb13d293d9a429fead3646752ea190de0229bcf3d591ba2481263/triton-2.1.0-0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:919b06453f0033ea52c13eaf7833de0e57db3178d23d4e04f9fc71c4f2c32bf8", size = 89234153, upload-time = "2023-09-01T07:26:20.161Z" },
+]
+
+[[package]]
+name = "tuna"
+version = "0.5.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/fb/5bf0865b2fdb44c0c62af24e77b5fe1bcfae4282b982a954fe7984587595/tuna-0.5.11.tar.gz", hash = "sha256:d47f3e39e80af961c8df016ac97d1643c3c60b5eb451299da0ab5fe411d8866c", size = 150600, upload-time = "2021-12-18T22:11:19.551Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/07/c115a27adb5228bdf78d0c2366637c5b1630427f879c674f7bab4e6eb637/tuna-0.5.11-py3-none-any.whl", hash = "sha256:ab352a6d836014ace585ecd882148f1f7c68be9ea4bf9e9298b7127594dab2ef", size = 149682, upload-time = "2021-12-18T22:11:16.716Z" },
 ]
 
 [[package]]
@@ -3085,6 +3527,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5a/3a/68800d92e065cf4750ebecf973b13979c0c929b439e1293012938862038d/webdataset-1.0.2.tar.gz", hash = "sha256:7f0498be827cfa46cc5430a58768a24e2c6a410676a61be1838f53d61afdaab4", size = 80090, upload-time = "2025-06-19T23:26:21.945Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/00/aca6beb3658dab4ed3dbb41a78e6e7f31342e0b41d28088f205525751601/webdataset-1.0.2-py3-none-any.whl", hash = "sha256:3dbfced32b25c0d199c6b9787937b6f85742bc3c84f652c846893075c1c082d9", size = 74956, upload-time = "2025-06-19T23:26:20.354Z" },
+]
+
+[[package]]
+name = "werkzeug"
+version = "3.1.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markupsafe" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/45/ea/b0f8eeb287f8df9066e56e831c7824ac6bab645dd6c7a8f4b2d767944f9b/werkzeug-3.1.4.tar.gz", hash = "sha256:cd3cd98b1b92dc3b7b3995038826c68097dcb16f9baa63abe35f20eafeb9fe5e", size = 864687, upload-time = "2025-11-29T02:15:22.841Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/f9/9e082990c2585c744734f85bec79b5dae5df9c974ffee58fe421652c8e91/werkzeug-3.1.4-py3-none-any.whl", hash = "sha256:2ad50fb9ed09cc3af22c54698351027ace879a0b60a3b5edf5730b2f7d876905", size = 224960, upload-time = "2025-11-29T02:15:21.13Z" },
 ]
 
 [[package]]

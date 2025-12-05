@@ -2,9 +2,7 @@ import os
 from pathlib import Path
 
 import hydra
-from atria_core.logger import get_logger
-from atria_core.logger.logger import LoggerBase
-from atria_core.utilities.yaml_resolvers import *  # noqa this is needed to register the resolvers
+from atria_logger import enable_file_logging, get_logger
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
@@ -14,16 +12,14 @@ logger = get_logger(__name__)
 def initialize_and_run(
     local_rank: int, config: DictConfig, hydra_config: DictConfig
 ) -> None:
-    from atria_core.utilities.pydantic import pydantic_parser
     from hydra_zen import instantiate
 
     from atria_ml.training.engines.utilities import RunConfig
 
     hydra_config = HydraConfig.get()
-    LoggerBase().log_file_path = (
+    enable_file_logging(
         Path(hydra_config.runtime.output_dir) / f"{hydra_config.job.name}.log"
     )
-    LoggerBase().rank = local_rank
     config.output_dir = hydra_config.runtime.output_dir
     config._zen_exclude.append("package")  # exclude atria base config args
     config._zen_exclude.append("version")  # exclude atria base config args

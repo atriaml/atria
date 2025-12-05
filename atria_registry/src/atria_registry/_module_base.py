@@ -10,24 +10,54 @@ from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict
 from rich.pretty import pretty_repr
 
+from atria_registry._utilities import _resolve_module_from_path
+
 T_ModuleConfig = TypeVar("T_ModuleConfig", bound="ModuleConfig")
 
 logger = get_logger(__name__)
 
 
-class ModuleConfig(BaseModel, RepresentationMixin):
+class ModuleConfig(RepresentationMixin, BaseModel):
     """
     Base class for Atria module registry configurations.
     All registry configurations must inherit from this class.
     """
 
     __version__ = "0.0.0"
+    __builds_with_kwargs__ = False
     model_config = ConfigDict(extra="forbid", frozen=True)
-    name: str | None = None
-    config_name: str = "default"
+    module_path: str | None = None
+
+    @property
+    def kwargs(self) -> dict[str, Any]:
+        return self.model_dump(exclude={"module_path"})
+
+    def to_yaml(self) -> str:
+        """Serialize the ModuleConfig to a YAML string."""
+        from omegaconf import OmegaConf
+
+        config_omegaconf = OmegaConf.create(self.model_dump())
+        return OmegaConf.to_yaml(config_omegaconf)
+
+    def build(self, **kwargs) -> Any:
+        assert self.module_path is not None, (
+            "module_path must be set to build the module."
+        )
+        module = _resolve_module_from_path(self.module_path)
+        if isinstance(module, type):
+            if self.__builds_with_kwargs__:
+                current_kwargs = self.kwargs
+                current_kwargs.update(kwargs)
+                return module(**current_kwargs)
+            else:
+                return module(config=self, **kwargs)
+        else:
+            raise TypeError(
+                f"Module at path {self.module_path} is neither a class nor a callable."
+            )
 
 
-class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
+class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     """
     Base class for Atria modules that can be registered in the Atria registry.
     All modules that are to be registered must inherit from this class.
@@ -36,8 +66,9 @@ class RegisterableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     __config__: type[T_ModuleConfig]
     __abstract__: bool = True
 
-    def __init__(self, config: T_ModuleConfig | None = None, **overrides: Any) -> None:
-        self._config: T_ModuleConfig = config or self.__config__(**overrides)  # type: ignore
+    def __init__(self, config: T_ModuleConfig) -> None:
+        assert isinstance(config, self.__config__)
+        self._config: T_ModuleConfig = config
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -76,8 +107,8 @@ class RegisterablePydanticModule(RepresentationMixin, BaseModel):
     All modules that are to be registered must inherit from this class.
     """
 
-    name: str | None = None
-    config_name: str = "default"
+    # name: str | None = None
+    # config_name: str = "default"
 
     def hash(self):
         params = self.model_dump()

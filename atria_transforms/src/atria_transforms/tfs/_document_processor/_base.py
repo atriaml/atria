@@ -9,7 +9,7 @@ from pydantic import Field
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import DocumentTensorDataModel
 from atria_transforms.registry import DATA_TRANSFORM
-from atria_transforms.tfs import HuggingfaceProcessor, ImageProcessor
+from atria_transforms.tfs import HuggingfaceProcessor, StandardImageTransform
 
 from ._utilities import (
     _document_instance_to_hf_processor_inputs,
@@ -22,10 +22,12 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("document_processor")
+@DATA_TRANSFORM.register("document_instance_processor")
 class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
     hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
-    image_transform: ImageProcessor = Field(default_factory=ImageProcessor)
+    image_transform: StandardImageTransform = Field(
+        default_factory=StandardImageTransform
+    )
 
     # segment-level-rank info args
     add_segment_level_info: bool = False

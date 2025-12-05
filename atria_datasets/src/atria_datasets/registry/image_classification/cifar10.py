@@ -9,7 +9,8 @@ from atria_types import (
 )
 
 from atria_datasets import DATASET
-from atria_datasets.core.dataset._datasets import DatasetConfig, ImageDataset
+from atria_datasets.core.dataset._common import DatasetConfig
+from atria_datasets.core.dataset._datasets import ImageDataset
 
 _CLASSES = [
     "airplane",
@@ -27,14 +28,15 @@ _CLASSES = [
 
 @DATASET.register(
     "cifar10",
-    configs=[
-        DatasetConfig(
+    configs={
+        "1k": DatasetConfig(
+            dataset_name="cifar10",
             config_name="1k",
             max_train_samples=1000,
             max_test_samples=1000,
             max_validation_samples=1000,
         )
-    ],
+    },
 )
 class Cifar10(ImageDataset):
     def _custom_download(self, data_dir: str, access_token: str | None = None) -> None:
@@ -44,7 +46,6 @@ class Cifar10(ImageDataset):
         CIFAR10(root=data_dir, train=False, download=True)
 
     def _metadata(self):
-        self.config.config_name
         return DatasetMetadata(
             description="CIFAR-10 dataset",
             dataset_labels=DatasetLabels(classification=_CLASSES),

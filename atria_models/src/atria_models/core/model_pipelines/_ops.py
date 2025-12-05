@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Generic
 
 from atria_models.core.model_pipelines._common import (
@@ -27,7 +28,7 @@ class ModelPipelineOps(Generic[T_ModelPipelineConfig]):
 
         self._model_pipeline._model = _auto_model(
             device=torch.device(device),
-            model=self._model_pipeline.model,
+            model=self._model_pipeline._model,
             sync_bn=sync_bn,
         )
 
@@ -53,11 +54,9 @@ class ModelPipelineOps(Generic[T_ModelPipelineConfig]):
         self._model_pipeline._model.half()
         return self._model_pipeline
 
-    def get_trainable_parameters(self) -> dict[str, list[torch.nn.Parameter]]:
+    def get_trainable_parameters(self) -> dict[str, Iterator[torch.nn.Parameter]]:
         return {
-            _DEFAULT_OPTIMIZER_PARAMETERS_KEY: list(
-                self._model_pipeline._model.parameters()
-            )
+            _DEFAULT_OPTIMIZER_PARAMETERS_KEY: self._model_pipeline._model.parameters()
         }
 
     def summarize(self):
@@ -65,7 +64,7 @@ class ModelPipelineOps(Generic[T_ModelPipelineConfig]):
         from torchinfo import summary
 
         nn_module_dict = nn.ModuleDict()
-        for k, v in object.__dict__.items():
+        for k, v in self._model_pipeline.__dict__.items():
             if isinstance(v, nn.Module):
                 nn_module_dict.add_module(k, v)
         return str(summary(nn_module_dict, verbose=0, depth=3))

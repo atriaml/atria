@@ -8,7 +8,6 @@ from atria_logger import get_logger
 from rich.pretty import pretty_repr
 
 from atria_models.core.model_builders._base import ModelBuilder
-from atria_models.registry import MODEL_PIPELINE
 
 if TYPE_CHECKING:
     from torch.nn import Module
@@ -54,7 +53,6 @@ class TransformersModelBuilder(ModelBuilder):
         )
 
 
-@MODEL_PIPELINE.register("transformers/sequence_classification")
 class SequenceClassificationModelBuilder(TransformersModelBuilder):
     __uses_num_labels__: bool = True
 
@@ -64,7 +62,6 @@ class SequenceClassificationModelBuilder(TransformersModelBuilder):
         return AutoModelForSequenceClassification  # type: ignore
 
 
-@MODEL_PIPELINE.register("transformers/token_classification")
 class TokenClassificationModelBuilder(TransformersModelBuilder):
     __uses_num_labels__: bool = True
 
@@ -74,7 +71,6 @@ class TokenClassificationModelBuilder(TransformersModelBuilder):
         return AutoModelForTokenClassification  # type: ignore
 
 
-@MODEL_PIPELINE.register("transformers/question_answering")
 class QuestionAnsweringModelBuilder(TransformersModelBuilder):
     __uses_num_labels__: bool = False
 
@@ -84,7 +80,6 @@ class QuestionAnsweringModelBuilder(TransformersModelBuilder):
         return AutoModelForQuestionAnswering  # type: ignore
 
 
-@MODEL_PIPELINE.register("transformers/image_classification")
 class ImageClassificationModelBuilder(TransformersModelBuilder):
     __uses_num_labels__: bool = False
 

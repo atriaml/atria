@@ -1,34 +1,9 @@
-"""
-Torch Utilities Module
-
-This module provides utility functions for working with PyTorch models and devices.
-It includes functionality for moving modules to specific devices, preparing
-modules for distributed training, and setting up TensorBoard logging.
-
-Functions:
-    - _reset_random_seeds: Resets random seeds for reproducibility across various libraries.
-    - _initialize_torch: Initializes PyTorch settings, including random seeds and deterministic behavior.
-    - _setup_tensorboard: Sets up TensorBoard logging for distributed training.
-
-Dependencies:
-    - torch: For PyTorch operations.
-    - ignite.distributed: For distributed training utilities.
-    - atria_ml.training.utilities.ddp_model_proxy.ModuleProxyWrapper: For wrapping distributed modules.
-    - ignite.handlers.TensorboardLogger: For TensorBoard logging.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
-
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from atria_core.logger.logger import get_logger
+from atria_logger import get_logger
 
 if TYPE_CHECKING:
-    from ignite.contrib.handlers.base_logger import BaseLogger
+    pass
 
 logger = get_logger(__name__)
 
@@ -92,30 +67,3 @@ def _initialize_torch(seed: int = 0, deterministic: bool = False):
     torch.backends.cudnn.allow_tf32 = True
 
     return seed
-
-
-def _setup_tensorboard(output_dir: str) -> "BaseLogger":
-    """
-    Sets up TensorBoard logging for distributed training.
-
-    Args:
-        output_dir (str): The directory where TensorBoard logs will be saved.
-
-    Returns:
-        BaseLogger: An instance of Ignite's TensorboardLogger if the current process is the main process; otherwise, None.
-
-    Notes:
-        - Only the main process (rank 0) sets up TensorBoard logging.
-        - The log directory is created under the specified `output_dir`.
-    """
-    import ignite.distributed as idist
-
-    if idist.get_rank() == 0:
-        from ignite.handlers import TensorboardLogger
-
-        log_dir = Path(output_dir) / "tensorboard_log_dir"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        tb_logger = TensorboardLogger(log_dir=log_dir)
-    else:
-        tb_logger = None
-    return tb_logger

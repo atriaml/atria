@@ -55,8 +55,7 @@ class RepresentationMixin:
             else:
                 safe_value = value
 
-            if safe_value is not None:
-                yield field_name, safe_value
+            yield field_name, safe_value
 
     def __repr__(self) -> str:
         """

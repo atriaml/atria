@@ -95,8 +95,8 @@ class DatasetBuilder:
     def dataset_name(self) -> str:
         """Get the name of the dataset being built."""
         return (
-            self.dataset_config.name
-            if self.dataset_config.name
+            self.dataset_config.dataset_name
+            if self.dataset_config.dataset_name
             else self._dataset.__class__.__name__
         )
 

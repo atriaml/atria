@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from ._generic._label import Label
     from ._generic._ocr import OCR
     from ._generic._qa_pair import QAPair, AnswerSpan
+    from ._utilities._repr import RepresentationMixin
 
 __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
@@ -79,5 +80,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "_generic._label": ["Label"],
         "_generic._ocr": ["OCR"],
         "_generic._qa_pair": ["QAPair", "AnswerSpan"],
+        "_utilities._repr": ["RepresentationMixin"],
     },
 )

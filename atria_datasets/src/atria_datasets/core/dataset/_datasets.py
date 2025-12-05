@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic
 
 from atria_logger import get_logger
-from atria_registry import RegisterableModule
+from atria_registry import ConfigurableModule
 from atria_types import (
     BaseDataInstance,
     DatasetMetadata,
@@ -17,7 +17,11 @@ from atria_types import (
     ImageInstance,
 )
 
-from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
+from atria_datasets.core.dataset._common import (
+    DatasetConfig,
+    T_BaseDataInstance,
+    T_DatasetConfig,
+)
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
@@ -28,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class Dataset(
-    RegisterableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
+    ConfigurableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
 ):
     """
     Generic base class for datasets in the Atria application.
@@ -74,13 +78,13 @@ class Dataset(
     __abstract__ = True
     __requires_access_token__ = False
     __extract_downloads__ = True
-    __data_model__: type[T_BaseDataInstance] = None
-    __repr_fields__ = ["data_model", "data_dir", "train", "validation", "test"]
-    __config__: type[T_DatasetConfig]
+    __data_model__: type[T_BaseDataInstance]
+    __repr_fields__ = {"data_model", "data_dir", "train", "validation", "test"}
+    __config__: type[T_DatasetConfig] = DatasetConfig
 
     def __init__(
         self,
-        config: T_DatasetConfig | None = None,
+        config: T_DatasetConfig,
         data_dir: str | None = None,
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
@@ -91,9 +95,8 @@ class Dataset(
         enable_cached_splits: bool = False,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
-        **config_overrides: Any,
     ) -> None:
-        super().__init__(config=config, **config_overrides)
+        super().__init__(config=config)
 
         self._downloaded_files: dict[str, Path] = {}
         self._downloads_prepared: bool = False

@@ -5,6 +5,8 @@ from typing import Any, Self, TypeVar
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
+from atria_transforms.core._data_types._ops import TensorOperations
+
 
 class TensorDataModel(RepresentationMixin, BaseModel):
     """
@@ -20,6 +22,10 @@ class TensorDataModel(RepresentationMixin, BaseModel):
 
     metadata: Any = Field(default=None, repr=False)
     _is_batched: bool = PrivateAttr(default=False)
+
+    @property
+    def ops(self) -> TensorOperations:
+        return TensorOperations(self)
 
     #
     # --------------------------------------------------------------
@@ -43,6 +49,7 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         if not isinstance(data, dict):
             return data
 
+        is_batched = data.pop("is_batched", False)
         meta_cls = cls.metadata_model()
         declared_tensor_fields = set(cls.model_fields.keys()) - {"metadata"}
 
@@ -65,7 +72,11 @@ class TensorDataModel(RepresentationMixin, BaseModel):
                 )
 
         if meta_cls:
-            cleaned["metadata"] = meta_cls(**metadata)
+            cleaned["metadata"] = (
+                meta_cls.model_construct(**metadata)
+                if is_batched
+                else meta_cls(**metadata)
+            )
         else:
             cleaned["metadata"] = None
 
@@ -81,6 +92,7 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         import torch
 
         # ensure that each of the tensor fields are tensors of batch size 1
+        batch_sizes = set()
         for name, _ in self.__class__.model_fields.items():
             if name == "metadata":
                 continue
@@ -90,11 +102,12 @@ class TensorDataModel(RepresentationMixin, BaseModel):
                     raise TypeError(
                         f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
                     )
-                if not self._is_batched:
-                    if value.shape[0] != 1:
-                        raise ValueError(
-                            f"Field '{name}' must have batch size 1, got {value.shape[0]}"
-                        )
+                if self._is_batched:
+                    batch_sizes.add(value.shape[0])
+        if self._is_batched and len(batch_sizes) > 1:
+            raise ValueError(
+                f"All tensor fields must have the same batch size. Found batch sizes: {batch_sizes}"
+            )
         return self
 
     @classmethod
@@ -112,10 +125,9 @@ class TensorDataModel(RepresentationMixin, BaseModel):
 
         for field_name in cls.model_fields.keys():
             if field_name == "metadata":
-                # Batch metadata as lists
                 batched_meta = {}
                 for item in items:
-                    for k, v in item.metadata.items():
+                    for k, v in item.metadata.model_dump().items():
                         batched_meta.setdefault(k, []).append(v)
                 field_values[field_name] = batched_meta
                 continue
@@ -126,9 +138,7 @@ class TensorDataModel(RepresentationMixin, BaseModel):
                 field_values[field_name] = None
             else:
                 field_values[field_name] = torch.stack(vals, dim=0)
-
-        batched_instance = cls(**field_values)
-        batched_instance._is_batched = True
+        batched_instance = cls(**field_values, is_batched=True)
         return batched_instance
 
     def __len__(self):

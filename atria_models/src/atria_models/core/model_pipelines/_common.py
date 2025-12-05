@@ -1,29 +1,40 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from atria_registry import ModuleConfig
 from pydantic import BaseModel
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
 
+if TYPE_CHECKING:
+    from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
+
 _DEFAULT_OPTIMIZER_PARAMETERS_KEY = "default"
+_REQUIRED_DEFAULT = "???"
 
 
 class ModelConfig(BaseModel):
     # builder type to use for model construction
-    builder_type: ModelBuilderType = ModelBuilderType.local
+    builder_type: ModelBuilderType = ModelBuilderType.timm
     bn_to_gn: bool = False
     frozen_layers: FrozenLayers | list[str] = FrozenLayers.none
     pretrained_checkpoint: str | None = None
 
     # Path or name of the model to build
-    model_name_or_path: str
+    model_name_or_path: str = "resnet18"
     model_kwargs: dict[str, object] = {}
 
 
 class ModelPipelineConfig(ModuleConfig):
-    model_config: ModelConfig
+    model: ModelConfig = ModelConfig()
+
+    def build(self, **kwargs: Any) -> ModelPipeline:
+        labels = kwargs.pop("labels")
+        assert labels is not None, (
+            "Labels must be provided to build the model pipeline."
+        )
+        return super().build(labels=labels, **kwargs)
 
 
 T_ModelPipelineConfig = TypeVar("T_ModelPipelineConfig", bound=ModelPipelineConfig)

@@ -20,11 +20,15 @@ Example:
 
 from atria_registry import ModuleRegistry, RegistryGroup
 
-from atria_datasets.core.dataset._datasets import Dataset
+from atria_datasets.core.dataset._common import DatasetConfig
 
 
-class DatasetRegistryGroup(RegistryGroup[Dataset]):
-    pass
+class DatasetRegistryGroup(RegistryGroup[DatasetConfig]):
+    def load_module_config(self, module_path: str, **kwargs) -> DatasetConfig:
+        """Dynamically load all registered modules in the registry group."""
+        config = super().load_module_config(module_path, **kwargs)
+        assert isinstance(config, DatasetConfig)
+        return config
 
 
 ModuleRegistry().add_registry_group(

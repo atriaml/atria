@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Any
 from atria_logger import get_logger
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
+from atria_transforms.tfs._image_processor._base import ImageProcessor
 from atria_types._common import TrainingStage
-from atria_types._datasets import DatasetLabels
 from pydantic import BaseModel
 
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.types.model_outputs import ClassificationModelOutput, ModelOutput
+from atria_models.registry import MODEL_PIPELINE
 
 if TYPE_CHECKING:
     import torch
@@ -33,18 +34,15 @@ class MixupConfig(BaseModel):
 
 class ImageModelPipelineConfig(ModelPipelineConfig):
     mixup_config: MixupConfig | None = None
+    train_transform: ImageProcessor = ImageProcessor()
+    eval_transform: ImageProcessor = ImageProcessor()
 
 
 class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
     __config__ = ImageModelPipelineConfig
 
-    def __init__(
-        self,
-        labels: DatasetLabels,
-        config: ImageModelPipelineConfig | None = None,
-        **config_overrides: Any,
-    ) -> None:
-        super().__init__(labels, config, **config_overrides)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         from timm.data.mixup import Mixup
         from timm.loss.cross_entropy import (
@@ -64,7 +62,6 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
                 cutmix_minmax=self.config.mixup_config.cutmix_minmax,
                 label_smoothing=self.config.mixup_config.label_smoothing,
             )
-        if self._mixup is not None:
             self._loss_fn_train = (
                 LabelSmoothingCrossEntropy(self._mixup.label_smoothing)
                 if self._mixup.label_smoothing > 0.0
@@ -110,7 +107,7 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.classification is not None, (
-            "Labels must be provided for classification tasks."
+            f"'classification' labels must be provided for the {self.__class__.__name__} pipeline. Found: {self._labels}"
         )
         return {"num_labels": len(self._labels.classification)}
 
@@ -160,5 +157,6 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
         )
 
 
+@MODEL_PIPELINE.register("image_classification")
 class ImageClassificationPipeline(ImageModelPipeline):
     __config__ = ImageModelPipelineConfig

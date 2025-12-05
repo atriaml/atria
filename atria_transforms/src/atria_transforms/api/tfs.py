@@ -10,5 +10,5 @@ from atria_transforms.registry import DATA_TRANSFORM
 logger = get_logger(__name__)
 
 
-def load_transform(dataset_name: str, **kwargs) -> DataTransform:
-    return DATA_TRANSFORM.load_module(dataset_name, **kwargs)
+def load_transform(transform_name: str, **kwargs) -> DataTransform:
+    return DATA_TRANSFORM.load_module_config(transform_name, **kwargs)
