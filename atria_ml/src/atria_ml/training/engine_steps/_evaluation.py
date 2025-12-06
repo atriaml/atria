@@ -7,7 +7,6 @@ from atria_models import ModelPipeline
 from atria_transforms.core._data_types._base import TensorDataModel
 from atria_types._common import TrainingStage
 from torch import device
-from torch._C import device
 
 from atria_ml.training.engine_steps._base import EngineStep
 
@@ -41,13 +40,9 @@ class EvaluationStep(EngineStep):
         from torch.cuda.amp.autocast_mode import autocast
 
         self._model_pipeline.ops.eval()
-        if self._with_amp:
-            self._model_pipeline.ops.half()
-
         with torch.no_grad():
             with autocast(enabled=self._with_amp):
-                if hasattr(batch, "to_device"):
-                    batch = batch.ops.to(self._device)
+                batch = batch.ops.to(self._device)
                 return self._model_step(engine=engine, batch=batch)
 
     def _model_step(

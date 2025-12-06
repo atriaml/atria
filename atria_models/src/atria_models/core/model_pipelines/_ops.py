@@ -21,6 +21,7 @@ class ModelPipelineOps(Generic[T_ModelPipelineConfig]):
     def to_device(
         self, device: str | torch.device, sync_bn: bool = False
     ) -> ModelPipeline[T_ModelPipelineConfig]:
+        import torch
         from torch import nn
 
         from atria_models.utilities._ddp_model_proxy import ModuleProxyWrapper

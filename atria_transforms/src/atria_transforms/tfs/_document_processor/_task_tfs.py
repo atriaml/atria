@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("document_processor/sequence_classification")
+@DATA_TRANSFORM.register("sequence_classification_document_processor")
 class SequenceClassificationDocumentProcessor(DocumentProcessor):
     def _post_process_tokenizer_outputs(
         self,
@@ -41,12 +41,12 @@ class SequenceClassificationDocumentProcessor(DocumentProcessor):
         return processed_outputs
 
 
-@DATA_TRANSFORM.register("document_processor/token_classification")
+@DATA_TRANSFORM.register("token_classification_document_processor")
 class TokenClassificationDocumentProcessor(DocumentProcessor):
     pass
 
 
-@DATA_TRANSFORM.register("document_processor/question_answering")
+@DATA_TRANSFORM.register("question_answering_document_processor")
 class QuestionAnsweringDocumentProcessor(DocumentProcessor):
     ignore_samples_with_no_answer: bool = False
     is_training: bool = False

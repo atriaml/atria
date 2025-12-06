@@ -13,11 +13,9 @@ from atria_transforms.tfs import StandardImageTransform
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("image_instance_processor")
+@DATA_TRANSFORM.register("image_processor")
 class ImageProcessor(DataTransform[ImageTensorDataModel]):
-    image_processor: StandardImageTransform = Field(
-        default_factory=StandardImageTransform
-    )
+    tf: StandardImageTransform = Field(default_factory=StandardImageTransform)
 
     def __call__(
         self, image_instance: ImageInstance
@@ -25,7 +23,7 @@ class ImageProcessor(DataTransform[ImageTensorDataModel]):
         import torch
 
         assert image_instance.image.content is not None, "Image content is None."
-        image_tensor = self.image_processor(image_instance.image.content)
+        image_tensor = self.tf(image_instance.image.content)
         label = image_instance.get_annotation_by_type(
             AnnotationType.classification
         ).label.value

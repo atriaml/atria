@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ignite.engine import Engine
     from torch.optim import Optimizer
 
-    from atria_ml.training.configs.gradient_config import GradientConfig
+    from atria_ml.training._configs import GradientConfig
 
 logger = get_logger(__name__)
 
@@ -184,7 +184,7 @@ class TrainingStep(EngineStep):
     def __call__(
         self, engine: Engine, batch: TensorDataModel
     ) -> Any | tuple[torch.Tensor]:
-        from atria_ml.training.engines.events import OptimizerEvents
+        from atria_ml.training.engines._events import OptimizerEvents
 
         self._validate_gradient_config()
         self._reset_optimizers(engine=engine)

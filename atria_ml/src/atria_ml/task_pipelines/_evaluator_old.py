@@ -195,15 +195,15 @@ class Evaluator:
         import torch
 
         from atria_ml.training.engines.utilities import (
+            CONFIG_KEY,
             EXPERIMENT_NAME_KEY,
             METRICS_KEY,
             MODEL_PIPELINE_CHECKPOINT_KEY,
-            RUN_CONFIG_KEY,
         )
 
         checkpoint = {
             EXPERIMENT_NAME_KEY: self._experiment_name,
-            RUN_CONFIG_KEY: self._run_config.state_dict(),
+            CONFIG_KEY: self._run_config.state_dict(),
             MODEL_PIPELINE_CHECKPOINT_KEY: self._model_pipeline.state_dict(),
         }
         if state is not None:

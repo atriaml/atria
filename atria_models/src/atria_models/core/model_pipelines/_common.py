@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from atria_registry import ModuleConfig
-from pydantic import BaseModel
+from atria_registry._module_base import BaseModel
+from atria_transforms.core._tfs._base import DataTransform
+from pydantic import SerializeAsAny
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
 
@@ -28,6 +30,12 @@ class ModelConfig(BaseModel):
 
 class ModelPipelineConfig(ModuleConfig):
     model: ModelConfig = ModelConfig()
+    train_transform: SerializeAsAny[DataTransform] | None = (
+        None  # the type at runtime can be child of DataTransform so we need to use SerializeAsAny
+    )
+    eval_transform: SerializeAsAny[DataTransform] | None = (
+        None  # the type at runtime can be child of DataTransform so we need to use SerializeAsAny
+    )
 
     def build(self, **kwargs: Any) -> ModelPipeline:
         labels = kwargs.pop("labels")

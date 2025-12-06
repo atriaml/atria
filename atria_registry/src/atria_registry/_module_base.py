@@ -1,7 +1,7 @@
 """Registration base classes for Atria modules."""
 
-import hashlib
-import json
+from __future__ import annotations
+
 from typing import Any, Generic, TypeVar
 
 from atria_logger import get_logger
@@ -101,17 +101,17 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig]):
         return self.__repr__()
 
 
-class RegisterablePydanticModule(RepresentationMixin, BaseModel):
-    """
-    Base class for Atria modules that can be registered in the Atria registry.
-    All modules that are to be registered must inherit from this class.
-    """
+class PydanticConfigurableModule(RepresentationMixin, BaseModel):
+    __version__ = "0.0.0"
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
-    # name: str | None = None
-    # config_name: str = "default"
+    @property
+    def kwargs(self) -> dict[str, Any]:
+        return self.model_dump(exclude={"module_path"})
 
-    def hash(self):
-        params = self.model_dump()
-        return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[
-            :8
-        ]
+    def to_yaml(self) -> str:
+        """Serialize the ModuleConfig to a YAML string."""
+        from omegaconf import OmegaConf
+
+        config_omegaconf = OmegaConf.create(self.model_dump())
+        return OmegaConf.to_yaml(config_omegaconf)

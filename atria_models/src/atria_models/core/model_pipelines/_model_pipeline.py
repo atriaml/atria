@@ -72,6 +72,12 @@ class ModelPipeline(
     def trainable_parameters(self) -> dict[str, Iterator[torch.nn.Parameter]]:
         return self.ops.get_trainable_parameters()
 
+    def state_dict(self) -> dict:
+        return self._state_dict_handler.state_dict()
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self._state_dict_handler.load_state_dict(state_dict)
+
     def _model_build_kwargs(self) -> dict[str, object]:
         return {}
 
@@ -111,9 +117,3 @@ class ModelPipeline(
         raise NotImplementedError(
             "Visualization step is not implemented for this model pipeline."
         )
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}:\n{self.ops.summarize()}"
-
-    def __str__(self):
-        return self.__repr__()

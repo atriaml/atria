@@ -7,7 +7,7 @@ from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_transforms.tfs._image_processor._base import ImageProcessor
 from atria_types._common import TrainingStage
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
@@ -34,8 +34,23 @@ class MixupConfig(BaseModel):
 
 class ImageModelPipelineConfig(ModelPipelineConfig):
     mixup_config: MixupConfig | None = None
-    train_transform: ImageProcessor = ImageProcessor()
-    eval_transform: ImageProcessor = ImageProcessor()
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_transforms(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "train_transform" not in values or values["train_transform"] is None:
+            values["train_transform"] = ImageProcessor()
+        else:
+            values["train_transform"] = ImageProcessor.model_validate(
+                values["train_transform"]
+            )
+        if "eval_transform" not in values or values["eval_transform"] is None:
+            values["eval_transform"] = ImageProcessor()
+        else:
+            values["eval_transform"] = ImageProcessor.model_validate(
+                values["eval_transform"]
+            )
+        return values
 
 
 class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):

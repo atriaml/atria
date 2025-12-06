@@ -17,7 +17,7 @@ from atria_registry._common import T_ModuleConfig
 from atria_registry._module_base import (
     ConfigurableModule,
     ModuleConfig,
-    RegisterablePydanticModule,
+    PydanticConfigurableModule,
 )
 from atria_registry._module_builder import ModuleBuilder
 from atria_registry._utilities import (
@@ -89,8 +89,49 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         self, module_name: str, configs: dict[str, ModuleConfig | dict] | None = None
     ):
         def decorator(module):
-            # first we check if the type of the module is type[ConfigurableModule] if so we directly register it
-            if issubclass(module, ConfigurableModule):
+            if issubclass(module, ModuleConfig | PydanticConfigurableModule):
+                assert configs is None, (
+                    "Configs should not be provided when registering a ModuleConfig subclass."
+                )
+                config_import_path = module.__module__ + "." + module.__name__
+                config = _extract_nested_defaults(module)
+
+                if issubclass(module, ModuleConfig):
+                    assert config["module_path"] is not None, (
+                        f"{module} must have module_path defined."
+                    )
+
+                config_hash = _get_config_hash(config)
+
+                cur = self.get_store_value_at_path(module_name)
+                if cur is not None:
+                    assert isinstance(cur, dict), (
+                        f"Expected dict at path {module_name}, got {type(cur)}"
+                    )
+                    if "hash" in cur:
+                        if config_hash == cur["hash"]:
+                            logger.debug(
+                                f"Module '{module_name}' with  is already registered. Skipping registration."
+                            )
+                            return
+
+                        raise ValueError(
+                            f"Module '{module_name}' with  is already registered with a different configuration."
+                        )
+
+                self.set_store_value_at_path(
+                    module_name,
+                    ConfigSpec(
+                        hash=config_hash, config=config, import_path=config_import_path
+                    ).model_dump(),
+                )
+
+                # log registration for debugging
+                logger.debug(
+                    f"Registered module at path: {module_name} with config: {config}"
+                )
+                return module
+            elif issubclass(module, ConfigurableModule):
                 # check if configs are provided, if not register with default config
                 if configs is None:
                     default_config = module.__config__()
@@ -106,42 +147,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                             module=module,
                             module_name=module_name + "/" + config_name,
                             config=config,
-                        )
-                return module
-            elif issubclass(module, RegisterablePydanticModule):
-                logger.debug(
-                    f"Registering {module=} with {module_name=} and default config in registry group {self._name}."
-                )
-
-                # initialized
-                if configs is None:
-                    # get required kwargs from the module signature
-                    config = _extract_nested_defaults(module)
-
-                    logger.debug(
-                        f"Registered module at path: {module_name} with config: {config}"
-                    )
-
-                    self._register_module(
-                        module=module,
-                        module_name=module_name,
-                        config=config,  # initialize with default
-                    )
-                elif configs is not None:
-                    for config in configs:
-                        assert isinstance(config, dict), (
-                            "Configs must be provided as dicts."
-                        )
-                        initialized = module(**config)
-
-                        logger.debug(
-                            f"Registered module at path: {module_name} with config: {initialized.model_dump()}"
-                        )
-
-                        self._register_module(
-                            module=module,
-                            module_name=module_name,
-                            config=initialized,  # initialize with config
                         )
                 return module
             else:  # else we wrap it with ModuleBuilder
@@ -194,11 +199,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
     def _register_module(
         self,
-        module: type[ConfigurableModule]
-        | type[RegisterablePydanticModule]
-        | type[ModuleBuilder],
+        module: type[ConfigurableModule] | type[ModuleBuilder],
         module_name: str,
-        config: T_ModuleConfig | RegisterablePydanticModule | dict[str, Any],
+        config: T_ModuleConfig | dict[str, Any],
     ):
         # first make loadable module path
         module_path = (
@@ -208,16 +211,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         )
 
         # second get config import path
-        if isinstance(config, RegisterablePydanticModule):
-            config_import_path = (
-                config.__module__ + "." + config.__class__.__name__
-                if config.__module__ != "__main__"
-                else config.__class__.__name__
-            )
-        elif isinstance(config, ModuleConfig):
-            config_import_path = config.__module__ + "." + config.__class__.__name__
-        else:
-            config_import_path = None
+        config_import_path = config.__module__ + "." + config.__class__.__name__
 
         # update module path in config
         if isinstance(config, ModuleConfig):
@@ -255,49 +249,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         # log registration for debugging
         logger.debug(f"Registered module at path: {module_name} with config: {config}")
 
-    def register_config(self, name: str):
-        def decorator(config: T_ModuleConfig):
-            assert isinstance(config, ModuleConfig), (
-                "Configs must be provided as ModuleConfig for ConfigurableModule."
-            )
-            config_import_path = config.__module__ + "." + config.__class__.__name__
-
-            # update module path in config
-            assert config.module_path is not None, "config.module_path must be set."
-
-            # get config hash
-            config = config.model_dump() if isinstance(config, BaseModel) else config  # type: ignore
-            config_hash = _get_config_hash(config)
-
-            cur = self.get_store_value_at_path(name)
-            if cur is not None:
-                assert isinstance(cur, dict), (
-                    f"Expected dict at path {name}, got {type(cur)}"
-                )
-                if "hash" in cur:
-                    if config_hash == cur["hash"]:
-                        logger.debug(
-                            f"Module '{name}' with  is already registered. Skipping registration."
-                        )
-                        return
-
-                    raise ValueError(
-                        f"Module '{name}' with  is already registered with a different configuration."
-                    )
-
-            self.set_store_value_at_path(
-                name,
-                ConfigSpec(
-                    hash=config_hash, config=config, import_path=config_import_path
-                ).model_dump(),
-            )
-
-            # log registration for debugging
-            logger.debug(f"Registered module at path: {name} with config: {config}")
-            return config
-
-        return decorator
-
     def _validate_non_missing_fields(
         self, module_path: str, config: dict[str, Any], parent_key: str = ""
     ) -> None:
@@ -332,6 +283,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 T_ModuleConfig, _resolve_module_from_path(config_import_path)
             )
             try:
+                logger.debug(
+                    f"Validating config={config_cls} with data={config} for module_path={module_path}"
+                )
                 return config_cls.model_validate(config)
             except ValidationError as e:
                 logger.error(

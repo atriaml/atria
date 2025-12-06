@@ -21,7 +21,6 @@ class StateDictHandler(Generic[T_ModelPipelineConfig]):
     def state_dict(self) -> dict:
         return {
             "model_pipeline_config": self._model_pipeline.config.model_dump(),
-            "model_config": self._model_pipeline._model.config.model_dump(),
             "model": self._model_pipeline._model.state_dict(),
         }
 
@@ -29,10 +28,6 @@ class StateDictHandler(Generic[T_ModelPipelineConfig]):
         if "model_pipeline_config" in state_dict:
             self._model_pipeline.config.model_validate(
                 state_dict["model_pipeline_config"]
-            )
-        if "model_config" in state_dict:
-            self._model_pipeline._model.config.model_validate(
-                state_dict["model_config"]
             )
         if "model" in state_dict:
             self._model_pipeline._model.load_state_dict(

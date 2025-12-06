@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("document_instance_processor")
+@DATA_TRANSFORM.register("document_processor")
 class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
     hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
     image_transform: StandardImageTransform = Field(

@@ -1,67 +1,64 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import field
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Generic, TypeVar
 
+import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
+from ignite.engine import Engine, State
+from ignite.handlers import TensorboardLogger
+from ignite.metrics import Metric
+from pydantic import BaseModel, ConfigDict
 
-from atria_ml.training.configs.logging_config import LoggingConfig
+from atria_ml.training._configs import LoggingConfig
 from atria_ml.training.engine_steps import EngineStep
 from atria_ml.training.engines.utilities import _extract_output
-
-if TYPE_CHECKING:
-    import torch
-    from ignite.engine import Engine, State
-    from ignite.handlers import TensorboardLogger
-    from ignite.metrics import Metric
 
 logger = get_logger(__name__)
 
 
-class EngineBase:
-    def __init__(
-        self,
-        model_pipeline: ModelPipeline,
-        dataloader: torch.utils.data.DataLoader,
-        device: str | torch.device,
-        output_dir: str | Path,
-        metrics: dict[str, Metric] | None = None,
-        tb_logger: TensorboardLogger | None = None,
-        event_handlers: list[tuple[Any, Callable]] | None = None,
-        max_epochs: int = 1,
-        epoch_length: int | None = None,
-        outputs_to_running_avg: list[str] | None = None,
-        logging: LoggingConfig = LoggingConfig(),
-        metric_logging_prefix: str | None = None,
-        sync_batchnorm: bool = False,
-        test_run: bool = False,
-        use_fixed_batch_iterator: bool = False,
-    ):
-        self._model_pipeline = model_pipeline
-        self._dataloader = dataloader
-        self._output_dir = output_dir
-        self._device = device
-        self._metrics = metrics
-        self._tb_logger = tb_logger
-        self._event_handlers = event_handlers
-        self._max_epochs = max_epochs
-        self._epoch_length = epoch_length
-        self._outputs_to_running_avg = (
-            outputs_to_running_avg if outputs_to_running_avg is not None else ["loss"]
-        )
-        self._logging = logging if logging is not None else LoggingConfig()
-        self._metric_logging_prefix = metric_logging_prefix
-        self._sync_batchnorm = sync_batchnorm
-        self._test_run = test_run
-        self._use_fixed_batch_iterator = use_fixed_batch_iterator
-        self._engine = self.build()
+class EngineDependencies(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
+    model_pipeline: ModelPipeline
+    dataloader: torch.utils.data.DataLoader
+    device: str | torch.device
+    output_dir: str | Path
+    metrics: dict[str, Metric] | None = None
+    tb_logger: TensorboardLogger | None = None
+    event_handlers: list[tuple[Any, Callable]] | None = None
+
+
+class EngineConfig(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    max_epochs: int = 1
+    epoch_length: int | None = None
+    outputs_to_running_avg: list[str] = field(default_factory=lambda: ["loss"])
+    logging: LoggingConfig = LoggingConfig()
+    metric_logging_prefix: str | None = None
+    test_run: bool = False
+    use_fixed_batch_iterator: bool = False
+    with_amp: bool = False
+
+
+T_EngineConfig = TypeVar("T_EngineConfig", bound=EngineConfig)
+T_EngineDependencies = TypeVar("T_EngineDependencies", bound=EngineDependencies)
+
+
+class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
+    def __init__(self, config: T_EngineConfig, deps: T_EngineDependencies):
+        self._config = config
+        self._deps = deps
+        self._engine_step, self._engine = self._build_engine()
+        self._attach_handlers()
 
     @property
     def batches_per_epoch(self) -> int:
-        return len(self._dataloader)
+        return len(self._deps.dataloader)
 
     @property
     def steps_per_epoch(self) -> int:
@@ -69,7 +66,7 @@ class EngineBase:
 
     @property
     def total_update_steps(self) -> int:
-        return self.steps_per_epoch * self._max_epochs
+        return self.steps_per_epoch * self._config.max_epochs
 
     def _build_engine_step(self) -> EngineStep:
         """
@@ -83,97 +80,114 @@ class EngineBase:
         engine.logger.propagate = False
         return engine
 
-    def build(self) -> Engine:
+    def _build_engine(self) -> tuple[EngineStep, Engine]:
         # initialize the engine step
         engine_step = self._build_engine_step()
 
         # initialize the Ignite engine
         engine = self._initialize_ignite_engine(engine_step=engine_step)
+        return engine_step, engine
 
-        self.attach_handlers(engine=engine, stage=engine_step.stage)
-        return engine
-
-    def attach_handlers(self, engine: Engine, stage: str):
+    def _attach_handlers(self) -> None:
         from ignite.engine import Events
 
-        @engine.on(Events.TERMINATE | Events.INTERRUPT)
+        @self._engine.on(Events.TERMINATE | Events.INTERRUPT)
         def on_terminate(engine: Engine) -> None:
             logger.info(
                 f"Engine [{self.__class__.__name__}] terminated after {engine.state.epoch} epochs."
             )
 
         # configure engine
-        self.attach_progress_bar(engine=engine, stage=stage)
-        if self._tb_logger is not None:
-            self.attach_tb_logger(engine=engine, tb_logger=self._tb_logger)
-        if self._test_run:
-            self.setup_test_run(engine=engine)
-        if self._logging.profile_time:
-            self.attach_profilers(engine=engine)
-        if self._event_handlers is not None:
-            self.attach_event_handlers(
-                engine=engine, event_handlers=self._event_handlers
-            )
-        if self._metrics is not None:
-            self.attach_metrics(engine=engine, stage=stage, metrics=self._metrics)
-        return engine
+        self._setup_test_run()
+        self._attach_progress_bar()
+        self._attach_tb_logger()
+        self._attach_profilers()
+        self._attach_event_handlers()
+        self._attach_metrics()
 
-    def attach_progress_bar(self, engine: Engine, stage: str) -> None:
+        # add handler for exception
+        @self._engine.on(Events.EXCEPTION_RAISED)
+        def on_exception(exception: Exception) -> None:
+            raise exception
+
+    def _attach_progress_bar(self) -> None:
         import ignite.distributed as idist
         from ignite.engine import Events
         from ignite.handlers import ProgressBar
 
-        from atria_ml.training.engines.utilities import _log_eval_metrics
-
         # initialize the progress bar
-        progress_bar = ProgressBar(desc=f"Stage [{stage}]", persist=True)
+        progress_bar = ProgressBar(
+            desc=f"Stage [{self._engine_step.stage.value}]", persist=True
+        )
 
         if idist.get_rank() == 0:
             progress_bar.attach(
-                engine,
-                event_name=Events.ITERATION_COMPLETED(every=self._logging.refresh_rate),
+                self._engine,
+                event_name=Events.ITERATION_COMPLETED(
+                    every=self._config.logging.refresh_rate
+                ),
                 metric_names="all",
             )
 
-            @engine.on(Events.EPOCH_COMPLETED)
+            def _log_eval_metrics(logger, epoch, elapsed, tag, metrics):
+                logger.info(
+                    "Epoch %d - Evaluation time: %.2fs - %s metrics: EpochResult:",
+                    epoch,
+                    elapsed,
+                    tag,
+                )
+                for k, v in metrics.items():
+                    logger.info(f"\t{k}: {v}")
+
+            @self._engine.on(Events.EPOCH_COMPLETED)
             def progress_on_epoch_completed(engine: Engine) -> None:
                 _log_eval_metrics(
                     logger=logger,
                     epoch=engine.state.epoch,
                     elapsed=engine.state.times["EPOCH_COMPLETED"],
-                    tag=stage,
+                    tag=self._engine_step.stage.value,
                     metrics=engine.state.metrics,
                 )
 
-            @engine.on(Events.TERMINATE | Events.INTERRUPT)
+            @self._engine.on(Events.TERMINATE | Events.INTERRUPT)
             def on_terminate(engine: Engine) -> None:
                 progress_bar.close()
 
-    def attach_tb_logger(self, engine: Engine, tb_logger: TensorboardLogger):
+    def _attach_tb_logger(self):
         import ignite.distributed as idist
         from ignite.engine import Events
 
-        if idist.get_rank() == 0 and tb_logger is not None and self._logging.log_to_tb:
-            tb_logger.attach_output_handler(
-                engine,
+        if (
+            idist.get_rank() == 0
+            and self._deps.tb_logger is not None
+            and self._config.logging.log_to_tb
+        ):
+            self._deps.tb_logger.attach_output_handler(
+                self._engine,
                 event_name=Events.EPOCH_COMPLETED,
                 metric_names="all",
                 tag="epoch",
             )
 
-            @engine.on(Events.TERMINATE | Events.INTERRUPT | Events.EXCEPTION_RAISED)
+            @self._engine.on(
+                Events.TERMINATE | Events.INTERRUPT | Events.EXCEPTION_RAISED
+            )
             def on_terminate(engine: Engine) -> None:
-                tb_logger.close()
+                if self._deps.tb_logger is not None:
+                    self._deps.tb_logger.close()
 
-    def attach_profilers(self, engine: Engine):
-        if self._logging.profile_time:
+    def _attach_profilers(self):
+        if self._config.logging.profile_time:
             from ignite.handlers import BasicTimeProfiler, HandlersTimeProfiler
 
-            HandlersTimeProfiler().attach(engine)
-            BasicTimeProfiler().attach(engine)
+            HandlersTimeProfiler().attach(self._engine)
+            BasicTimeProfiler().attach(self._engine)
 
-    def setup_test_run(self, engine: Engine):
+    def _setup_test_run(self):
         from ignite.engine import Events
+
+        if not self._config.test_run:
+            return
 
         logger.warning(
             f"This is a test run of engine [{self.__class__.__name__}]. "
@@ -196,67 +210,68 @@ class EngineBase:
             logger.debug(f"Output received for engine [{self.__class__.__name__}]:")
             logger.debug(engine.state.output)
 
-        engine.add_event_handler(
+        self._engine.add_event_handler(
             Events.ITERATION_COMPLETED, terminate_on_iteration_complete
         )
-        engine.add_event_handler(Events.ITERATION_STARTED, print_iteration_started_info)
-        engine.add_event_handler(
+        self._engine.add_event_handler(
+            Events.ITERATION_STARTED, print_iteration_started_info
+        )
+        self._engine.add_event_handler(
             Events.ITERATION_COMPLETED, print_iteration_completed_info
         )
 
-    def attach_metrics(
-        self,
-        engine: Engine,
-        stage: str | None = None,
-        metrics: dict[str, Metric] | None = None,
-    ) -> None:
+    def _attach_metrics(self) -> None:
         import ignite.distributed as idist
         import torch
         from ignite.metrics import GpuInfo, RunningAverage
         from ignite.metrics.metric import EpochWise
 
-        for index, key in enumerate(self._outputs_to_running_avg):
+        for index, key in enumerate(self._config.outputs_to_running_avg):
             RunningAverage(
                 alpha=0.98,
                 output_transform=partial(_extract_output, index=index, key=key),
                 epoch_bound=True,
-            ).attach(engine, f"{stage}/running_avg_{key}")
+            ).attach(self._engine, f"{self._engine_step.stage.value}/running_avg_{key}")
 
-        if self._logging.log_gpu_stats:
+        if self._config.logging.log_gpu_stats:
             if idist.device() != torch.device("cpu"):
-                GpuInfo().attach(engine, name="gpu")
+                GpuInfo().attach(self._engine, name="gpu")
 
-        if metrics is not None and len(metrics) > 0:
-            for metric_name, metric in metrics.items():
+        if self._deps.metrics is not None and len(self._deps.metrics) > 0:
+            for metric_name, metric in self._deps.metrics.items():
                 metric.attach(
-                    engine,
+                    self._engine,
                     (
-                        f"{stage}/{metric_name}"
-                        if self._metric_logging_prefix is None
-                        else f"{stage}/{self._metric_logging_prefix}/{metric_name}"
+                        f"{self._engine_step.stage.value}/{metric_name}"
+                        if self._config.metric_logging_prefix is None
+                        else f"{self._engine_step.stage.value}/{self._config.metric_logging_prefix}/{metric_name}"
                     ),
                     usage=EpochWise(),
                 )
 
-    def attach_event_handlers(
-        self, engine: Engine, event_handlers: list[tuple[Any, Callable]]
-    ):
-        for event, handler in event_handlers:
-            engine.add_event_handler(event, handler)
+    def _attach_event_handlers(self):
+        if self._deps.event_handlers is None:
+            return
+        for event, handler in self._deps.event_handlers:
+            self._engine.add_event_handler(event, handler)
 
     def _load_state_dict(
         self, engine: Engine, save_weights_only: bool = False
     ) -> dict[str, Any]:
         from atria_ml.training.engines.utilities import MODEL_PIPELINE_CHECKPOINT_KEY
 
-        checkpoint_state_dict = {MODEL_PIPELINE_CHECKPOINT_KEY: self._model_pipeline}
+        checkpoint_state_dict = {
+            MODEL_PIPELINE_CHECKPOINT_KEY: self._deps.model_pipeline
+        }
 
         return checkpoint_state_dict
 
-    def _to_load_checkpoint(self) -> dict[str, Any]:
+    def _to_load_state_dict(self) -> dict[str, Any]:
         from atria_ml.training.engines.utilities import MODEL_PIPELINE_CHECKPOINT_KEY
 
-        checkpoint_state_dict = {MODEL_PIPELINE_CHECKPOINT_KEY: self._model_pipeline}
+        checkpoint_state_dict = {
+            MODEL_PIPELINE_CHECKPOINT_KEY: self._deps.model_pipeline
+        }
 
         return checkpoint_state_dict
 
@@ -264,34 +279,53 @@ class EngineBase:
         import torch
         from ignite.handlers.checkpoint import Checkpoint
 
-        logger.info(
-            f"Running engine with weights loaded from checkpoint: {checkpoint_path}"
-        )
         checkpoint = torch.load(checkpoint_path, map_location="cpu")
-        to_load = self._to_load_checkpoint()
-        Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint, strict=False)
+        Checkpoint.load_objects(
+            to_load=self._to_load_state_dict(), checkpoint=checkpoint, strict=True
+        )
 
-    def run(self, checkpoint_path: str | Path | None = None) -> State:
+    def run(self, checkpoint_path: str | Path | None = None) -> State | None:
         from atria_ml.training.engines.utilities import FixedBatchIterator
 
         # run engine
-        if self._output_dir is not None:
+        if self._deps.output_dir is not None:
             logger.info(
-                f"Running {self.__class__.__name__} engine with batch size [{self._dataloader.batch_size}] and output_dir: {self._output_dir}"
+                f"Running {self.__class__.__name__} engine with batch size [{self._deps.dataloader.batch_size}] and output_dir: {self._deps.output_dir}"
             )
         else:
             logger.info(f"Running engine {self.__class__.__name__}.")
+
+        # move model pipeline to device
+        self._deps.model_pipeline.ops.to_device(self._deps.device)
 
         # load checkpoint if provided
         if checkpoint_path is not None:
             self._load_checkpoint(checkpoint_path=checkpoint_path)
 
+            resume_epoch = self._engine.state.epoch
+            if (
+                self._engine._is_done(self._engine.state)
+                and resume_epoch >= self._config.max_epochs
+            ):  # if we are resuming from last checkpoint and training is already finished
+                logger.warning(
+                    f"{self.__class__.__name__} has already been finished! Either increase the number of "
+                    f"epochs (current={self._config.max_epochs}) >= {resume_epoch} "
+                    "OR reset the training from start."
+                )
+                return
+
+            logger.info(
+                f"Resuming {self.__class__.__name__} engine with checkpoint: {checkpoint_path}."
+            )
+
         return self._engine.run(
             (
-                FixedBatchIterator(self._dataloader, self._dataloader.batch_size)
-                if self._use_fixed_batch_iterator
-                else self._dataloader
+                FixedBatchIterator(
+                    self._deps.dataloader, self._deps.dataloader.batch_size
+                )
+                if self._config.use_fixed_batch_iterator
+                else self._deps.dataloader
             ),
-            max_epochs=self._max_epochs,
-            epoch_length=self._epoch_length,
+            max_epochs=self._config.max_epochs,
+            epoch_length=self._config.epoch_length,
         )

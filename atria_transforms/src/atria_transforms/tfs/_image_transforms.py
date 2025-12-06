@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from atria_logger import get_logger
 from PIL.Image import Image as PILImage
+from pydantic import model_validator
 
 from atria_transforms.core import DataTransform
 from atria_transforms.registry import DATA_TRANSFORM
@@ -21,7 +22,7 @@ class ToRGB(DataTransform[PILImage]):
         return image.convert("RGB")
 
 
-@DATA_TRANSFORM.register("image_processor")
+@DATA_TRANSFORM.register("standard_image_transform")
 class StandardImageTransform(DataTransform[PILImage]):
     to_rgb: bool = True  # Convert image to RGB if it's in a different mode
     do_normalize: bool = True  # Normalize the image to ImageNet mean and std
@@ -32,14 +33,20 @@ class StandardImageTransform(DataTransform[PILImage]):
     image_mean: list[float] | None = None
     image_std: list[float] | None = None
 
-    def model_post_init(self, context) -> None:
-        self.image_mean = self.image_mean or IMAGENET_STANDARD_MEAN
-        self.image_std = self.image_std or IMAGENET_STANDARD_STD
-        if self.use_imagenet_mean_std:
-            self.image_mean = IMAGENET_DEFAULT_MEAN
-            self.image_std = IMAGENET_DEFAULT_STD
+    @model_validator(mode="before")
+    @classmethod
+    def validate_image_mean_std(cls, values):
+        image_mean = values.get("image_mean", None)
+        image_std = values.get("image_std", None)
 
-        # prepare image transform
+        if image_mean is None:
+            values["image_mean"] = IMAGENET_STANDARD_MEAN
+        if image_std is None:
+            values["image_std"] = IMAGENET_STANDARD_STD
+
+        return values
+
+    def model_post_init(self, context) -> None:
         self._transform = None
 
     def _prepare_image_transform(self):

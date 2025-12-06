@@ -1,0 +1,179 @@
+{
+    "env": {
+        "project_name": "my_atria_project",
+        "run_name": "cifar10_experiment_01",
+        "output_dir": "./outputs/",
+        "seed": 42,
+        "deterministic": false,
+        "backend": "nccl",
+        "n_devices": 1,
+        "_target_": "atria_ml.task_pipelines.configs._base.RuntimeEnvConfig"
+    },
+    "data": {
+        "dataset_config": {
+            "module_path": "atria_datasets.registry.image_classification.cifar10.Cifar10",
+            "dataset_name": "cifar10",
+            "config_name": "1k",
+            "max_train_samples": 1000,
+            "max_validation_samples": 1000,
+            "max_test_samples": 1000,
+            "_target_": "atria_datasets.core.dataset._common.DatasetConfig"
+        },
+        "data_dir": "data_dir/",
+        "access_token": null,
+        "overwrite_existing_cached": false,
+        "allowed_keys": null,
+        "num_processes": 8,
+        "cached_storage_type": "MSGPACK",
+        "enable_cached_splits": false,
+        "store_artifact_content": true,
+        "max_cache_image_size": null,
+        "train_batch_size": 8,
+        "eval_batch_size": 8,
+        "num_workers": 0,
+        "pin_memory": true,
+        "splitting_enabled": false,
+        "split_ratio": 0.9,
+        "_target_": "atria_ml.task_pipelines.configs._base.DataConfig"
+    },
+    "model_pipeline": {
+        "module_path": "atria_models.core.model_pipelines._image_pipeline.ImageClassificationPipeline",
+        "model": {
+            "builder_type": "timm",
+            "bn_to_gn": false,
+            "frozen_layers": "none",
+            "pretrained_checkpoint": null,
+            "model_name_or_path": "resnet18",
+            "model_kwargs": {},
+            "_target_": "atria_models.core.model_pipelines._common.ModelConfig"
+        },
+        "train_transform": {
+            "tf": {
+                "to_rgb": true,
+                "do_normalize": true,
+                "do_resize": true,
+                "use_imagenet_mean_std": false,
+                "resize_height": 224,
+                "resize_width": 224,
+                "image_mean": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "image_std": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "_target_": "atria_transforms.tfs._image_transforms.StandardImageTransform"
+            },
+            "_target_": "atria_transforms.tfs._image_processor._base.ImageProcessor"
+        },
+        "eval_transform": {
+            "tf": {
+                "to_rgb": true,
+                "do_normalize": true,
+                "do_resize": true,
+                "use_imagenet_mean_std": false,
+                "resize_height": 224,
+                "resize_width": 224,
+                "image_mean": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "image_std": [
+                    0.5,
+                    0.5,
+                    0.5
+                ],
+                "_target_": "atria_transforms.tfs._image_transforms.StandardImageTransform"
+            },
+            "_target_": "atria_transforms.tfs._image_processor._base.ImageProcessor"
+        },
+        "_target_": "atria_models.core.model_pipelines._image_pipeline.ImageModelPipelineConfig"
+    },
+    "trainer": {
+        "max_epochs": 100,
+        "validate_every_n_epochs": 1.0,
+        "visualize_every_n_epochs": 1.0,
+        "resume_checkpoint_path": null,
+        "clear_cuda_cache": true,
+        "stop_on_nan": true,
+        "eval_training": false,
+        "outputs_to_running_avg": [
+            "loss"
+        ],
+        "optimizer": {
+            "module_path": "torch.optim.SGD",
+            "lr": 0.001,
+            "_target_": "atria_ml.optimizers._torch.SGDOptimizerConfig"
+        },
+        "lr_scheduler": {
+            "module_path": "torch.optim.lr_scheduler.CosineAnnealingLR",
+            "_target_": "atria_ml.schedulers._torch.CosineAnnealingLRSchedulerConfig"
+        },
+        "model_ema": {
+            "enabled": false,
+            "momentum": 0.0001,
+            "momentum_warmup": 0.0,
+            "warmup_iters": 0,
+            "update_every": 1,
+            "_target_": "atria_ml.training._configs.ModelEmaConfig"
+        },
+        "warmup": {
+            "warmup_ratio": null,
+            "warmup_steps": null,
+            "_target_": "atria_ml.training._configs.WarmupConfig"
+        },
+        "early_stopping": {
+            "enabled": false,
+            "monitored_metric": "val/loss",
+            "min_delta": 0.0,
+            "patience": 3,
+            "cumulative_delta": false,
+            "mode": "min",
+            "_target_": "atria_ml.training._configs.EarlyStoppingConfig"
+        },
+        "model_checkpoint": {
+            "enabled": true,
+            "dir": "checkpoints",
+            "n_saved": 1,
+            "n_best_saved": 1,
+            "monitored_metric": "validation/running_avg_loss",
+            "mode": "min",
+            "name_prefix": "",
+            "save_weights_only": false,
+            "load_weights_only": false,
+            "every_n_steps": null,
+            "every_n_epochs": 1,
+            "resume_from_checkpoint": true,
+            "_target_": "atria_ml.training._configs.ModelCheckpointConfig"
+        },
+        "gradient": {
+            "enable_grad_clipping": false,
+            "max_grad_norm": 1.0,
+            "gradient_accumulation_steps": 1,
+            "_target_": "atria_ml.training._configs.GradientConfig"
+        },
+        "_target_": "atria_ml.task_pipelines.configs._base.TrainerConfig"
+    },
+    "logging": {
+        "logging_steps": 100,
+        "refresh_rate": 10,
+        "log_gpu_stats": false,
+        "profile_time": false,
+        "log_to_tb": true,
+        "_target_": "atria_ml.training._configs.LoggingConfig"
+    },
+    "test_run": false,
+    "use_fixed_batch_iterator": false,
+    "save_test_outputs_to_disk": false,
+    "use_ema_for_evaluation": false,
+    "with_amp": true,
+    "do_train": true,
+    "do_test": true,
+    "do_validation": true,
+    "do_visualization": false,
+    "_target_": "atria_ml.task_pipelines.configs._base.RunConfig"
+}

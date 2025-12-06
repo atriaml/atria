@@ -6,7 +6,7 @@ from abc import abstractmethod
 from typing import Any, Generic, TypeVar
 
 from atria_logger import get_logger
-from atria_registry._module_base import RegisterablePydanticModule
+from atria_registry._module_base import PydanticConfigurableModule
 from pydantic import ConfigDict
 
 from .._data_types import T_TensorDataModel
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 T = TypeVar("T")
 
 
-class DataTransform(RegisterablePydanticModule, Generic[T_TensorDataModel]):
+class DataTransform(PydanticConfigurableModule, Generic[T_TensorDataModel]):
     """Base class for data transforms.
     Transforms should be stateless and operate on input data instances to produce
     transformed output data instances.

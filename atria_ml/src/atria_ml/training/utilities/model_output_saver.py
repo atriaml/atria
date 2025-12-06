@@ -49,12 +49,9 @@ def update_dataset_at_indices(
 
 class ModelOutputSaver:
     def __init__(
-        self,
-        output_dir: Path | str,
-        output_name: str,
-        extra_keys_to_save: list[str] | None = None,
+        self, output_dir: Path | str, extra_keys_to_save: list[str] | None = None
     ):
-        self._output_file = Path(output_dir) / f"model_outputs-{output_name}.h5"
+        self._output_file = Path(output_dir) / "model_outputs.h5"
         self._extra_keys_to_save = extra_keys_to_save or []
 
     def add_key_from_output(

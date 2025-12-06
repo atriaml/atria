@@ -1,5 +1,6 @@
 from atria_ml.optimizers._api import load_optimizer_config
 from atria_ml.optimizers._base import OptimizerConfig
+from atria_ml.optimizers._registry_group import OPTIMIZER
 from atria_ml.optimizers._torch import (
     AdadeltaOptimizerConfig,
     AdagradOptimizerConfig,
@@ -20,4 +21,5 @@ __all__ = [
     "RMSpropOptimizerConfig",
     "AdadeltaOptimizerConfig",
     "LARSOptimizerConfig",
+    "OPTIMIZER",
 ]

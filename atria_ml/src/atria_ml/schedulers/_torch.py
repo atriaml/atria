@@ -64,7 +64,6 @@ class ReduceLROnPlateauSchedulerConfig(LRSchedulerConfig):
 
 class CosineAnnealingLRSchedulerConfig(LRSchedulerConfig):
     module_path: str | None = "torch.optim.lr_scheduler.CosineAnnealingLR"
-    T_max: int = 50
     eta_min: float = 0.0
     last_epoch: int = -1
     restarts: bool = False

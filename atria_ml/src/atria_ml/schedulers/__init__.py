@@ -1,5 +1,6 @@
 from atria_ml.schedulers._api import load_lr_scheduler_config
 from atria_ml.schedulers._base import LRSchedulerConfig
+from atria_ml.schedulers._registry_group import LR_SCHEDULER
 from atria_ml.schedulers._torch import (
     CosineAnnealingLRSchedulerConfig,
     CyclicLRSchedulerConfig,
@@ -18,4 +19,5 @@ __all__ = [
     "CyclicLRSchedulerConfig",
     "ReduceLROnPlateauSchedulerConfig",
     "CosineAnnealingLRSchedulerConfig",
+    "LR_SCHEDULER",
 ]

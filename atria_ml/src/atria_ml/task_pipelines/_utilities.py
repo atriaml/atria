@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import torch
 from atria_logger import get_logger
@@ -81,3 +83,47 @@ def _get_env_info():
         system_info["cuda_available"] = False
 
     return system_info
+
+
+def _find_checkpoint(output_dir: str | Path, checkpoint_type: str) -> str | None:
+    import glob
+    import os
+
+    checkpoint_dir = Path(output_dir) / "checkpoints"
+
+    if not checkpoint_dir.exists():
+        return None
+
+    available_checkpoints = glob.glob(str(checkpoint_dir) + "/*.pt")
+    if checkpoint_type == "last":
+        # get the latest checkpoint following pattern checkpoint_n.pt
+        available_checkpoints = [
+            c
+            for c in available_checkpoints
+            if os.path.basename(c).startswith("checkpoint_")
+        ]
+
+        # sort by epoch number
+        available_checkpoints.sort(
+            key=lambda x: int(os.path.basename(x).split("_")[1].split(".")[0]),
+            reverse=True,
+        )
+
+        return available_checkpoints[0] if len(available_checkpoints) > 0 else None
+    elif checkpoint_type == "best":
+        # get the best checkpoint following pattern best_checkpoint.pt
+        available_checkpoints = [
+            c
+            for c in available_checkpoints
+            if os.path.basename(c).startswith("best_checkpoint")
+        ]
+
+        # sort best checkpoints by epoch number
+        available_checkpoints.sort(
+            key=lambda x: int(os.path.basename(x).split("_")[2].split(".")[0]),
+            reverse=True,
+        )
+
+        return available_checkpoints[0] if len(available_checkpoints) > 0 else None
+    else:
+        raise ValueError(f"Unknown checkpoint type: {checkpoint_type}")
