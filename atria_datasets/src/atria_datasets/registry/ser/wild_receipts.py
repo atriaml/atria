@@ -62,6 +62,7 @@ _CLASSES = [
 
 
 class WildReceiptsConfig(DatasetConfig):
+    dataset_name: str = "wild_receipts"
     apply_reading_order_correction: bool = True
 
 
@@ -156,12 +157,12 @@ class SplitIterator:
             sample_info = json.loads(filename)
             image = Image(
                 file_path=self.split_file_path.parent / sample_info["file_name"]
-            )
+            ).load()
             content, annotations = self._load_content_and_annotations(
                 sample_info=sample_info, image_size=image.size
             )
             yield DocumentInstance(
-                sample_id=sample_info["file_name"],
+                sample_id=Path(sample_info["file_name"]).name,
                 image=image,
                 content=content,
                 annotations=[annotations],
@@ -174,7 +175,7 @@ class SplitIterator:
 
 @DATASET.register("wild_receipts")
 class WildReceipts(DocumentDataset):
-    __config_cls__ = WildReceiptsConfig
+    __config__ = WildReceiptsConfig
 
     def _download_urls(self) -> list[str] | dict[str, tuple[str, str]]:
         return _DATA_URLS

@@ -17,6 +17,7 @@ from atria_types import (
 from atria_types._generic._bounding_box import BoundingBox
 
 from atria_datasets import DATASET
+from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import DocumentDataset
 
 from .utilities import _normalize_bbox
@@ -119,8 +120,14 @@ class SplitIterator:
         return len(os.listdir(self.image_dir))
 
 
+class SROIEDatasetConfig(DatasetConfig):
+    dataset_name: str = "sroie"
+
+
 @DATASET.register("sroie")
 class SROIE(DocumentDataset):
+    __config__ = SROIEDatasetConfig
+
     def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         return _DATA_URLS
 

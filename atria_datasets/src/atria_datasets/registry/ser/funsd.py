@@ -144,7 +144,7 @@ class SplitIterator:
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         for filename in sorted(os.listdir(self.image_dir)):
-            image = Image(file_path=str(self.image_dir / Path(filename).name))
+            image = Image(file_path=str(self.image_dir / Path(filename).name)).load()
             content, annotation = self._load_content_and_annotations(
                 annotation_path=self.ann_dir / Path(filename).with_suffix(".json"),
                 image_size=(image.width, image.height),

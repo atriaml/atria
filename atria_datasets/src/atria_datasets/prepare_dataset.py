@@ -10,8 +10,9 @@ from atria_datasets.registry.ser.cord import *  # noqa
 # from atria_datasets.registry.ser.docbank import *  # noqa
 # from atria_datasets.registry.ser.docile import *  # noqa
 from atria_datasets.registry.ser.funsd import *  # noqa
-# from atria_datasets.registry.ser.sroie import *  # noqa
-# from atria_datasets.registry.ser.wild_receipts import *  # noqa
+
+from atria_datasets.registry.ser.sroie import *  # noqa
+from atria_datasets.registry.ser.wild_receipts import *  # noqa
 # from atria_datasets.registry.vqa.docvqa import *  # noqa
 # from atria_datasets.registry.layout_analysis.doclaynet import *  # noqa
 # from atria_datasets.registry.layout_analysis.icdar2019 import *  # noqa
@@ -27,7 +28,7 @@ def prepare_dataset(
     data_dir: str | None = None,
     max_samples: int | None = None,
     access_token: str | None = None,
-    overwrite_existing_cached: bool = False,
+    overwrite_existing_cached: bool = True,
     num_processes: int = 0,
     visualize_samples: bool = True,
     visualized_split: str = "train",
@@ -66,13 +67,12 @@ def prepare_dataset(
             break
 
     if visualize_samples:
+        output_path = f"visualizations/{dataset.config.dataset_name}/train"
         logger.info(
-            f"Visualizing {n_visualized_samples} samples from {visualized_split} split"
+            f"Visualizing {n_visualized_samples} samples from {visualized_split} split to {output_path}"
         )
         for idx, sample in enumerate(dataset._split_iterators[visualized_split]):
-            sample.viz.visualize(
-                output_path=f"visualizations/{dataset.config.dataset_name}/train"
-            )
+            sample.viz.visualize(output_path=output_path)
             if idx + 1 >= n_visualized_samples:
                 break
 
