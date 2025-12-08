@@ -1,7 +1,7 @@
 import bs4
 
 from atria_types._generic._bounding_box import BoundingBox
-from atria_types._generic._doc_content import TextElement
+from atria_types._generic._doc_content import DocumentContent, TextElement
 
 
 class HOCRProcessor:
@@ -41,7 +41,10 @@ class HOCRProcessor:
                 )
             )
 
-        return text_elements
+        return DocumentContent(
+            text_elements=text_elements,
+        )
+
 
     @staticmethod
     def parse_as_graph(raw_ocr: str) -> list[TextElement]:
@@ -79,4 +82,6 @@ class HOCRProcessor:
                 )
             )
 
-        return text_elements
+        return DocumentContent(
+            text_elements=text_elements,
+        )
