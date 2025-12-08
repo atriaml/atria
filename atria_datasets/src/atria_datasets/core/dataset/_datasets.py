@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Generator, Sequence
+from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic
 
@@ -22,6 +22,7 @@ from atria_datasets.core.dataset._common import (
     T_BaseDataInstance,
     T_DatasetConfig,
 )
+from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
@@ -152,7 +153,7 @@ class Dataset(
 
         self._dataset_builder = (
             DatasetBuilder(dataset=self, **kwargs)
-            if enable_cached_splits
+            if not enable_cached_splits
             else CachedDatasetBuilder(dataset=self, **kwargs)
         )
         return self._dataset_builder
@@ -192,9 +193,11 @@ class Dataset(
         return self.__data_model__
 
     @property
-    def train(self) -> SplitIterator[T_BaseDataInstance] | None:
+    def train(self) -> SplitIterator[T_BaseDataInstance]:
         """Training split iterator. Returns None if training split is not available."""
-        return self._split_iterators.get(DatasetSplitType.train, None)
+        if DatasetSplitType.train not in self._split_iterators:
+            raise SplitNotFoundError("Training split iterator is not available. ")
+        return self._split_iterators[DatasetSplitType.train]
 
     @train.setter
     def train(self, value: SplitIterator[T_BaseDataInstance]) -> None:
@@ -202,9 +205,11 @@ class Dataset(
         self._split_iterators[DatasetSplitType.train] = value
 
     @property
-    def validation(self) -> SplitIterator[T_BaseDataInstance] | None:
+    def validation(self) -> SplitIterator[T_BaseDataInstance]:
         """Validation split iterator. Returns None if validation split is not available."""
-        return self._split_iterators.get(DatasetSplitType.validation, None)
+        if DatasetSplitType.validation not in self._split_iterators:
+            raise SplitNotFoundError("Validation split iterator is not available. ")
+        return self._split_iterators[DatasetSplitType.validation]
 
     @validation.setter
     def validation(self, value: SplitIterator[T_BaseDataInstance]) -> None:
@@ -212,16 +217,18 @@ class Dataset(
         self._split_iterators[DatasetSplitType.validation] = value
 
     @property
-    def test(self) -> SplitIterator[T_BaseDataInstance] | None:
+    def test(self) -> SplitIterator[T_BaseDataInstance]:
         """Test split iterator. Returns None if test split is not available."""
-        return self._split_iterators.get(DatasetSplitType.test, None)
+        if DatasetSplitType.test not in self._split_iterators:
+            raise SplitNotFoundError("Test split iterator is not available. ")
+        return self._split_iterators[DatasetSplitType.test]
 
     @test.setter
     def test(self, value: SplitIterator[T_BaseDataInstance]) -> None:
         """Set the test split iterator."""
         self._split_iterators[DatasetSplitType.test] = value
 
-    def _input_transform(self, sample: Any | T_BaseDataInstance) -> T_BaseDataInstance:
+    def _input_transform(self, sample: Any) -> T_BaseDataInstance:
         """
         Transform raw sample data into the dataset's data model.
 
@@ -243,7 +250,7 @@ class Dataset(
                 f"Cannot convert sample of type {type(sample)} to data model {self.data_model}"
             )
 
-    def _download_urls(self) -> list[str]:
+    def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         """
         Get the list of URLs for downloading dataset files.
 
@@ -301,9 +308,7 @@ class Dataset(
         )
 
     @abstractmethod
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Sequence | Generator:
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         """
         Create an iterator for a specific dataset split.
 

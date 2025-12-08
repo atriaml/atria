@@ -8,19 +8,23 @@ from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
 @DATASET.register(
     "mnist",
-    configs=[
-        HuggingfaceDatasetConfig(
-            config_name="mnist", hf_repo="ylecun/mnist", hf_config_name="mnist"
+    configs={
+        "default": HuggingfaceDatasetConfig(
+            dataset_name="mnist",
+            config_name="default",
+            hf_repo="ylecun/mnist",
+            hf_config_name="mnist",
         ),
-        HuggingfaceDatasetConfig(
-            config_name="mnist_1k",
+        "1k": HuggingfaceDatasetConfig(
+            dataset_name="mnist",
+            config_name="1k",
             hf_repo="ylecun/mnist",
             hf_config_name="mnist",
             max_train_samples=1000,
             max_test_samples=1000,
             max_validation_samples=1000,
         ),
-    ],
+    },
 )
 class MNIST(HuggingfaceImageDataset):
     def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:

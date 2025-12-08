@@ -45,18 +45,18 @@ _LAYOUT_CLASSES = [
 
 @DATASET.register(
     "doclaynet",
-    configs=[
-        HuggingfaceDatasetConfig(
+    configs={
+        "default": HuggingfaceDatasetConfig(
             config_name="default", hf_repo="ds4sd/DocLayNet", hf_config_name="2022.08"
         ),
-        HuggingfaceDatasetConfig(
+        "1k": HuggingfaceDatasetConfig(
             config_name="1k",
             hf_repo="ds4sd/DocLayNet",
             hf_config_name="2022.08",
             max_train_samples=1000,
             max_validation_samples=1000,
         ),
-    ],
+    },
 )
 class DocLayNet(HuggingfaceDocumentDataset):
     def _metadata(self) -> DatasetMetadata:

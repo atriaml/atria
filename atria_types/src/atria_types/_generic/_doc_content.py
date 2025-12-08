@@ -1,10 +1,82 @@
+from enum import Enum
 from typing import Annotated, Any
 
-from pydantic import field_serializer, field_validator, model_validator
+from pydantic import BaseModel, field_serializer, field_validator, model_validator
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._generic._bounding_box import BoundingBox
 from atria_types._pydantic import OptFloatField, OptStrField, TableSchemaMetadata
+
+
+class OCRLevel(str, Enum):
+    PAGE = "page"
+    BLOCK = "block"
+    PARAGRAPH = "paragraph"
+    LINE = "line"
+    WORD = "word"
+
+
+class OCRGraphNode(BaseModel):
+    id: int | str
+    word: str | None = None
+    level: OCRLevel | None = None
+    bbox: BoundingBox | None = None
+    segment_level_bbox: BoundingBox | None = None
+    conf: float | None = None
+    angle: float | None = None
+
+
+class OCRGraphLink(BaseModel):
+    source: int | str
+    target: int | str
+    relation: str | None = None
+
+
+class OCRGraph(BaseModel):
+    directed: bool | None
+    multigraph: bool | None
+    graph: dict | None
+    nodes: list[OCRGraphNode]
+    links: list[OCRGraphLink]
+
+    @property
+    def words(self) -> list[str] | None:
+        words = [node.word for node in self.nodes if node.level == OCRLevel.WORD]
+        if any(word is None for word in words):
+            return None
+        return words  # type: ignore
+
+    @property
+    def word_bboxes(self) -> list[BoundingBox] | None:
+        bboxes = [node.bbox for node in self.nodes if node.level == OCRLevel.WORD]
+        if any(bbox is None for bbox in bboxes):
+            return None
+        return bboxes  # type: ignore
+
+    @property
+    def word_segment_level_bboxes(self) -> list[BoundingBox] | None:
+        bboxes = [
+            node.segment_level_bbox
+            for node in self.nodes
+            if node.level == OCRLevel.WORD
+        ]
+        if any(bbox is None for bbox in bboxes):
+            return None
+        return bboxes  # type: ignore
+
+    @property
+    def word_confs(self) -> list[float] | None:
+        confs = [node.conf for node in self.nodes if node.level == OCRLevel.WORD]
+        if any(conf is None for conf in confs):
+            return None
+        return confs  # type: ignore
+
+    @property
+    def word_angles(self) -> list[float] | None:
+        angles = [node.angle for node in self.nodes if node.level == OCRLevel.WORD]
+        if any(angle is None for angle in angles):
+            return None
+        return angles  # type: ignore
 
 
 class TextElement(BaseDataModel):

@@ -7,13 +7,15 @@ from atria_datasets import DATASET, HuggingfaceDatasetConfig, HuggingfaceImageDa
 
 @DATASET.register(
     "huggingface_cifar10",
-    configs=[
-        HuggingfaceDatasetConfig(
+    configs={
+        "plain_text": HuggingfaceDatasetConfig(
+            dataset_name="huggingface_cifar10",
             config_name="plain_text",
             hf_repo="uoft-cs/cifar10",
             hf_config_name="plain_text",
         ),
-        HuggingfaceDatasetConfig(
+        "plain_text_1k": HuggingfaceDatasetConfig(
+            dataset_name="huggingface_cifar10",
             config_name="plain_text_1k",
             hf_repo="uoft-cs/cifar10",
             hf_config_name="plain_text",
@@ -21,7 +23,7 @@ from atria_datasets import DATASET, HuggingfaceDatasetConfig, HuggingfaceImageDa
             max_test_samples=1000,
             max_validation_samples=1000,
         ),
-    ],
+    },
 )
 class HuggingfaceCifar10(HuggingfaceImageDataset):
     def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:

@@ -104,10 +104,10 @@ class SplitIterator:
 
 @DATASET.register(
     "icdar2019",
-    configs=[
-        DatasetConfig(config_name="trackA_modern"),
-        DatasetConfig(config_name="trackA_archival"),
-    ],
+    configs={
+        "trackA_modern": DatasetConfig(config_name="trackA_modern"),
+        "trackA_archival": DatasetConfig(config_name="trackA_archival"),
+    },
 )
 class Icdar2019(DocumentDataset):
     def _download_urls(self) -> list[str]:

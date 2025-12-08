@@ -94,8 +94,8 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
             split_file_paths = Path(data_dir) / f"labels/{config.type}/val.txt"
         with open(split_file_paths) as f:
             self.split_file_paths = f.read().splitlines()
-        self.image_data_dir = data_dir / _IMAGE_DATA_NAME / "images"
-        self.ocr_data_dir = data_dir / _OCR_DATA_NAME / "images"
+        self.image_data_dir = Path(data_dir) / _IMAGE_DATA_NAME / "images"
+        self.ocr_data_dir = Path(data_dir) / _OCR_DATA_NAME / "images"
 
     def __iter__(self) -> Generator[tuple[Path, Path, int], None, None]:
         for image_file_path_with_label in self.split_file_paths:
@@ -104,7 +104,7 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
                 ".tif", ".hocr.lstm"
             )
             image_file_path = Path(self.image_data_dir) / image_file_path
-            yield image_file_path, ocr_file_path, label
+            yield image_file_path, ocr_file_path, int(label)
 
     def __len__(self) -> int:
         return len(self.split_file_paths)
@@ -112,16 +112,21 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
 
 @DATASET.register(
     "rvlcdip",
-    configs=[
-        RvlCdipConfig(config_name="image", load_ocr=False),
-        RvlCdipConfig(config_name="image_with_ocr", load_ocr=True),
-        RvlCdipConfig(
+    configs={
+        "image": RvlCdipConfig(
+            dataset_name="rvlcdip", config_name="image", load_ocr=False
+        ),
+        "image_with_ocr": RvlCdipConfig(
+            dataset_name="rvlcdip", config_name="image_with_ocr", load_ocr=True
+        ),
+        "image_with_ocr_1k": RvlCdipConfig(
+            dataset_name="rvlcdip",
             config_name="image_with_ocr_1k",
             load_ocr=True,
             max_train_samples=1000,
             max_validation_samples=1000,
         ),
-    ],
+    },
 )
 class RvlCdip(DocumentDataset[RvlCdipConfig]):
     """Ryerson Vision Lab Complex Document Information Processing dataset."""
@@ -155,15 +160,15 @@ class RvlCdip(DocumentDataset[RvlCdipConfig]):
     def _split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> Iterable[tuple[Path, Path, int]]:
-        return SplitIterator(split=split, data_dir=Path(data_dir), config=self.config)
+        return SplitIterator(split=split, data_dir=data_dir, config=self.config)
 
     def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
         image_file_path, ocr_file_path, label = sample
 
         return DocumentInstance(
             sample_id=Path(image_file_path).name,
-            image=Image(file_path=image_file_path),
-            ocr=OCR(file_path=ocr_file_path, type=OCRType.tesseract)
+            image=Image(file_path=str(image_file_path)),
+            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
             if self.config.load_ocr
             else None,
             annotations=[

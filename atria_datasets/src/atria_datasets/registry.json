@@ -1,0 +1,88 @@
+{
+    "rvlcdip": {
+        "image": {
+            "hash": "57776d2a",
+            "config": {
+                "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
+                "dataset_name": null,
+                "config_name": "image",
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "load_ocr": false,
+                "type": "default"
+            },
+            "import_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdipConfig"
+        },
+        "image_with_ocr": {
+            "hash": "0a1f2844",
+            "config": {
+                "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
+                "dataset_name": null,
+                "config_name": "image_with_ocr",
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "load_ocr": true,
+                "type": "default"
+            },
+            "import_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdipConfig"
+        },
+        "image_with_ocr_1k": {
+            "hash": "80b5328d",
+            "config": {
+                "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
+                "dataset_name": null,
+                "config_name": "image_with_ocr_1k",
+                "max_train_samples": 1000,
+                "max_validation_samples": 1000,
+                "max_test_samples": null,
+                "load_ocr": true,
+                "type": "default"
+            },
+            "import_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdipConfig"
+        }
+    },
+    "tobacco3482": {
+        "image_only": {
+            "hash": "3fb2cbbc",
+            "config": {
+                "module_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482",
+                "dataset_name": "tobacco3482",
+                "config_name": "image_only",
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "load_ocr": false
+            },
+            "import_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482Config"
+        },
+        "image_with_ocr": {
+            "hash": "48a6108c",
+            "config": {
+                "module_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482",
+                "dataset_name": "tobacco3482",
+                "config_name": "image_with_ocr",
+                "max_train_samples": null,
+                "max_validation_samples": null,
+                "max_test_samples": null,
+                "load_ocr": true
+            },
+            "import_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482Config"
+        }
+    },
+    "cifar10": {
+        "1k": {
+            "hash": "09f58532",
+            "config": {
+                "module_path": "atria_datasets.registry.image_classification.cifar10.Cifar10",
+                "dataset_name": "cifar10",
+                "config_name": "1k",
+                "max_train_samples": 1000,
+                "max_validation_samples": 1000,
+                "max_test_samples": 1000
+            },
+            "import_path": "atria_datasets.core.dataset._common.DatasetConfig"
+        }
+    }
+}

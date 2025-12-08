@@ -1,5 +1,5 @@
 import json
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 from atria_types import (
@@ -30,7 +30,7 @@ _HOMEPAGE = ""
 
 _LICENSE = "Apache-2.0 license"
 
-_DATA_URLS = "https://download.openmmlab.com/mmocr/data/wildreceipt.tar"
+_DATA_URLS = ["https://download.openmmlab.com/mmocr/data/wildreceipt.tar"]
 
 _CLASSES = [
     "B-Store_name_value",
@@ -176,7 +176,7 @@ class SplitIterator:
 class WildReceipts(DocumentDataset):
     __config_cls__ = WildReceiptsConfig
 
-    def _download_urls(self) -> list[str]:
+    def _download_urls(self) -> list[str] | dict[str, tuple[str, str]]:
         return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:
@@ -191,7 +191,5 @@ class WildReceipts(DocumentDataset):
     def _available_splits(self) -> list[DatasetSplitType]:
         return [DatasetSplitType.train, DatasetSplitType.test]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[DocumentInstance, None, None]:
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         return SplitIterator(split=split, data_dir=data_dir, config=self.config)

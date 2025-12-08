@@ -33,10 +33,10 @@ class DocumentInstance(BaseDataInstance):
         loaded_fields = {}
         for name in self.__class__.model_fields:
             loaded_fields[name] = _load_any(getattr(self, name))
-
         if (
             loaded_fields["ocr"] is not None
-            and loaded_fields["content"].text_elements is None
+            and loaded_fields["ocr"].content is not None
+            and loaded_fields["content"] is None
         ):
             loaded_fields["content"] = OCRProcessor.parse(
                 raw_ocr=loaded_fields["ocr"].content, ocr_type=loaded_fields["ocr"].type

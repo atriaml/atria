@@ -74,6 +74,21 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
         return self._store
 
+    def list_all_modules(self) -> list[str]:
+        """List all registered module paths in the registry group."""
+        module_names = []
+
+        def _traverse(store: dict[str, Any], prefix: str = ""):
+            for key, value in store.items():
+                current_path = f"{prefix}/{key}" if prefix else key
+                if "config" in value:
+                    module_names.append(current_path)
+                else:
+                    _traverse(value, current_path)
+
+        _traverse(self._store)
+        return module_names
+
     def _package_dir(self) -> Path:
         """Return the filesystem path of the package passed at construction."""
         module = importlib.import_module(self._package)
@@ -115,8 +130,8 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                             )
                             return
 
-                        raise ValueError(
-                            f"Module '{module_name}' with  is already registered with a different configuration."
+                        logger.warning(
+                            f"Module '{module_name}' with  is already registered with a different configuration. Replacing it."
                         )
 
                 self.set_store_value_at_path(
@@ -235,8 +250,8 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                     )
                     return
 
-                raise ValueError(
-                    f"Module '{module_name}' with  is already registered with a different configuration."
+                logger.warning(
+                    f"Module '{module_name}' with  is already registered with a different configuration. Replacing it."
                 )
 
         self.set_store_value_at_path(
@@ -268,8 +283,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         """Dynamically load all registered modules in the registry group."""
         node = self.get_store_value_at_path(module_path)
         if node is None or node.get("config", None) is None:
-            raise KeyError(
-                f"Module path '{module_path}' not found in registry. Available paths: {list(self._store.get(self._package, {}).keys())}"
+            all_modules_str = json.dumps(self.list_all_modules(), indent=4)
+            raise RuntimeError(
+                f"Module path '{module_path}' not found in registry. Available paths:\n {all_modules_str}"
             )
         config_import_path = node.get("import_path", None)
         config = node["config"]

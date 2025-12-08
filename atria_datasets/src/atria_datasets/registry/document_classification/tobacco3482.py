@@ -66,11 +66,13 @@ class SplitIterator:
             split_file_paths = Path(data_dir) / "train.txt"
         elif split == DatasetSplitType.test:
             split_file_paths = Path(data_dir) / "test.txt"
+        else:
+            raise ValueError(f"Unsupported split: {split}")
         with open(split_file_paths) as f:
             self.split_file_paths = f.read().splitlines()
             shuffle(self.split_file_paths)
-        self.image_data_dir = data_dir / _IMAGE_DATA_NAME
-        self.ocr_data_dir = data_dir / _OCR_DATA_NAME
+        self.image_data_dir = Path(data_dir) / _IMAGE_DATA_NAME
+        self.ocr_data_dir = Path(data_dir) / _OCR_DATA_NAME
 
     def __iter__(self):
         for image_file_path in self.split_file_paths:
@@ -87,10 +89,14 @@ class SplitIterator:
 
 @DATASET.register(
     "tobacco3482",
-    configs=[
-        Tobacco3482Config(config_name="image_only", load_ocr=False),
-        Tobacco3482Config(config_name="image_with_ocr", load_ocr=True),
-    ],
+    configs={
+        "image_only": Tobacco3482Config(
+            dataset_name="tobacco3482", config_name="image_only", load_ocr=False
+        ),
+        "image_with_ocr": Tobacco3482Config(
+            dataset_name="tobacco3482", config_name="image_with_ocr", load_ocr=True
+        ),
+    },
 )
 class Tobacco3482(DocumentDataset[Tobacco3482Config]):
     __config_cls__ = Tobacco3482Config
@@ -113,14 +119,14 @@ class Tobacco3482(DocumentDataset[Tobacco3482Config]):
     def _split_iterator(
         self, split: DatasetSplitType, data_dir: str
     ) -> Iterable[tuple[Path, Path, int]]:
-        return SplitIterator(split=split, data_dir=Path(data_dir))
+        return SplitIterator(split=split, data_dir=data_dir)
 
     def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
         image_file_path, ocr_file_path, label_index = sample
         return DocumentInstance(
             sample_id=Path(image_file_path).name,
-            image=Image(file_path=image_file_path),
-            ocr=OCR(file_path=ocr_file_path, type=OCRType.tesseract)
+            image=Image(file_path=str(image_file_path)),
+            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
             if self.config.load_ocr
             else None,
             annotations=[

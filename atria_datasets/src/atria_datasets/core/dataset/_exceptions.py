@@ -22,3 +22,7 @@ class ConfigurationNotFoundError(ValueError):
             f"Configuration '{config_name}' not found in the dataset. "
             f"Available configurations: {', '.join(available_configs)}"
         )
+
+
+class SplitNotFoundError(Exception):
+    pass

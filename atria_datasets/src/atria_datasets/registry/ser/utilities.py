@@ -14,9 +14,7 @@ def _get_line_bboxes(
     return bbox
 
 
-def _normalize_bbox(
-    bbox: tuple[int, int, int, int], size: tuple[int, int]
-) -> list[int]:
+def _normalize_bbox(bbox: list[int], size: tuple[int, int]) -> list[float]:
     return [
         float(bbox[0] / size[0]),
         float(bbox[1] / size[1]),

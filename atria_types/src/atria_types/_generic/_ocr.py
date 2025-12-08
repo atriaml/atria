@@ -37,10 +37,10 @@ class OCR(BaseDataModel):
             content = _load_bytes_from_uri(self.file_path)
             if content.startswith(b"b'"):
                 content = ast.literal_eval(content.decode("utf-8")).decode("utf-8")
-            return OCR(
-                file_path=self.file_path,
-                type=self.type,
-                content=content,
+            return self.model_copy(
+                update={
+                    "content": content,
+                }
             )
         return self
 

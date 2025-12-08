@@ -20,17 +20,16 @@ _CLASSES = ["text", "title", "list", "table", "figure"]
 
 @DATASET.register(
     "publaynet",
-    configs=[
-        HuggingfaceDatasetConfig(
+    configs={
+        "default": HuggingfaceDatasetConfig(
             hf_repo="jordanparker6/publaynet", hf_config_name="default"
         ),
-        HuggingfaceDatasetConfig(
-            config_name="1k",
+        "1k": HuggingfaceDatasetConfig(
             hf_repo="jordanparker6/publaynet",
             hf_config_name="default",
             max_train_samples=1000,  # publay val set is same as test set
         ),
-    ],
+    },
 )
 class PubLayNet(HuggingfaceDocumentDataset):
     def _metadata(self) -> DatasetMetadata:

@@ -13,6 +13,7 @@ dependencies = [
     "atria-transforms",
     "atria-types",
     "coloredlogs>=15.0.1",
+    "jupytext>=1.18.1",
 ]
 
 [tool.setuptools]
@@ -37,6 +38,7 @@ members = [
 dev = [
     "coverage>=7.12.0",
     "faker>=38.2.0",
+    "ipywidgets>=8.1.8",
     "mypy>=1.18.2",
     "pytest>=9.0.1",
     "ruff>=0.14.6",

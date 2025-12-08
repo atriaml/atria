@@ -1,7 +1,7 @@
 import io
 import json
-from collections.abc import Generator
-from typing import Any
+from collections.abc import Generator, Iterable
+from pathlib import Path
 
 import pandas as pd
 from atria_logger import get_logger
@@ -105,7 +105,7 @@ _DATA_URLS = [
 
 
 class SplitIterator:
-    def __init__(self, split: DatasetSplitType, data_files: pd.DataFrame):
+    def __init__(self, split: DatasetSplitType, data_files: list[Path]):
         self.split = split
         self.data_files = data_files
         self.data = pd.concat(
@@ -191,7 +191,7 @@ class SplitIterator:
             ),
         )
 
-    def __iter__(self) -> Generator[tuple[str, dict[str, Any]], None, None]:
+    def __iter__(self) -> Generator[DocumentInstance, None, None]:
         from atria_types import Image
         from PIL import Image as PILImageModule
 
@@ -231,9 +231,7 @@ class CORD(DocumentDataset):
             DatasetSplitType.test,
         ]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_files: pd.DataFrame
-    ) -> Generator[tuple[str, dict[str, Any]], None, None]:
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         return SplitIterator(
             split,
             [

@@ -1,6 +1,6 @@
 import json
 import os
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 from atria_logger import get_logger
@@ -142,10 +142,10 @@ class SplitIterator:
 
     def __iter__(self) -> Generator[DocumentInstance, None, None]:
         for filename in sorted(os.listdir(self.image_dir)):
-            image = Image(file_path=self.image_dir / Path(filename).name)
+            image = Image(file_path=str(self.image_dir / Path(filename).name))
             content, annotation = self._load_content_and_annotations(
                 annotation_path=self.ann_dir / Path(filename).with_suffix(".json"),
-                image_size=(image.source_width, image.source_height),
+                image_size=(image.width, image.height),
             )
             yield DocumentInstance(
                 sample_id=Path(filename).name,
@@ -162,7 +162,7 @@ class SplitIterator:
 class FUNSD(DocumentDataset):
     __config_cls__ = FUNSDConfig
 
-    def _download_urls(self) -> dict[str, tuple[str, str]]:
+    def _download_urls(self) -> list[str]:
         return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:
@@ -177,7 +177,5 @@ class FUNSD(DocumentDataset):
     def _available_splits(self):
         return [DatasetSplitType.train, DatasetSplitType.test]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[DocumentInstance, None, None]:
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         return SplitIterator(split=split, data_dir=data_dir, config=self.config)
