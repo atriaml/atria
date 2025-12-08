@@ -192,20 +192,26 @@ class SplitIterator:
 
 @DATASET.register(
     "docbank",
-    configs=[
-        DocBankConfig(
+    configs={
+        "default": DocBankConfig(
+            dataset_name="docbank",
+            config_name="default",
+        ),
+        "1k": DocBankConfig(
+            dataset_name="docbank",
             config_name="1k",
             max_train_samples=1000,
             max_validation_samples=1000,
             max_test_samples=1000,
         ),
-        DocBankConfig(
+        "0.1k": DocBankConfig(
+            dataset_name="docbank",
             config_name="0.1k",
             max_train_samples=100,
             max_validation_samples=100,
             max_test_samples=100,
         ),
-    ],
+    },
 )
 class DocBankLER(DocumentDataset):
     __config_cls__ = DocBankConfig

@@ -141,12 +141,26 @@ class SplitIterator:
 
 @DATASET.register(
     "docile",
-    configs=[
-        DocileConfig(synthetic=False, type="kile", config_name="kile"),
-        DocileConfig(synthetic=False, type="lir", config_name="lir"),
-        DocileConfig(synthetic=True, type="kile", config_name="kile_synthetic"),
-        DocileConfig(synthetic=True, type="lir", config_name="lir_synthetic"),
-    ],
+    configs={
+        "kile": DocileConfig(
+            dataset_name="docile", synthetic=False, type="kile", config_name="kile"
+        ),
+        "lir": DocileConfig(
+            dataset_name="docile", synthetic=False, type="lir", config_name="lir"
+        ),
+        "kile_synthetic": DocileConfig(
+            dataset_name="docile",
+            synthetic=True,
+            type="kile",
+            config_name="kile_synthetic",
+        ),
+        "lir_synthetic": DocileConfig(
+            dataset_name="docile",
+            synthetic=True,
+            type="lir",
+            config_name="lir_synthetic",
+        ),
+    },
 )
 class Docile(DocumentDataset):
     __config_cls__ = DocileConfig
