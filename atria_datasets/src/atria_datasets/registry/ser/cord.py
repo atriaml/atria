@@ -18,6 +18,7 @@ from atria_types import (
 )
 
 from atria_datasets import DATASET
+from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import DocumentDataset
 
 from .utilities import _get_line_bboxes, _normalize_bbox
@@ -210,8 +211,15 @@ class SplitIterator:
             )
 
 
+class CordDatasetConfig(DatasetConfig):
+    dataset_name: str = "cord"
+    config_name: str = "default"
+
+
 @DATASET.register("cord")
 class CORD(DocumentDataset):
+    __config__ = CordDatasetConfig
+
     def _download_urls(self) -> list[str]:
         return _DATA_URLS
 
@@ -234,9 +242,5 @@ class CORD(DocumentDataset):
     def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         return SplitIterator(
             split,
-            [
-                path
-                for key, path in self._downloaded_files.items()
-                if split.value in key
-            ],
+            [path for key, path in self.downloaded_files.items() if split.value in key],
         )

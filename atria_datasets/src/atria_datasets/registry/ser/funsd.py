@@ -51,6 +51,8 @@ _CLASSES = [
 
 
 class FUNSDConfig(DatasetConfig):
+    dataset_name: str = "funsd"
+    config_name: str = "default"
     apply_reading_order_correction: bool = True
 
 
@@ -160,7 +162,7 @@ class SplitIterator:
 
 @DATASET.register("funsd")
 class FUNSD(DocumentDataset):
-    __config_cls__ = FUNSDConfig
+    __config__ = FUNSDConfig
 
     def _download_urls(self) -> list[str]:
         return _DATA_URLS

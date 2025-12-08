@@ -80,6 +80,7 @@ _CLASSES = [
 
 
 class RvlCdipConfig(DatasetConfig):
+    dataset_name: str = "rvlcdip"
     load_ocr: bool = False
     type: str = "default"
 
@@ -113,14 +114,9 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
 @DATASET.register(
     "rvlcdip",
     configs={
-        "image": RvlCdipConfig(
-            dataset_name="rvlcdip", config_name="image", load_ocr=False
-        ),
-        "image_with_ocr": RvlCdipConfig(
-            dataset_name="rvlcdip", config_name="image_with_ocr", load_ocr=True
-        ),
+        "image": RvlCdipConfig(config_name="image", load_ocr=False),
+        "image_with_ocr": RvlCdipConfig(config_name="image_with_ocr", load_ocr=True),
         "image_with_ocr_1k": RvlCdipConfig(
-            dataset_name="rvlcdip",
             config_name="image_with_ocr_1k",
             load_ocr=True,
             max_train_samples=1000,
@@ -131,7 +127,7 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
 class RvlCdip(DocumentDataset[RvlCdipConfig]):
     """Ryerson Vision Lab Complex Document Information Processing dataset."""
 
-    __config_cls__ = RvlCdipConfig
+    __config__ = RvlCdipConfig
 
     def _download_urls(self) -> list[str]:
         if self.config.type in _METADATA_URLS:

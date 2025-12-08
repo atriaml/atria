@@ -57,6 +57,7 @@ _CLASSES = [
 
 
 class Tobacco3482Config(DatasetConfig):
+    dataset_name: str = "tobacco3482"
     load_ocr: bool = False
 
 
@@ -90,16 +91,14 @@ class SplitIterator:
 @DATASET.register(
     "tobacco3482",
     configs={
-        "image_only": Tobacco3482Config(
-            dataset_name="tobacco3482", config_name="image_only", load_ocr=False
-        ),
+        "image_only": Tobacco3482Config(config_name="image_only", load_ocr=False),
         "image_with_ocr": Tobacco3482Config(
-            dataset_name="tobacco3482", config_name="image_with_ocr", load_ocr=True
+            config_name="image_with_ocr", load_ocr=True
         ),
     },
 )
 class Tobacco3482(DocumentDataset[Tobacco3482Config]):
-    __config_cls__ = Tobacco3482Config
+    __config__ = Tobacco3482Config
 
     def _download_urls(self) -> list[str]:
         return _DATA_URLS
