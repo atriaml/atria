@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["atria_logger", "atria_types", "atria_datasets"]
+packages = ["atria_logger", "atria_types", "atria_datasets", "atria_registry", "atria_transforms", "atria_models", "atria_ml"]
 
 [tool.uv.sources]
 atria-logger = { path = "atria_logger", editable = true }
@@ -25,14 +25,8 @@ atria-types = { path = "atria_types", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-registry = { path = "atria_registry", editable = true }
 atria-transforms = { path = "atria_transforms", editable = true }
-atria-models = { workspace = true, editable = true }
-atria-ml = { workspace = true, editable = true }
-
-[tool.uv.workspace]
-members = [
-    "atria_models",
-    "atria_ml",
-]
+atria-models = { path = "atria_models", editable = true }
+atria-ml = { path = "atria_ml", editable = true }
 
 [dependency-groups]
 dev = [
