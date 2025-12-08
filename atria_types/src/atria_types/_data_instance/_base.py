@@ -5,6 +5,7 @@ from pydantic import Field, field_serializer, field_validator
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._data_instance._exceptions import AnnotationNotFoundError
+from atria_types._data_instance._visualizers._base import Visualizer
 from atria_types._generic._annotations import (
     Annotation,
     AnnotationType,
@@ -35,6 +36,10 @@ class BaseDataInstance(BaseDataModel):
             str: The unique key for the data instance.
         """
         return str(self.sample_id.replace(".", "_"))
+
+    @property
+    def viz(self) -> Visualizer:
+        return Visualizer(self)
 
     @overload
     def get_annotation_by_type(
@@ -73,7 +78,7 @@ class BaseDataInstance(BaseDataModel):
         """
         if self.annotations is not None:
             for annotation in self.annotations:
-                if annotation._type == annotation_type:
+                if annotation.type == annotation_type.value:
                     return annotation
         raise AnnotationNotFoundError(
             f"No annotation of type {annotation_type} found in the data instance."
@@ -87,14 +92,7 @@ class BaseDataInstance(BaseDataModel):
             try:
                 value = json.loads(value)
                 assert isinstance(value, list), "Annotations JSON must be a list"
-
-                annotations = []
-                for item in value:
-                    assert isinstance(item, dict), "Each annotation must be a dict"
-
-                    ann_type = item.pop("type", None)
-                    annotations.append(Annotation.from_type(ann_type, item))
-                return annotations
+                return value
             except json.JSONDecodeError:
                 raise ValueError(f"Invalid JSON string: {value}") from None
 

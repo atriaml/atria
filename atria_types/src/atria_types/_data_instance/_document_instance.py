@@ -1,14 +1,15 @@
 from typing import Self
 
-from pydantic import model_validator
-
 from atria_types._base._data_model import _load_any
 from atria_types._data_instance._base import BaseDataInstance
+from atria_types._data_instance._visualizers._base import Visualizer
+from atria_types._data_instance._visualizers._document import DocumentVisualizer
 from atria_types._generic._doc_content import DocumentContent
 from atria_types._generic._image import Image
 from atria_types._generic._ocr import OCR
 from atria_types._generic._pdf import PDF
 from atria_types._utilities._ocr_processors._base import OCRProcessor
+from pydantic import model_validator
 
 
 class DocumentInstance(BaseDataInstance):
@@ -17,6 +18,10 @@ class DocumentInstance(BaseDataInstance):
     image: Image | None = None
     ocr: OCR | None = None
     content: DocumentContent | None = None
+
+    @property
+    def viz(self) -> Visualizer:
+        return DocumentVisualizer(instance=self)
 
     @model_validator(mode="after")
     def validate_fields(self) -> "Self":
