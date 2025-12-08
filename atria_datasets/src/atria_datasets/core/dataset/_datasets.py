@@ -99,9 +99,6 @@ class Dataset(
     ) -> None:
         super().__init__(config=config)
 
-        self._downloaded_files: dict[str, Path] = {}
-        self._downloads_prepared: bool = False
-        self._sharded_splits_prepared: bool = False
         self._dataset_builder = self._prepare_dataset_builder(
             data_dir=data_dir,
             split=split,
@@ -191,6 +188,11 @@ class Dataset(
     def data_model(self) -> type[T_BaseDataInstance]:
         """The data model class used for type validation and instantiation."""
         return self.__data_model__
+
+    @property
+    def downloaded_files(self) -> dict[str, Path]:
+        """Dictionary of downloaded file paths."""
+        return self._dataset_builder._downloaded_files
 
     @property
     def train(self) -> SplitIterator[T_BaseDataInstance]:

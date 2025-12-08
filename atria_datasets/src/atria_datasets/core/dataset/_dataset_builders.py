@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
 from atria_types import DatasetSplitType
+from atria_types._data_instance._base import BaseDataInstance
 from atria_types._data_instance._document_instance import DocumentInstance
 from atria_types._data_instance._image_instance import ImageInstance
-from atria_types._data_instance._base import BaseDataInstance
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CACHE_DIR,
@@ -221,6 +221,7 @@ class DatasetBuilder:
                     self._downloaded_files = download_manager.download_and_extract(
                         download_urls, extract=self.dataset.__extract_downloads__
                     )
+                    logger.info(f"Downloaded files {self._downloaded_files}")
 
             self._downloads_prepared = True
 
