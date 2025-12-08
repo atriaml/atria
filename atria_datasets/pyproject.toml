@@ -149,3 +149,6 @@ dev = [
 
 [tool.mypy]
 disable_error_code = ["import-untyped", "import-not-found"]
+
+[project.scripts]
+prepare_dataset = "atria_datasets.prepare_dataset:main"
