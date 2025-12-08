@@ -37,7 +37,7 @@ class OCR(BaseDataModel):
             content = _load_bytes_from_uri(self.file_path)
             if content.startswith(b"b'"):
                 content = ast.literal_eval(content.decode("utf-8"))
-            elif isinstance(content, bytes):
+            if isinstance(content, bytes):
                 content = content.decode("utf-8")
             return self.model_copy(
                 update={
@@ -49,6 +49,7 @@ class OCR(BaseDataModel):
     @field_serializer("content")
     def _serialize_content(self, value: str | None) -> bytes | None:
         from atria_types._utilities._string_encoding import _compress_string
+
         if value is None:
             return None
         return _compress_string(value)
