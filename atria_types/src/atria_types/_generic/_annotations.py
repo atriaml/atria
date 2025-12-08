@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import enum
-from typing import Annotated
-
-from pydantic import field_serializer, field_validator
+from typing import Annotated, Literal, Union
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._generic._annotated_object import AnnotatedObject
 from atria_types._generic._label import Label
 from atria_types._generic._qa_pair import QAPair
 from atria_types._pydantic import TableSchemaMetadata
+from pydantic import Field, field_serializer, field_validator
 
 
 class AnnotationType(str, enum.Enum):
@@ -20,35 +19,17 @@ class AnnotationType(str, enum.Enum):
     layout_analysis = "layout_analysis"
 
 
-class Annotation(BaseDataModel):
-    _type: AnnotationType
-
-    @classmethod
-    def from_type(cls, annotation_type: AnnotationType, params: dict) -> Annotation:
-        if annotation_type == AnnotationType.classification:
-            return ClassificationAnnotation(**params)
-        elif annotation_type == AnnotationType.entity_labeling:
-            return EntityLabelingAnnotation(**params)
-        elif annotation_type == AnnotationType.question_answering:
-            return QuestionAnsweringAnnotation(**params)
-        elif annotation_type == AnnotationType.object_detection:
-            return ObjectDetectionAnnotation(**params)
-        elif annotation_type == AnnotationType.layout_analysis:
-            return LayoutAnalysisAnnotation(**params)
-        else:
-            raise ValueError(f"Unknown annotation type: {annotation_type}")
-
-    def model_dump(self, *args, **kwargs):
-        return {**super().model_dump(*args, **kwargs), "type": self._type}
-
-
-class ClassificationAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.classification
+class ClassificationAnnotation(BaseDataModel):
+    type: Literal['classification'] = (
+        AnnotationType.classification.value
+    )
     label: Label
 
 
-class EntityLabelingAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.entity_labeling
+class EntityLabelingAnnotation(BaseDataModel):
+    type: Literal['entity_labeling'] = (
+        AnnotationType.entity_labeling.value
+    )
     word_labels: list[Label]
 
     @field_validator("word_labels", mode="before")
@@ -71,8 +52,10 @@ class EntityLabelingAnnotation(Annotation):
         return None
 
 
-class QuestionAnsweringAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.question_answering
+class QuestionAnsweringAnnotation(BaseDataModel):
+    type: Literal['question_answering'] = (
+        AnnotationType.question_answering.value
+    )
     qa_pairs: Annotated[list[QAPair] | None, TableSchemaMetadata(pa_type="string")] = (
         None
     )
@@ -97,8 +80,10 @@ class QuestionAnsweringAnnotation(Annotation):
         return None
 
 
-class ObjectDetectionAnnotation(Annotation):
-    _type: AnnotationType = AnnotationType.object_detection
+class ObjectDetectionAnnotation(BaseDataModel):
+    type: Literal['object_detection'] = (
+        AnnotationType.object_detection.value
+    )
     annotated_objects: Annotated[
         list[AnnotatedObject] | None, TableSchemaMetadata(pa_type="string")
     ] = None
@@ -124,4 +109,18 @@ class ObjectDetectionAnnotation(Annotation):
 
 
 class LayoutAnalysisAnnotation(ObjectDetectionAnnotation):
-    _type: AnnotationType = AnnotationType.layout_analysis
+    type: Literal['layout_analysis'] = (
+        AnnotationType.layout_analysis.value
+    )
+
+
+Annotation = Annotated[
+    Union[
+        ClassificationAnnotation,
+        EntityLabelingAnnotation,
+        QuestionAnsweringAnnotation,
+        ObjectDetectionAnnotation,
+        LayoutAnalysisAnnotation,
+    ],
+    Field(discriminator="type"),
+]
