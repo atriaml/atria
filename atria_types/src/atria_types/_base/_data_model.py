@@ -4,14 +4,13 @@ from typing import TYPE_CHECKING, Any, Self
 
 import pyarrow as pa
 from atria_logger import get_logger
-from pydantic import BaseModel, ConfigDict
-
 from atria_types._base._ops._table_serialization_utils import (
     _extract_pyarrow_schema,
     _flatten_dict,
     _unflatten_dict,
 )
 from atria_types._utilities._repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     from atria_types._base._ops._base_ops import StandardOps
@@ -40,6 +39,7 @@ class BaseDataModel(  # type: ignore[misc]
         extra="forbid",
         strict=True,
         frozen=True,
+        revalidate_instances="always",
     )
 
     # -------------------------------------
