@@ -33,18 +33,32 @@ class StandardImageTransform(DataTransform[PILImage]):
     image_mean: list[float] | None = None
     image_std: list[float] | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_image_mean_std(cls, values):
-        image_mean = values.get("image_mean", None)
-        image_std = values.get("image_std", None)
+    @model_validator(mode="after")
+    def validate_image_mean_std(self):
+        image_mean = (
+            (
+                IMAGENET_STANDARD_MEAN
+                if not self.use_imagenet_mean_std
+                else IMAGENET_DEFAULT_MEAN
+            )
+            if self.image_mean is None
+            else self.image_mean
+        )
 
-        if image_mean is None:
-            values["image_mean"] = IMAGENET_STANDARD_MEAN
-        if image_std is None:
-            values["image_std"] = IMAGENET_STANDARD_STD
+        image_std = (
+            (
+                IMAGENET_STANDARD_STD
+                if not self.use_imagenet_mean_std
+                else IMAGENET_DEFAULT_STD
+            )
+            if self.image_std is None
+            else self.image_std
+        )
 
-        return values
+        # return a new frozen instance
+        return self.model_copy(
+            update={"image_mean": image_mean, "image_std": image_std}
+        )
 
     def model_post_init(self, context) -> None:
         self._transform = None
