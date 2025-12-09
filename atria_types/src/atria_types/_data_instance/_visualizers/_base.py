@@ -3,12 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from atria_logger import get_logger
+from PIL.Image import Image as PILImage
+
 from atria_types._data_instance._exceptions import AnnotationNotFoundError
 from atria_types._generic._annotations import AnnotationType
-from PIL.Image import Image as PILImage
 
 if TYPE_CHECKING:
     from atria_types._data_instance._base import BaseDataInstance
+
+logger = get_logger(__name__)
 
 
 class Visualizer:
@@ -45,4 +49,7 @@ class Visualizer:
         image = self._load_image()
         image = self._draw_on_image(image.copy().convert("RGB"))
         Path(output_path).mkdir(parents=True, exist_ok=True)
+        logger.debug(
+            f"Saving visualization for sample {self.instance.sample_id} to {output_path}"
+        )
         image.save(Path(output_path) / f"{self.output_name}.png")

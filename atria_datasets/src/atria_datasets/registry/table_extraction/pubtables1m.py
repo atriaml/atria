@@ -184,28 +184,31 @@ class SplitIterator:
 
 
 class PubTables1MConfig(DatasetConfig):
+    dataset_name: str = "pubtables1m"
     task: str = "structure"  # "structure" or "detection"
 
 
 @DATASET.register(
     "pubtables1m",
-    configs=[
-        PubTables1MConfig(
+    configs={
+        "detection": PubTables1MConfig(config_name="detection", task="detection"),
+        "detection_1k": PubTables1MConfig(
             config_name="detection_1k",
             task="detection",
             max_train_samples=1000,
             max_validation_samples=1000,
         ),
-        PubTables1MConfig(
+        "structure": PubTables1MConfig(config_name="structure", task="structure"),
+        "structure_1k": PubTables1MConfig(
             config_name="structure_1k",
             task="structure",
             max_train_samples=1000,
             max_validation_samples=1000,
         ),
-    ],
+    },
 )
 class PubTables1M(DocumentDataset):
-    __config_cls__ = PubTables1MConfig
+    __config__ = PubTables1MConfig
 
     def _download_urls(self) -> list[str]:
         return _STRUCTURE_URLS if self.config.task == "structure" else _DETECTION_URLS

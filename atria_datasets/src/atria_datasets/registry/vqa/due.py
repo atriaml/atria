@@ -52,10 +52,11 @@ _DATA_URLS = {
 PIL.Image.MAX_IMAGE_PIXELS = 933120000
 
 
-class DueBenchmarkExtractiveQAConfig(DatasetConfig):
+class DueBenchmarkConfig(DatasetConfig):
     """BuilderConfig for DueBenchmark. This configuration is taken from generate_memmaps from the DueBenchmark library."""
 
     # corpus args
+    dataset_name: str = "due_benchmark"
     segment_levels: tuple = ("tokens", "pages")
     ocr_engine: str = "microsoft_cv"
     answers_extraction_method: str = "v1"  # v1, v2, v1_v2, v2_v1, v3
@@ -92,10 +93,7 @@ def find_answers_in_words(words, answers, extraction_method="v1"):
 
 class SplitIterator:
     def __init__(
-        self,
-        split: DatasetSplitType,
-        data_dir: str,
-        config: DueBenchmarkExtractiveQAConfig,
+        self, split: DatasetSplitType, data_dir: str, config: DueBenchmarkConfig
     ):
         from benchmarker.data.reader.benchmark_dataset import BenchmarkDataset
 
@@ -104,19 +102,19 @@ class SplitIterator:
         # make path for preprocessed data
         self._data_dir = data_dir
         split = "dev" if split.value == "validation" else split.value
-        extracted_name = config.config_name[2:]
-        if config.config_name[2:] == "InfographicsVQA":
+        extracted_name = config.config_name
+        if config.config_name == "InfographicsVQA":
             extracted_name = "infographics_vqa"
-        if config.config_name[2:] == "DocVQA":
+        if config.config_name == "DocVQA":
             extracted_name = "docvqa"
-        if config.config_name[2:] == "PWC":
+        if config.config_name == "PWC":
             extracted_name = "AxCell"
-        if config.config_name[2:] == "KleisterCharity":
+        if config.config_name == "KleisterCharity":
             extracted_name = "kleister-charity"
         self._benchmark_dataset = BenchmarkDataset(
             directory=Path(data_dir)
             / "datasets"
-            / config.config_name[2:]  # base name then extracted name
+            / config.config_name  # base name then extracted name
             / "aws_neurips_time"
             / extracted_name,
             split=split,
@@ -202,6 +200,7 @@ class SplitIterator:
         last_sample_page_idx = None
 
         def group_sample(grouped: list[any]):
+            # we remap all due benchmark keys to what we require in our datasets
             grouped = {
                 "page_idx": grouped[0]["page_idx"],
                 "page_size": grouped[0]["page_size"],
@@ -212,14 +211,14 @@ class SplitIterator:
                 "annotations": [g["annotations"] for g in grouped],
             }
 
-            # we remap all due benchmark keys to what we require in our datasets
             pdf_file_path = (
                 Path(self._data_dir)
                 / "pdfs"
-                / self._config.config_name[2:]  # base name then extracted name
-                / self._config.config_name[2:]
+                / self._config.config_name  # base name then extracted name
+                / self._config.config_name
                 / (grouped["sample_id"])
             )
+
             if not str(pdf_file_path).endswith(".pdf"):
                 pdf_file_path = Path(str(pdf_file_path) + ".pdf")
 
@@ -227,6 +226,8 @@ class SplitIterator:
             if not pdf_file_path.exists():
                 logger.warning(f"File {pdf_file_path} not found. Skipping it")
                 return None
+
+            grouped["pdf_file_path"] = pdf_file_path
             return grouped
 
         grouped = []
@@ -259,23 +260,23 @@ class SplitIterator:
 
 @DATASET.register(
     "due_benchmark",
-    configs=[
-        DueBenchmarkExtractiveQAConfig(config_name="ExDocVQA"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExPWC", ocr_engine="tesseract"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExDeepForm"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExTabFact", ocr_engine="tesseract"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExWikiTableQuestions"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExInfographicsVQA"),
-        DueBenchmarkExtractiveQAConfig(config_name="ExKleisterCharity"),
-    ],
+    configs={
+        "DocVQA": DueBenchmarkConfig(config_name="DocVQA"),
+        "PWC": DueBenchmarkConfig(config_name="PWC", ocr_engine="tesseract"),
+        "DeepForm": DueBenchmarkConfig(config_name="DeepForm"),
+        "TabFact": DueBenchmarkConfig(config_name="TabFact", ocr_engine="tesseract"),
+        "WikiTableQuestions": DueBenchmarkConfig(config_name="WikiTableQuestions"),
+        "InfographicsVQA": DueBenchmarkConfig(config_name="InfographicsVQA"),
+        "KleisterCharity": DueBenchmarkConfig(config_name="KleisterCharity"),
+    },
 )
-class DueBenchmarkExtractiveQA(DocumentDataset):
-    __config_cls__ = DueBenchmarkExtractiveQAConfig
+class DueBenchmark(DocumentDataset):
+    __config__ = DueBenchmarkConfig
 
     def _download_urls(self) -> list[str]:
         return {
-            f"{key}/{self.config.config_name[2:]}": url.format(
-                config_name=self.config.config_name[2:]
+            f"{key}/{self.config.config_name}": url.format(
+                config_name=self.config.config_name
             )
             for key, url in _DATA_URLS.items()
         }
@@ -328,50 +329,18 @@ class DueBenchmarkExtractiveQA(DocumentDataset):
             raise
 
     def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
-        # we remap all due benchmark keys to what we require in our datasets
-        pdf_file_path = (
-            Path(self._data_dir)
-            / "pdfs"
-            / self.config.config_name[2:]  # base name then extracted name
-            / self.config.config_name[2:]
-            / (sample["sample_id"])
-        )
-
-        # if the file does not exist we ignore it
-        if not str(pdf_file_path).endswith(".pdf"):
-            pdf_file_path = Path(str(pdf_file_path) + ".pdf")
-
         # Load the PDF page as image
         page_image = self._load_pdf_page_as_image(
-            pdf_file_path,
+            sample["pdf_file_path"],
             sample["page_idx"],
             sample["page_size"],
             self.config.image_dpi,
         )
-        # print("sample", sample["sample_id"])
-        # print("page idx", sample["page_idx"])
-        # print("image size", page_image)
-        # print("sample", sample["tokens_in_page"])
-        # print('answer_start_indices',sample["annotations"][0]['answer_start_indices'])
-        # print('answer_end_indices',sample["annotations"][0]['answer_end_indices'])
-        # print("question", sample["annotations"][0]["question"])
-        # print("answers", sample["annotations"][0]["answers"])
-        # if sample["annotations"][0]["answer_start_indices"][0] > -1:
-        #     answer_texts = [
-        #         sample["tokens_in_page"][i]
-        #         for i in range(
-        #             sample["annotations"][0]["answer_start_indices"][0],
-        #             sample["annotations"][0]["answer_end_indices"][0] + 1,
-        #         )
-        #     ]
-        #     print("test answer", " ".join(answer_texts))
 
-        # resize image to max height and width
-        # print('sample["annotations"]',sample["annotations"])
         doc = DocumentInstance(
             sample_id=sample["sample_id"] + f"-{uuid.uuid4().hex[:4]}",
             page_id=sample["page_idx"],
-            pdf=PDF(file_path=str(pdf_file_path)),
+            pdf=PDF(file_path=str(sample["pdf_file_path"])),
             image=Image(content=page_image),
             content=DocumentContent(
                 text_elements=[

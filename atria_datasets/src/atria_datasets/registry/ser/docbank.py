@@ -79,6 +79,7 @@ _CLASSES = [
 
 
 class DocBankConfig(DatasetConfig):
+    dataset_name: str = "docbank"
     max_words_per_sample: int = 4000
 
 
@@ -102,10 +103,8 @@ class SplitIterator:
                 self.data_dir / "MSCOCO_Format_Annotation/500K_valid.json"
             )
 
-        self.image_base_dir = (
-            self.data_dir / "DocBank_500K_ori_img/DocBank_500K_ori_img/"
-        )
-        self.annotation_base_dir = self.data_dir / "DocBank_500K_txt/DocBank_500K_txt/"
+        self.image_base_dir = self.data_dir / "DocBank_500K_ori_img/"
+        self.annotation_base_dir = self.data_dir / "DocBank_500K_txt/"
 
         with open(self.split_filepath) as f:
             logger.info(f"Loading split data from {self.split_filepath}")
@@ -176,8 +175,8 @@ class SplitIterator:
             )
 
             if (
-                len(content.words) > 0
-                and len(content.words) < self.config.max_words_per_sample
+                len(content.text_list) > 0
+                and len(content.text_list) < self.config.max_words_per_sample
             ):
                 yield DocumentInstance(
                     sample_id=Path(image_file_path).name,
@@ -193,19 +192,14 @@ class SplitIterator:
 @DATASET.register(
     "docbank",
     configs={
-        "default": DocBankConfig(
-            dataset_name="docbank",
-            config_name="default",
-        ),
+        "default": DocBankConfig(config_name="default"),
         "1k": DocBankConfig(
-            dataset_name="docbank",
             config_name="1k",
             max_train_samples=1000,
             max_validation_samples=1000,
             max_test_samples=1000,
         ),
         "0.1k": DocBankConfig(
-            dataset_name="docbank",
             config_name="0.1k",
             max_train_samples=100,
             max_validation_samples=100,
@@ -214,7 +208,7 @@ class SplitIterator:
     },
 )
 class DocBankLER(DocumentDataset):
-    __config_cls__ = DocBankConfig
+    __config__ = DocBankConfig
 
     def _download_urls(self) -> list[str]:
         return _DATA_URLS

@@ -148,12 +148,12 @@ class Dataset(
                 }
             )
 
-        self._dataset_builder = (
+        dataset_builder = (
             DatasetBuilder(dataset=self, **kwargs)
             if not enable_cached_splits
             else CachedDatasetBuilder(dataset=self, **kwargs)
         )
-        return self._dataset_builder
+        return dataset_builder
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -195,6 +195,11 @@ class Dataset(
         return self._dataset_builder._downloaded_files
 
     @property
+    def access_token(self) -> str | None:
+        """Access token used for downloading private datasets."""
+        return self._dataset_builder._access_token
+
+    @property
     def train(self) -> SplitIterator[T_BaseDataInstance]:
         """Training split iterator. Returns None if training split is not available."""
         if DatasetSplitType.train not in self._split_iterators:
@@ -229,6 +234,13 @@ class Dataset(
     def test(self, value: SplitIterator[T_BaseDataInstance]) -> None:
         """Set the test split iterator."""
         self._split_iterators[DatasetSplitType.test] = value
+
+    @property
+    def split_iterators(
+        self,
+    ) -> dict[DatasetSplitType, SplitIterator[T_BaseDataInstance]]:
+        """Get all split iterators as a dictionary."""
+        return self._split_iterators
 
     def _input_transform(self, sample: Any) -> T_BaseDataInstance:
         """

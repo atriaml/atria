@@ -357,7 +357,7 @@ class SplitIterator:
 
 @DATASET.register("docvqa")
 class DocVQA(DocumentDataset):
-    __config_cls__ = DocVQAConfig
+    __config__ = DocVQAConfig
 
     def _download_urls(self) -> list[str]:
         return _URLS

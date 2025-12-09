@@ -152,6 +152,7 @@ version = "0.0.0"
 source = { editable = "atria_datasets" }
 dependencies = [
     { name = "atria-logger" },
+    { name = "atria-registry" },
     { name = "atria-types" },
     { name = "boto3" },
     { name = "datadings" },
@@ -188,6 +189,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "atria-logger", editable = "atria_logger" },
+    { name = "atria-registry", editable = "atria_registry" },
     { name = "atria-types", editable = "atria_types" },
     { name = "boto3", specifier = ">=1.39.4" },
     { name = "coverage", marker = "extra == 'test'" },

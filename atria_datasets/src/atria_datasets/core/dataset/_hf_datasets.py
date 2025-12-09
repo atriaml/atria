@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Generic
 
 import aiohttp
 from atria_logger import get_logger
+from atria_registry._module_base import ConfigurableModule
 from atria_types import (
     DatasetMetadata,
     DatasetSplitType,
@@ -25,12 +26,9 @@ from atria_datasets.core.constants import _DEFAULT_DOWNLOAD_PATH
 from atria_datasets.core.dataset._common import (
     HuggingfaceDatasetConfig,
     T_BaseDataInstance,
-    T_DatasetConfig,
     T_HuggingfaceDatasetConfig,
 )
-from atria_datasets.core.dataset._dataset_builders import DatasetBuilder
 from atria_datasets.core.dataset._datasets import Dataset
-from atria_datasets.core.dataset._split_iterators import HFSplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
@@ -41,8 +39,8 @@ logger = get_logger(__name__)
 
 
 class HuggingfaceDataset(
-    Dataset[T_DatasetConfig, T_BaseDataInstance],
-    Generic[T_DatasetConfig, T_BaseDataInstance],
+    Dataset[T_HuggingfaceDatasetConfig, T_BaseDataInstance],
+    Generic[T_HuggingfaceDatasetConfig, T_BaseDataInstance],
 ):
     """
     A dataset class for Hugging Face datasets.
@@ -66,16 +64,11 @@ class HuggingfaceDataset(
     """
 
     __abstract__ = True
-    __config__ = HuggingfaceDatasetConfig
+    __config__: type[T_HuggingfaceDatasetConfig] = HuggingfaceDatasetConfig
 
-    def __init__(self, *args, **kwargs):
-        self._hf_dataset_builder = None
-        self._hf_split_generators = None
-
-        super().__init__(*args, **kwargs)
-
-    def _prepare_dataset_builder(
+    def __init__(
         self,
+        config: T_HuggingfaceDatasetConfig,
         data_dir: str | None = None,
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
@@ -86,42 +79,24 @@ class HuggingfaceDataset(
         enable_cached_splits: bool = False,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
-    ) -> DatasetBuilder:
-        from atria_datasets.core.dataset._dataset_builders import (
-            CachedDatasetBuilder,
-            DatasetBuilder,
-        )
+    ):
+        ConfigurableModule.__init__(self, config=config)
 
-        # Load the Hugging Face dataset builder
-        self._hf_dataset_builder: DatasetBuilder = self._load_hf_dataset_builder(
-            data_dir=data_dir
+        self._hf_dataset_builder = self._load_hf_dataset_builder(data_dir=data_dir)
+        self._hf_split_generators = None
+        self._dataset_builder = self._prepare_dataset_builder(
+            data_dir=data_dir,
+            split=split,
+            access_token=access_token,
+            overwrite_existing_cached=overwrite_existing_cached,
+            allowed_keys=allowed_keys,
+            num_processes=num_processes,
+            cached_storage_type=cached_storage_type,
+            enable_cached_splits=enable_cached_splits,
+            store_artifact_content=store_artifact_content,
+            max_cache_image_size=max_cache_image_size,
         )
-
-        kwargs = {
-            "data_dir": data_dir,
-            "split": split,
-            "access_token": access_token,
-            "allowed_keys": allowed_keys,
-        }
-        if enable_cached_splits:
-            kwargs.update(
-                {
-                    "cached_storage_type": cached_storage_type,
-                    "store_artifact_content": store_artifact_content,
-                    "max_cache_image_size": max_cache_image_size,
-                    "overwrite_existing_cached": overwrite_existing_cached,
-                    "num_processes": num_processes,
-                }
-            )
-
-        self._dataset_builder = (
-            DatasetBuilder(dataset=self, split_iterator_type=HFSplitIterator, **kwargs)
-            if enable_cached_splits
-            else CachedDatasetBuilder(
-                dataset=self, split_iterator_type=HFSplitIterator, **kwargs
-            )
-        )
-        return self._dataset_builder
+        self._split_iterators = self._dataset_builder.prepare_splits()
 
     def _load_hf_dataset_builder(self, data_dir: str) -> datasets.DatasetBuilder:
         from datasets import load_dataset_builder
@@ -146,25 +121,7 @@ class HuggingfaceDataset(
             None
         """
 
-        if not self._downloads_prepared:
-            download_dir = Path(data_dir) / _DEFAULT_DOWNLOAD_PATH
-            download_dir.mkdir(parents=True, exist_ok=True)
-            download_manager = self._prepare_download_manager(
-                data_dir, download_dir=str(download_dir)
-            )
-            self._hf_split_generators = self._hf_dataset_builder._split_generators(
-                download_manager
-            )
-            HF_SPLIT_TO_ATRIA_SPLIT = {
-                "train": DatasetSplitType.train,
-                "validation": DatasetSplitType.validation,
-                "test": DatasetSplitType.test,
-            }
-            self._hf_split_generators = {
-                HF_SPLIT_TO_ATRIA_SPLIT[split_generator.name]: split_generator
-                for split_generator in self._hf_split_generators
-            }
-            self._downloads_prepared = True
+        pass
 
     def _prepare_download_manager(
         self, data_dir: str, download_dir: str
@@ -220,17 +177,27 @@ class HuggingfaceDataset(
         Returns:
             List[DatasetSplitType]: A list of available dataset splits.
         """
-        HF_SPLIT_TO_ATRIA_SPLIT = {
-            "train": DatasetSplitType.train,
-            "validation": DatasetSplitType.validation,
-            "test": DatasetSplitType.test,
-        }
-        available_splits = [
-            HF_SPLIT_TO_ATRIA_SPLIT[split_name]
-            for split_name in self._hf_dataset_builder.info.splits.keys()
-            if split_name in HF_SPLIT_TO_ATRIA_SPLIT
-        ]
-        return available_splits
+        if self._hf_split_generators is None:
+            download_dir = (
+                Path(self._dataset_builder._data_dir) / _DEFAULT_DOWNLOAD_PATH
+            )
+            download_dir.mkdir(parents=True, exist_ok=True)
+            download_manager = self._prepare_download_manager(
+                self._dataset_builder._data_dir, download_dir=str(download_dir)
+            )
+            self._hf_split_generators = self._hf_dataset_builder._split_generators(
+                download_manager
+            )
+            HF_SPLIT_TO_ATRIA_SPLIT = {
+                "train": DatasetSplitType.train,
+                "validation": DatasetSplitType.validation,
+                "test": DatasetSplitType.test,
+            }
+            self._hf_split_generators = {
+                HF_SPLIT_TO_ATRIA_SPLIT[split_generator.name]: split_generator
+                for split_generator in self._hf_split_generators
+            }
+        return list(self._hf_split_generators.keys())
 
     def _metadata(self) -> DatasetMetadata:
         """

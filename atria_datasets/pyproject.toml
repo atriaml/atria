@@ -153,3 +153,4 @@ disable_error_code = ["import-untyped", "import-not-found"]
 
 [project.scripts]
 prepare_dataset = "atria_datasets.prepare_dataset:main"
+build_registry = "atria_datasets.build_registry:main"

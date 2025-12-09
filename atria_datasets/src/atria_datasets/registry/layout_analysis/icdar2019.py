@@ -102,11 +102,15 @@ class SplitIterator:
         return len(samples_list)
 
 
+class Icdar2019Config(DatasetConfig):
+    dataset_name: str = "icdar2019"
+
+
 @DATASET.register(
     "icdar2019",
     configs={
-        "trackA_modern": DatasetConfig(config_name="trackA_modern"),
-        "trackA_archival": DatasetConfig(config_name="trackA_archival"),
+        "trackA_modern": Icdar2019Config(config_name="trackA_modern"),
+        "trackA_archival": Icdar2019Config(config_name="trackA_archival"),
     },
 )
 class Icdar2019(DocumentDataset):

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from atria_logger import get_logger
 from atria_types import (
-    BoundingBox,
     DatasetLabels,
     DatasetMetadata,
     DatasetSplitType,
@@ -12,7 +11,6 @@ from atria_types import (
     DocumentInstance,
     Image,
     LayoutAnalysisAnnotation,
-    TextElement,
 )
 
 from atria_datasets import DATASET, DocumentDataset
@@ -82,26 +80,7 @@ class SplitIterator:
             xml_filepath = self.xmls_dir / filename
             image_file_path = self.images_dir / filename.replace(".xml", ".jpg")
             word_file_path = self.words_dir / filename.replace(".xml", "_words.json")
-
-            annotated_objects = read_pascal_voc(xml_filepath, labels=_CLASSES)
-            words, word_bboxes = read_words_json(word_file_path)
-
-            yield DocumentInstance(
-                sample_id=Path(image_file_path).name,
-                image=Image(file_path=image_file_path),
-                content=DocumentContent(
-                    text_elements=[
-                        TextElement(
-                            text=word,
-                            bbox=BoundingBox(value=word_bbox, normalized=True),
-                        )
-                        for word, word_bbox in zip(words, word_bboxes, strict=True)
-                    ]
-                ),
-                annotations=[
-                    LayoutAnalysisAnnotation(annotated_objects=annotated_objects)
-                ],
-            )
+            yield image_file_path, xml_filepath, word_file_path
 
     def __len__(self) -> int:
         xml_filenames = [
@@ -110,19 +89,25 @@ class SplitIterator:
         return len(xml_filenames)
 
 
+class FinTabNetConfig(DatasetConfig):
+    dataset_name: str = "fintabnet"
+
+
 @DATASET.register(
     "fintabnet",
-    configs=[
-        DatasetConfig(config_name="default"),
-        DatasetConfig(
+    configs={
+        "default": FinTabNetConfig(config_name="default"),
+        "1k": FinTabNetConfig(
             config_name="1k",
             max_train_samples=1000,
             max_validation_samples=1000,
             max_test_samples=1000,
         ),
-    ],
+    },
 )
 class FinTabNet(DocumentDataset):
+    __config__ = FinTabNetConfig
+
     def _download_urls(self) -> list[str]:
         return _URLS
 
@@ -146,3 +131,22 @@ class FinTabNet(DocumentDataset):
         self, split: DatasetSplitType, data_dir: str
     ) -> Generator[DocumentInstance, None, None]:
         return SplitIterator(split=split, data_dir=data_dir)
+
+    def _input_transform(self, inputs: tuple[Path, Path, Path]) -> DocumentInstance:
+        image_file_path, xml_filepath, word_file_path = inputs
+        image = Image(file_path=image_file_path).load()
+        annotated_objects = read_pascal_voc(
+            xml_filepath,
+            labels=_CLASSES,
+            image_width=image.width,
+            image_height=image.height,
+        )
+        text_elements = read_words_json(
+            word_file_path, image_width=image.width, image_height=image.height
+        )
+        return DocumentInstance(
+            sample_id=Path(image_file_path).name,
+            image=image,
+            content=DocumentContent(text_elements=text_elements),
+            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
+        )

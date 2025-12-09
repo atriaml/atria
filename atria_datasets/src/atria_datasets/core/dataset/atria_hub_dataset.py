@@ -96,7 +96,7 @@ class AtriaHubDataset(Dataset[T_BaseDataInstance]):
     """
 
     __abstract__ = True
-    __config_cls__ = AtriaHubDatasetConfig
+    __config__ = AtriaHubDatasetConfig
 
     def __init__(self, hub: AtriaHub | None = None, **kwargs) -> None:
         """

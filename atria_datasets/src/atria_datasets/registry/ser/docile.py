@@ -76,6 +76,7 @@ def filter_empty_words(row):
 
 
 class DocileConfig(DatasetConfig):
+    dataset_name: str = "docile"
     synthetic: bool = False
     overlap_threshold: float = 0.5
     image_shape: tuple = (1024, 1024)
@@ -142,37 +143,24 @@ class SplitIterator:
 @DATASET.register(
     "docile",
     configs={
-        "kile": DocileConfig(
-            dataset_name="docile", synthetic=False, type="kile", config_name="kile"
-        ),
-        "lir": DocileConfig(
-            dataset_name="docile", synthetic=False, type="lir", config_name="lir"
-        ),
+        "kile": DocileConfig(synthetic=False, type="kile", config_name="kile"),
+        "lir": DocileConfig(synthetic=False, type="lir", config_name="lir"),
         "kile_synthetic": DocileConfig(
-            dataset_name="docile",
-            synthetic=True,
-            type="kile",
-            config_name="kile_synthetic",
+            synthetic=True, type="kile", config_name="kile_synthetic"
         ),
         "lir_synthetic": DocileConfig(
-            dataset_name="docile",
-            synthetic=True,
-            type="lir",
-            config_name="lir_synthetic",
+            synthetic=True, type="lir", config_name="lir_synthetic"
         ),
     },
 )
 class Docile(DocumentDataset):
-    __config_cls__ = DocileConfig
+    __config__ = DocileConfig
     __requires_access_token__ = True
 
     def _download_urls(self) -> list[str]:
         if self.config.synthetic:
-            return [
-                url.format(access_token=self._access_token)
-                for url in _SYNTHETIC_DATA_URLS
-            ]
-        return [url.format(access_token=self._access_token) for url in _DATA_URLS]
+            return _SYNTHETIC_DATA_URLS
+        return _DATA_URLS
 
     def _available_splits(self) -> list[DatasetSplitType]:
         return [DatasetSplitType.train, DatasetSplitType.validation]

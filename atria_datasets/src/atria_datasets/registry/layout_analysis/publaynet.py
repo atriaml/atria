@@ -22,9 +22,12 @@ _CLASSES = ["text", "title", "list", "table", "figure"]
     "publaynet",
     configs={
         "default": HuggingfaceDatasetConfig(
-            hf_repo="jordanparker6/publaynet", hf_config_name="default"
+            dataset_name="publaynet",
+            hf_repo="jordanparker6/publaynet",
+            hf_config_name="default",
         ),
         "1k": HuggingfaceDatasetConfig(
+            dataset_name="publaynet",
             hf_repo="jordanparker6/publaynet",
             hf_config_name="default",
             max_train_samples=1000,  # publay val set is same as test set

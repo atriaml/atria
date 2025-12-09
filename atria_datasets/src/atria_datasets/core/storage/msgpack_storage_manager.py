@@ -48,10 +48,6 @@ def shard_writer_worker(
 ):
     import queue
 
-    # if exceptions are more than 100 we stop the worker
-
-    exception_count = 0
-
     try:
         shard_file_pattern = str(
             Path(storage_dir)
@@ -80,12 +76,9 @@ def shard_writer_worker(
                 # Timeout occurred, continue waiting
                 continue
             except Exception as e:
-                exception_count += 1
-                if exception_count >= 100:
-                    # REPORT ERROR TO PARENT
-                    result_queue.put(("error", worker_id, e))
-                    return
-                continue
+                # REPORT ERROR TO PARENT
+                result_queue.put(("error", worker_id, e))
+                return
 
         result_queue.put(("result", worker_id, writer.close()))
     except Exception as e:
@@ -231,13 +224,7 @@ def write_split_single(
     writer.load()
 
     for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
-        try:
-            writer.write(idx, sample)
-        except Exception as e:
-            logger.warning(
-                f"Error while writing sample {idx}. Skipping sample. Error: {e}"
-            )
-            continue
+        writer.write(idx, sample)
 
     write_info = writer.close()
     write_info = [x for x in write_info if x.nsamples > 0]

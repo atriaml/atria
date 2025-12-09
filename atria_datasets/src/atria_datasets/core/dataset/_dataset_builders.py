@@ -195,7 +195,7 @@ class DatasetBuilder:
                 if access_token is not None:
                     self._access_token = access_token
                 else:
-                    raise RuntimeError(
+                    logger.warning(
                         "access_token must be passed to download this dataset. "
                         f"See `{self.dataset.metadata.homepage}` for instructions to get the access token"
                     )
@@ -219,7 +219,9 @@ class DatasetBuilder:
                 download_urls = self.dataset._download_urls()
                 if len(download_urls) > 0:
                     self._downloaded_files = download_manager.download_and_extract(
-                        download_urls, extract=self.dataset.__extract_downloads__
+                        download_urls,
+                        extract=self.dataset.__extract_downloads__,
+                        access_token=access_token,
                     )
                     logger.info(f"Downloaded files {self._downloaded_files}")
 

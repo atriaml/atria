@@ -102,7 +102,11 @@ class DownloadManager(RepresentationMixin):
             )
         return download_file_infos
 
-    def _download_files(self, download_file_infos: list[DownloadFileInfo]):
+    def _download_files(
+        self,
+        download_file_infos: list[DownloadFileInfo],
+        access_token: str | None = None,
+    ):
         """
         Downloads files from the provided URLs.
 
@@ -116,9 +120,13 @@ class DownloadManager(RepresentationMixin):
                 or download_file_info.output_path.exists()
             ):
                 continue
-            file_downloader = FileDownloader.from_url(
-                download_file_info.parsed_url, timeout=10
-            )
+
+            url = download_file_info.parsed_url
+
+            if "{access_token}" in url:
+                url = url.format(access_token=access_token)
+
+            file_downloader = FileDownloader.from_url(url, timeout=10)
             file_downloader.download(download_file_info)
 
     def _merge_part_files(self, download_file_infos: list[DownloadFileInfo]):
@@ -247,7 +255,10 @@ class DownloadManager(RepresentationMixin):
                 )
 
     def download_and_extract(
-        self, data_urls: str | list[str] | dict[str, str], extract: bool = True
+        self,
+        data_urls: str | list[str] | dict[str, str],
+        extract: bool = True,
+        access_token: str | None = None,
     ) -> dict[str, Path]:
         """
         Downloads and extracts files from the provided URLs.
@@ -262,6 +273,7 @@ class DownloadManager(RepresentationMixin):
         if extract:
             for download_file_info in download_file_infos:
                 download_file_info.update_extract_path()
+
         if any(
             not download_file_info.is_download_completed
             for download_file_info in download_file_infos

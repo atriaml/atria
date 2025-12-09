@@ -47,9 +47,13 @@ _LAYOUT_CLASSES = [
     "doclaynet",
     configs={
         "default": HuggingfaceDatasetConfig(
-            config_name="default", hf_repo="ds4sd/DocLayNet", hf_config_name="2022.08"
+            dataset_name="doclaynet",
+            config_name="default",
+            hf_repo="ds4sd/DocLayNet",
+            hf_config_name="2022.08",
         ),
         "1k": HuggingfaceDatasetConfig(
+            dataset_name="doclaynet",
             config_name="1k",
             hf_repo="ds4sd/DocLayNet",
             hf_config_name="2022.08",
