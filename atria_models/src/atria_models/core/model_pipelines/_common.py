@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from atria_metrics import MetricConfig
 from atria_registry import ModuleConfig
 from atria_registry._module_base import BaseModel
 from atria_transforms.core._tfs._base import DataTransform
@@ -36,6 +37,21 @@ class ModelPipelineConfig(ModuleConfig):
     eval_transform: SerializeAsAny[DataTransform] | None = (
         None  # the type at runtime can be child of DataTransform so we need to use SerializeAsAny
     )
+    metrics: list[MetricConfig] | None = None
+
+    # @field_validator("metrics", mode="before"):
+    # @classmethod
+    # def _validate_metrics(
+    #     cls, v: Any
+    # ) -> list[MetricConfig] | None:
+    #     if v is None:
+    #         return None
+    #     assert isinstance(v, list), "metrics must be a list"
+    #     for item in v:
+    #         assert isinstance(
+    #             item, (dict, MetricConfig)
+    #         ), "Each metric must be a dict or MetricConfig instance"
+    #     return [MetricConfig.model_validate(item) for item in v]
 
     def build(self, **kwargs: Any) -> ModelPipeline:
         labels = kwargs.pop("labels")

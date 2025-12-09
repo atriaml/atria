@@ -16,9 +16,9 @@ from atria_models.core.types.model_outputs import ModelOutput
 if TYPE_CHECKING:
     import torch
     from ignite.engine import Engine
+    from ignite.metrics import Metric
 
     from atria_models.core.model_pipelines._ops import ModelPipelineOps
-
 
 logger = get_logger(__name__)
 
@@ -79,6 +79,11 @@ class ModelPipeline(
         self._state_dict_handler.load_state_dict(state_dict)
 
     def _model_build_kwargs(self) -> dict[str, object]:
+        return {}
+
+    def build_metrics(
+        self, stage: TrainingStage, device: torch.device | str = "cpu"
+    ) -> dict[str, Metric]:
         return {}
 
     def training_step(

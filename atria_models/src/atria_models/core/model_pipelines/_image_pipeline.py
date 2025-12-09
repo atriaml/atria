@@ -1,13 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from atria_logger import get_logger
+from atria_metrics.registry.classification import (
+    AccuracyMetricConfig,
+    ConfusionMatrixMetricConfig,
+    F1ScoreMetricConfig,
+    PrecisionMetricConfig,
+    RecallMetricConfig,
+)
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_transforms.tfs._image_processor._base import ImageProcessor
 from atria_types._common import TrainingStage
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
@@ -16,6 +23,7 @@ from atria_models.registry import MODEL_PIPELINE
 
 if TYPE_CHECKING:
     import torch
+    from ignite.metrics import Metric
 
 logger = get_logger(__name__)
 
@@ -34,6 +42,19 @@ class MixupConfig(BaseModel):
 
 class ImageModelPipelineConfig(ModelPipelineConfig):
     mixup_config: MixupConfig | None = None
+    metrics: (
+        list[
+            Annotated[
+                AccuracyMetricConfig
+                | PrecisionMetricConfig
+                | RecallMetricConfig
+                | F1ScoreMetricConfig
+                | ConfusionMatrixMetricConfig,
+                Field(discriminator="name"),
+            ]
+        ]
+        | None
+    ) = None
 
     @model_validator(mode="before")
     @classmethod
@@ -50,6 +71,14 @@ class ImageModelPipelineConfig(ModelPipelineConfig):
             values["eval_transform"] = ImageProcessor.model_validate(
                 values["eval_transform"]
             )
+        if "metrics" not in values or values["metrics"] is None:
+            values["metrics"] = [
+                AccuracyMetricConfig(),
+                PrecisionMetricConfig(),
+                RecallMetricConfig(),
+                F1ScoreMetricConfig(),
+                ConfusionMatrixMetricConfig(),
+            ]
         return values
 
 
@@ -85,6 +114,23 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
         else:
             self._loss_fn_train = nn.CrossEntropyLoss()
         self._loss_fn_eval = nn.CrossEntropyLoss()
+
+    def build_metrics(
+        self, stage: TrainingStage, device: torch.device | str = "cpu"
+    ) -> dict[str, Metric]:
+        if self.config.metrics is None:
+            return {}
+        assert self._labels.classification is not None, (
+            "Labels must be provided for classification tasks."
+        )
+        metrics = {}
+        for metric_config in self.config.metrics:
+            logger.info(f"Building metric: {metric_config}")
+            metric = metric_config.build(
+                device=device, num_classes=len(self._labels.classification), stage=stage
+            )
+            metrics[metric_config.name] = metric
+        return metrics
 
     def training_step(  # type: ignore[override]
         self, batch: ImageTensorDataModel | DocumentTensorDataModel, **kwargs

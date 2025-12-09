@@ -8,25 +8,26 @@ from typing import Any, Generic, TypeVar
 
 import torch
 from atria_logger import get_logger
-from atria_ml.training._configs import LoggingConfig
-from atria_ml.training.engine_steps import EngineStep
-from atria_ml.training.engines.utilities import _extract_output
+from atria_models.core.model_pipelines._common import ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from ignite.engine import Engine, State
 from ignite.handlers import TensorboardLogger
 from ignite.metrics import Metric
 from pydantic import BaseModel, ConfigDict
 
+from atria_ml.training._configs import LoggingConfig
+from atria_ml.training.engine_steps import EngineStep
+from atria_ml.training.engines.utilities import _extract_output
+
 logger = get_logger(__name__)
 
 
 class EngineDependencies(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
-    model_pipeline: ModelPipeline
+    model_pipeline: ModelPipeline[ModelPipelineConfig]
     dataloader: torch.utils.data.DataLoader
     device: str | torch.device
     output_dir: str | Path
-    metrics: dict[str, Metric] | None = None
     tb_logger: TensorboardLogger | None = None
     event_handlers: list[tuple[Any, Callable]] | None = None
 
@@ -52,7 +53,11 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
     def __init__(self, config: T_EngineConfig, deps: T_EngineDependencies):
         self._config = config
         self._deps = deps
+        self._metrics: dict[str, Metric] | None = None
         self._engine_step, self._engine = self._build_engine()
+        self._metrics = self._deps.model_pipeline.build_metrics(
+            stage=self._engine_step.stage, device=self._deps.device
+        )
         self._attach_handlers()
 
     @property
@@ -85,24 +90,27 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
         # initialize the Ignite engine
         engine = self._initialize_ignite_engine(engine_step=engine_step)
+
         return engine_step, engine
 
     def _attach_handlers(self) -> None:
         from ignite.engine import Events
+
+        # configure engine
+        self._setup_test_run()
+        self._attach_profilers()
+        self._attach_event_handlers()
+        self._attach_metrics()
+
+        # loggers must come last
+        self._attach_progress_bar()
+        self._attach_tb_logger()
 
         @self._engine.on(Events.TERMINATE | Events.INTERRUPT)
         def on_terminate(engine: Engine) -> None:
             logger.info(
                 f"Engine [{self.__class__.__name__}] terminated after {engine.state.epoch} epochs."
             )
-
-        # configure engine
-        self._setup_test_run()
-        self._attach_progress_bar()
-        self._attach_tb_logger()
-        self._attach_profilers()
-        self._attach_event_handlers()
-        self._attach_metrics()
 
         # add handler for exception
         @self._engine.on(Events.EXCEPTION_RAISED)
@@ -236,8 +244,11 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
             if idist.device() != torch.device("cpu"):
                 GpuInfo().attach(self._engine, name="gpu")
 
-        if self._deps.metrics is not None and len(self._deps.metrics) > 0:
-            for metric_name, metric in self._deps.metrics.items():
+        if self._metrics is not None and len(self._metrics) > 0:
+            for metric_name, metric in self._metrics.items():
+                logger.info(
+                    f"Attaching metric '{metric_name}' to engine '{self.__class__.__name__}'"
+                )
                 metric.attach(
                     self._engine,
                     (

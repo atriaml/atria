@@ -10,7 +10,7 @@ class MetricsRegistryGroup(RegistryGroup[MetricConfig]):
 
 
 ModuleRegistry().add_registry_group(
-    name="Metric",
+    name="METRIC",
     registry_group=MetricsRegistryGroup(name="metric", package="atria_metrics"),
 )
-METRIC = ModuleRegistry().get_registry_group("METRIC")
+METRIC: MetricsRegistryGroup = ModuleRegistry().get_registry_group("METRIC")  # type: ignore

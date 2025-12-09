@@ -15,10 +15,16 @@ logger = get_logger(__name__)
 
 
 class TimmModelBuilder(ModelBuilder):
-    def _build(self, model_name_or_path: str, **kwargs) -> nn.Module:
+    def _build(
+        self, model_name_or_path: str, pretrained: bool = True, **kwargs
+    ) -> nn.Module:
         import timm
 
-        filtered_kwargs = {"model_name": model_name_or_path, **kwargs}
+        filtered_kwargs = {
+            "model_name": model_name_or_path,
+            "pretrained": pretrained,
+            **kwargs,
+        }
         if "num_labels" in filtered_kwargs:
             filtered_kwargs["num_classes"] = filtered_kwargs.pop("num_labels")
         logger.info(

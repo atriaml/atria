@@ -11,6 +11,12 @@ from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_logger import get_logger
+from atria_models.core.model_pipelines._common import ModelPipelineConfig
+from atria_registry._module_base import BaseModel
+from atria_types import DatasetSplitType
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import ConfigDict, Field
+
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._torch import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -23,11 +29,6 @@ from atria_ml.training._configs import (
     ModelEmaConfig,
     WarmupConfig,
 )
-from atria_models.core.model_pipelines._common import ModelPipelineConfig
-from atria_registry._module_base import BaseModel
-from atria_types import DatasetSplitType
-from atria_types._utilities._repr import RepresentationMixin
-from pydantic import ConfigDict, Field
 
 logger = get_logger(__name__)
 
@@ -41,6 +42,10 @@ class RuntimeEnvConfig(RepresentationMixin, BaseModel):
     deterministic: bool = False
     backend: str | None = "nccl"
     n_devices: int = 1
+
+    @property
+    def run_dir(self) -> Path:
+        return Path(self.output_dir) / self.run_name
 
 
 class DataConfig(RepresentationMixin, BaseModel):
@@ -115,7 +120,7 @@ class TrainerConfig(RepresentationMixin, BaseModel):
     outputs_to_running_avg: list[str] = Field(default_factory=lambda: ["loss"])
 
     optimizer: dict[str, OptimizerConfig] | OptimizerConfig = SGDOptimizerConfig(
-        lr=1e-3, momentum=0.9, weight_decay=0.0
+        lr=0.1, momentum=0.9, weight_decay=0.0
     )
     lr_scheduler: dict[str, LRSchedulerConfig] | LRSchedulerConfig | None = (
         CosineAnnealingLRSchedulerConfig()

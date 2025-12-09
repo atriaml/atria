@@ -9,30 +9,39 @@ from atria_ml.task_pipelines.configs._base import (
 )
 from atria_models.api.models import load_model_pipeline_config
 from atria_models.core.model_pipelines._common import ModelConfig
+from atria_transforms.api.tfs import load_transform
 
 config = RunConfig(
     env=RuntimeEnvConfig(
         project_name="my_atria_project",
-        run_name="cifar10_experiment_01",
+        run_name="cifar10_experiment_03",
         output_dir="./outputs/",
         seed=42,
     ),
     model_pipeline=load_model_pipeline_config(
         "image_classification",
-        model=ModelConfig(model_name_or_path="resnet18"),
-        # train_transform=load_transform("image_processor"),
-        # eval_transform=load_transform("image_processor"),
+        model=ModelConfig(model_name_or_path="resnet50"),
+        train_transform=load_transform(
+            "image_processor",
+            tf={
+                "use_imagenet_mean_std": True,
+            },
+        ),
+        eval_transform=load_transform(
+            "image_processor", tf={"use_imagenet_mean_std": True}
+        ),
     ),
     data=DataConfig(
-        dataset_config=load_dataset_config("cifar10/1k"),
+        dataset_config=load_dataset_config("cifar10/default"),
         data_dir="data_dir/",
         num_workers=0,
+        train_batch_size=64,
+        eval_batch_size=64,
     ),
-    trainer=TrainerConfig(
-        max_epochs=100,
-    ),
-    do_train=False,
+    trainer=TrainerConfig(),
+    do_train=True,
 )
+# exit()
 # config_dict_before = config.model_dump()
 # config.save_to_json()
 # config.from_json(Path(config.env.output_dir) / "config.json")

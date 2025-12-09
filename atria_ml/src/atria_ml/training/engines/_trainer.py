@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
+
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._torch import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -26,9 +27,10 @@ from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDepe
 
 if TYPE_CHECKING:
     import torch
+    from ignite.engine import Engine, State
+
     from atria_ml.training.engines._validation_engine import ValidationEngine
     from atria_ml.training.handlers.ema_handler import EMAHandler
-    from ignite.engine import Engine, State
 
 logger = get_logger(__name__)
 
@@ -239,8 +241,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         return engine
 
     def _attach_handlers(self) -> None:
-        engine = super()._attach_handlers()
-
         self._register_events()
 
         self.attach_train_sampler()
@@ -256,6 +256,9 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
         # configure model checkpointer
         self.attach_model_checkpointer()
+
+        # attach parent
+        engine = super()._attach_handlers()
 
         # print engine configuration info
         self._print_configuration_info()
@@ -377,8 +380,9 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                 )
 
     def attach_nan_callback(self):
-        from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
         from ignite.engine import Events
+
+        from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
 
         self._engine.add_event_handler(
             Events.ITERATION_COMPLETED,
@@ -386,8 +390,9 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_cuda_cache_callback(self):
-        from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
         from ignite.engine import Events
+
+        from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
 
         self._engine.add_event_handler(
             Events.ITERATION_COMPLETED,
@@ -395,10 +400,11 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_model_ema_callback(self) -> None:
-        from atria_ml.training.engines._events import OptimizerEvents
-        from atria_ml.training.handlers.ema_handler import EMAHandler
         from atria_models.utilities._ddp_model_proxy import ModuleProxyWrapper
         from torchinfo import summary
+
+        from atria_ml.training.engines._events import OptimizerEvents
+        from atria_ml.training.handlers.ema_handler import EMAHandler
 
         trainable_model = self._deps.model_pipeline._model
         if isinstance(trainable_model, ModuleProxyWrapper):
@@ -426,7 +432,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_schedulers(self) -> None:
-        from atria_ml.training.engines._events import OptimizerEvents
         from ignite.engine import Events
         from ignite.handlers import (
             LRScheduler,
@@ -435,6 +440,8 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
             create_lr_scheduler_with_warmup,
         )
         from torch.optim.lr_scheduler import ExponentialLR, MultiStepLR, StepLR
+
+        from atria_ml.training.engines._events import OptimizerEvents
 
         if self._lr_schedulers is None or len(self._lr_schedulers) == 0:
             return

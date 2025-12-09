@@ -48,10 +48,4 @@
     ],
     "python.defaultInterpreterPath": "./.venv/bin/python",
     "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
-    "python.analysis.packageIndexDepths": [
-        {
-            "name": "atria_logger",
-            "depth": 1
-        }
-    ]
 }

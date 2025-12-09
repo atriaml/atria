@@ -1,5 +1,5 @@
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 import ignite.distributed as idist
@@ -17,7 +17,7 @@ def xyxy2xywh(bbox):
 
 
 @dataclass
-class GroundTruthInstances:
+class CocoInstance:
     bboxes: torch.Tensor
     labels: torch.Tensor
 
@@ -27,14 +27,16 @@ class GroundTruthInstances:
 
 
 @dataclass
-class PredInstances:
-    bboxes: torch.Tensor
-    labels: torch.Tensor
+class GroundTruthInstance(CocoInstance):
+    pass
+
+
+@dataclass
+class PredInstance(CocoInstance):
     scores: torch.Tensor
 
     def detach(self):
-        self.bboxes = self.bboxes.detach()
-        self.labels = self.labels.detach()
+        super().detach()
         self.scores = self.scores.detach()
 
 
@@ -45,32 +47,36 @@ class CocoCategory:
     supercategory: str
 
 
-def _cocoeval_output_transform(model_output: MMDetEvaluationOutput):
+def _cocoeval_output_transform(output: MMDetEvaluationOutput):
     from mmdet.structures.bbox import scale_boxes
 
-    assert isinstance(model_output, MMDetEvaluationOutput), (
-        f"Expected {MMDetEvaluationOutput}, got {type(model_output)}"
+    assert isinstance(output, MMDetEvaluationOutput), (
+        f"Expected {MMDetEvaluationOutput}, got {type(output)}"
+    )
+    assert output.det_data_samples is not None, (
+        "output.det_data_samples is None. Cannot transform for COCOEvalMetric."
     )
     image_ids: list[int] = []
-    gt_instances: list[GroundTruthInstances] = []
-    pred_instances: list[PredInstances] = []
+    gt_instances: list[GroundTruthInstance] = []
+    pred_instances: list[PredInstance] = []
 
-    for batch_sample in model_output.det_data_samples:
+    for batch_sample in output.det_data_samples:
         scale_factor = batch_sample.metainfo.get("scale_factor")
         if "gt_instances" in batch_sample:
             batch_sample.gt_instances.bboxes = scale_boxes(
-                batch_sample.gt_instances.bboxes, [1 / s for s in scale_factor]
+                batch_sample.gt_instances.bboxes,
+                (1 / scale_factor[0], 1 / scale_factor[1]),
             )
 
         image_ids.append(batch_sample.metainfo["img_id"])
         gt_instances.append(
-            GroundTruthInstances(
+            GroundTruthInstance(
                 bboxes=batch_sample.gt_instances["bboxes"],
                 labels=batch_sample.gt_instances["labels"],
             )
         )
         pred_instances.append(
-            PredInstances(
+            PredInstance(
                 bboxes=batch_sample.pred_instances["bboxes"],
                 labels=batch_sample.pred_instances["labels"],
                 scores=batch_sample.pred_instances["scores"],
@@ -115,8 +121,8 @@ class COCOEvalMetric(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._image_ids: list[int] = []
-        self._gt_instances: list[GroundTruthInstances] = []
-        self._pred_instances: list[PredInstances] = []
+        self._gt_instances: list[GroundTruthInstance] = []
+        self._pred_instances: list[PredInstance] = []
         self._result: dict[str, float] | None = None
 
     @torch.no_grad()
@@ -128,28 +134,28 @@ class COCOEvalMetric(Metric):
     def _check_type(
         self,
         image_ids: list[int],
-        gt_instances: list[GroundTruthInstances],
-        pred_instances: list[PredInstances],
+        gt_instances: list[GroundTruthInstance],
+        pred_instances: list[PredInstance],
     ) -> None:
         if not isinstance(image_ids, list) or not all(
             isinstance(i, int) for i in image_ids
         ):
             raise TypeError("image_ids must be a list of integers.")
         if not isinstance(gt_instances, list) or not all(
-            isinstance(gt, GroundTruthInstances) for gt in gt_instances
+            isinstance(gt, GroundTruthInstance) for gt in gt_instances
         ):
-            raise TypeError("gt_instances must be a list of GroundTruthInstances.")
+            raise TypeError("gt_instances must be a list of GroundTruthInstance.")
         if not isinstance(pred_instances, list) or not all(
-            isinstance(pred, PredInstances) for pred in pred_instances
+            isinstance(pred, PredInstance) for pred in pred_instances
         ):
-            raise TypeError("pred_instances must be a list of PredInstances.")
+            raise TypeError("pred_instances must be a list of PredInstance.")
 
     @reinit__is_reduced
     def update(
         self,
         image_ids: list[int],
-        gt_instances: list[GroundTruthInstances],
-        pred_instances: list[PredInstances],
+        gt_instances: list[GroundTruthInstance],
+        pred_instances: list[PredInstance],
     ):
         self._check_type(image_ids, gt_instances, pred_instances)
         for x in gt_instances:
@@ -167,9 +173,9 @@ class COCOEvalMetric(Metric):
         if self._result is None:
             ws = idist.get_world_size()
             if ws > 1:
-                self._image_ids = idist.all_gather(self._image_ids)
-                self._gt_instances = idist.all_gather(self._gt_instances)
-                self._pred_instances = idist.all_gather(self._pred_instances)
+                self._image_ids = idist.all_gather(self._image_ids)  # type: ignore
+                self._gt_instances = idist.all_gather(self._gt_instances)  # type: ignore
+                self._pred_instances = idist.all_gather(self._pred_instances)  # type: ignore
 
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
@@ -179,51 +185,47 @@ class COCOEvalMetric(Metric):
 
             if ws > 1:
                 # broadcast result to all processes
-                self._result = idist.broadcast(self._result, src=0)
+                self._result = idist.broadcast(self._result, src=0)  # type: ignore
 
-        return self._result
+        return self._result  # type: ignore
+
+    def _from_instance_to_ann(
+        self,
+        image_ids: Sequence[int],
+        instances: Sequence[PredInstance] | Sequence[GroundTruthInstance],
+    ) -> list[dict]:
+        # Create COCO format ground truth annotations
+        anns = []
+        for idx, instance in enumerate(instances):
+            image_id = image_ids[idx]
+            for i, bbox in enumerate(instance.bboxes):
+                bbox = xyxy2xywh(bbox.tolist())
+                ann = {
+                    "id": len(anns) + 1,
+                    "image_id": image_id,
+                    "category_id": int(instance.labels[i])
+                    + 1,  # COCO categories start at 1
+                    "bbox": bbox,
+                    "area": bbox[2] * bbox[3],  # width * height
+                    "iscrowd": 0,
+                }
+                if hasattr(instance, "scores"):
+                    ann["score"] = float(instance.scores[i])  # type: ignore
+                anns.append(ann)
+        return anns
 
     def _call_coco_eval(
         self,
         image_ids: list[int],
-        gt_instances: list[GroundTruthInstances],
-        pred_instances: list[PredInstances],
-    ) -> float:
-        # Create COCO format ground truth annotations
-        coco_gt_annotations = []
-        for idx, gt in enumerate(gt_instances):
-            image_id = image_ids[idx]
-            for i, bbox in enumerate(gt.bboxes):
-                bbox = xyxy2xywh(bbox.tolist())
-                coco_gt_annotations.append(
-                    {
-                        "id": len(coco_gt_annotations) + 1,
-                        "image_id": image_id,
-                        "category_id": int(gt.labels[i])
-                        + 1,  # COCO categories start at 1
-                        "bbox": bbox,
-                        "area": bbox[2] * bbox[3],  # width * height
-                        "iscrowd": 0,
-                    }
-                )
-
-        # Create COCO format predicted annotations
-        coco_pred_annotations = []
-        for idx, pred in enumerate(pred_instances):
-            image_id = image_ids[idx]
-            for i, bbox in enumerate(pred.bboxes):
-                if len(bbox) == 0:  # Skip if there's no prediction
-                    continue
-                bbox = xyxy2xywh(bbox.tolist())
-                coco_pred_annotations.append(
-                    {
-                        "image_id": image_id,
-                        "category_id": int(pred.labels[i])
-                        + 1,  # COCO categories start at 1
-                        "bbox": bbox,
-                        "score": float(pred.scores[i]),  # COCO needs score
-                    }
-                )
+        gt_instances: list[GroundTruthInstance],
+        pred_instances: list[PredInstance],
+    ) -> dict[str, float]:
+        coco_gt_annotations = self._from_instance_to_ann(
+            image_ids=image_ids, instances=gt_instances
+        )
+        coco_pred_annotations = self._from_instance_to_ann(
+            image_ids=image_ids, instances=pred_instances
+        )
 
         # If there are no predictions, return zeros to prevent evaluation errors
         if len(coco_pred_annotations) == 0:
@@ -233,14 +235,14 @@ class COCOEvalMetric(Metric):
         coco_gt = COCO()
         coco_gt.dataset = {
             "images": [{"id": image_id} for image_id in image_ids],
-            "annotations": coco_gt_annotations,
+            "annotations": coco_gt_annotations,  # type: ignore
             "categories": [{"id": 1, "name": "table"}],
             "info": {},
         }
         with open("coco_gt.json", "w") as f:
             json.dump(coco_gt.dataset, f)
         coco_gt.createIndex()
-        coco_dt = coco_gt.loadRes(coco_pred_annotations)
+        coco_dt = coco_gt.loadRes(coco_pred_annotations)  # type: ignore
         with open("coco_dt.json", "w") as f:
             json.dump(coco_dt.dataset, f)
 

@@ -16,7 +16,7 @@ dependencies = [
     "mmcv==2.1.0",
     "mmdet==3.3.0",
     "pytorch-ignite>=0.5.2",
-    "textdistance>=4.6.3",
+    "textdistance>=4.2.0",
     "timm>=1.0.17",
     "transformers>=4.37.0",
     "tensorboardx>=2.6.4",

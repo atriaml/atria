@@ -19,7 +19,7 @@ class SeqEvalMetricConfig(MetricConfig):
         return self.model_dump(exclude={"module_path", "output_transform"})
 
     def build(  # type: ignore
-        self, device: torch.device | str | None = None, num_classes: int | None = None
+        self, device: str | torch.device = "cpu", num_classes: int | None = None
     ) -> Metric:
         from atria_metrics.core._epoch_dict_metric import EpochDictMetric
 

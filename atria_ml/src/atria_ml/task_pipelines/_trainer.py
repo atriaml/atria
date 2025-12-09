@@ -86,7 +86,7 @@ class Trainer:
         from ignite.handlers import TensorboardLogger
 
         if idist.get_rank() == 0:
-            log_dir = Path(self._config.env.output_dir) / "tensorboard"
+            log_dir = Path(self._config.env.run_dir) / "tensorboard"
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
         else:
@@ -125,8 +125,7 @@ class Trainer:
                 model_pipeline=self._state.model_pipeline,
                 dataloader=train_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.output_dir,
-                metrics=None,
+                output_dir=self._config.env.run_dir,
                 tb_logger=self._state.tb_logger,
                 run_config=self._config,
             ),
@@ -158,8 +157,7 @@ class Trainer:
                 model_pipeline=self._state.model_pipeline,
                 dataloader=validation_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.output_dir,
-                metrics=None,
+                output_dir=self._config.env.run_dir,
                 tb_logger=self._state.tb_logger,
                 training_engine=trainer_engine,
             ),
@@ -190,8 +188,7 @@ class Trainer:
                 model_pipeline=self._state.model_pipeline,
                 dataloader=validation_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.output_dir,
-                metrics=None,
+                output_dir=self._config.env.run_dir,
                 tb_logger=self._state.tb_logger,
                 training_engine=trainer_engine,
             ),
@@ -217,8 +214,7 @@ class Trainer:
                 model_pipeline=self._state.model_pipeline,
                 dataloader=test_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.output_dir,
-                metrics=None,
+                output_dir=self._config.env.run_dir,
                 tb_logger=self._state.tb_logger,
             ),
         )
@@ -253,6 +249,9 @@ class Trainer:
             dataset.validation.output_transform = eval_transform
         if dataset.test is not None:
             dataset.test.output_transform = eval_transform
+
+        print("train_transform", train_transform)
+        print("eval_transform", eval_transform)
 
         # build data pipeline
         data_pipeline = DataPipeline(dataset=dataset)

@@ -29,13 +29,14 @@ _CLASSES = [
 @DATASET.register(
     "cifar10",
     configs={
+        "default": DatasetConfig(dataset_name="cifar10", config_name="default"),
         "1k": DatasetConfig(
             dataset_name="cifar10",
             config_name="1k",
             max_train_samples=1000,
             max_test_samples=1000,
             max_validation_samples=1000,
-        )
+        ),
     },
 )
 class Cifar10(ImageDataset):
