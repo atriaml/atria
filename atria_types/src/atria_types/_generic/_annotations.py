@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import enum
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
+
+from pydantic import Field, field_serializer, field_validator
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._generic._annotated_object import AnnotatedObject
 from atria_types._generic._label import Label
 from atria_types._generic._qa_pair import QAPair
 from atria_types._pydantic import TableSchemaMetadata
-from pydantic import Field, field_serializer, field_validator
 
 
 class AnnotationType(str, enum.Enum):
@@ -20,16 +21,12 @@ class AnnotationType(str, enum.Enum):
 
 
 class ClassificationAnnotation(BaseDataModel):
-    type: Literal['classification'] = (
-        AnnotationType.classification.value
-    )
+    type: Literal["classification"] = AnnotationType.classification.value
     label: Label
 
 
 class EntityLabelingAnnotation(BaseDataModel):
-    type: Literal['entity_labeling'] = (
-        AnnotationType.entity_labeling.value
-    )
+    type: Literal["entity_labeling"] = AnnotationType.entity_labeling.value
     word_labels: list[Label]
 
     @field_validator("word_labels", mode="before")
@@ -53,9 +50,7 @@ class EntityLabelingAnnotation(BaseDataModel):
 
 
 class QuestionAnsweringAnnotation(BaseDataModel):
-    type: Literal['question_answering'] = (
-        AnnotationType.question_answering.value
-    )
+    type: Literal["question_answering"] = AnnotationType.question_answering.value
     qa_pairs: Annotated[list[QAPair] | None, TableSchemaMetadata(pa_type="string")] = (
         None
     )
@@ -81,9 +76,7 @@ class QuestionAnsweringAnnotation(BaseDataModel):
 
 
 class ObjectDetectionAnnotation(BaseDataModel):
-    type: Literal['object_detection'] = (
-        AnnotationType.object_detection.value
-    )
+    type: Literal["object_detection"] = AnnotationType.object_detection.value
     annotated_objects: Annotated[
         list[AnnotatedObject] | None, TableSchemaMetadata(pa_type="string")
     ] = None
@@ -109,18 +102,14 @@ class ObjectDetectionAnnotation(BaseDataModel):
 
 
 class LayoutAnalysisAnnotation(ObjectDetectionAnnotation):
-    type: Literal['layout_analysis'] = (
-        AnnotationType.layout_analysis.value
-    )
+    type: Literal["layout_analysis"] = AnnotationType.layout_analysis.value
 
 
 Annotation = Annotated[
-    Union[
-        ClassificationAnnotation,
-        EntityLabelingAnnotation,
-        QuestionAnsweringAnnotation,
-        ObjectDetectionAnnotation,
-        LayoutAnalysisAnnotation,
-    ],
+    ClassificationAnnotation
+    | EntityLabelingAnnotation
+    | QuestionAnsweringAnnotation
+    | ObjectDetectionAnnotation
+    | LayoutAnalysisAnnotation,
     Field(discriminator="type"),
 ]
