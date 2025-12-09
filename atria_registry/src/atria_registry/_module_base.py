@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import Any, Generic, TypeVar
 
 from atria_logger import get_logger
-from atria_types._constants import _MAX_REPR_PRINT_ELEMENTS
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict
-from rich.pretty import pretty_repr
 
-from atria_registry._utilities import _resolve_module_from_path
+from atria_registry._utilities import _get_config_hash, _resolve_module_from_path
 
 T_ModuleConfig = TypeVar("T_ModuleConfig", bound="ModuleConfig")
 
@@ -27,6 +25,10 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     __builds_with_kwargs__ = False
     model_config = ConfigDict(extra="forbid", frozen=True)
     module_path: str | None = None
+
+    @property
+    def hash(self) -> str | None:
+        return _get_config_hash(self.model_dump())
 
     @property
     def kwargs(self) -> dict[str, Any]:
@@ -90,15 +92,6 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig]):
     @property
     def config(self) -> T_ModuleConfig:
         return self._config
-
-    def __repr__(self) -> str:
-        config_repr = pretty_repr(
-            self._config, max_length=_MAX_REPR_PRINT_ELEMENTS, expand_all=False
-        )
-        return f"{self.__class__.__name__}(config={config_repr})"
-
-    def __str__(self) -> str:
-        return self.__repr__()
 
 
 class PydanticConfigurableModule(RepresentationMixin, BaseModel):
