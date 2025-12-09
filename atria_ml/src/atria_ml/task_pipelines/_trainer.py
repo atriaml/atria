@@ -235,6 +235,9 @@ class Trainer:
         # load labels
         labels = dataset.metadata.dataset_labels
 
+        # log dataset info
+        logger.info(f"Dataset:\n{dataset}")
+
         # build model pipeline
         model_pipeline = self._config.model_pipeline.build(labels=labels)
 

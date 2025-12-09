@@ -11,11 +11,6 @@ from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_logger import get_logger
-from atria_models.core.model_pipelines._common import ModelPipelineConfig
-from atria_registry._module_base import BaseModel
-from atria_types._utilities._repr import RepresentationMixin
-from pydantic import ConfigDict, Field
-
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._torch import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -28,6 +23,11 @@ from atria_ml.training._configs import (
     ModelEmaConfig,
     WarmupConfig,
 )
+from atria_models.core.model_pipelines._common import ModelPipelineConfig
+from atria_registry._module_base import BaseModel
+from atria_types import DatasetSplitType
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import ConfigDict, Field
 
 logger = get_logger(__name__)
 
@@ -56,7 +56,7 @@ class DataConfig(RepresentationMixin, BaseModel):
     allowed_keys: set[str] | None = None
     num_processes: int = 8
     cached_storage_type: FileStorageType = FileStorageType.MSGPACK
-    enable_cached_splits: bool = False
+    enable_cached_splits: bool = True
     store_artifact_content: bool = True
     max_cache_image_size: int | None = None
 
@@ -67,7 +67,7 @@ class DataConfig(RepresentationMixin, BaseModel):
     pin_memory: bool = True
 
     # dataset split args
-    splitting_enabled: bool = False
+    splitting_enabled: bool = True
     split_ratio: float = 0.9
 
     def build_dataset(self) -> Dataset:
@@ -82,11 +82,10 @@ class DataConfig(RepresentationMixin, BaseModel):
             store_artifact_content=self.store_artifact_content,
             max_cache_image_size=self.max_cache_image_size,
         )
-
-        if dataset.validation is None and self.splitting_enabled:
-            assert dataset.train is not None, (
-                "Dataset splitting enabled but no training dataset found."
-            )
+        if (
+            DatasetSplitType.validation not in dataset.split_iterators
+            and self.splitting_enabled
+        ):
             dataset_splitter = StandardSplitter(
                 split_ratio=self.split_ratio, shuffle=True
             )

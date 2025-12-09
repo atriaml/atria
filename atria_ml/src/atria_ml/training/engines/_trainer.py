@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
-
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._torch import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -27,10 +26,9 @@ from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDepe
 
 if TYPE_CHECKING:
     import torch
-    from ignite.engine import Engine, State
-
     from atria_ml.training.engines._validation_engine import ValidationEngine
     from atria_ml.training.handlers.ema_handler import EMAHandler
+    from ignite.engine import Engine, State
 
 logger = get_logger(__name__)
 
@@ -120,6 +118,17 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                 output_dir=self._deps.output_dir, checkpoint_type="last"
             )
 
+        # before running the engine log the first batch
+        try:
+            first_batch = next(iter(self._deps.dataloader))
+            logger.info(
+                f"First batch input for engine [{self.__class__.__name__}]: {first_batch}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch the first batch from dataloader for engine [{self.__class__.__name__}]: {e}"
+            )
+
         return super().run(checkpoint_path=checkpoint_path)
 
     def _build_engine(self) -> tuple[EngineStep, Engine]:
@@ -128,6 +137,13 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
         # build lr schedulers
         self._lr_schedulers = self._build_lr_schedulers(self._optimizers)
+
+        # log optimizers and lr schedulers
+        for k, opt in self._optimizers.items():
+            logger.info(f"Attached optimizer {k}={opt}")
+
+        for k, sch in self._lr_schedulers.items():
+            logger.info(f"Attached lr scheduler {k}={sch}")
 
         return super()._build_engine()
 
@@ -361,9 +377,8 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                 )
 
     def attach_nan_callback(self):
-        from ignite.engine import Events
-
         from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
+        from ignite.engine import Events
 
         self._engine.add_event_handler(
             Events.ITERATION_COMPLETED,
@@ -371,9 +386,8 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_cuda_cache_callback(self):
-        from ignite.engine import Events
-
         from atria_ml.training.handlers.terminate_on_nan import TerminateOnNan
+        from ignite.engine import Events
 
         self._engine.add_event_handler(
             Events.ITERATION_COMPLETED,
@@ -381,11 +395,10 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_model_ema_callback(self) -> None:
-        from atria_models.utilities._ddp_model_proxy import ModuleProxyWrapper
-        from torchinfo import summary
-
         from atria_ml.training.engines._events import OptimizerEvents
         from atria_ml.training.handlers.ema_handler import EMAHandler
+        from atria_models.utilities._ddp_model_proxy import ModuleProxyWrapper
+        from torchinfo import summary
 
         trainable_model = self._deps.model_pipeline._model
         if isinstance(trainable_model, ModuleProxyWrapper):
@@ -413,6 +426,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
 
     def attach_schedulers(self) -> None:
+        from atria_ml.training.engines._events import OptimizerEvents
         from ignite.engine import Events
         from ignite.handlers import (
             LRScheduler,
@@ -421,8 +435,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
             create_lr_scheduler_with_warmup,
         )
         from torch.optim.lr_scheduler import ExponentialLR, MultiStepLR, StepLR
-
-        from atria_ml.training.engines._events import OptimizerEvents
 
         if self._lr_schedulers is None or len(self._lr_schedulers) == 0:
             return

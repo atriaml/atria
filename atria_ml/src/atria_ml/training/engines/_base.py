@@ -8,15 +8,14 @@ from typing import Any, Generic, TypeVar
 
 import torch
 from atria_logger import get_logger
+from atria_ml.training._configs import LoggingConfig
+from atria_ml.training.engine_steps import EngineStep
+from atria_ml.training.engines.utilities import _extract_output
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from ignite.engine import Engine, State
 from ignite.handlers import TensorboardLogger
 from ignite.metrics import Metric
 from pydantic import BaseModel, ConfigDict
-
-from atria_ml.training._configs import LoggingConfig
-from atria_ml.training.engine_steps import EngineStep
-from atria_ml.training.engines.utilities import _extract_output
 
 logger = get_logger(__name__)
 
