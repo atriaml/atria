@@ -1,5 +1,5 @@
 from atria_metrics.detection.cocoeval import *  # noqa
-from atria_metrics.instance_classification.ext_modules import *  # noqa
+from atria_metrics.src.atria_metrics.instance_classification import *  # noqa
 from atria_metrics.instance_classification.f1_score import *  # noqa
 from atria_metrics.layout.f1_score import *  # noqa
 from atria_metrics.layout.precision import *  # noqa

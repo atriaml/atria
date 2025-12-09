@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Generic, TypeVar
 
 from atria_logger import get_logger
@@ -47,6 +48,9 @@ class ModuleConfig(RepresentationMixin, BaseModel):
         )
         module = _resolve_module_from_path(self.module_path)
         if isinstance(module, type):
+            possible_args = inspect.signature(module.__init__).parameters
+            kwargs = {k: v for k, v in kwargs.items() if k in possible_args}
+
             if self.__builds_with_kwargs__:
                 current_kwargs = self.kwargs
                 current_kwargs.update(kwargs)

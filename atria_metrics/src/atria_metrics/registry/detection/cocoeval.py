@@ -4,19 +4,38 @@ from dataclasses import dataclass
 
 import ignite.distributed as idist
 import torch
+from atria_models.core.types.model_outputs import MMDetEvaluationOutput
 from ignite.engine import Engine
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-from atria_metrics.detection.output_transforms import _cocoeval_output_transform
-from atria_metrics.detection.typing import GroundTruthInstances, PredInstances
-from atria_metrics.registry import METRIC
-
 
 def xyxy2xywh(bbox):
     return [bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]]
+
+
+@dataclass
+class GroundTruthInstances:
+    bboxes: torch.Tensor
+    labels: torch.Tensor
+
+    def detach(self):
+        self.bboxes = self.bboxes.detach()
+        self.labels = self.labels.detach()
+
+
+@dataclass
+class PredInstances:
+    bboxes: torch.Tensor
+    labels: torch.Tensor
+    scores: torch.Tensor
+
+    def detach(self):
+        self.bboxes = self.bboxes.detach()
+        self.labels = self.labels.detach()
+        self.scores = self.scores.detach()
 
 
 @dataclass
@@ -26,7 +45,40 @@ class CocoCategory:
     supercategory: str
 
 
-@METRIC.register("cocoeval", output_transform=_cocoeval_output_transform)
+def _cocoeval_output_transform(model_output: MMDetEvaluationOutput):
+    from mmdet.structures.bbox import scale_boxes
+
+    assert isinstance(model_output, MMDetEvaluationOutput), (
+        f"Expected {MMDetEvaluationOutput}, got {type(model_output)}"
+    )
+    image_ids: list[int] = []
+    gt_instances: list[GroundTruthInstances] = []
+    pred_instances: list[PredInstances] = []
+
+    for batch_sample in model_output.det_data_samples:
+        scale_factor = batch_sample.metainfo.get("scale_factor")
+        if "gt_instances" in batch_sample:
+            batch_sample.gt_instances.bboxes = scale_boxes(
+                batch_sample.gt_instances.bboxes, [1 / s for s in scale_factor]
+            )
+
+        image_ids.append(batch_sample.metainfo["img_id"])
+        gt_instances.append(
+            GroundTruthInstances(
+                bboxes=batch_sample.gt_instances["bboxes"],
+                labels=batch_sample.gt_instances["labels"],
+            )
+        )
+        pred_instances.append(
+            PredInstances(
+                bboxes=batch_sample.pred_instances["bboxes"],
+                labels=batch_sample.pred_instances["labels"],
+                scores=batch_sample.pred_instances["scores"],
+            )
+        )
+    return image_ids, gt_instances, pred_instances
+
+
 class COCOEvalMetric(Metric):
     """COCO-style evaluation metric for object detection.
 
@@ -183,6 +235,7 @@ class COCOEvalMetric(Metric):
             "images": [{"id": image_id} for image_id in image_ids],
             "annotations": coco_gt_annotations,
             "categories": [{"id": 1, "name": "table"}],
+            "info": {},
         }
         with open("coco_gt.json", "w") as f:
             json.dump(coco_gt.dataset, f)

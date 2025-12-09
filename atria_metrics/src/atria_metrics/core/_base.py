@@ -10,8 +10,6 @@ if TYPE_CHECKING:
 
 
 class MetricConfig(ModuleConfig):
-    __builds_with_kwargs__: bool = True
-
     def build(  # type: ignore
         self, device: torch.device | str | None = None, num_classes: int | None = None
     ) -> Metric:

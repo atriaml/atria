@@ -14,6 +14,7 @@ dependencies = [
     "anls>=0.0.2",
     "atria-registry",
     "atria-types",
+    "due-evaluator",
     "pytorch-ignite>=0.5.2",
     "seqeval",
 ]
@@ -103,6 +104,7 @@ managed = true
 [tool.uv.sources]
 atria-types = { path = "../atria_types", editable = true }
 atria-registry = { path = "../atria_registry", editable = true }
+due-evaluator = { git = "https://github.com/due-benchmark/evaluator.git" }
 
 [tool.mypy]
 disable_error_code = ["import-untyped", "import-not-found"]
