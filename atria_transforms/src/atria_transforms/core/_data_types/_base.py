@@ -139,6 +139,7 @@ class TensorDataModel(RepresentationMixin, BaseModel):
             else:
                 field_values[field_name] = torch.stack(vals, dim=0)
         batched_instance = cls(**field_values, is_batched=True)
+        batched_instance._is_batched = True
         return batched_instance
 
     def __len__(self):
