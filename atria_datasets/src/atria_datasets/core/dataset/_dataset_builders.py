@@ -285,10 +285,13 @@ class CachedDatasetBuilder(DatasetBuilder):
 
     def prepare_splits(self) -> dict[DatasetSplitType, SplitIterator]:
         """Prepare cached splits using DeltaLake / Msgpack storage."""
+        unique_config_name = (
+            self.dataset_config.config_name + "-" + self.dataset_config.hash
+        )
         storage_manager = _get_storage_manager(
             self._cached_storage_type,
             storage_dir=str(self._storage_dir),
-            config_name=self.dataset_config.config_name,
+            config_name=unique_config_name,
             num_processes=self._num_processes,
         )
 
@@ -320,7 +323,7 @@ class CachedDatasetBuilder(DatasetBuilder):
                 if not info_saved:
                     _save_dataset_info(
                         self._storage_dir,
-                        self.dataset_config.config_name,
+                        unique_config_name,
                         self.dataset_config.model_dump(),
                         self.dataset_metadata.model_dump(),
                     )
@@ -333,7 +336,7 @@ class CachedDatasetBuilder(DatasetBuilder):
         if not info_saved:
             _save_dataset_info(
                 self._storage_dir,
-                self.dataset_config.config_name,
+                unique_config_name,
                 self.dataset_config.model_dump(),
                 self.dataset_metadata.model_dump(),
             )

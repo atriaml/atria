@@ -73,9 +73,7 @@ def prepare_dataset(
             logger.info(
                 f"Visualizing {n_visualized_samples} samples from {key.value} split to {output_path}"
             )
-            print(split)
             for idx, sample in enumerate(split):
-                print(idx, sample)
                 sample.viz.visualize(output_path=output_path)
                 if idx + 1 >= n_visualized_samples:
                     break

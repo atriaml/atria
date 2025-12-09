@@ -109,8 +109,8 @@ class StandardSplitter(RepresentationMixin):
             test_size=1 - self.split_ratio,
             random_state=self.seed,
         )
-        train.subset_indices = list(train_subset.indices)  # type: ignore
-        validation.subset_indices = list(validation_subset.indices)  # type: ignore
+        train.subset_indices = list(train_subset)  # type: ignore
+        validation.subset_indices = list(validation_subset)  # type: ignore
         return train, validation
 
     def __call__(

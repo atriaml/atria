@@ -80,7 +80,7 @@ class Dataset(
     __requires_access_token__ = False
     __extract_downloads__ = True
     __data_model__: type[T_BaseDataInstance]
-    __repr_fields__ = {"data_model", "data_dir", "train", "validation", "test"}
+    __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
     __config__: type[T_DatasetConfig] = DatasetConfig
 
     def __init__(
@@ -93,7 +93,7 @@ class Dataset(
         allowed_keys: set[str] | None = None,
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        enable_cached_splits: bool = False,
+        enable_cached_splits: bool = True,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
     ) -> None:
@@ -122,7 +122,7 @@ class Dataset(
         allowed_keys: set[str] | None = None,
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        enable_cached_splits: bool = False,
+        enable_cached_splits: bool = True,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
     ) -> DatasetBuilder:
