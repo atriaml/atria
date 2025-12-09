@@ -265,6 +265,27 @@ dev = [
 ]
 
 [[package]]
+name = "atria-metrics"
+version = "0.0.0"
+source = { editable = "atria_metrics" }
+dependencies = [
+    { name = "anls" },
+    { name = "atria-registry" },
+    { name = "atria-types" },
+    { name = "pytorch-ignite" },
+    { name = "seqeval" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anls", specifier = ">=0.0.2" },
+    { name = "atria-registry", editable = "atria_registry" },
+    { name = "atria-types", editable = "atria_types" },
+    { name = "pytorch-ignite", specifier = ">=0.5.2" },
+    { name = "seqeval" },
+]
+
+[[package]]
 name = "atria-ml"
 version = "0.0.0"
 source = { editable = "atria_ml" }
@@ -484,6 +505,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "atria-datasets" },
     { name = "atria-logger" },
+    { name = "atria-metrics" },
     { name = "atria-ml" },
     { name = "atria-models" },
     { name = "atria-registry" },
@@ -509,6 +531,7 @@ dev = [
 requires-dist = [
     { name = "atria-datasets", editable = "atria_datasets" },
     { name = "atria-logger", editable = "atria_logger" },
+    { name = "atria-metrics", editable = "atria_metrics" },
     { name = "atria-ml", editable = "atria_ml" },
     { name = "atria-models", editable = "atria_models" },
     { name = "atria-registry", editable = "atria_registry" },
@@ -2719,6 +2742,16 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/d0/22ec7036ba0b0a35bccb7f25ab407382ed34af0b111475eb301c16f8a2e5/scipy-1.16.3-cp311-cp311-win_amd64.whl", hash = "sha256:53c3844d527213631e886621df5695d35e4f6a75f620dca412bcd292f6b87d78", size = 38722107 },
     { url = "https://files.pythonhosted.org/packages/7b/60/8a00e5a524bb3bf8898db1650d350f50e6cffb9d7a491c561dc9826c7515/scipy-1.16.3-cp311-cp311-win_arm64.whl", hash = "sha256:9452781bd879b14b6f055b26643703551320aa8d79ae064a71df55c00286a184", size = 25506272 },
 ]
+
+[[package]]
+name = "seqeval"
+version = "1.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scikit-learn" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/2d/233c79d5b4e5ab1dbf111242299153f3caddddbb691219f363ad55ce783d/seqeval-1.2.2.tar.gz", hash = "sha256:f28e97c3ab96d6fcd32b648f6438ff2e09cfba87f05939da9b3970713ec56e6f", size = 43605 }
 
 [[package]]
 name = "setuptools"
