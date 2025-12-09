@@ -220,7 +220,7 @@ class RunConfig(RepresentationMixin, BaseModel):
         config_hash = hashlib.sha256(
             json.dumps(params, sort_keys=True).encode()
         ).hexdigest()[:8]
-        return Path(self.env.output_dir) / f"outputs-{config_hash}.json"
+        return Path(self.env.run_dir) / f"outputs-{config_hash}.json"
 
     def metrics_file_exists(self) -> bool:
         output_file_path = self.get_metrics_file_path()
@@ -234,7 +234,7 @@ class RunConfig(RepresentationMixin, BaseModel):
 
     def save_to_json(self, file_path: str | Path | None = None) -> None:
         if file_path is None:
-            file_path = Path(self.env.output_dir) / "config.json"
+            file_path = Path(self.env.run_dir) / "config.json"
         else:
             file_path = Path(file_path)
 
@@ -263,18 +263,3 @@ class RunConfig(RepresentationMixin, BaseModel):
 
         # Use Hydra instantiate to create the object
         return instantiate(omega_conf)
-
-
-# class ImageClassificationTrainerConfig(RunnerConfig):
-#     model_pipeline: ImageModelPipelineConfig
-#     trainer: TrainerConfig = TrainerConfig()
-
-#     def build_model_pipeline(self, labels: DatasetLabels) -> ImageModelPipeline:
-#         model_pipeline = load_model_pipeline_config(
-#             "image_classification",
-#             model=self.model_pipeline.model,
-#             mixup_config=self.model_pipeline.mixup_config,
-#             train_transform=self.model_pipeline.train_transform,
-#             eval_transform=self.model_pipeline.eval_transform,
-#         )
-#         return model_pipeline.build(labels=labels)
