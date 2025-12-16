@@ -1,0 +1,254 @@
+from hydra_zen import builds
+from torchxai.metrics import (
+    aopc,
+    completeness,
+    complexity_entropy,
+    complexity_sundararajan,
+    effective_complexity,
+    faithfulness_corr,
+    faithfulness_estimate,
+    infidelity,
+    input_invariance,
+    monotonicity,
+    monotonicity_corr_and_non_sens,
+    sensitivity_max_and_avg,
+    sensitivity_n,
+    sparseness,
+)
+from torchxai.metrics._utils.perturbation import (
+    default_fixed_baseline_perturb_func,
+    default_infidelity_perturb_fn,
+)
+from torchxai.metrics.complexity.complexity_entropy import (
+    complexity_entropy_feature_grouped,
+)
+from torchxai.metrics.complexity.complexity_sundararajan import (
+    complexity_sundararajan_feature_grouped,
+)
+from torchxai.metrics.complexity.sparseness import sparseness_feature_grouped
+
+from atria_insights.metrics.torchxai_metric import TorchXAIMetric
+from atria_insights.registry import EXPLAINER_METRIC
+
+# axiomatic
+EXPLAINER_METRIC.register(
+    name="axiomatic/" + completeness.__name__,
+    metric_func=builds(
+        completeness,
+        populate_full_signature=True,
+        zen_partial=True,
+    ),
+)(TorchXAIMetric)
+EXPLAINER_METRIC.register(
+    name="axiomatic/" + input_invariance.__name__,
+    metric_func=builds(
+        input_invariance,
+        populate_full_signature=True,
+        zen_partial=True,
+        return_intermediate_results=False,
+    ),
+)(TorchXAIMetric)
+EXPLAINER_METRIC.register(
+    name="axiomatic/" + monotonicity_corr_and_non_sens.__name__,
+    metric_func=builds(
+        monotonicity_corr_and_non_sens,
+        populate_full_signature=True,
+        zen_partial=True,
+        perturb_func=builds(
+            default_fixed_baseline_perturb_func,
+            populate_full_signature=True,
+            zen_partial=False,
+        ),
+        return_intermediate_results=False,
+        n_perturbations_per_feature=10,
+        max_features_processed_per_batch=100,
+        percentage_feature_removal_per_step=0.0,
+        zero_attribution_threshold=1.0e-05,
+        zero_variance_threshold=1.0e-05,
+        use_percentage_attribution_threshold=True,
+    ),
+)(TorchXAIMetric)
+
+# complexity
+EXPLAINER_METRIC.register(
+    name="complexity/" + complexity_entropy.__name__,
+    metric_func=builds(
+        complexity_entropy,
+        populate_full_signature=True,
+        zen_partial=True,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + complexity_entropy_feature_grouped.__name__,
+    metric_func=builds(
+        complexity_entropy_feature_grouped,
+        populate_full_signature=True,
+        zen_partial=True,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + complexity_sundararajan.__name__,
+    metric_func=builds(
+        complexity_sundararajan,
+        populate_full_signature=True,
+        zen_partial=True,
+        eps=1.0e-3,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + complexity_sundararajan_feature_grouped.__name__,
+    metric_func=builds(
+        complexity_sundararajan_feature_grouped,
+        populate_full_signature=True,
+        zen_partial=True,
+        eps=1.0e-3,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + effective_complexity.__name__,
+    metric_func=builds(
+        effective_complexity,
+        populate_full_signature=True,
+        zen_partial=True,
+        perturb_func=builds(
+            default_fixed_baseline_perturb_func,
+            populate_full_signature=True,
+            zen_partial=False,
+        ),
+        max_features_processed_per_batch=100,
+        n_perturbations_per_feature=1,
+        percentage_feature_removal_per_step=0.01,  # 1% of the features will be removed together in each step
+        zero_variance_threshold=1.0e-01,
+        show_progress=True,
+        return_ratio=True,
+        return_intermediate_results=False,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + sparseness.__name__,
+    metric_func=builds(
+        sparseness,
+        populate_full_signature=True,
+        zen_partial=True,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="complexity/" + sparseness_feature_grouped.__name__,
+    metric_func=builds(
+        sparseness_feature_grouped,
+        populate_full_signature=True,
+        zen_partial=True,
+    ),
+)(TorchXAIMetric)
+
+# faithfulness
+EXPLAINER_METRIC.register(
+    name="faithfulness/" + aopc.__name__,
+    metric_func=builds(
+        aopc,
+        populate_full_signature=True,
+        zen_partial=True,
+        max_features_processed_per_batch=100,
+        total_feature_bins=100,
+        n_random_perms=5,
+        show_progress=True,
+    ),
+)(TorchXAIMetric)
+
+for n_features_perturbed in [2, 4, 6]:
+    EXPLAINER_METRIC.register(
+        name="faithfulness/" + faithfulness_corr.__name__ + f"_{n_features_perturbed}",
+        metric_func=builds(
+            faithfulness_corr,
+            populate_full_signature=True,
+            zen_partial=True,
+            perturb_func=builds(
+                default_fixed_baseline_perturb_func,
+                populate_full_signature=True,
+                zen_partial=False,
+            ),
+            return_intermediate_results=False,
+            max_examples_per_batch=100,
+            n_perturb_samples=200,
+            percent_features_perturbed=n_features_perturbed / 10,
+            show_progress=True,
+        ),
+    )(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="faithfulness/" + faithfulness_estimate.__name__,
+    metric_func=builds(
+        faithfulness_estimate,
+        populate_full_signature=True,
+        zen_partial=True,
+        max_features_processed_per_batch=100,
+        show_progress=True,
+        percentage_feature_removal_per_step=0.01,  # 1% of the features will be removed together in each step
+        return_intermediate_results=False,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="faithfulness/" + infidelity.__name__,
+    metric_func=builds(
+        infidelity,
+        populate_full_signature=True,
+        zen_partial=True,
+        perturb_func=builds(
+            default_infidelity_perturb_fn,
+            populate_full_signature=True,
+            zen_partial=False,
+            noise_scale=0.1,
+        ),
+        max_examples_per_batch=100,
+        n_perturb_samples=200,
+    ),
+)(TorchXAIMetric)
+
+EXPLAINER_METRIC.register(
+    name="faithfulness/" + monotonicity.__name__,
+    metric_func=builds(
+        monotonicity,
+        populate_full_signature=True,
+        zen_partial=True,
+        max_features_processed_per_batch=100,
+        percentage_feature_removal_per_step=0.01,  # 1% of the features will be removed together in each step
+        show_progress=True,
+    ),
+)(TorchXAIMetric)
+
+for n_features_perturbed in [2, 4, 6]:
+    EXPLAINER_METRIC.register(
+        name="faithfulness/"
+        + sensitivity_n.__name__
+        + f"_{n_features_perturbed}_normalized",
+        metric_func=builds(
+            sensitivity_n,
+            populate_full_signature=True,
+            zen_partial=True,
+            max_examples_per_batch=100,
+            n_perturb_samples=50,
+            normalize=True,
+            n_features_perturbed=n_features_perturbed / 10,
+        ),
+    )(TorchXAIMetric)
+
+# robustness
+EXPLAINER_METRIC.register(
+    name="robustness/" + sensitivity_max_and_avg.__name__,
+    metric_func=builds(
+        sensitivity_max_and_avg,
+        populate_full_signature=True,
+        zen_partial=True,
+        max_examples_per_batch=100,
+        perturb_radius=0.02,
+        n_perturb_samples=10,
+        norm_ord="fro",
+    ),
+)(TorchXAIMetric)
