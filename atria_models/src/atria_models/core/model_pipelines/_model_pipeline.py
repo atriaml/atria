@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, Generic, Literal
 
 from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import TensorDataModel
-from atria_types._common import TrainingStage
 from atria_types._datasets import DatasetLabels
 
 from atria_models.core.model_pipelines._common import T_ModelPipelineConfig
@@ -82,7 +81,9 @@ class ModelPipeline(
         return {}
 
     def build_metrics(
-        self, stage: TrainingStage, device: torch.device | str = "cpu"
+        self,
+        stage: Literal["train", "validation", "test"],
+        device: torch.device | str = "cpu",
     ) -> dict[str, Metric]:
         return {}
 
@@ -98,7 +99,7 @@ class ModelPipeline(
         batch: TensorDataModel,
         evaluation_engine: Engine | None = None,
         training_engine: Engine | None = None,
-        stage: TrainingStage = TrainingStage.test,
+        stage: Literal["validation", "test"] = "test",
         **kwargs,
     ) -> ModelOutput:
         raise NotImplementedError(

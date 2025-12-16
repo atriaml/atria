@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from atria_logger import get_logger
 from atria_transforms.data_types._document import DocumentTensorDataModel
-from atria_types._common import TrainingStage
 from torch._tensor import Tensor
 
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
@@ -44,7 +43,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         return self._output_transform(loss=loss, model_output=model_output, batch=batch)
 
     def evaluation_step(  # type: ignore[override]
-        self, batch: DocumentTensorDataModel, stage: TrainingStage, **kwargs
+        self,
+        batch: DocumentTensorDataModel,
+        stage: Literal["validation", "test"],
+        **kwargs,
     ) -> ModelOutput:
         inputs = self._input_transform(batch, require_labels=True)
         model_output = self._model(**inputs)

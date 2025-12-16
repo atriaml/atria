@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from atria_logger import get_logger
 from atria_metrics.registry.classification import (
@@ -13,7 +13,6 @@ from atria_metrics.registry.classification import (
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_transforms.tfs._image_processor._base import ImageProcessor
-from atria_types._common import TrainingStage
 from pydantic import BaseModel, Field, model_validator
 
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
@@ -116,7 +115,9 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
         self._loss_fn_eval = nn.CrossEntropyLoss()
 
     def build_metrics(
-        self, stage: TrainingStage, device: torch.device | str = "cpu"
+        self,
+        stage: Literal["train", "validation", "test"],
+        device: torch.device | str = "cpu",
     ) -> dict[str, Metric]:
         if self.config.metrics is None:
             return {}
@@ -147,7 +148,7 @@ class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
     def evaluation_step(  # type: ignore[override]
         self,
         batch: ImageTensorDataModel | DocumentTensorDataModel,
-        stage: TrainingStage,
+        stage: Literal["validation", "test"],
         **kwargs,
     ) -> ModelOutput:
         assert batch.label is not None, "Labels cannot be None"
