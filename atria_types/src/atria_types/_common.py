@@ -77,30 +77,6 @@ class ConfigType(str, enum.Enum):
     task_pipeline = "task_pipeline"
 
 
-class TrainingStage(str, enum.Enum):
-    """
-    Defines constants for various training stages.
-
-    Attributes:
-        train (str): Represents the training stage.
-        validation (str): Represents the validation stage.
-        test (str): Represents the testing stage.
-        inference (str): Represents the inference stage.
-        predict (str): Represents the prediction stage.
-        visualization (str): Represents the visualization stage.
-
-    Methods:
-        get(name: str) -> Any: Retrieves the value of a training stage by its name.
-    """
-
-    train = "train"
-    validation = "validation"
-    test = "test"
-    inference = "inference"
-    predict = "predict"
-    visualization = "visualization"
-
-
 class GANStage:
     """
     Defines constants for GAN-specific training stages.

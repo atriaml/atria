@@ -12,7 +12,6 @@ if TYPE_CHECKING:
         ModelType,
         OCRType,
         TaskType,
-        TrainingStage,
     )
     from ._data_instance._base import BaseDataInstance
     from ._data_instance._document_instance import DocumentInstance
@@ -52,7 +51,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "ModelType",
             "OCRType",
             "TaskType",
-            "TrainingStage",
+            "ExecutionStage",
         ],
         "_data_instance._base": ["BaseDataInstance"],
         "_data_instance._document_instance": ["DocumentInstance"],
