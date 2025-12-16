@@ -10,6 +10,7 @@ from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
+from ignite.metrics import Metric
 from torchxai.data_types import (
     ExplanationInputs,
     ExplanationState,
@@ -46,7 +47,7 @@ class ExplainableModelPipeline(
 
         # build explainer
         self._explainer = self.config.explainer_config.build(
-            model=self._model_pipeline._model, is_multi_target=multi_target
+            model=self._model_pipeline._model, multi_target=multi_target
         )
 
         # build feature segmentor
@@ -96,7 +97,9 @@ class ExplainableModelPipeline(
     ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
         """Generate baselines for the explainer."""
         if isinstance(explained_inputs, torch.Tensor):
-            if train_baselines is None or not isinstance(train_baselines, torch.Tensor):
+            if train_baselines is not None and not isinstance(
+                train_baselines, torch.Tensor
+            ):
                 raise ValueError(
                     "Explained inputs are a tensor, but train_baselines is not a tensor. Found: "
                     f"{explained_inputs=},"
@@ -108,7 +111,9 @@ class ExplainableModelPipeline(
                 else self._baseline_generator(explained_inputs)
             )
         else:
-            if train_baselines is None or not isinstance(train_baselines, OrderedDict):
+            if train_baselines is not None and not isinstance(
+                train_baselines, OrderedDict
+            ):
                 raise ValueError(
                     "Explained inputs are an OrderedDict, but train_baselines is not an OrderedDict. Found: "
                     f"{explained_inputs=},"
@@ -178,6 +183,10 @@ class ExplainableModelPipeline(
         for arg in self._explainer_args:
             kwargs[arg] = getattr(explanation_inputs, arg)
 
+        logger.debug(
+            f"Explainer forward with args: {', '.join(f'{k}={v}' for k, v in kwargs.items())}"
+        )
+
         if self.config.iterative_computation and isinstance(
             explanation_inputs.target, list
         ):
@@ -211,3 +220,25 @@ class ExplainableModelPipeline(
             batch=batch, target=target, train_baselines=train_baselines
         )
         return self._explainer_forward(explanation_inputs=explainer_step_inputs)
+
+    def build_metrics(self, device: torch.device | str = "cpu") -> dict[str, Metric]:
+        return {}
+
+    # def build_metrics(
+    #     self,
+    #     stage: Literal[train, validation, test],
+    #     device: torch.device | str = "cpu",
+    # ) -> dict[str, Metric]:
+    #     if self.config.metrics is None:
+    #         return {}
+    #     assert self._labels.classification is not None, (
+    #         "Labels must be provided for classification tasks."
+    #     )
+    #     metrics = {}
+    #     for metric_config in self.config.metrics:
+    #         logger.info(f"Building metric: {metric_config}")
+    #         metric = metric_config.build(
+    #             device=device, num_classes=len(self._labels.classification), stage=stage
+    #         )
+    #         metrics[metric_config.name] = metric
+    #     return metrics

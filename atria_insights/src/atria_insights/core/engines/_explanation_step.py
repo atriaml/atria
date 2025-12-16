@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+import torch
 from atria_logger import get_logger
 from atria_ml.training.engine_steps._base import EngineStep
 from atria_transforms.core._data_types._base import TensorDataModel
 from ignite.engine import Engine
+from torch.cuda.amp.autocast_mode import autocast
 
 from atria_insights.core.model_pipelines._model_pipeline import ExplainableModelPipeline
-
-if TYPE_CHECKING:
-    import torch
 
 logger = get_logger(__name__)
 
@@ -36,9 +35,6 @@ class ExplanationStep(EngineStep):
     def __call__(
         self, engine: Engine, batch: TensorDataModel
     ) -> Any | tuple[torch.Tensor]:
-        import torch
-        from torch.cuda.amp.autocast_mode import autocast
-
         self._x_model_pipeline.ops.eval()
         with torch.no_grad():
             with autocast(enabled=self._with_amp):

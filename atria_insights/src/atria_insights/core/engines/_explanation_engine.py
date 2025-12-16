@@ -32,7 +32,13 @@ class ExplanationEngine(
     def __init__(
         self, config: ExplanationEngineConfig, deps: ExplanationEngineDependencies
     ) -> None:
-        super().__init__(config=config, deps=deps)
+        self._config = config
+        self._deps = deps
+        self._engine_step, self._engine = self._build_engine()
+        self._x_metrics = self._deps.x_model_pipeline.build_metrics(
+            # stage=self._engine_step.name, device=self._deps.device
+        )
+        self._attach_handlers()
 
     def _build_engine_step(self) -> EngineStep:
         return ExplanationStep(
@@ -52,8 +58,8 @@ class ExplanationEngine(
             if idist.device() != torch.device("cpu"):
                 GpuInfo().attach(self._engine, name="gpu")
 
-        if self._metrics is not None and len(self._metrics) > 0:
-            for metric_name, metric in self._metrics.items():
+        if self._x_metrics is not None and len(self._x_metrics) > 0:
+            for metric_name, metric in self._x_metrics.items():
                 logger.info(
                     f"Attaching metric '{metric_name}' to engine '{self.__class__.__name__}'"
                 )

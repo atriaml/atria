@@ -3,13 +3,13 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from atria_insights.core.explainers._base import ExplainerConfig
-from atria_insights.registry import EXPLAINER
+from atria_insights.core.explainers._registry_group import EXPLAINER
 
 
 @EXPLAINER.register("grad/saliency")
 class SaliencyExplainerConfig(ExplainerConfig):
     type: Literal["grad/saliency"] = "grad/saliency"
-    module_path: str | None = "torchxai.explainers._grad.saliency.SaliencyExplainer"
+    module_path: str | None = "torchxai.explainers.SaliencyExplainer"
 
 
 @EXPLAINER.register("grad/integrated_gradients")

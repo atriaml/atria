@@ -6,7 +6,7 @@ from atria_metrics import MetricConfig
 from atria_registry import ModuleConfig
 from atria_registry._module_base import BaseModel
 from atria_transforms.core._tfs._base import DataTransform
-from pydantic import SerializeAsAny
+from pydantic import ConfigDict, SerializeAsAny
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
 
@@ -18,6 +18,8 @@ _REQUIRED_DEFAULT = "???"
 
 
 class ModelConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
+
     # builder type to use for model construction
     builder_type: ModelBuilderType = ModelBuilderType.timm
     bn_to_gn: bool = False

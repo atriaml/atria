@@ -18,10 +18,12 @@ logger = get_logger(__name__)
 
 
 class ExplainerRunConfig(RepresentationMixin, BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
-    env: RuntimeEnvConfig = Field(default_factory=RuntimeEnvConfig)
-    data: DataConfig = Field(default_factory=DataConfig)
-    x_model_pipeline: ExplainableModelPipelineConfig
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, frozen=True, use_enum_values=True
+    )
+    env_config: RuntimeEnvConfig = Field(default_factory=RuntimeEnvConfig)
+    data_config: DataConfig = Field(default_factory=DataConfig)
+    x_model_pipeline_config: ExplainableModelPipelineConfig
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     test_run: bool = False
     use_fixed_batch_iterator: bool = False
@@ -30,7 +32,7 @@ class ExplainerRunConfig(RepresentationMixin, BaseModel):
     with_amp: bool = False
 
     def build_dataset(self) -> Dataset:
-        return self.data.build_dataset()
+        return self.data_config.build_dataset()
 
     def state_dict(self) -> dict:
         return self.model_dump()
@@ -43,7 +45,7 @@ class ExplainerRunConfig(RepresentationMixin, BaseModel):
         config_hash = hashlib.sha256(
             json.dumps(params, sort_keys=True).encode()
         ).hexdigest()[:8]
-        return Path(self.env.run_dir) / f"outputs-{config_hash}.json"
+        return Path(self.env_config.run_dir) / f"outputs-{config_hash}.json"
 
     def metrics_file_exists(self) -> bool:
         output_file_path = self.get_metrics_file_path()
@@ -57,7 +59,7 @@ class ExplainerRunConfig(RepresentationMixin, BaseModel):
 
     def save_to_json(self, file_path: str | Path | None = None) -> None:
         if file_path is None:
-            file_path = Path(self.env.run_dir) / "config.json"
+            file_path = Path(self.env_config.run_dir) / "config.json"
         else:
             file_path = Path(file_path)
 

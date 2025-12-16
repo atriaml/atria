@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated, Any, Literal
 
 import torch
@@ -11,6 +12,7 @@ class GridSegmenter:
         self.cell_size = cell_size
 
     def __call__(self, images: torch.Tensor) -> torch.Tensor:
+        assert images.dim() == 4, "Input images must be a 4D tensor (B x C x H x W)"
         feature_mask = []
         for image in images:
             # image dimensions are C x H x H
@@ -30,17 +32,28 @@ class GridSegmenter:
         return torch.stack(feature_mask)
 
 
+class ScikitImageSegmenter:
+    def __init__(self, segmenter: SegmentationAlgorithm) -> None:
+        self._segmenter = segmenter
+
+    def __call__(self, images: torch.Tensor) -> torch.Tensor:
+        assert images.dim() == 4, "Input images must be a 4D tensor (B x C x H x W)"
+        np_images = images.permute(0, 2, 3, 1).cpu().numpy()
+        feature_masks = []
+        for np_image in np_images:
+            mask = self._segmenter(np_image)
+            feature_masks.append(torch.tensor(mask, device=images.device).unsqueeze(0))
+        return torch.stack(feature_masks)
+
+
 class FeatureSegmentorConfig(ModuleConfig):
     __builds_with_kwargs__: bool = True
     type: Literal["grid", "quickshift", "felzenszwalb", "slic"]
 
-    def build(  # type: ignore
-        self, **kwargs: Any
-    ) -> GridSegmenter | SegmentationAlgorithm:
-        if self.type == "grid":
-            return GridSegmenter(**kwargs)
-        else:
-            return SegmentationAlgorithm(self.type, **kwargs)
+
+class NoOpSegmenterConfig(ModuleConfig):
+    def build(self, **kwargs: Any) -> Callable:
+        return lambda x: x
 
 
 class GridSegmenterConfig(ModuleConfig):
@@ -56,12 +69,14 @@ class QuickshiftSegmenterConfig(ModuleConfig):
     max_dist: int = 200
     ratio: float = 0.2
 
-    def build(self, **kwargs: Any) -> SegmentationAlgorithm:
-        return SegmentationAlgorithm(
-            "quickshift",
-            kernel_size=self.kernel_size,
-            max_dist=self.max_dist,
-            ratio=self.ratio,
+    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
+        return ScikitImageSegmenter(
+            segmenter=SegmentationAlgorithm(
+                "quickshift",
+                kernel_size=self.kernel_size,
+                max_dist=self.max_dist,
+                ratio=self.ratio,
+            )
         )
 
 
@@ -71,9 +86,14 @@ class FelzenszwalbSegmenterConfig(ModuleConfig):
     sigma: float = 0.5
     min_size: int = 50
 
-    def build(self, **kwargs: Any) -> SegmentationAlgorithm:
-        return SegmentationAlgorithm(
-            "felzenszwalb", scale=self.scale, sigma=self.sigma, min_size=self.min_size
+    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
+        return ScikitImageSegmenter(
+            segmenter=SegmentationAlgorithm(
+                "felzenszwalb",
+                scale=self.scale,
+                sigma=self.sigma,
+                min_size=self.min_size,
+            )
         )
 
 
@@ -83,16 +103,19 @@ class SlicSegmenterConfig(ModuleConfig):
     compactness: float = 10.0
     sigma: float = 1.0
 
-    def build(self, **kwargs: Any) -> SegmentationAlgorithm:
-        return SegmentationAlgorithm(
-            "slic",
-            n_segments=self.n_segments,
-            compactness=self.compactness,
-            sigma=self.sigma,
+    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
+        return ScikitImageSegmenter(
+            segmenter=SegmentationAlgorithm(
+                "slic",
+                n_segments=self.n_segments,
+                compactness=self.compactness,
+                sigma=self.sigma,
+            )
         )
 
 
 FeatureSegmentorConfigType = Annotated[
+    NoOpSegmenterConfig,
     GridSegmenterConfig,
     QuickshiftSegmenterConfig,
     FelzenszwalbSegmenterConfig,

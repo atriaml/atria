@@ -8,6 +8,7 @@ from atria_logger import get_logger
 from atria_models.core.model_pipelines._image_pipeline import ImageModelPipeline
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
+from atria_types._datasets import DatasetLabels
 from torchxai.data_types import (
     ExplanationTargetType,
     SingleTargetAcrossBatch,
@@ -54,12 +55,20 @@ class ExplainableImageModelPipeline(
     __abstract__ = True
     __config__ = ExplainableImageModelPipelineConfig
 
+    def __init__(
+        self, config: ExplainableImageModelPipelineConfig, labels: DatasetLabels
+    ) -> None:
+        super().__init__(config=config, labels=labels)
+        assert isinstance(self._model_pipeline, ImageModelPipeline), (
+            f"{self.__class__.__name__} can only be used with ImageModelPipeline. Found {self._model_pipeline=}"
+        )
+
     def _model_forward(
         self, batch: ImageTensorDataModel | DocumentTensorDataModel
     ) -> torch.Tensor:
         from torch.nn.functional import softmax
 
-        model_outputs = super()._model_forward(batch)
+        model_outputs = self._model_pipeline._model(batch.image)
         if isinstance(model_outputs, dict):
             logits = model_outputs["logits"]
         elif hasattr(model_outputs, "logits"):
@@ -81,7 +90,10 @@ class ExplainableImageModelPipeline(
                 "Ground truth labels are required for explanation target strategies other than 'predicted'."
             )
             return SingleTargetPerSample(indices=batch.label.tolist())
-        elif self.config.explanation_target_strategy == ExplanationTargetStrategy.all:
+        elif (
+            self.config.explanation_target_strategy
+            == ExplanationTargetStrategy.predicted
+        ):
             predictions = model_outputs.argmax(dim=-1)
             return SingleTargetPerSample(indices=predictions.tolist())
         else:
@@ -99,5 +111,5 @@ class ExplainableImageModelPipeline(
 
 
 @EXPLAINABLE_MODEL_PIPELINE.register("image_classification")
-class ExplainableImageClassificationPipeline(ImageModelPipeline):
+class ExplainableImageClassificationPipeline(ExplainableImageModelPipeline):
     __config__ = ExplainableImageModelPipelineConfig

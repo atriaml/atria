@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from atria_logger import get_logger
 from PIL.Image import Image as PILImage
-from pydantic import model_validator
 
 from atria_transforms.core import DataTransform
 from atria_transforms.registry import DATA_TRANSFORM
@@ -27,41 +28,33 @@ class StandardImageTransform(DataTransform[PILImage]):
     to_rgb: bool = True  # Convert image to RGB if it's in a different mode
     do_normalize: bool = True  # Normalize the image to ImageNet mean and std
     do_resize: bool = True  # Resize the image to 224x224
-    use_imagenet_mean_std: bool = False
+    stats: Literal["imagenet", "standard", "openai_clip", "custom"] = "imagenet"
     resize_height: int = 224
     resize_width: int = 224
     image_mean: list[float] | None = None
     image_std: list[float] | None = None
 
-    @model_validator(mode="after")
-    def validate_image_mean_std(self):
-        image_mean = (
-            (
-                IMAGENET_STANDARD_MEAN
-                if not self.use_imagenet_mean_std
-                else IMAGENET_DEFAULT_MEAN
-            )
-            if self.image_mean is None
-            else self.image_mean
-        )
-
-        image_std = (
-            (
-                IMAGENET_STANDARD_STD
-                if not self.use_imagenet_mean_std
-                else IMAGENET_DEFAULT_STD
-            )
-            if self.image_std is None
-            else self.image_std
-        )
-
-        # return a new frozen instance
-        return self.model_copy(
-            update={"image_mean": image_mean, "image_std": image_std}
-        )
-
     def model_post_init(self, context) -> None:
         self._transform = None
+
+    def _get_stats(self) -> tuple[list[float], list[float]]:
+        if self.stats == "imagenet":
+            return IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+        elif self.stats == "standard":
+            return IMAGENET_STANDARD_MEAN, IMAGENET_STANDARD_STD
+        elif self.stats == "clip":
+            return OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
+        elif self.stats == "custom":
+            if self.image_mean is None or self.image_std is None:
+                raise ValueError(
+                    "For 'custom' stats, both image_mean and image_std must be provided."
+                )
+            return self.image_mean, self.image_std
+        else:
+            raise ValueError(
+                f"Unknown stats_type: {self.stats}. Must be one of "
+                "'imagenet', 'standard', 'clip', 'custom'."
+            )
 
     def _prepare_image_transform(self):
         from torchvision.transforms import Compose, Normalize, Resize, ToTensor
@@ -76,7 +69,8 @@ class StandardImageTransform(DataTransform[PILImage]):
                 )
             ]
         if self.do_normalize:
-            transform += [Normalize(mean=self.image_mean, std=self.image_std)]
+            mean, std = self._get_stats()
+            transform += [Normalize(mean=mean, std=std)]
         transform = Compose(transform)
         return transform
 

@@ -1,10 +1,11 @@
 from enum import Enum
 from typing import Annotated, Any
 
+from pydantic import BaseModel, model_validator
+
 from atria_types._base._data_model import BaseDataModel
 from atria_types._generic._bounding_box import BoundingBox
 from atria_types._pydantic import OptFloatField, OptStrField, TableSchemaMetadata
-from pydantic import BaseModel, model_validator
 
 
 class OCRLevel(str, Enum):
@@ -113,6 +114,7 @@ class DocumentContent(BaseDataModel):
         ]
 
     @model_validator(mode="before")
+    @classmethod
     def validate_content(cls, values: Any) -> Any:
         if values.get("text") is None and values.get("text_elements") is not None:
             texts = [te.text for te in values["text_elements"] if te.text is not None]

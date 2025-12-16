@@ -23,7 +23,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     __version__ = "0.0.0"
     __builds_with_kwargs__ = False
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
     module_path: str | None = None
 
     @property
@@ -43,7 +43,8 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     def build(self, **kwargs) -> Any:
         assert self.module_path is not None, (
-            "module_path must be set to build the module."
+            "module_path must be set to build the module for config "
+            f"{self.__class__.__name__}."
         )
         module = _resolve_module_from_path(self.module_path)
         if isinstance(module, type):
@@ -96,7 +97,7 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig]):
 
 class PydanticConfigurableModule(RepresentationMixin, BaseModel):
     __version__ = "0.0.0"
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
 
     @property
     def kwargs(self) -> dict[str, Any]:

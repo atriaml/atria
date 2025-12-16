@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -10,7 +11,7 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
-from atria_ml.training.engines._exceptions import NoCheckpointFoundError
+from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
 
 from atria_insights.core.configs.explainer_config import ExplainerRunConfig
@@ -49,7 +50,8 @@ class ModelExplainer:
 
         # initialize training
         _initialize_torch(
-            seed=self._config.env.seed, deterministic=self._config.env.deterministic
+            seed=self._config.env_config.seed,
+            deterministic=self._config.env_config.deterministic,
         )
 
         # initialize torch device (cpu or gpu)
@@ -62,14 +64,16 @@ class ModelExplainer:
         logger.info(
             f"Run configuration:\n{yaml.dump(OmegaConf.to_container(OmegaConf.create(self._config.model_dump())), indent=4)}"
         )
-        logger.info(f"Seed set to {self._config.env.seed} on device: {self._device}")
+        logger.info(
+            f"Seed set to {self._config.env_config.seed} on device: {self._device}"
+        )
 
     def _setup_logging(self) -> TensorboardLogger | None:
         import ignite.distributed as idist
         from ignite.handlers import TensorboardLogger
 
         if idist.get_rank() == 0:
-            log_dir = Path(self._config.env.run_dir) / "tensorboard"
+            log_dir = Path(self._config.env_config.run_dir) / "tensorboard"
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
         else:
@@ -80,9 +84,9 @@ class ModelExplainer:
         import torch
 
         test_dataloader = self._state.data_pipeline.test_dataloader(
-            batch_size=self._config.data.eval_batch_size,
-            num_workers=self._config.data.num_workers,
-            pin_memory=self._config.data.pin_memory,
+            batch_size=self._config.data_config.eval_batch_size,
+            num_workers=self._config.data_config.num_workers,
+            pin_memory=self._config.data_config.pin_memory,
         )
         return ExplanationEngine(
             config=ExplanationEngineConfig(
@@ -96,7 +100,7 @@ class ModelExplainer:
                 x_model_pipeline=self._state.x_model_pipeline,
                 dataloader=test_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.run_dir,
+                output_dir=self._config.env_config.run_dir,
                 tb_logger=self._state.tb_logger,
             ),
         )
@@ -108,7 +112,7 @@ class ModelExplainer:
         tb_logger = self._setup_logging()
 
         # build dataset
-        dataset = self._config.data.build_dataset()
+        dataset = self._config.data_config.build_dataset()
 
         # load labels
         labels = dataset.metadata.dataset_labels
@@ -117,14 +121,14 @@ class ModelExplainer:
         logger.info(f"Dataset:\n{dataset}")
 
         # build model pipeline
-        x_model_pipeline = self._config.x_model_pipeline.build(labels=labels)
+        x_model_pipeline = self._config.x_model_pipeline_config.build(labels=labels)
 
         # log model pipeline
         logger.info(x_model_pipeline.ops.summarize())
 
         # get model transforms
-        train_transform = x_model_pipeline.config.train_transform
-        eval_transform = x_model_pipeline.config.eval_transform
+        train_transform = x_model_pipeline.config.model_pipeline_config.train_transform
+        eval_transform = x_model_pipeline.config.model_pipeline_config.eval_transform
         if dataset.train is not None:
             dataset.train.output_transform = train_transform
         if dataset.validation is not None:
@@ -143,15 +147,12 @@ class ModelExplainer:
 
     def run(self) -> None:
         explanation_engine = self._build_explanation_engine()
-        try:
-            state = explanation_engine.run()
-        except NoCheckpointFoundError:
-            pass  # ignore if no checkpoint found
+        state = explanation_engine.run()
+        print("state", state.output)
+        metrics = _format_metrics_for_logging(state.metrics)
+        logger.info("Final explanation metrics:")
+        logger.info(json.dumps(metrics, indent=4))
 
-        # metrics = _format_metrics_for_logging(metrics)
-        # logger.info("Test metrics:")
-        # logger.info(json.dumps(metrics, indent=4))
-
-        # # serialize test metrics
-        # self._config.dump_metrics_file(data=metrics)  #  type: ignore
-        # return metrics
+        # serialize test metrics
+        self._config.dump_metrics_file(data=metrics)  #  type: ignore
+        return metrics
