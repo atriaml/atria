@@ -17,9 +17,7 @@ logger = get_logger(__name__)
 
 
 class TestEngineConfig(EngineConfig):
-    use_fixed_batch_iterator: bool = False
     save_model_outputs_to_disk: bool = False
-    with_amp: bool = False
 
 
 class TestEngineDependencies(EngineDependencies):

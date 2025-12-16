@@ -271,7 +271,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
         # initialize the progress bar
         progress_bar = ProgressBar(
-            desc=f"Stage [{self._engine_step.stage.value}]", persist=True
+            desc=f"Stage [{self._engine_step.name}]", persist=True
         )
 
         progress_bar.attach(
@@ -300,7 +300,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                 logger=logger,
                 epoch=engine.state.epoch,
                 elapsed=engine.state.times["EPOCH_COMPLETED"],
-                tag=self._engine_step.stage.value,
+                tag=self._engine_step.name,
                 metrics=metrics,
             )
 

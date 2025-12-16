@@ -56,7 +56,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         self._metrics: dict[str, Metric] | None = None
         self._engine_step, self._engine = self._build_engine()
         self._metrics = self._deps.model_pipeline.build_metrics(
-            stage=self._engine_step.stage, device=self._deps.device
+            stage=self._engine_step.name, device=self._deps.device
         )
         self._attach_handlers()
 
@@ -124,7 +124,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
         # initialize the progress bar
         progress_bar = ProgressBar(
-            desc=f"Stage [{self._engine_step.stage.value}]", persist=True
+            desc=f"Stage [{self._engine_step.name}]", persist=True
         )
 
         if idist.get_rank() == 0:
@@ -152,7 +152,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                     logger=logger,
                     epoch=engine.state.epoch,
                     elapsed=engine.state.times["EPOCH_COMPLETED"],
-                    tag=self._engine_step.stage.value,
+                    tag=self._engine_step.name,
                     metrics=engine.state.metrics,
                 )
 
@@ -238,7 +238,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                 alpha=0.98,
                 output_transform=partial(_extract_output, index=index, key=key),
                 epoch_bound=True,
-            ).attach(self._engine, f"{self._engine_step.stage.value}/running_avg_{key}")
+            ).attach(self._engine, f"{self._engine_step.name}/running_avg_{key}")
 
         if self._config.logging.log_gpu_stats:
             if idist.device() != torch.device("cpu"):
@@ -252,9 +252,9 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                 metric.attach(
                     self._engine,
                     (
-                        f"{self._engine_step.stage.value}/{metric_name}"
+                        f"{self._engine_step.name}/{metric_name}"
                         if self._config.metric_logging_prefix is None
-                        else f"{self._engine_step.stage.value}/{self._config.metric_logging_prefix}/{metric_name}"
+                        else f"{self._engine_step.name}/{self._config.metric_logging_prefix}/{metric_name}"
                     ),
                     usage=EpochWise(),
                 )
