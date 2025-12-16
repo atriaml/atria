@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = "==3.11.*"
 dependencies = [
     "atria-datasets",
+    "atria-insights",
     "atria-logger",
     "atria-metrics",
     "atria-ml",
@@ -19,7 +20,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["atria_logger", "atria_types", "atria_datasets", "atria_registry", "atria_transforms", "atria_models", "atria_ml", "atria_metrics"]
+packages = ["atria_logger", "atria_types", "atria_datasets", "atria_registry", "atria_transforms", "atria_models", "atria_ml", "atria_metrics", "atria_insights"]
 
 [tool.uv.sources]
 atria-logger = { path = "atria_logger", editable = true }
@@ -30,6 +31,7 @@ atria-models = { path = "atria_models", editable = true }
 atria-ml = { path = "atria_ml", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-metrics = { path = "atria_metrics", editable = true }
+atria-insights = { workspace = true, editable = true }
 
 [dependency-groups]
 dev = [
