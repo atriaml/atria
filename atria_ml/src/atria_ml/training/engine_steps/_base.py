@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_transforms.core._data_types._base import TensorDataModel
-from atria_types._common import TrainingStage
 
 if TYPE_CHECKING:
     import torch
@@ -34,14 +33,8 @@ class EngineStep(ABC):
         self._test_run = test_run
 
     @property
-    @abstractmethod
-    def stage(self) -> TrainingStage:
-        """
-        Abstract property to get the stage of the engine step.
-
-        Returns:
-            str: The stage of the engine step.
-        """
+    def name(self) -> str:
+        return self.__class__.__name__
 
     @abstractmethod
     def __call__(

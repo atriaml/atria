@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 from atria_logger import get_logger
 from atria_models import ModelPipeline
 from atria_transforms.core._data_types._base import TensorDataModel
-from atria_types._common import TrainingStage
 from torch import device
 
 from atria_ml.training.engine_steps._base import EngineStep
@@ -64,8 +63,8 @@ class ValidationStep(EvaluationStep):
         self._training_engine = training_engine
 
     @property
-    def stage(self) -> TrainingStage:
-        return TrainingStage.validation
+    def stage(self) -> str:
+        return "validation"
 
     def _model_step(
         self, engine: Engine, batch: TensorDataModel
@@ -74,7 +73,7 @@ class ValidationStep(EvaluationStep):
             evaluation_engine=engine,
             training_engine=self._training_engine,
             batch=batch,
-            stage=self.stage,
+            stage="validation",
         )
 
 
@@ -91,8 +90,8 @@ class VisualizationStep(EvaluationStep):
         self._training_engine = training_engine
 
     @property
-    def stage(self) -> TrainingStage:
-        return TrainingStage.visualization
+    def name(self) -> str:
+        return "visualization"
 
     def _model_step(
         self, engine: Engine, batch: TensorDataModel
@@ -101,27 +100,27 @@ class VisualizationStep(EvaluationStep):
             visualization_engine=engine,
             training_engine=self._training_engine,
             batch=batch,
-            stage=self.stage,
+            stage=self.name,
         )
 
 
 class TestStep(EvaluationStep):
     @property
-    def stage(self) -> TrainingStage:
-        return TrainingStage.test
+    def name(self) -> str:
+        return "test"
 
     def _model_step(
         self, engine: Engine, batch: TensorDataModel
     ) -> Any | tuple[torch.Tensor]:
         return self._model_pipeline.evaluation_step(
-            evaluation_engine=engine, batch=batch, stage=self.stage
+            evaluation_engine=engine, batch=batch, stage="test"
         )
 
 
 class PredictStep(EvaluationStep):
     @property
-    def stage(self) -> TrainingStage:
-        return TrainingStage.predict
+    def name(self) -> str:
+        return "predict"
 
     def _model_step(
         self, engine: Engine, batch: TensorDataModel

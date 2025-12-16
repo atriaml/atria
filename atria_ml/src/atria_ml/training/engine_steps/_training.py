@@ -7,7 +7,6 @@ from atria_logger import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.types.model_outputs import ModelOutput
 from atria_transforms.core._data_types._base import TensorDataModel
-from atria_types._common import TrainingStage
 
 from atria_ml.training.engine_steps._base import EngineStep
 
@@ -48,8 +47,8 @@ class TrainingStep(EngineStep):
         )
 
     @property
-    def stage(self) -> TrainingStage:
-        return TrainingStage.train
+    def stage(self) -> str:
+        return "train"
 
     def _validate_gradient_config(self) -> None:
         if self._gradient_config.gradient_accumulation_steps <= 0:
