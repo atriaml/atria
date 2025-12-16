@@ -15,9 +15,9 @@ class ExplainerConfig(ModuleConfig):
     grad_batch_size: int = 64
 
     def build(  # type: ignore
-        self, model: torch.nn.Module, is_multi_target: bool = False, **kwargs
+        self, model: torch.nn.Module, multi_target: bool = False, **kwargs
     ) -> Explainer:
-        return super().build(model=model, is_multi_target=is_multi_target, **kwargs)
+        return super().build(model=model, multi_target=multi_target, **kwargs)
 
 
 T_ExplainerConfig = TypeVar("T_ExplainerConfig", bound=ExplainerConfig)

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
 from atria_ml.training.engine_steps._base import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
 
-from atria_insights.explainer_pipelines.atria_explainer_pipeline import (
-    ExplanationPipeline,
-)
+from atria_insights.core.engines._explanation_step import ExplanationStep
+from atria_insights.core.model_pipelines._model_pipeline import ExplainableModelPipeline
 
 if TYPE_CHECKING:
     import torch
@@ -22,12 +22,8 @@ class ExplanationEngineConfig(EngineConfig):
 
 
 class ExplanationEngineDependencies(EngineDependencies):
-    explanation_pipeline: ExplanationPipeline
-    train_baselines: dict[str, torch.Tensor]
-
-
-class NoCheckpointFoundError(Exception):
-    pass
+    x_model_pipeline: ExplainableModelPipeline
+    train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None
 
 
 class ExplanationEngine(
@@ -40,7 +36,7 @@ class ExplanationEngine(
 
     def _build_engine_step(self) -> EngineStep:
         return ExplanationStep(
-            model_pipeline=self._deps.model_pipeline,
+            x_model_pipeline=self._deps.x_model_pipeline,
             device=self._deps.device,
             with_amp=self._config.with_amp,
             train_baselines=self._deps.train_baselines,

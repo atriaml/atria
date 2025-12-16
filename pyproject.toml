@@ -17,6 +17,7 @@ dependencies = [
     "coloredlogs>=15.0.1",
     "fire>=0.7.1",
     "jupytext>=1.18.1",
+    "torchxai",
 ]
 
 [tool.setuptools]
@@ -31,7 +32,8 @@ atria-models = { path = "atria_models", editable = true }
 atria-ml = { path = "atria_ml", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-metrics = { path = "atria_metrics", editable = true }
-atria-insights = { workspace = true, editable = true }
+atria-insights = { path= "atria_insights", editable = true }
+torchxai = { path = "../torchxai", editable = true }
 
 [dependency-groups]
 dev = [

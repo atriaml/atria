@@ -1,6 +1,6 @@
 from atria_registry import ModuleRegistry, RegistryGroup
 
-from atria_insights.explainers._base import ExplainerConfig
+from atria_insights.core.explainers._base import ExplainerConfig
 
 
 class ExplainersRegistryGroup(RegistryGroup[ExplainerConfig]):

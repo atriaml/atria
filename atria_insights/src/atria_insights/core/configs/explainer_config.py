@@ -6,16 +6,13 @@ from pathlib import Path
 
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_logger import get_logger
-from atria_ml.configs._base import (
-    DataConfig,
-    ModelPipelineConfig,
-    RuntimeEnvConfig,
-    pydantic_to_hydra,
-)
+from atria_ml.configs._base import DataConfig, RuntimeEnvConfig, pydantic_to_hydra
 from atria_ml.training._configs import LoggingConfig
 from atria_registry._module_base import BaseModel
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import ConfigDict, Field
+
+from atria_insights.core.model_pipelines._common import ExplainableModelPipelineConfig
 
 logger = get_logger(__name__)
 
@@ -24,7 +21,7 @@ class ExplainerRunConfig(RepresentationMixin, BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
     env: RuntimeEnvConfig = Field(default_factory=RuntimeEnvConfig)
     data: DataConfig = Field(default_factory=DataConfig)
-    model_pipeline: ModelPipelineConfig
+    x_model_pipeline: ExplainableModelPipelineConfig
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     test_run: bool = False
     use_fixed_batch_iterator: bool = False

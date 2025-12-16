@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal, TypeVar
 
 from atria_logger import get_logger
 from atria_metrics.registry.classification import (
@@ -81,8 +81,13 @@ class ImageModelPipelineConfig(ModelPipelineConfig):
         return values
 
 
-class ImageModelPipeline(ModelPipeline[ImageModelPipelineConfig]):
-    __config__ = ImageModelPipelineConfig
+T_ImageModelPipelineConfig = TypeVar(
+    "T_ImageModelPipelineConfig", bound="ImageModelPipelineConfig"
+)
+
+
+class ImageModelPipeline(ModelPipeline[T_ImageModelPipelineConfig]):
+    __abstract__ = True
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

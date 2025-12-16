@@ -1,7 +1,7 @@
-from atria_insights.explainers._api import load_explainer_config
-from atria_insights.explainers._base import ExplainerConfig
-from atria_insights.explainers._registry_group import EXPLAINER
-from atria_insights.explainers._torchxai import (
+from atria_insights.core.explainers._api import load_explainer_config
+from atria_insights.core.explainers._base import ExplainerConfig
+from atria_insights.core.explainers._registry_group import EXPLAINER
+from atria_insights.core.explainers._torchxai import (
     DeepLiftExplainerConfig,
     DeepLiftShapExplainerConfig,
     FeatureAblationExplainerConfig,

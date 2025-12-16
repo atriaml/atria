@@ -119,7 +119,6 @@ skip-magic-trailing-comma = true
 allow-direct-references = true
 
 [tool.uv.sources]
-torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }
 atria-ml = { path = "../atria_ml" , editable = true }
 atria-transforms = { path = "../atria_transforms", editable = true }
 atria-models = { path = "../atria_models", editable = true }

@@ -10,10 +10,10 @@ from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
 )
 
 from atria_insights.core.data_types import ModelExplainerOutput
-from atria_insights.core.explanation_metrics.torchxai_metrics._base import (
+from atria_insights.core.explainability_metrics.torchxai_metrics._base import (
     TorchXAIMetricBase,
 )
-from atria_insights.core.explanation_metrics.torchxai_metrics._utilities import (
+from atria_insights.core.explainability_metrics.torchxai_metrics._utilities import (
     ModelExplainerOutputTransform,
 )
 

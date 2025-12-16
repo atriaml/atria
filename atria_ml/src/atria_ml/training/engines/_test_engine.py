@@ -8,6 +8,7 @@ from atria_logger import get_logger
 from atria_ml.task_pipelines._utilities import _find_checkpoint
 from atria_ml.training.engine_steps import EngineStep, TestStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
+from atria_ml.training.engines._exceptions import NoCheckpointFoundError
 
 if TYPE_CHECKING:
     from ignite.engine import State
@@ -21,10 +22,6 @@ class TestEngineConfig(EngineConfig):
 
 
 class TestEngineDependencies(EngineDependencies):
-    pass
-
-
-class NoCheckpointFoundError(Exception):
     pass
 
 

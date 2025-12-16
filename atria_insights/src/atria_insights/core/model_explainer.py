@@ -10,11 +10,16 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
-from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
+from atria_ml.training.engines._exceptions import NoCheckpointFoundError
 from omegaconf import OmegaConf
 
-from atria_insights.configs.explainer_config import ExplainerRunConfig
-from atria_insights.engines._explanation_engine import ExplanationEngine
+from atria_insights.core.configs.explainer_config import ExplainerRunConfig
+from atria_insights.core.engines._explanation_engine import (
+    ExplanationEngine,
+    ExplanationEngineConfig,
+    ExplanationEngineDependencies,
+)
+from atria_insights.core.model_pipelines._model_pipeline import ExplainableModelPipeline
 
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
@@ -25,7 +30,7 @@ logger = get_logger(__name__)
 @dataclass
 class ModelExplainerState:
     data_pipeline: DataPipeline
-    model_pipeline: ModelPipeline
+    x_model_pipeline: ExplainableModelPipeline
     tb_logger: TensorboardLogger | None = None
 
     @property
@@ -79,16 +84,16 @@ class ModelExplainer:
             num_workers=self._config.data.num_workers,
             pin_memory=self._config.data.pin_memory,
         )
-        return TestEngine(
-            config=TestEngineConfig(
+        return ExplanationEngine(
+            config=ExplanationEngineConfig(
                 logging=self._config.logging,
                 test_run=self._config.test_run,
                 use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
                 with_amp=self._config.with_amp,
-                save_model_outputs_to_disk=self._config.save_test_outputs_to_disk,
             ),
-            deps=TestEngineDependencies(
-                model_pipeline=self._state.model_pipeline,
+            deps=ExplanationEngineDependencies(
+                model_pipeline=self._state.x_model_pipeline._model_pipeline,
+                x_model_pipeline=self._state.x_model_pipeline,
                 dataloader=test_dataloader,
                 device=torch.device(self._device),
                 output_dir=self._config.env.run_dir,
@@ -112,14 +117,14 @@ class ModelExplainer:
         logger.info(f"Dataset:\n{dataset}")
 
         # build model pipeline
-        model_pipeline = self._config.model_pipeline.build(labels=labels)
+        x_model_pipeline = self._config.x_model_pipeline.build(labels=labels)
 
         # log model pipeline
-        logger.info(model_pipeline.ops.summarize())
+        logger.info(x_model_pipeline.ops.summarize())
 
         # get model transforms
-        train_transform = model_pipeline.config.train_transform
-        eval_transform = model_pipeline.config.eval_transform
+        train_transform = x_model_pipeline.config.train_transform
+        eval_transform = x_model_pipeline.config.eval_transform
         if dataset.train is not None:
             dataset.train.output_transform = train_transform
         if dataset.validation is not None:
@@ -132,18 +137,16 @@ class ModelExplainer:
 
         return ModelExplainerState(
             data_pipeline=data_pipeline,
-            model_pipeline=model_pipeline,
+            x_model_pipeline=x_model_pipeline,
             tb_logger=tb_logger,
         )
 
     def run(self) -> None:
         explanation_engine = self._build_explanation_engine()
-        # try:
-        #     state = explanation_engine.run()
-        #     if state is not None:
-        #         metrics[checkpoint_type] = state.metrics
-        # except NoCheckpointFoundError:
-        #     pass  # ignore if no checkpoint found
+        try:
+            state = explanation_engine.run()
+        except NoCheckpointFoundError:
+            pass  # ignore if no checkpoint found
 
         # metrics = _format_metrics_for_logging(metrics)
         # logger.info("Test metrics:")
