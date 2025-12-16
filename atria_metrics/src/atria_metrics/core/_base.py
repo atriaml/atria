@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from atria_registry import ModuleConfig
 from atria_registry._utilities import _resolve_module_from_path
-from atria_types._common import TrainingStage
 
 if TYPE_CHECKING:
     import torch
@@ -20,9 +19,9 @@ class MetricConfig(ModuleConfig):
 
     def build(  # type: ignore[return]
         self,
-        device: torch.device | str | None = None,
+        device: torch.device | str,
+        stage: Literal["train", "test", "validation"],
         num_classes: int | None = None,
-        stage: TrainingStage | None = None,
     ) -> Metric:
         assert self.module_path is not None, (
             "module_path must be set to build the module."

@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import due_evaluator
 from atria_logger import get_logger
 from atria_models.core.types.model_outputs import QAModelOutput
-from atria_types import TrainingStage
 from due_evaluator.utils import property_scores_to_string
 
 from atria_metrics.core._base import MetricConfig
@@ -160,11 +159,13 @@ class DueEvalMetricConfig(MetricConfig):
     ignore_case: bool = True
 
     def build(  # type: ignore
-        self, stage: TrainingStage, device: torch.device | str | None = None
+        self,
+        stage: Literal["validation", "test"],
+        device: torch.device | str | None = None,
     ) -> Metric:
-        if stage == TrainingStage.validation:
+        if stage == "validation":
             split = "dev"
-        elif stage == TrainingStage.test:
+        elif stage == "test":
             split = "test"
         else:
             raise ValueError(
