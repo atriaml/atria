@@ -6,7 +6,6 @@ IMPORT_CHECK = [
     "ModelType",
     "OCRType",
     "TaskType",
-    "TrainingStage",
     # data instance types
     "BaseDataInstance",
     "DocumentInstance",
