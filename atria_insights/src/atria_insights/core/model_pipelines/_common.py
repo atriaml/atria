@@ -11,12 +11,12 @@ from atria_insights.core.explainers._torchxai import (
     ExplainerConfigType,
     SaliencyExplainerConfig,
 )
-from atria_insights.core.model_pipelines._baselines_generators import (
-    BaselinesGeneratorConfig,
-)
 from atria_insights.core.model_pipelines._feature_segmentors import (
     FeatureSegmentorConfigType,
     NoOpSegmenterConfig,
+)
+from atria_insights.core.model_pipelines.baseline_generators._default import (
+    BaselinesGeneratorConfig,
 )
 
 if TYPE_CHECKING:

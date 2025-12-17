@@ -46,11 +46,6 @@ class ScikitImageSegmenter:
         return torch.stack(feature_masks)
 
 
-class FeatureSegmentorConfig(ModuleConfig):
-    __builds_with_kwargs__: bool = True
-    type: Literal["grid", "quickshift", "felzenszwalb", "slic"]
-
-
 class NoOpSegmenterConfig(ModuleConfig):
     def build(self, **kwargs: Any) -> Callable:
         return lambda x: x

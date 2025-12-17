@@ -6,7 +6,7 @@ from atria_registry import ModuleConfig
 from torchxai.ignite._utilities import BaselineStrategy
 
 
-class BaselinesGeneratorConfig(ModuleConfig):
+class DefaultBaselineGenerator(ModuleConfig):
     __builds_with_kwargs__: bool = True
     module_path: str | None = "torchxai.ignite._utilities._prepare_baselines_from_type"
     baseline_strategy: BaselineStrategy = BaselineStrategy.zeros
