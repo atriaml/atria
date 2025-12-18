@@ -3,7 +3,7 @@ from torch import nn
 from transformers.activations import ACT2FN
 from transformers.pytorch_utils import apply_chunking_to_forward
 
-from atria_models.core.models.transformers._encoder_model._config import (
+from atria_models.core.models.transformers._configs._encoder_model import (
     TransformersEncoderModelConfig,
 )
 from atria_models.core.models.transformers._modules._attention import (

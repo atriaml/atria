@@ -4,7 +4,7 @@ from typing import cast
 import torch
 import torch.nn as nn
 
-from atria_models.core.models.transformers._encoder_model._config import AttentionConfig
+from atria_models.core.models.transformers._configs._common import AttentionConfig
 from atria_models.core.models.transformers._outputs import AttentionOutput
 
 

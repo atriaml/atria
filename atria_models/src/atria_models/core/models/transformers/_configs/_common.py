@@ -1,6 +1,6 @@
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class EmbeddingsConfig(BaseModel):
@@ -61,3 +61,4 @@ class CheckpointConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=False, frozen=True)
     pretrained_checkpoint: str = "hf://bert-base-uncased"
+    key_mapping: list[tuple[str, str]] = Field(default_factory=list)
