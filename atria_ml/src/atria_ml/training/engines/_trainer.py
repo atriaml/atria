@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
+from atria_ml.task_pipelines.configs._base import RunConfig
 
 from atria_ml.optimizers._base import OptimizerConfig
-from atria_ml.optimizers._torch import SGDOptimizerConfig
+from atria_ml.optimizers._configs import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
 from atria_ml.task_pipelines._utilities import _find_checkpoint
-from atria_ml.task_pipelines.configs._base import RunConfig
 from atria_ml.training._configs import (
     GradientConfig,
     ModelCheckpointConfig,

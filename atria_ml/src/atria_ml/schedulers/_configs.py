@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from torch.optim.optimizer import Optimizer as Optimizer
-
 from atria_ml.schedulers._base import LRSchedulerConfig
 
 if TYPE_CHECKING:
     import torch
+    from torch.optim.optimizer import Optimizer as Optimizer
 
 
 class StepLRSchedulerConfig(LRSchedulerConfig):

@@ -18,9 +18,9 @@ from atria_types._utilities._repr import RepresentationMixin
 from pydantic import ConfigDict, Field
 
 from atria_ml.optimizers._base import OptimizerConfig
-from atria_ml.optimizers._torch import SGDOptimizerConfig
+from atria_ml.optimizers._configs import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
-from atria_ml.schedulers._torch import CosineAnnealingLRSchedulerConfig
+from atria_ml.schedulers._configs import CosineAnnealingLRSchedulerConfig
 from atria_ml.training._configs import (
     EarlyStoppingConfig,
     GradientConfig,
