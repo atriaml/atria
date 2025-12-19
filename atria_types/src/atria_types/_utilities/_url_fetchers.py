@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
-import requests
-
 
 def _load_bytes_from_uri(uri: str) -> bytes:
+    from pathlib import Path
+    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+    import requests
+
     parsed = urlparse(uri)
     query = parse_qs(parsed.query)
     path = parsed.path
