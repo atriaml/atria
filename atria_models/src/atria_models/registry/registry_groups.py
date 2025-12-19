@@ -4,8 +4,16 @@ import typing
 
 from atria_registry import RegistryGroup
 from atria_registry._module_registry import ModuleRegistry
+from pydantic import Field
 
 from atria_models.core.model_pipelines._common import T_ModelPipelineConfig
+from atria_models.core.models.transformers._configs._encoder_model import (
+    T_TransformersEncoderModelConfig,
+)
+
+T_ModelConfig = typing.Annotated[
+    T_TransformersEncoderModelConfig, Field(discriminator="type")
+]
 
 
 class ModelPipelineRegistryGroup(RegistryGroup[T_ModelPipelineConfig]):
@@ -17,10 +25,26 @@ class ModelPipelineRegistryGroup(RegistryGroup[T_ModelPipelineConfig]):
         return config
 
 
+class ModelRegistryGroup(RegistryGroup[T_ModelConfig]):
+    def load_module_config(self, module_path: str, **kwargs) -> T_ModelConfig:
+        """Dynamically load all registered modules in the registry group."""
+        config = typing.cast(
+            T_ModelConfig, super().load_module_config(module_path, **kwargs)
+        )
+        return config
+
+
 ModuleRegistry().add_registry_group(
     name="MODEL_PIPELINE",
     registry_group=ModelPipelineRegistryGroup(
         name="model_pipeline", package="atria_models"
     ),
 )
-MODEL_PIPELINE: ModelPipelineRegistryGroup = ModuleRegistry().MODEL_PIPELINE
+ModuleRegistry().add_registry_group(
+    name="MODEL",
+    registry_group=ModelRegistryGroup(name="model", package="atria_models"),
+)
+MODEL_PIPELINE: ModelPipelineRegistryGroup = typing.cast(
+    ModelPipelineRegistryGroup, ModuleRegistry().MODEL_PIPELINE
+)
+MODEL: ModelRegistryGroup = typing.cast(ModelRegistryGroup, ModuleRegistry().MODEL)
