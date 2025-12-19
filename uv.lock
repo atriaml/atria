@@ -390,6 +390,7 @@ version = "0.0.0"
 source = { editable = "atria_models" }
 dependencies = [
     { name = "atria-logger" },
+    { name = "atria-metrics" },
     { name = "atria-registry" },
     { name = "atria-transforms" },
     { name = "diffusers" },
@@ -404,6 +405,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "atria-logger", editable = "atria_logger" },
+    { name = "atria-metrics", editable = "atria_metrics" },
     { name = "atria-registry", editable = "atria_registry" },
     { name = "atria-transforms", editable = "atria_transforms" },
     { name = "diffusers", specifier = ">=0.34.0" },
@@ -558,6 +560,7 @@ dependencies = [
     { name = "fire" },
     { name = "jupytext" },
     { name = "torchxai" },
+    { name = "tuna" },
 ]
 
 [package.dev-dependencies]
@@ -586,6 +589,7 @@ requires-dist = [
     { name = "fire", specifier = ">=0.7.1" },
     { name = "jupytext", specifier = ">=1.18.1" },
     { name = "torchxai", editable = "../torchxai" },
+    { name = "tuna", specifier = ">=0.5.11" },
 ]
 
 [package.metadata.requires-dev]
@@ -3715,6 +3719,15 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/c1/54fffb2eb13d293d9a429fead3646752ea190de0229bcf3d591ba2481263/triton-2.1.0-0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:919b06453f0033ea52c13eaf7833de0e57db3178d23d4e04f9fc71c4f2c32bf8", size = 89234153, upload-time = "2023-09-01T07:26:20.161Z" },
+]
+
+[[package]]
+name = "tuna"
+version = "0.5.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/fb/5bf0865b2fdb44c0c62af24e77b5fe1bcfae4282b982a954fe7984587595/tuna-0.5.11.tar.gz", hash = "sha256:d47f3e39e80af961c8df016ac97d1643c3c60b5eb451299da0ab5fe411d8866c", size = 150600, upload-time = "2021-12-18T22:11:19.551Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/07/c115a27adb5228bdf78d0c2366637c5b1630427f879c674f7bab4e6eb637/tuna-0.5.11-py3-none-any.whl", hash = "sha256:ab352a6d836014ace585ecd882148f1f7c68be9ea4bf9e9298b7127594dab2ef", size = 149682, upload-time = "2021-12-18T22:11:16.716Z" },
 ]
 
 [[package]]
