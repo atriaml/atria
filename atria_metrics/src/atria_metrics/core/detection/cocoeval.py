@@ -113,7 +113,7 @@ class COCOEvalMetric(Metric):
 
     def __init__(
         self,
-        output_transform: Callable = lambda x: x,
+        output_transform: Callable = _cocoeval_output_transform,
         device: str | torch.device = "cpu",
     ) -> None:
         super().__init__(output_transform=output_transform, device=device)

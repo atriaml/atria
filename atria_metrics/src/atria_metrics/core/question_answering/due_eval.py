@@ -9,13 +9,13 @@ import due_evaluator
 from atria_logger import get_logger
 from atria_models.core.types.model_outputs import QAModelOutput
 from due_evaluator.utils import property_scores_to_string
+from ignite.metrics.metric import Metric
 
 from atria_metrics.core._base import MetricConfig
 
 if TYPE_CHECKING:
     import torch
     from ignite.engine import Engine
-    from ignite.metrics.metric import Metric
 
 logger = get_logger(__name__)
 
@@ -28,17 +28,19 @@ class DueEvalMetric(Metric):
         self,
         dataset: str,
         split: str,
-        device: str | torch.device = torch.device("cpu"),
+        device: str | torch.device = "cpu",
         metric: str = "F1",
         ignore_case: bool = True,
     ) -> None:
+        import torch
+
         self._dataset = dataset
         self._split = split
         self._metric = metric
         self._ignore_case = ignore_case
         self._reference_path = self._download_and_cache_reference_file(dataset, split)
 
-        super().__init__(device=device)
+        super().__init__(device=torch.device(device))
 
     def _download_and_cache_reference_file(self, dataset: str, split: str) -> str:
         import tempfile

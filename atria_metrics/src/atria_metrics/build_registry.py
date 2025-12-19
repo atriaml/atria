@@ -1,13 +1,8 @@
-from atria_metrics.detection.cocoeval import *  # noqa
-from atria_metrics.src.atria_metrics.instance_classification import *  # noqa
-from atria_metrics.instance_classification.f1_score import *  # noqa
-from atria_metrics.layout.f1_score import *  # noqa
-from atria_metrics.layout.precision import *  # noqa
-from atria_metrics.layout.recall import *  # noqa
-from atria_metrics.qa.anls import *  # noqa
-from atria_metrics.qa.sequence_anls import *  # noqa
-from atria_metrics.registry import METRIC
-from atria_metrics.token_classification.seqeval import *  # noqa
+from atria_metrics.registry.classification import *  # noqa
+from atria_metrics.registry.detection import *  # noqa
+from atria_metrics.registry.entity_labeling import *  # noqa
+from atria_metrics.registry.question_answering import *  # noqa
+from atria_metrics.core._registry_group import METRIC
 
 if __name__ == "__main__":
     METRIC.dump()
