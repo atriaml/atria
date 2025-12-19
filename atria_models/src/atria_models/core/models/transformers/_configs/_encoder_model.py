@@ -47,6 +47,7 @@ HeadConfigType = Annotated[
 class TransformersEncoderModelConfig(ModuleConfig):
     """Main configuration that combines all sub-configurations."""
 
+    type: Literal["transformers_encoder"] = "transformers_encoder"
     model_config = ConfigDict(arbitrary_types_allowed=False, frozen=True)
 
     # Sub-configurations

@@ -1,18 +1,31 @@
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import torch
-from torch import nn
-
 from atria_models.core.models.transformers._configs._encoder_model import (
     EmbeddingsConfig,
 )
+from torch import nn
 
 
 @dataclass(frozen=True)
 class TokenEmbeddingOutputs:
-    token_embeddings: torch.Tensor
-    position_embeddings: torch.Tensor
+    token_embeddings: torch.Tensor | None = None
+    position_embeddings: torch.Tensor | None = None
     token_type_embeddings: torch.Tensor | None = None
+
+    def sum(self) -> torch.Tensor:
+        total = self.token_embeddings + self.position_embeddings
+        if self.token_type_embeddings is not None:
+            total = total + self.token_type_embeddings
+        return total
+
+    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor]:
+        return OrderedDict(
+            token_embeddings=self.token_embeddings,
+            position_embeddings=self.position_embeddings,
+            token_type_embeddings=self.token_type_embeddings,
+        )
 
 
 class TokenEmbeddings(nn.Module):
@@ -50,9 +63,6 @@ class TokenEmbeddings(nn.Module):
             persistent=False,
         )
 
-    # ----------------------------
-    # helpers
-    # ----------------------------
     def _default_position_ids(
         self, seq_length: int, past_kv_length: int
     ) -> torch.LongTensor:
@@ -66,9 +76,6 @@ class TokenEmbeddings(nn.Module):
         token_type_ids = self.token_type_ids[:, :seq_length]
         return token_type_ids.expand(batch_size, seq_length)
 
-    # ----------------------------
-    # forward
-    # ----------------------------
     def forward(
         self,
         token_ids: torch.LongTensor,

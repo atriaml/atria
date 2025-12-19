@@ -4,9 +4,6 @@ from typing import Generic
 
 import torch
 from atria_logger import get_logger
-from atria_registry import ConfigurableModule
-from torch import nn
-
 from atria_models.core.model_builders._constants import _DEFAULT_ATRIA_MODELS_CACHE_DIR
 from atria_models.core.models._checkpoint_utilities import CheckpointLoader
 from atria_models.core.models.transformers._blocks._encoder_block import EncoderBlock
@@ -38,6 +35,8 @@ from atria_models.core.models.transformers._outputs import (
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
+from atria_registry import ConfigurableModule
+from torch import nn
 
 logger = get_logger(__name__)
 
@@ -97,10 +96,7 @@ class TransformersEncoderModel(
             head_mask=head_mask,
         )
         last_hidden_state = encoder_outputs.last_hidden_state
-        pooled_output = (
-            self.pooler(last_hidden_state) if self.pooler is not None else None
-        )
-
+        pooled_output = self.pooler(last_hidden_state)
         head_output = None
         if self.head is not None:
             head_output = self._head_forward(
@@ -226,6 +222,7 @@ class TransformersEncoderModel(
         token_ids: torch.Tensor,
         position_ids: torch.Tensor | None = None,
         token_type_ids: torch.Tensor | None = None,
+        **kwargs,
     ) -> TokenEmbeddingOutputs:
         return self.embeddings(
             token_ids=token_ids,

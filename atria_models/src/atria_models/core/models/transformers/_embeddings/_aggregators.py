@@ -9,13 +9,7 @@ class EmbeddingsAggregator(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
 
     def forward(self, embeddings: tuple[torch.Tensor, ...]) -> torch.Tensor:
-        agg = None
-        for emb in embeddings:
-            if emb is not None:
-                if agg is None:
-                    agg = emb
-                else:
-                    agg += emb
+        agg = sum(emb for emb in embeddings if emb is not None)
         agg = self.layer_norm(agg)
         agg = self.dropout(agg)
         return agg
