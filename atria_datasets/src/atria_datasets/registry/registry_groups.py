@@ -39,36 +39,13 @@ class DatasetRegistryGroup(RegistryGroup["DatasetConfig"]):
 
 
 ModuleRegistry().add_registry_group(
-    name="DATASET",
-    registry_group=DatasetRegistryGroup(name="dataset", package="atria_datasets"),
-)
-ModuleRegistry().add_registry_group(
-    name="DATA_PIPELINE",
-    registry_group=RegistryGroup(name="data_pipeline", package="atria_datasets"),
-)
-ModuleRegistry().add_registry_group(
-    name="BATCH_SAMPLER",
-    registry_group=RegistryGroup(name="batch_sampler", package="atria_datasets"),
+    name="DATASETS",
+    registry_group=DatasetRegistryGroup(name="datasets", package="atria_datasets"),
 )
 
-
-DATASETS: DatasetRegistryGroup = ModuleRegistry().DATASET
+DATASETS: DatasetRegistryGroup = ModuleRegistry().DATASETS
 """Registry group for datasets.
 
 Used to register and manage dataset-related components throughout the application.
 Provides methods to register new datasets and retrieve existing ones by name.
-"""
-
-DATA_PIPELINE = ModuleRegistry().DATA_PIPELINE
-"""Registry group for data pipelines.
-
-Used to register and manage data pipeline components that handle data processing
-workflows and transformations.
-"""
-
-BATCH_SAMPLER = ModuleRegistry().BATCH_SAMPLER
-"""Registry group for batch samplers.
-
-Used to register and manage batch sampling strategies that determine how data
-is grouped into batches during training and inference.
 """

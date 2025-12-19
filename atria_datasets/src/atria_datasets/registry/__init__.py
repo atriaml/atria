@@ -18,10 +18,6 @@ Example:
     >>> model_cls = MODEL.get("my_model")
 """
 
-from atria_datasets.registry.registry_groups import (
-    BATCH_SAMPLER,
-    DATA_PIPELINE,
-    DATASETS,
-)
+from atria_datasets.registry.registry_groups import DATASETS
 
-__all__ = ["DATASETS", "DATA_PIPELINE", "BATCH_SAMPLER"]
+__all__ = ["DATASETS"]
