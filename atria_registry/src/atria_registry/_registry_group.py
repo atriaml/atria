@@ -28,6 +28,8 @@ from atria_registry._utilities import (
 
 logger = get_logger(__name__)
 
+_BUILD_REGISTRY = True
+
 
 class ConfigSpec(BaseModel):
     hash: str
@@ -103,6 +105,16 @@ class RegistryGroup(Generic[T_ModuleConfig]):
     def register(
         self, module_name: str, configs: dict[str, ModuleConfig | dict] | None = None
     ):
+        if not _BUILD_REGISTRY:
+
+            def decorator(module):
+                logger.debug(
+                    f"Skipping registration of module {module_name} because _BUILD_REGISTRY is False."
+                )
+                return module
+
+            return decorator
+
         def decorator(module):
             if issubclass(module, ModuleConfig | PydanticConfigurableModule):
                 assert configs is None, (
@@ -128,7 +140,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                             logger.debug(
                                 f"Module '{module_name}' with  is already registered. Skipping registration."
                             )
-                            return
+                            return module
 
                         logger.warning(
                             f"Module '{module_name}' with  is already registered with a different configuration. Replacing it."
@@ -295,6 +307,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         self._validate_non_missing_fields(module_path, config)
 
         if config_import_path is not None:
+            print("config_import_path", config_import_path)
             config_cls = typing.cast(
                 T_ModuleConfig, _resolve_module_from_path(config_import_path)
             )
