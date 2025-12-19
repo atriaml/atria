@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from atria_logger import get_logger
-from atria_types._common import DatasetSplitType
+from typing import TYPE_CHECKING
 
-from atria_datasets.core import Dataset, DatasetConfig
+from atria_logger import get_logger
+
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_datasets.registry import DATASET
+
+if TYPE_CHECKING:
+    from atria_types._common import DatasetSplitType
+
+    from atria_datasets.core import Dataset, DatasetConfig
 
 logger = get_logger(__name__)
 

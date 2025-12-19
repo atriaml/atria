@@ -18,14 +18,21 @@ Example:
     >>> model_cls = MODEL.get("my_model")
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from atria_registry import ModuleRegistry, RegistryGroup
 
-from atria_datasets.core.dataset._common import DatasetConfig
+if TYPE_CHECKING:
+    from atria_datasets.core.dataset._common import DatasetConfig
 
 
-class DatasetRegistryGroup(RegistryGroup[DatasetConfig]):
+class DatasetRegistryGroup(RegistryGroup["DatasetConfig"]):
     def load_module_config(self, module_path: str, **kwargs) -> DatasetConfig:
         """Dynamically load all registered modules in the registry group."""
+        from atria_datasets.core.dataset._common import DatasetConfig
+
         config = super().load_module_config(module_path, **kwargs)
         assert isinstance(config, DatasetConfig)
         return config
