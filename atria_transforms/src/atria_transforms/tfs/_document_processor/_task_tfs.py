@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
-from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types import DocumentInstance
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._qa_pair import QAPair
 
-from ...registry import DATA_TRANSFORM
+from atria_transforms.data_types._document import DocumentTensorDataModel
+
+from ...registry import DATA_TRANSFORMS
 from ._base import DocumentProcessor
 from ._utilities import (
     _document_instance_to_hf_processor_inputs,
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("sequence_classification_document_processor")
+@DATA_TRANSFORMS.register("sequence_classification_document_processor")
 class SequenceClassificationDocumentProcessor(DocumentProcessor):
     def _post_process_tokenizer_outputs(
         self,
@@ -40,12 +41,12 @@ class SequenceClassificationDocumentProcessor(DocumentProcessor):
         return processed_outputs
 
 
-@DATA_TRANSFORM.register("token_classification_document_processor")
+@DATA_TRANSFORMS.register("token_classification_document_processor")
 class TokenClassificationDocumentProcessor(DocumentProcessor):
     pass
 
 
-@DATA_TRANSFORM.register("question_answering_document_processor")
+@DATA_TRANSFORMS.register("question_answering_document_processor")
 class QuestionAnsweringDocumentProcessor(DocumentProcessor):
     ignore_samples_with_no_answer: bool = False
     is_training: bool = False

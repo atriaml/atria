@@ -1,3 +1,3 @@
-from .registry_groups import DATA_TRANSFORM
+from .registry_groups import DATA_TRANSFORMS
 
-__all__ = ["DATA_TRANSFORM"]
+__all__ = ["DATA_TRANSFORMS"]

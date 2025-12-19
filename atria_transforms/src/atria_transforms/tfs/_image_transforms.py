@@ -6,7 +6,7 @@ from atria_logger import get_logger
 from PIL.Image import Image as PILImage
 
 from atria_transforms.core import DataTransform
-from atria_transforms.registry import DATA_TRANSFORM
+from atria_transforms.registry import DATA_TRANSFORMS
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ class ToRGB(DataTransform[PILImage]):
         return image.convert("RGB")
 
 
-@DATA_TRANSFORM.register("standard_image_transform")
+@DATA_TRANSFORMS.register("standard_image_transform")
 class StandardImageTransform(DataTransform[PILImage]):
     to_rgb: bool = True  # Convert image to RGB if it's in a different mode
     do_normalize: bool = True  # Normalize the image to ImageNet mean and std

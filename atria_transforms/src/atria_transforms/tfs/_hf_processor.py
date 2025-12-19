@@ -12,12 +12,12 @@ if TYPE_CHECKING:
     )
 
 from atria_transforms.core import DataTransform
-from atria_transforms.registry import DATA_TRANSFORM
+from atria_transforms.registry import DATA_TRANSFORMS
 
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("hf_processor")
+@DATA_TRANSFORMS.register("hf_processor")
 class HuggingfaceProcessor(DataTransform):
     tokenizer_name: str = "microsoft/layoutlmv3-base"
 

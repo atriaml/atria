@@ -37,5 +37,5 @@ ModuleRegistry().add_registry_group(
     ),
 )
 
-DATA_TRANSFORM: DataTransformRegistryGroup = ModuleRegistry().DATA_TRANSFORM
+DATA_TRANSFORMS: DataTransformRegistryGroup = ModuleRegistry().DATA_TRANSFORM
 """Registry group for data transformations."""

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from pydantic import ConfigDict
 
 from atria_transforms.core._tfs._base import DataTransform
-from atria_transforms.registry.registry_groups import DATA_TRANSFORM
+from atria_transforms.registry.registry_groups import DATA_TRANSFORMS
 
 if TYPE_CHECKING:
     import torch
@@ -21,7 +21,7 @@ class InterpolationMode(str, Enum):
     LANCZOS = "lanczos"
 
 
-@DATA_TRANSFORM.register("resize")
+@DATA_TRANSFORMS.register("resize")
 class ResizeTransform(DataTransform):  # or inherit from DataTransform if needed
     model_config = ConfigDict(extra="allow")
     size: list[int]

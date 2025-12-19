@@ -7,13 +7,13 @@ from pydantic import Field
 
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import ImageTensorDataModel
-from atria_transforms.registry import DATA_TRANSFORM
+from atria_transforms.registry import DATA_TRANSFORMS
 from atria_transforms.tfs import StandardImageTransform
 
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORM.register("image_processor")
+@DATA_TRANSFORMS.register("image_processor")
 class ImageProcessor(DataTransform[ImageTensorDataModel]):
     tf: StandardImageTransform = Field(default_factory=StandardImageTransform)
 
