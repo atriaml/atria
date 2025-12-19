@@ -13,7 +13,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 from .utilities import read_pascal_voc, read_words_json
@@ -93,7 +93,7 @@ class FinTabNetConfig(DatasetConfig):
     dataset_name: str = "fintabnet"
 
 
-@DATASET.register(
+@DATASETS.register(
     "fintabnet",
     configs={
         "default": FinTabNetConfig(config_name="default"),

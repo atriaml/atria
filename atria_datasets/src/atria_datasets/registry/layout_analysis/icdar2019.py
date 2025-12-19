@@ -14,7 +14,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 from .utilities import _load_coco_json
@@ -106,7 +106,7 @@ class Icdar2019Config(DatasetConfig):
     dataset_name: str = "icdar2019"
 
 
-@DATASET.register(
+@DATASETS.register(
     "icdar2019",
     configs={
         "trackA_modern": Icdar2019Config(config_name="trackA_modern"),

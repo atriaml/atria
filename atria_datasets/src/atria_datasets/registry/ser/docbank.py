@@ -18,7 +18,7 @@ from atria_types import (
     TextElement,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
 
 logger = get_logger(__name__)
@@ -189,7 +189,7 @@ class SplitIterator:
         return len(self.split_data["images"])
 
 
-@DATASET.register(
+@DATASETS.register(
     "docbank",
     configs={
         "default": DocBankConfig(config_name="default"),

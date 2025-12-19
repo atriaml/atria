@@ -17,7 +17,7 @@ from atria_types import (
     TextElement,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import DocumentDataset
 
@@ -216,7 +216,7 @@ class CordDatasetConfig(DatasetConfig):
     config_name: str = "default"
 
 
-@DATASET.register("cord")
+@DATASETS.register("cord")
 class CORD(DocumentDataset):
     __config__ = CordDatasetConfig
 

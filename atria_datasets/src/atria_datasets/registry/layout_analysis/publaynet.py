@@ -12,13 +12,13 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, HuggingfaceDocumentDataset
+from atria_datasets import DATASETS, HuggingfaceDocumentDataset
 from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
 _CLASSES = ["text", "title", "list", "table", "figure"]
 
 
-@DATASET.register(
+@DATASETS.register(
     "publaynet",
     configs={
         "default": HuggingfaceDatasetConfig(

@@ -13,7 +13,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._hf_datasets import (
     HuggingfaceDatasetConfig,
     HuggingfaceDocumentDataset,
@@ -43,7 +43,7 @@ _LAYOUT_CLASSES = [
 ]
 
 
-@DATASET.register(
+@DATASETS.register(
     "doclaynet",
     configs={
         "default": HuggingfaceDatasetConfig(

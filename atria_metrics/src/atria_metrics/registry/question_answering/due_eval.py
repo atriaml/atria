@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from atria_logger import get_logger
 
-from atria_metrics.core._registry_group import METRIC
+from atria_metrics.core._registry_group import METRICS
 from atria_metrics.core.question_answering.due_eval import DueEvalMetricConfig
 
 logger = get_logger(__name__)
 
 
-@METRIC.register("due/DocVQA")
+@METRICS.register("due/DocVQA")
 class DocVQAEvalConfig(DueEvalMetricConfig):
     name: str = "anls"
     dataset_name: str = "DocVQA"
@@ -16,7 +16,7 @@ class DocVQAEvalConfig(DueEvalMetricConfig):
     ignore_case: bool = True
 
 
-@METRIC.register("due/InfographicsVQA")
+@METRICS.register("due/InfographicsVQA")
 class InfographicsVQAEvalConfig(DueEvalMetricConfig):
     name: str = "anls"
     dataset_name: str = "InfographicsVQA"
@@ -24,7 +24,7 @@ class InfographicsVQAEvalConfig(DueEvalMetricConfig):
     ignore_case: bool = True
 
 
-@METRIC.register("due/KleisterCharity")
+@METRICS.register("due/KleisterCharity")
 class KleisterCharityEvalConfig(DueEvalMetricConfig):
     name: str = "f1"
     dataset_name: str = "KleisterCharity"
@@ -32,7 +32,7 @@ class KleisterCharityEvalConfig(DueEvalMetricConfig):
     ignore_case: bool = True
 
 
-@METRIC.register("due/DeepForm")
+@METRICS.register("due/DeepForm")
 class DeepFormEvalConfig(DueEvalMetricConfig):
     name: str = "f1"
     dataset_name: str = "DeepForm"
@@ -40,7 +40,7 @@ class DeepFormEvalConfig(DueEvalMetricConfig):
     ignore_case: bool = True
 
 
-@METRIC.register("due/WikiTableQuestions")
+@METRICS.register("due/WikiTableQuestions")
 class WikiTableQuestionsEvalConfig(DueEvalMetricConfig):
     name: str = "wtq"
     dataset_name: str = "WikiTableQuestions"
@@ -48,7 +48,7 @@ class WikiTableQuestionsEvalConfig(DueEvalMetricConfig):
     ignore_case: bool = False
 
 
-@METRIC.register("due/TabFact")
+@METRICS.register("due/TabFact")
 class TabFactEvalConfig(DueEvalMetricConfig):
     name: str = "f1"
     dataset_name: str = "TabFact"

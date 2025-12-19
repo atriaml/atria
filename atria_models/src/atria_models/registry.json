@@ -161,5 +161,85 @@
             "input_stride": 0
         },
         "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+    },
+    "bert-base-uncased": {
+        "hash": "3efe7cc0",
+        "config": {
+            "module_path": "atria_models.core.models.transformers._models._bert.BertEncoderModel",
+            "type": "transformers_encoder",
+            "embeddings_config": {
+                "vocab_size": 30522,
+                "hidden_size": 768,
+                "max_position_embeddings": 512,
+                "type_vocab_size": 2,
+                "pad_token_id": 0,
+                "bos_token_id": 101,
+                "eos_token_id": 102,
+                "mask_token_id": 103,
+                "position_embedding_type": "absolute"
+            },
+            "attention_config": {
+                "num_attention_heads": 12,
+                "attention_probs_dropout_prob": 0.1,
+                "hidden_size": 768
+            },
+            "checkpoint_config": {
+                "pretrained_checkpoint": "hf://bert-base-uncased",
+                "key_mapping": [
+                    [
+                        "encoder.layer.",
+                        "encoder.layers."
+                    ],
+                    [
+                        "LayerNorm",
+                        "layer_norm"
+                    ],
+                    [
+                        "layer_norm.beta",
+                        "layer_norm.bias"
+                    ],
+                    [
+                        "layer_norm.gamma",
+                        "layer_norm.weight"
+                    ],
+                    [
+                        ".attention.self.",
+                        ".multi_head_attention."
+                    ],
+                    [
+                        ".attention.output.",
+                        ".attention_output_ffn."
+                    ],
+                    [
+                        ".intermediate.",
+                        ".intermediate_ffn."
+                    ],
+                    [
+                        ".output.",
+                        ".output_ffn."
+                    ],
+                    [
+                        "embeddings.layer_norm.",
+                        "embeddings_aggregator.layer_norm."
+                    ]
+                ]
+            },
+            "layers_config": {
+                "num_hidden_layers": 12,
+                "hidden_size": 768,
+                "intermediate_size": 3072,
+                "hidden_act": "gelu",
+                "chunk_size_feed_forward": 0,
+                "hidden_dropout_prob": 0.1,
+                "layer_norm_eps": 1e-12,
+                "initializer_range": 0.02,
+                "classifier_dropout": null
+            },
+            "head_config": null,
+            "output_attentions": false,
+            "output_hidden_states": false,
+            "pretrained": true
+        },
+        "import_path": "atria_models.core.models.transformers._models._bert.BertEncoderModelConfig"
     }
 }

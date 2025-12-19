@@ -12,7 +12,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 from .utilities import read_pascal_voc
@@ -188,7 +188,7 @@ class PubTables1MConfig(DatasetConfig):
     task: str = "structure"  # "structure" or "detection"
 
 
-@DATASET.register(
+@DATASETS.register(
     "pubtables1m",
     configs={
         "detection": PubTables1MConfig(config_name="detection", task="detection"),

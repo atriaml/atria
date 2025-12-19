@@ -8,7 +8,7 @@ from atria_types import (
     Label,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import ImageDataset
 
@@ -26,7 +26,7 @@ _CLASSES = [
 ]
 
 
-@DATASET.register(
+@DATASETS.register(
     "cifar10",
     configs={
         "default": DatasetConfig(dataset_name="cifar10", config_name="default"),

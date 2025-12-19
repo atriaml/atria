@@ -14,7 +14,7 @@ from atria_types import (
     OCRType,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 _CITATION = """\
@@ -88,7 +88,7 @@ class SplitIterator:
         return len(self.split_file_paths)
 
 
-@DATASET.register(
+@DATASETS.register(
     "tobacco3482",
     configs={
         "image_only": Tobacco3482Config(config_name="image_only", load_ocr=False),

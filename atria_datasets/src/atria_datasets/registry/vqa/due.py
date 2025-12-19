@@ -21,7 +21,7 @@ from atria_types._generic._qa_pair import AnswerSpan
 from pdf2image import convert_from_path
 from PIL.Image import Image as PILImage
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 logger = get_logger(__name__)
@@ -258,7 +258,7 @@ class SplitIterator:
         return len(self._benchmark_dataset)
 
 
-@DATASET.register(
+@DATASETS.register(
     "due_benchmark",
     configs={
         "DocVQA": DueBenchmarkConfig(config_name="DocVQA"),

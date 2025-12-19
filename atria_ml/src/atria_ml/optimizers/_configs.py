@@ -1,8 +1,8 @@
 from atria_ml.optimizers._base import OptimizerConfig
-from atria_ml.optimizers._registry_group import OPTIMIZER
+from atria_ml.optimizers._registry_group import OPTIMIZERS
 
 
-@OPTIMIZER.register("adam")
+@OPTIMIZERS.register("adam")
 class AdamOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.Adam"
     betas: tuple[float, float] = (0.9, 0.999)
@@ -11,7 +11,7 @@ class AdamOptimizerConfig(OptimizerConfig):
     amsgrad: bool = False
 
 
-@OPTIMIZER.register("adamw")
+@OPTIMIZERS.register("adamw")
 class AdamWOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.AdamW"
     betas: tuple[float, float] = (0.9, 0.999)
@@ -20,7 +20,7 @@ class AdamWOptimizerConfig(OptimizerConfig):
     amsgrad: bool = False
 
 
-@OPTIMIZER.register("adagrad")
+@OPTIMIZERS.register("adagrad")
 class AdagradOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.Adagrad"
     lr_decay: float = 0.0
@@ -29,7 +29,7 @@ class AdagradOptimizerConfig(OptimizerConfig):
     eps: float = 1e-10
 
 
-@OPTIMIZER.register("rmsprop")
+@OPTIMIZERS.register("rmsprop")
 class RMSpropOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.RMSprop"
     alpha: float = 0.99
@@ -39,7 +39,7 @@ class RMSpropOptimizerConfig(OptimizerConfig):
     centered: bool = False
 
 
-@OPTIMIZER.register("adadelta")
+@OPTIMIZERS.register("adadelta")
 class AdadeltaOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.Adadelta"
     rho: float = 0.9
@@ -47,7 +47,7 @@ class AdadeltaOptimizerConfig(OptimizerConfig):
     weight_decay: float = 0.0
 
 
-@OPTIMIZER.register("sgd")
+@OPTIMIZERS.register("sgd")
 class SGDOptimizerConfig(OptimizerConfig):
     module_path: str | None = "torch.optim.SGD"
     momentum: float = 0.0
@@ -56,7 +56,7 @@ class SGDOptimizerConfig(OptimizerConfig):
     nesterov: bool = False
 
 
-@OPTIMIZER.register("lars")
+@OPTIMIZERS.register("lars")
 class LARSOptimizerConfig(OptimizerConfig):
     module_path: str | None = "atria_ml.optimizers._lars.LARS"
     momentum: float = 0.0

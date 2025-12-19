@@ -28,7 +28,7 @@ if TYPE_CHECKING:
         T_ModelPipelineConfig,
         TokenClassificationPipeline,
     )
-    from atria_models.registry import MODEL_PIPELINE
+    from atria_models.registry import MODEL_PIPELINES
 
 
 __getattr__, __dir__, __all__ = lazy.attach(
@@ -54,6 +54,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "T_ModelPipelineConfig",
             "TokenClassificationPipeline",
         ],
-        "registry": ["MODEL_PIPELINE"],
+        "registry": ["MODEL_PIPELINES", "MODELS"],
     },
 )

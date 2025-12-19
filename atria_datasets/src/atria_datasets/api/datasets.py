@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from atria_logger import get_logger
 
 from atria_datasets.core.storage.utilities import FileStorageType
-from atria_datasets.registry import DATASET
+from atria_datasets.registry import DATASETS
 
 if TYPE_CHECKING:
     from atria_types._common import DatasetSplitType
@@ -21,7 +21,7 @@ def load_dataset_config(dataset_name: str, **kwargs) -> DatasetConfig:
     logger.debug(
         f"Loading dataset config for dataset: {dataset_name} with params: {kwargs}"
     )
-    return DATASET.load_module_config(dataset_name, **kwargs)
+    return DATASETS.load_module_config(dataset_name, **kwargs)
 
 
 def load_dataset(

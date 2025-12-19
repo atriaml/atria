@@ -10,7 +10,7 @@ class LRSchedulerRegistryGroup(RegistryGroup[LRSchedulerConfig]):
 
 
 ModuleRegistry().add_registry_group(
-    name="LR_SCHEDULER",
-    registry_group=LRSchedulerRegistryGroup(name="lr_scheduler", package="atria_ml"),
+    name="LR_SCHEDULERS",
+    registry_group=LRSchedulerRegistryGroup(name="lr_schedulers", package="atria_ml"),
 )
-LR_SCHEDULER = ModuleRegistry().get_registry_group("LR_SCHEDULER")
+LR_SCHEDULERS = ModuleRegistry().get_registry_group("LR_SCHEDULERS")

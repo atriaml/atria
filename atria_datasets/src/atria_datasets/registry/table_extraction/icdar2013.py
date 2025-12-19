@@ -13,7 +13,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._common import DatasetConfig
 
 from .utilities import read_pascal_voc, read_words_json
@@ -91,7 +91,7 @@ class ICDAR2013Config(DatasetConfig):
     dataset_name: str = "icdar2013"
 
 
-@DATASET.register("icdar2013")
+@DATASETS.register("icdar2013")
 class ICDAR2013(DocumentDataset):
     __config__ = ICDAR2013Config
 

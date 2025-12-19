@@ -31,11 +31,11 @@ class DataTransformRegistryGroup(RegistryGroup["DataTransform"]):
 
 
 ModuleRegistry().add_registry_group(
-    name="DATA_TRANSFORM",
+    name="DATA_TRANSFORMS",
     registry_group=DataTransformRegistryGroup(
-        name="data_transform", package="atria_transforms"
+        name="data_transforms", package="atria_transforms"
     ),
 )
 
-DATA_TRANSFORMS: DataTransformRegistryGroup = ModuleRegistry().DATA_TRANSFORM
+DATA_TRANSFORMS: DataTransformRegistryGroup = ModuleRegistry().DATA_TRANSFORMS
 """Registry group for data transformations."""

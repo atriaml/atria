@@ -10,7 +10,7 @@ class OptimizersRegistryGroup(RegistryGroup[OptimizerConfig]):
 
 
 ModuleRegistry().add_registry_group(
-    name="OPTIMIZER",
-    registry_group=OptimizersRegistryGroup(name="optimizer", package="atria_ml"),
+    name="OPTIMIZERS",
+    registry_group=OptimizersRegistryGroup(name="optimizers", package="atria_ml"),
 )
-OPTIMIZER = ModuleRegistry().get_registry_group("OPTIMIZER")
+OPTIMIZERS = ModuleRegistry().get_registry_group("OPTIMIZERS")

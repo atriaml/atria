@@ -22,7 +22,7 @@ from atria_types import (
 )
 from datasets import load_from_disk
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 from .utilities import (
@@ -355,7 +355,7 @@ class SplitIterator:
         yield from self.preprocessed_dataset
 
 
-@DATASET.register("docvqa")
+@DATASETS.register("docvqa")
 class DocVQA(DocumentDataset):
     __config__ = DocVQAConfig
 

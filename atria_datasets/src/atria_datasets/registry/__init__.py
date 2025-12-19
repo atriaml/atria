@@ -21,7 +21,7 @@ Example:
 from atria_datasets.registry.registry_groups import (
     BATCH_SAMPLER,
     DATA_PIPELINE,
-    DATASET,
+    DATASETS,
 )
 
-__all__ = ["DATASET", "DATA_PIPELINE", "BATCH_SAMPLER"]
+__all__ = ["DATASETS", "DATA_PIPELINE", "BATCH_SAMPLER"]

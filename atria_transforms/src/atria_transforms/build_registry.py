@@ -10,4 +10,5 @@ from atria_transforms.tfs._document_processor._task_tfs import (  # noqa
 )
 from atria_transforms.registry import DATA_TRANSFORMS  # noqa
 
-DATA_TRANSFORMS.dump()
+if __name__ == "__main__":
+    DATA_TRANSFORMS.dump()

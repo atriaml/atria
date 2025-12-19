@@ -9,7 +9,7 @@ from atria_models.core.models.transformers._configs._encoder_model import (
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
-from atria_models.registry.registry_groups import MODEL
+from atria_models.registry.registry_groups import MODELS
 
 logger = get_logger(__name__)
 
@@ -35,6 +35,6 @@ class BertEncoderModelConfig(TransformersEncoderModelConfig):
     )
 
 
-@MODEL.register("bert-base-uncased")
+@MODELS.register("bert-base-uncased")
 class BertEncoderModel(TransformersEncoderModel):
     __config__ = BertEncoderModelConfig

@@ -35,16 +35,16 @@ class ModelRegistryGroup(RegistryGroup[T_ModelConfig]):
 
 
 ModuleRegistry().add_registry_group(
-    name="MODEL_PIPELINE",
+    name="MODEL_PIPELINES",
     registry_group=ModelPipelineRegistryGroup(
-        name="model_pipeline", package="atria_models"
+        name="model_pipelines", package="atria_models"
     ),
 )
 ModuleRegistry().add_registry_group(
-    name="MODEL",
-    registry_group=ModelRegistryGroup(name="model", package="atria_models"),
+    name="MODELS",
+    registry_group=ModelRegistryGroup(name="models", package="atria_models"),
 )
-MODEL_PIPELINE: ModelPipelineRegistryGroup = typing.cast(
-    ModelPipelineRegistryGroup, ModuleRegistry().MODEL_PIPELINE
+MODEL_PIPELINES: ModelPipelineRegistryGroup = typing.cast(
+    ModelPipelineRegistryGroup, ModuleRegistry().MODEL_PIPELINES
 )
-MODEL: ModelRegistryGroup = typing.cast(ModelRegistryGroup, ModuleRegistry().MODEL)
+MODELS: ModelRegistryGroup = typing.cast(ModelRegistryGroup, ModuleRegistry().MODELS)

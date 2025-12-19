@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from atria_metrics.core._base import MetricConfig
     from atria_metrics.core._epoch_dict_metric import EpochDictMetric
     from atria_metrics.core._output_gatherer import OutputGatherer
-    from atria_metrics.core._registry_group import METRIC
+    from atria_metrics.core._registry_group import METRICS
 
 __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
@@ -19,6 +19,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "core._base": ["MetricConfig"],
         "core._epoch_dict_metric": ["EpochDictMetric"],
         "core._output_gatherer": ["OutputGatherer"],
-        "core._registry_group": ["METRIC"],
+        "core._registry_group": ["METRICS"],
     },
 )

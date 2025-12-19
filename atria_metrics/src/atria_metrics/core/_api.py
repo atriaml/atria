@@ -8,7 +8,7 @@ from atria_logger import get_logger
 from atria_types import DatasetSplitType
 
 from atria_metrics.core._base import MetricConfig
-from atria_metrics.core._registry_group import METRIC
+from atria_metrics.core._registry_group import METRICS
 
 if TYPE_CHECKING:
     import torch
@@ -21,6 +21,6 @@ def load_metric_config(
     num_classes: int | None = None,
     split: DatasetSplitType | None = None,
 ) -> MetricConfig:
-    return METRIC.load_module_config(
+    return METRICS.load_module_config(
         device=device, num_classes=num_classes, split=split
     )  # type: ignore

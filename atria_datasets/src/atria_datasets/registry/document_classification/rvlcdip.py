@@ -15,7 +15,7 @@ from atria_types import (
     OCRType,
 )
 
-from atria_datasets import DATASET, DocumentDataset
+from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
 _CITATION = """\
@@ -111,7 +111,7 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
         return len(self.split_file_paths)
 
 
-@DATASET.register(
+@DATASETS.register(
     "rvlcdip",
     configs={
         "image": RvlCdipConfig(config_name="image", load_ocr=False),

@@ -2,10 +2,10 @@ from typing import Any
 
 from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
-from atria_datasets import DATASET, HuggingfaceDatasetConfig, HuggingfaceImageDataset
+from atria_datasets import DATASETS, HuggingfaceDatasetConfig, HuggingfaceImageDataset
 
 
-@DATASET.register(
+@DATASETS.register(
     "huggingface_cifar10",
     configs={
         "plain_text": HuggingfaceDatasetConfig(

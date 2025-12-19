@@ -17,7 +17,7 @@ from atria_types import (
     TextElement,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
 
 from .utilities import (
@@ -160,7 +160,7 @@ class SplitIterator:
         return len(os.listdir(self.image_dir))
 
 
-@DATASET.register("funsd")
+@DATASETS.register("funsd")
 class FUNSD(DocumentDataset):
     __config__ = FUNSDConfig
 

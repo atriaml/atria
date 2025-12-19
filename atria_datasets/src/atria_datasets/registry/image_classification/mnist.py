@@ -2,11 +2,11 @@ from typing import Any
 
 from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
-from atria_datasets import DATASET, HuggingfaceImageDataset
+from atria_datasets import DATASETS, HuggingfaceImageDataset
 from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
 
-@DATASET.register(
+@DATASETS.register(
     "mnist",
     configs={
         "default": HuggingfaceDatasetConfig(

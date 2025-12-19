@@ -52,7 +52,7 @@ ModuleRegistry().add_registry_group(
 )
 
 
-DATASET: DatasetRegistryGroup = ModuleRegistry().DATASET
+DATASETS: DatasetRegistryGroup = ModuleRegistry().DATASET
 """Registry group for datasets.
 
 Used to register and manage dataset-related components throughout the application.

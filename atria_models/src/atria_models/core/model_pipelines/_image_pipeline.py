@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field, model_validator
 from atria_models.core.model_pipelines._common import ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.types.model_outputs import ClassificationModelOutput, ModelOutput
-from atria_models.registry import MODEL_PIPELINE
+from atria_models.registry import MODEL_PIPELINES
 
 if TYPE_CHECKING:
     import torch
@@ -224,6 +224,6 @@ class ImageModelPipeline(ModelPipeline[T_ImageModelPipelineConfig]):
         )
 
 
-@MODEL_PIPELINE.register("image_classification")
+@MODEL_PIPELINES.register("image_classification")
 class ImageClassificationPipeline(ImageModelPipeline):
     __config__ = ImageModelPipelineConfig

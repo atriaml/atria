@@ -10,6 +10,6 @@ logger = get_logger(__name__)
 
 
 def load_optimizer_config(optimizer_name: str, **kwargs) -> OptimizerConfig:
-    from atria_ml.optimizers._registry_group import OPTIMIZER
+    from atria_ml.optimizers._registry_group import OPTIMIZERS
 
-    return OPTIMIZER.load_module_config(optimizer_name, **kwargs)  # type: ignore
+    return OPTIMIZERS.load_module_config(optimizer_name, **kwargs)  # type: ignore

@@ -1,5 +1,5 @@
 # from atria_datasets.pipelines.atria_data_pipeline import *  # noqa
-from atria_datasets.registry import DATASET
+from atria_datasets.registry import DATASETS
 from atria_datasets.registry.document_classification.rvlcdip import *  # noqa  # noqa
 from atria_datasets.registry.document_classification.tobacco3482 import *  # noqa  # noqa
 from atria_datasets.registry.image_classification.cifar10 import *  # noqa
@@ -20,7 +20,7 @@ from atria_datasets.registry.vqa.due import *  # noqa
 
 
 def main():
-    DATASET.dump()
+    DATASETS.dump()
 
 
 if __name__ == "__main__":

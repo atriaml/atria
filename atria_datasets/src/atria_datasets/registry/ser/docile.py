@@ -18,7 +18,7 @@ from atria_types import (
 )
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
 
 from .docile_utils.preprocessor import (
@@ -140,7 +140,7 @@ class SplitIterator:
             )
 
 
-@DATASET.register(
+@DATASETS.register(
     "docile",
     configs={
         "kile": DocileConfig(synthetic=False, type="kile", config_name="kile"),

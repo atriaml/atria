@@ -7,7 +7,7 @@ import lazy_loader as lazy
 if TYPE_CHECKING:
     from atria_ml.schedulers._api import load_lr_scheduler_config
     from atria_ml.schedulers._base import LRSchedulerConfig
-    from atria_ml.schedulers._registry_group import LR_SCHEDULER
+    from atria_ml.schedulers._registry_group import LR_SCHEDULERS
     from atria_ml.schedulers._configs import (
         CosineAnnealingLRSchedulerConfig,
         CyclicLRSchedulerConfig,
@@ -23,7 +23,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
     submod_attrs={
         "_api": ["load_lr_scheduler_config"],
         "_base": ["LRSchedulerConfig"],
-        "_registry_group": ["LR_SCHEDULER"],
+        "_registry_group": ["LR_SCHEDULERS"],
         "_torch": [
             "StepLRSchedulerConfig",
             "MultiStepLRSchedulerConfig",

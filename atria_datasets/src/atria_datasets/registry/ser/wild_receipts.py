@@ -15,7 +15,7 @@ from atria_types import (
     TextElement,
 )
 
-from atria_datasets import DATASET
+from atria_datasets import DATASETS
 from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
 
 from .utilities import _normalize_bbox, _sorted_indices_in_reading_order
@@ -173,7 +173,7 @@ class SplitIterator:
             return sum(1 for _ in f)
 
 
-@DATASET.register("wild_receipts")
+@DATASETS.register("wild_receipts")
 class WildReceipts(DocumentDataset):
     __config__ = WildReceiptsConfig
 

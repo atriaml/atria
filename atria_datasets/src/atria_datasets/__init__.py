@@ -42,7 +42,7 @@ if TYPE_CHECKING:
         MsgpackShardWriter,
     )
     from atria_datasets.core.storage.utilities import FileStorageType
-    from atria_datasets.registry import DATASET, DATA_PIPELINE, BATCH_SAMPLER
+    from atria_datasets.registry import DATASETS, DATA_PIPELINE, BATCH_SAMPLER
 
 
 __getattr__, __dir__, __all__ = lazy.attach(
