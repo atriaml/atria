@@ -1,0 +1,165 @@
+{
+    "image_classification": {
+        "hash": "f7e9d9ce",
+        "config": {
+            "module_path": "atria_models.core.model_pipelines._image_pipeline.ImageClassificationPipeline",
+            "model": {
+                "builder_type": "timm",
+                "bn_to_gn": false,
+                "frozen_layers": "none",
+                "pretrained_checkpoint": null,
+                "model_type": null,
+                "model_name_or_path": "resnet18",
+                "model_kwargs": {}
+            },
+            "train_transform": {
+                "tf": {
+                    "to_rgb": true,
+                    "do_normalize": true,
+                    "do_resize": true,
+                    "stats": "imagenet",
+                    "resize_height": 224,
+                    "resize_width": 224,
+                    "image_mean": null,
+                    "image_std": null
+                }
+            },
+            "eval_transform": {
+                "tf": {
+                    "to_rgb": true,
+                    "do_normalize": true,
+                    "do_resize": true,
+                    "stats": "imagenet",
+                    "resize_height": 224,
+                    "resize_width": 224,
+                    "image_mean": null,
+                    "image_std": null
+                }
+            },
+            "metrics": [
+                {
+                    "module_path": "ignite.metrics.Accuracy",
+                    "name": "accuracy",
+                    "is_multilabel": false,
+                    "skip_unrolling": false
+                },
+                {
+                    "module_path": "ignite.metrics.Precision",
+                    "name": "precision",
+                    "average": true,
+                    "skip_unrolling": false
+                },
+                {
+                    "module_path": "ignite.metrics.Recall",
+                    "name": "recall",
+                    "average": true,
+                    "skip_unrolling": false
+                },
+                {
+                    "module_path": "atria_metrics.core.classification.f1_score",
+                    "name": "f1_score"
+                },
+                {
+                    "module_path": "ignite.metrics.ConfusionMatrix",
+                    "name": "confusion_matrix",
+                    "average": "recall",
+                    "skip_unrolling": false
+                }
+            ],
+            "mixup_config": null
+        },
+        "import_path": "atria_models.core.model_pipelines._image_pipeline.ImageModelPipelineConfig"
+    },
+    "sequence_classification": {
+        "hash": "49bc0e3d",
+        "config": {
+            "module_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceClassificationPipeline",
+            "model": {
+                "builder_type": "timm",
+                "bn_to_gn": false,
+                "frozen_layers": "none",
+                "pretrained_checkpoint": null,
+                "model_type": null,
+                "model_name_or_path": "resnet18",
+                "model_kwargs": {}
+            },
+            "train_transform": null,
+            "eval_transform": null,
+            "metrics": null,
+            "use_bbox": true,
+            "use_image": true,
+            "use_segment_info": true,
+            "input_stride": 0
+        },
+        "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+    },
+    "token_classification": {
+        "hash": "5d806c32",
+        "config": {
+            "module_path": "atria_models.core.model_pipelines._sequence_pipeline.TokenClassificationPipeline",
+            "model": {
+                "builder_type": "timm",
+                "bn_to_gn": false,
+                "frozen_layers": "none",
+                "pretrained_checkpoint": null,
+                "model_type": null,
+                "model_name_or_path": "resnet18",
+                "model_kwargs": {}
+            },
+            "train_transform": null,
+            "eval_transform": null,
+            "metrics": null,
+            "use_bbox": true,
+            "use_image": true,
+            "use_segment_info": true,
+            "input_stride": 0
+        },
+        "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+    },
+    "layout_token_classification": {
+        "hash": "5830d6ba",
+        "config": {
+            "module_path": "atria_models.core.model_pipelines._sequence_pipeline.LayoutTokenClassificationPipeline",
+            "model": {
+                "builder_type": "timm",
+                "bn_to_gn": false,
+                "frozen_layers": "none",
+                "pretrained_checkpoint": null,
+                "model_type": null,
+                "model_name_or_path": "resnet18",
+                "model_kwargs": {}
+            },
+            "train_transform": null,
+            "eval_transform": null,
+            "metrics": null,
+            "use_bbox": true,
+            "use_image": true,
+            "use_segment_info": true,
+            "input_stride": 0
+        },
+        "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+    },
+    "question_answering": {
+        "hash": "cbe1b2ff",
+        "config": {
+            "module_path": "atria_models.core.model_pipelines._sequence_pipeline.QuestionAnsweringPipeline",
+            "model": {
+                "builder_type": "timm",
+                "bn_to_gn": false,
+                "frozen_layers": "none",
+                "pretrained_checkpoint": null,
+                "model_type": null,
+                "model_name_or_path": "resnet18",
+                "model_kwargs": {}
+            },
+            "train_transform": null,
+            "eval_transform": null,
+            "metrics": null,
+            "use_bbox": true,
+            "use_image": true,
+            "use_segment_info": true,
+            "input_stride": 0
+        },
+        "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+    }
+}
