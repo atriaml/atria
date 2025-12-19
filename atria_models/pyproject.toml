@@ -23,6 +23,7 @@ dependencies = [
     "timm>=1.0.17",
     "torchinfo>=1.8.0",
     "transformers>=4.37.0",
+    "atria-metrics",
 ]
 
 
@@ -116,6 +117,7 @@ atria-types = { path = "../atria_types", editable = true }
 atria-logger = { path = "../atria_logger" , editable = true }
 atria-registry = { path = "../atria_registry" , editable = true }
 atria-transforms = { path = "../atria_transforms" , editable = true }
+atria-metrics = { path = "../atria_metrics", editable = true }
 
 [dependency-groups]
 dev = [
