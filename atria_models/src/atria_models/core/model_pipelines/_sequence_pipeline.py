@@ -17,6 +17,7 @@ from atria_models.core.types.model_outputs import (
     QAPair,
     TokenClassificationModelOutput,
 )
+from atria_models.registry.registry_groups import MODEL_PIPELINE
 
 if TYPE_CHECKING:
     import torch
@@ -125,6 +126,7 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         )
 
 
+@MODEL_PIPELINE.register("sequence_classification")
 class SequenceClassificationPipeline(SequenceModelPipeline):
     __config__ = SequenceModelPipelineConfig
 
@@ -181,6 +183,7 @@ class SequenceClassificationPipeline(SequenceModelPipeline):
         )
 
 
+@MODEL_PIPELINE.register("token_classification")
 class TokenClassificationPipeline(SequenceModelPipeline):
     __config__ = SequenceModelPipelineConfig
 
@@ -229,6 +232,7 @@ class TokenClassificationPipeline(SequenceModelPipeline):
         )
 
 
+@MODEL_PIPELINE.register("layout_token_classification")
 class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
     def _output_transform(
         self,
@@ -251,6 +255,7 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
         )
 
 
+@MODEL_PIPELINE.register("question_answering")
 class QuestionAnsweringPipeline(SequenceModelPipeline):
     __config__ = SequenceModelPipelineConfig
 

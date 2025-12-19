@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from atria_metrics import MetricConfig
 from atria_registry import ModuleConfig
 from atria_registry._module_base import BaseModel
-from atria_transforms.core._tfs._base import DataTransform
+from atria_transforms.core import DataTransform
 from pydantic import ConfigDict, SerializeAsAny
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
@@ -25,6 +25,7 @@ class ModelConfig(BaseModel):
     bn_to_gn: bool = False
     frozen_layers: FrozenLayers | list[str] = FrozenLayers.none
     pretrained_checkpoint: str | None = None
+    model_type: str | None = None
 
     # Path or name of the model to build
     model_name_or_path: str = "resnet18"

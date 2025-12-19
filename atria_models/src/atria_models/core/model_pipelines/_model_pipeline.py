@@ -43,6 +43,7 @@ class ModelPipeline(
             bn_to_gn=self.config.model.bn_to_gn,
             frozen_layers=self.config.model.frozen_layers,
             pretrained_checkpoint=self.config.model.pretrained_checkpoint,
+            model_type=self.config.model.model_type,
         )
 
         assert self.config.model.model_name_or_path is not None, (
