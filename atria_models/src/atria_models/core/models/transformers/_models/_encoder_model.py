@@ -9,11 +9,12 @@ from torch import nn
 
 from atria_models.core.model_builders._constants import _DEFAULT_ATRIA_MODELS_CACHE_DIR
 from atria_models.core.models._checkpoint_utilities import CheckpointLoader
-from atria_models.core.models.transformers._blocks._encoder_block import Encoder
+from atria_models.core.models.transformers._blocks._encoder_block import EncoderBlock
 from atria_models.core.models.transformers._configs._encoder_model import (
-    SequenceClassificationModelConfig,
+    QuestionAnsweringHeadConfig,
+    SequenceClassificationHeadConfig,
     T_TransformersEncoderModelConfig,
-    TokenClassificationModelConfig,
+    TokenClassificationHeadConfig,
     TransformersEncoderModelConfig,
 )
 from atria_models.core.models.transformers._embeddings._aggregators import (
@@ -23,6 +24,9 @@ from atria_models.core.models.transformers._embeddings._token import (
     TokenEmbeddingOutputs,
     TokenEmbeddings,
 )
+from atria_models.core.models.transformers._heads._question_answering import (
+    QuestionAnsweringHead,
+)
 from atria_models.core.models.transformers._heads._sequence_classification import (
     SequenceClassificationHead,
 )
@@ -31,8 +35,6 @@ from atria_models.core.models.transformers._heads._token_classification import (
 )
 from atria_models.core.models.transformers._modules._pooler import DefaultPooler
 from atria_models.core.models.transformers._outputs import (
-    SequenceClassificationModelOutput,
-    TokenClassificationModelOutput,
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
@@ -57,6 +59,61 @@ class TransformersEncoderModel(
         if config.pretrained:
             self._load_checkpoint()
 
+    @property
+    def checkpoint_loader(self) -> CheckpointLoader:
+        """Access to the checkpoint loader for manual checkpoint operations."""
+        return CheckpointLoader(
+            model=self,
+            cache_dir=self._cache_dir,
+            checkpoint_key_mapping=self.config.checkpoint_config.key_mapping,
+        )
+
+    @property
+    def dtype(self):
+        return torch.float32
+
+    def forward(
+        self,
+        tokens_ids_or_embedding: torch.Tensor,
+        positions_ids_or_embedding: torch.Tensor | None = None,
+        token_types_ids_or_embedding: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        head_mask: torch.Tensor | None = None,
+        is_embedding: bool = False,
+        **head_kwargs,
+    ) -> TransformersEncoderModelOutput:
+        hidden_state = self._resolve_embeddings(
+            tokens_ids_or_embedding=tokens_ids_or_embedding,
+            positions_ids_or_embedding=positions_ids_or_embedding,
+            token_types_ids_or_embedding=token_types_ids_or_embedding,
+            is_embedding=is_embedding,
+        )
+        head_mask = _resolve_head_mask(
+            head_mask, self.config.layers_config.num_hidden_layers, self.dtype
+        )
+        encoder_outputs = self.encoder(
+            hidden_state=hidden_state,
+            attention_mask=attention_mask,
+            head_mask=head_mask,
+        )
+        last_hidden_state = encoder_outputs.last_hidden_state
+        pooled_output = (
+            self.pooler(last_hidden_state) if self.pooler is not None else None
+        )
+
+        head_output = None
+        if self.head is not None:
+            head_output = self._head_forward(
+                last_hidden_state, pooled_output, **head_kwargs
+            )
+        return TransformersEncoderModelOutput(
+            last_hidden_state=last_hidden_state,
+            pooler_output=pooled_output,
+            hidden_states=encoder_outputs.hidden_states,
+            attentions=encoder_outputs.attentions,
+            head_output=head_output,
+        )
+
     def _init_weights(self, module):
         """Initialize the weights"""
         if isinstance(module, nn.Linear):
@@ -77,25 +134,6 @@ class TransformersEncoderModel(
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def __repr__(self):
-        return nn.Module.__repr__(self)
-
-    def __str__(self):
-        return nn.Module.__str__(self)
-
-    @property
-    def checkpoint_loader(self) -> CheckpointLoader:
-        """Access to the checkpoint loader for manual checkpoint operations."""
-        return CheckpointLoader(
-            model=self,
-            cache_dir=self._cache_dir,
-            checkpoint_key_mapping=self.config.checkpoint_config.key_mapping,
-        )
-
-    @property
-    def dtype(self):
-        return torch.float32
-
     def _build_embeddings(self):
         return TokenEmbeddings(config=self.config.embeddings_config)
 
@@ -107,16 +145,51 @@ class TransformersEncoderModel(
         )
 
     def _build_encoder(self):
-        return Encoder(config=self.config)
+        return EncoderBlock(config=self.config)
 
     def _build_pooler(self):
         return DefaultPooler(hidden_size=self.config.layers_config.hidden_size)
+
+    def _build_head(self):
+        if self.config.head_config is None:
+            return None
+
+        if isinstance(self.config.head_config, SequenceClassificationHeadConfig):
+            return SequenceClassificationHead(
+                num_labels=self.config.head_config.num_labels,
+                subtask=self.config.head_config.sub_task,
+                hidden_size=self.config.layers_config.hidden_size,
+                classifier_dropout=(
+                    self.config.layers_config.classifier_dropout
+                    if self.config.layers_config.classifier_dropout is not None
+                    else self.config.layers_config.hidden_dropout_prob
+                ),
+            )
+        elif isinstance(self.config.head_config, TokenClassificationHeadConfig):
+            return TokenClassificationHead(
+                num_labels=self.config.head_config.num_labels,
+                hidden_size=self.config.layers_config.hidden_size,
+                classifier_dropout=(
+                    self.config.layers_config.classifier_dropout
+                    if self.config.layers_config.classifier_dropout is not None
+                    else self.config.layers_config.hidden_dropout_prob
+                ),
+            )
+        elif isinstance(self.config.head_config, QuestionAnsweringHeadConfig):
+            return QuestionAnsweringHead(
+                hidden_size=self.config.layers_config.hidden_size
+            )
+        else:
+            raise ValueError(
+                f"Unsupported head config type: {type(self.config.head_config)}"
+            )
 
     def _build(self):
         self.embeddings = self._build_embeddings()
         self.embeddings_aggregator = self._build_embeddings_aggregator()
         self.encoder = self._build_encoder()
         self.pooler = self._build_pooler()
+        self.head = self._build_head()
 
     def _load_checkpoint(self):
         """Load checkpoint if specified in config."""
@@ -126,10 +199,10 @@ class TransformersEncoderModel(
 
     def _resolve_embeddings(
         self,
-        tokens_ids_or_embedding,
-        positions_ids_or_embedding,
-        token_types_ids_or_embedding,
-        is_embedding,
+        tokens_ids_or_embedding: torch.Tensor,
+        positions_ids_or_embedding: torch.Tensor | None,
+        token_types_ids_or_embedding: torch.Tensor | None,
+        is_embedding: bool = False,
     ):
         if not is_embedding:
             embeddings = self.ids_to_embeddings(
@@ -160,190 +233,23 @@ class TransformersEncoderModel(
             token_type_ids=token_type_ids,
         )
 
-    def forward(
+    def _head_forward(
         self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None = None,
-        token_types_ids_or_embedding: torch.Tensor | None = None,
-        attention_mask: torch.Tensor | None = None,
-        head_mask: torch.Tensor | None = None,
-        is_embedding: bool = False,
-    ) -> TransformersEncoderModelOutput:
-        hidden_state = self._resolve_embeddings(
-            tokens_ids_or_embedding=tokens_ids_or_embedding,
-            positions_ids_or_embedding=positions_ids_or_embedding,
-            token_types_ids_or_embedding=token_types_ids_or_embedding,
-            is_embedding=is_embedding,
-        )
-        head_mask = _resolve_head_mask(
-            head_mask, self.config.layers_config.num_hidden_layers, self.dtype
-        )
-        encoder_outputs = self.encoder(
-            hidden_state=hidden_state,
-            attention_mask=attention_mask,
-            head_mask=head_mask,
-        )
-        last_hidden_state = encoder_outputs.last_hidden_state
-        pooled_output = (
-            self.pooler(last_hidden_state) if self.pooler is not None else None
-        )
-        if self.head is not None:
-            head_output = self._head_forward(last_hidden_state, pooled_output)
-        return TransformersEncoderModelOutput(
-            last_hidden_state=last_hidden_state,
-            pooler_output=pooled_output,
-            hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
-            head_output=head_output,
-        )
+        last_hidden_state: torch.Tensor,
+        pooled_output: torch.Tensor,
+        **head_kwargs,
+    ):
+        if isinstance(self.head, SequenceClassificationHead):
+            return self.head(pooled_hidden_state=pooled_output, **head_kwargs)
+        elif isinstance(self.head, TokenClassificationHead):
+            return self.head(last_hidden_state=last_hidden_state, **head_kwargs)
+        elif isinstance(self.head, QuestionAnsweringHead):
+            return self.head(last_hidden_state=last_hidden_state, **head_kwargs)
+        else:
+            raise ValueError(f"Unsupported head type: {type(self.head)}")
 
+    def __repr__(self):
+        return nn.Module.__repr__(self)
 
-class SequenceClassificationModel(
-    TransformersEncoderModel[SequenceClassificationModelConfig]
-):
-    __abstract__ = True
-
-    def _build(self):
-        super()._build()
-        self.head = self._build_head()
-
-    def _build_head(self):
-        return SequenceClassificationHead(
-            num_labels=self.config.num_labels,
-            subtask=self.config.sub_task,
-            hidden_size=self.config.layers_config.hidden_size,
-            classifier_dropout=(
-                self.config.layers_config.classifier_dropout
-                if self.config.layers_config.classifier_dropout is not None
-                else self.config.layers_config.hidden_dropout_prob
-            ),
-        )
-
-    def forward(
-        self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None = None,
-        token_types_ids_or_embedding: torch.Tensor | None = None,
-        attention_mask: torch.Tensor | None = None,
-        head_mask: torch.Tensor | None = None,
-        is_embedding: bool = False,
-        labels: torch.Tensor | None = None,
-    ) -> TransformersEncoderModelOutput:
-        outputs = super().forward(
-            tokens_ids_or_embedding,
-            positions_ids_or_embedding,
-            token_types_ids_or_embedding,
-            attention_mask,
-            head_mask,
-            is_embedding,
-        )
-        head_output = self.head(
-            pooled_hidden_state=outputs.pooler_output, labels=labels
-        )
-        return SequenceClassificationModelOutput(
-            last_hidden_state=outputs.last_hidden_state,
-            pooler_output=outputs.pooler_output,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-            head_output=head_output,
-        )
-
-
-class TokenClassificationModel(
-    TransformersEncoderModel[TokenClassificationModelConfig]
-):
-    __abstract__ = True
-
-    def _build(self):
-        super()._build()
-        self.head = self._build_head()
-
-    def _build_head(self):
-        return TokenClassificationHead(
-            num_labels=self.config.num_labels,
-            subtask=self.config.sub_task,
-            hidden_size=self.config.layers_config.hidden_size,
-            classifier_dropout=(
-                self.config.layers_config.classifier_dropout
-                if self.config.layers_config.classifier_dropout is not None
-                else self.config.layers_config.hidden_dropout_prob
-            ),
-        )
-
-    def forward(
-        self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None = None,
-        token_types_ids_or_embedding: torch.Tensor | None = None,
-        attention_mask: torch.Tensor | None = None,
-        head_mask: torch.Tensor | None = None,
-        is_embedding: bool = False,
-        labels: torch.Tensor | None = None,
-    ) -> TransformersEncoderModelOutput:
-        outputs = super().forward(
-            tokens_ids_or_embedding,
-            positions_ids_or_embedding,
-            token_types_ids_or_embedding,
-            attention_mask,
-            head_mask,
-            is_embedding,
-        )
-        head_output = self.head(
-            pooled_hidden_state=outputs.pooler_output, labels=labels
-        )
-        return TokenClassificationModelOutput(
-            last_hidden_state=outputs.last_hidden_state,
-            pooler_output=outputs.pooler_output,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-            head_output=head_output,
-        )
-
-
-class QuestionAnsweringModel(TransformersEncoderModel):
-    __abstract__ = True
-
-    def _build(self):
-        super()._build()
-        self.head = self._build_head()
-
-    def _build_head(self):
-        return TokenClassificationHead(
-            num_labels=self.config.num_labels,
-            subtask=self.config.sub_task,
-            hidden_size=self.config.layers_config.hidden_size,
-            classifier_dropout=(
-                self.config.layers_config.classifier_dropout
-                if self.config.layers_config.classifier_dropout is not None
-                else self.config.layers_config.hidden_dropout_prob
-            ),
-        )
-
-    def forward(
-        self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None = None,
-        token_types_ids_or_embedding: torch.Tensor | None = None,
-        attention_mask: torch.Tensor | None = None,
-        head_mask: torch.Tensor | None = None,
-        is_embedding: bool = False,
-        labels: torch.Tensor | None = None,
-    ) -> TransformersEncoderModelOutput:
-        outputs = super().forward(
-            tokens_ids_or_embedding,
-            positions_ids_or_embedding,
-            token_types_ids_or_embedding,
-            attention_mask,
-            head_mask,
-            is_embedding,
-        )
-        head_output = self.head(
-            pooled_hidden_state=outputs.pooler_output, labels=labels
-        )
-        return TokenClassificationModelOutput(
-            last_hidden_state=outputs.last_hidden_state,
-            pooler_output=outputs.pooler_output,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-            head_output=head_output,
-        )
+    def __str__(self):
+        return nn.Module.__str__(self)

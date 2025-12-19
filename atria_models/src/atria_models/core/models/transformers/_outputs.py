@@ -47,18 +47,9 @@ class TransformersEncoderModelOutput:
     pooler_output: torch.FloatTensor | None = None
     hidden_states: tuple[torch.FloatTensor, ...] | None = None
     attentions: tuple[torch.FloatTensor, ...] | None = None
-
-
-@dataclass(frozen=True)
-class SequenceClassificationModelOutput(TransformersEncoderModelOutput):
-    head_output: SequenceClassificationHeadOutput | None = None
-
-
-@dataclass(frozen=True)
-class TokenClassificationModelOutput(TransformersEncoderModelOutput):
-    head_output: TokenClassificationHeadOutput | None = None
-
-
-@dataclass(frozen=True)
-class QuestionAnsweringModelOutput(TransformersEncoderModelOutput):
-    head_output: QuestionAnsweringHeadOutput | None = None
+    head_output: (
+        SequenceClassificationHeadOutput
+        | TokenClassificationHeadOutput
+        | QuestionAnsweringHeadOutput
+        | None
+    ) = None

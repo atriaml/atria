@@ -3,9 +3,6 @@ from atria_logger import get_logger
 from torch import nn
 from torch.nn.functional import cross_entropy
 
-from atria_models.core.models.transformers._configs._encoder_model import (
-    ClassificationSubTask,
-)
 from atria_models.core.models.transformers._outputs import TokenClassificationHeadOutput
 
 logger = get_logger(__name__)
@@ -15,14 +12,12 @@ class TokenClassificationHead(nn.Module):
     def __init__(
         self,
         num_labels: int,
-        subtask: ClassificationSubTask = ClassificationSubTask.single_label_classification,
         classifier_dropout: float | None = None,
         hidden_size: int | None = None,
     ):
         super().__init__()
 
         self.num_labels = num_labels
-        self.sub_task = subtask
         self.classifier_dropout = classifier_dropout
         self.hidden_size = hidden_size
         self._build_layers()

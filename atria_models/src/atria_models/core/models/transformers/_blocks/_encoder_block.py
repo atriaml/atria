@@ -73,7 +73,7 @@ class LayoutOutputFFN(nn.Module):
         return hidden_state
 
 
-class EncoderLayer(nn.Module):
+class AttentionBlock(nn.Module):
     def __init__(self, config: TransformersEncoderModelConfig):
         super().__init__()
 
@@ -125,13 +125,13 @@ class EncoderLayer(nn.Module):
             hidden_state=hidden_state, attentions=attention_outputs.attentions
         )
 
-    def feed_forward_chunk(self, attention_output):
-        intermediate_output = self.intermediate_ffn(attention_output)
-        hidden_state = self.output_ffn(intermediate_output, attention_output)
+    def feed_forward_chunk(self, hidden_state: torch.Tensor) -> torch.Tensor:
+        intermediate_output = self.intermediate_ffn(hidden_state)
+        hidden_state = self.output_ffn(intermediate_output, hidden_state)
         return hidden_state
 
 
-class Encoder(nn.Module):
+class EncoderBlock(nn.Module):
     def __init__(self, config: TransformersEncoderModelConfig):
         super().__init__()
 
@@ -141,7 +141,7 @@ class Encoder(nn.Module):
     def _build_layers(self):
         self.layers = nn.ModuleList(
             [
-                EncoderLayer(config=self.config)
+                AttentionBlock(config=self.config)
                 for _ in range(self.config.layers_config.num_hidden_layers)
             ]
         )
@@ -161,15 +161,11 @@ class Encoder(nn.Module):
                 all_hidden_states = all_hidden_states + (hidden_state,)
 
             layer_head_mask = head_mask[i] if head_mask is not None else None
-            layer_outputs = layer_module(hidden_state, attention_mask, layer_head_mask)
+            layer_outputs = layer_module(
+                last_hidden_state, attention_mask, layer_head_mask
+            )
 
             last_hidden_state = layer_outputs.hidden_state
-            print(
-                "hidden_states",
-                i,
-                layer_outputs.hidden_state.shape,
-                layer_outputs.hidden_state.sum(),
-            )
             if self.config.output_attentions:
                 all_attentions = all_attentions + (layer_outputs.attentions,)
 

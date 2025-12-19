@@ -7,7 +7,6 @@ from atria_models.core.models.transformers._configs._encoder_model import (
     TransformersEncoderModelConfig,
 )
 from atria_models.core.models.transformers._models._encoder_model import (
-    SequenceClassificationModel,
     TransformersEncoderModel,
 )
 
@@ -36,16 +35,4 @@ class BertEncoderModelConfig(TransformersEncoderModelConfig):
 
 
 class BertEncoderModel(TransformersEncoderModel):
-    __config__ = TransformersEncoderModelConfig
-
-
-class BertSequenceClassificationModel(SequenceClassificationModel):
-    __config__ = TransformersEncoderModelConfig
-
-
-class BertTokenClassification(SequenceClassificationModel):
-    __config__ = TransformersEncoderModelConfig
-
-
-class BertQuestionAnsweringModel(TransformersEncoderModel):
-    __config__ = TransformersEncoderModelConfig
+    __config__ = BertEncoderModelConfig

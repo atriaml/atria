@@ -48,4 +48,9 @@
     ],
     "python.defaultInterpreterPath": "./.venv/bin/python",
     "python.analysis.showOnlyDirectDependenciesInAutoImport": true,
+    "python.testing.pytestArgs": [
+        "atria_models"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }
