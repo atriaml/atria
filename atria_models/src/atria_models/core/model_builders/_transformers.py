@@ -17,12 +17,30 @@ logger = get_logger(__name__)
 
 
 class TransformersModelBuilder(ModelBuilder):
-    __uses_num_labels__: bool = True
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(**kwargs)
+        assert self._model_type is not None, (
+            "model_type must be specified for TransformersModelBuilder."
+        )
+        assert self._model_type in {
+            "sequence_classification",
+            "token_classification",
+            "question_answering",
+            "image_classification",
+        }, (
+            f"Unsupported model_type '{self._model_type}' for AtriaModelBuilder. "
+            "Supported types are: 'sequence_classification', 'token_classification', 'question_answering', 'image_classification'."
+        )
+
+    def uses_num_labels(self) -> bool:
+        if self._model_type in {"sequence_classification", "token_classification"}:
+            return True
+        return False
 
     def get_auto_config(self, model_name_or_path: str, **kwargs) -> PretrainedConfig:
         from transformers import AutoConfig
 
-        if self.__uses_num_labels__:
+        if self.uses_num_labels:
             assert "num_labels" in kwargs, (
                 "`num_labels` must be provided in model initialization kwargs "
                 "for this model type."
@@ -35,70 +53,48 @@ class TransformersModelBuilder(ModelBuilder):
     def _build(
         self, model_name_or_path: str, pretrained: bool = True, **kwargs
     ) -> Module:
+        from torch.nn import Linear
+
         config = self.get_auto_config(model_name_or_path=model_name_or_path, **kwargs)
         logger.info(
             f"Building model '{model_name_or_path}' with parameters:\n{pretty_repr(config, expand_all=True)}"
         )
         task_cls = self.get_task_class()
         if pretrained:
-            return task_cls.from_pretrained(
+            model = task_cls.from_pretrained(
                 model_name_or_path, config=config, cache_dir=self._cache_dir
             )
         else:
-            return task_cls.from_config(config=config)
+            model = task_cls.from_config(config=config)
 
-    def get_task_class(self) -> type[AutoModel]:
-        raise NotImplementedError(
-            "Subclasses must implement the `get_task_class` method to return the appropriate model class."
-        )
-
-
-class SequenceClassificationModelBuilder(TransformersModelBuilder):
-    __uses_num_labels__: bool = True
-
-    def get_task_class(self) -> type[AutoModel]:
-        from transformers import AutoModelForSequenceClassification
-
-        return AutoModelForSequenceClassification  # type: ignore
-
-
-class TokenClassificationModelBuilder(TransformersModelBuilder):
-    __uses_num_labels__: bool = True
-
-    def get_task_class(self) -> type[AutoModel]:
-        from transformers import AutoModelForTokenClassification
-
-        return AutoModelForTokenClassification  # type: ignore
-
-
-class QuestionAnsweringModelBuilder(TransformersModelBuilder):
-    __uses_num_labels__: bool = False
-
-    def get_task_class(self) -> type[AutoModel]:
-        from transformers import AutoModelForQuestionAnswering
-
-        return AutoModelForQuestionAnswering  # type: ignore
-
-
-class ImageClassificationModelBuilder(TransformersModelBuilder):
-    __uses_num_labels__: bool = False
-
-    def get_task_class(self) -> type[AutoModel]:
-        from transformers import AutoModelForImageClassification
-
-        return AutoModelForImageClassification  # type: ignore
-
-    def _build(
-        self, model_name_or_path: str, pretrained: bool = True, **kwargs
-    ) -> Module:
-        from torch.nn import Linear
-
-        model = super()._build(
-            model_name_or_path=model_name_or_path, pretrained=pretrained, **kwargs
-        )
-        assert "num_labels" in kwargs, (
-            "`num_labels` must be provided in model initialization kwargs "
-            "for this model type."
-        )
-        model.classifier = Linear(model.classifier.in_features, kwargs["num_labels"])
+        if self._model_type == "image_classification":
+            assert "num_labels" in kwargs, (
+                "`num_labels` must be provided in model initialization kwargs "
+                "for this model type."
+            )
+            model.classifier = Linear(
+                model.classifier.in_features, kwargs["num_labels"]
+            )
         return model
+
+    def get_task_class(self) -> type[AutoModel]:
+        if self._model_type == "sequence_classification":
+            from transformers import AutoModelForSequenceClassification
+
+            return AutoModelForSequenceClassification  # type: ignore
+        elif self._model_type == "token_classification":
+            from transformers import AutoModelForTokenClassification
+
+            return AutoModelForTokenClassification  # type: ignore
+        elif self._model_type == "question_answering":
+            from transformers import AutoModelForQuestionAnswering
+
+            return AutoModelForQuestionAnswering  # type: ignore
+        elif self._model_type == "image_classification":
+            from transformers import AutoModelForImageClassification
+
+            return AutoModelForImageClassification  # type: ignore
+        else:
+            raise ValueError(
+                f"Unsupported model_type '{self._model_type}' for TransformersModelBuilder."
+            )

@@ -29,53 +29,44 @@ class ModelBuilder:
         bn_to_gn: bool = False,
         frozen_layers: FrozenLayers | list[str] = FrozenLayers.none,
         pretrained_checkpoint: str | None = None,
+        model_type: str | None = None,
     ) -> None:
         super().__init__()
         self._cache_dir = cache_dir or _DEFAULT_ATRIA_MODELS_CACHE_DIR
         self._bn_to_gn = bn_to_gn
         self._frozen_layers = frozen_layers
         self._pretrained_checkpoint = pretrained_checkpoint
+        self._model_type = model_type
 
     @classmethod
     def from_type(cls, builder_type: ModelBuilderType, **kwargs: Any):
         if builder_type == ModelBuilderType.local:
+            kwargs.pop("model_type", None)
             return cls(**kwargs)
         elif builder_type == ModelBuilderType.timm:
             from atria_models.core.model_builders._timm import TimmModelBuilder
 
+            kwargs.pop("model_type", None)
             return TimmModelBuilder(**kwargs)
         elif builder_type == ModelBuilderType.torchvision:
             from atria_models.core.model_builders._torchvision import (
                 TorchvisionModelBuilder,
             )
 
+            kwargs.pop("model_type", None)
             return TorchvisionModelBuilder(**kwargs)
-        elif builder_type == ModelBuilderType.transformers_sequence:
+        elif builder_type == ModelBuilderType.transformers:
             from atria_models.core.model_builders._transformers import (
-                SequenceClassificationModelBuilder,
+                TransformersModelBuilder,
             )
 
-            return SequenceClassificationModelBuilder(**kwargs)
-        elif builder_type == ModelBuilderType.transformers_token_classification:
-            from atria_models.core.model_builders._transformers import (
-                TokenClassificationModelBuilder,
-            )
+            model_type = kwargs.pop("model_type", None)
+            return TransformersModelBuilder(model_type=model_type, **kwargs)
+        elif builder_type == ModelBuilderType.atria:
+            from atria_models.core.model_builders._atria import AtriaModelBuilder
 
-            return TokenClassificationModelBuilder(**kwargs)
-        elif builder_type == ModelBuilderType.transformers_question_answering:
-            from atria_models.core.model_builders._transformers import (
-                QuestionAnsweringModelBuilder,
-            )
-
-            return QuestionAnsweringModelBuilder(**kwargs)
-        elif builder_type == ModelBuilderType.transformers_image_classification:
-            from atria_models.core.model_builders._transformers import (
-                ImageClassificationModelBuilder,
-            )
-
-            return ImageClassificationModelBuilder(**kwargs)
-        else:
-            raise ValueError(f"Unsupported ModelBuilderType: {builder_type}")
+            model_type = kwargs.pop("model_type", None)
+            return AtriaModelBuilder(model_type=model_type, **kwargs)
 
     def _validate_model(self, model: Any) -> nn.Module:
         from torch.nn import Module
