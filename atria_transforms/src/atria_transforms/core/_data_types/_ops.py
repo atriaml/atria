@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-import torch
-
 if TYPE_CHECKING:
+    import torch
+
     from ._base import TensorDataModel
 
 

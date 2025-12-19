@@ -16,12 +16,17 @@ Example:
     ...     pass
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from atria_registry import ModuleRegistry, RegistryGroup
 
-from atria_transforms.core._tfs._base import DataTransform
+if TYPE_CHECKING:
+    from atria_transforms.core._tfs._base import DataTransform  # noqa
 
 
-class DataTransformRegistryGroup(RegistryGroup[DataTransform]):
+class DataTransformRegistryGroup(RegistryGroup["DataTransform"]):
     pass
 
 

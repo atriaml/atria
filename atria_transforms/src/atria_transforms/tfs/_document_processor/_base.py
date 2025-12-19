@@ -3,13 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
-from atria_types import DocumentInstance
-from pydantic import Field
-
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import DocumentTensorDataModel
 from atria_transforms.registry import DATA_TRANSFORM
 from atria_transforms.tfs import HuggingfaceProcessor, StandardImageTransform
+from atria_types import DocumentInstance
+from pydantic import Field
 
 from ._utilities import (
     _document_instance_to_hf_processor_inputs,

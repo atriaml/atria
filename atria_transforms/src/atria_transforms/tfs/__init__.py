@@ -1,3 +1,4 @@
+# noqa: D104
 from typing import TYPE_CHECKING
 
 import lazy_loader as lazy
