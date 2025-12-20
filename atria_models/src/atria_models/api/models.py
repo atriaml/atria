@@ -7,7 +7,7 @@ from atria_types._datasets import DatasetLabels
 
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.registry import MODEL_PIPELINES
-from atria_models.registry.registry_groups import MODEL
+from atria_models.registry.registry_groups import MODELS
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ def load_model_pipeline(
 
 def load_model_config(model_name: str, **kwargs):
     logger.debug(f"Loading model config for model: {model_name} with params: {kwargs}")
-    return MODEL.load_module_config(model_name, **kwargs)
+    return MODELS.load_module_config(model_name, **kwargs)
 
 
 def load_model(model_name: str, **kwargs):
