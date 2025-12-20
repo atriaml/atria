@@ -19,13 +19,12 @@ from atria_models.core.models.transformers._configs._encoder_model import (
 
 if TYPE_CHECKING:
     from torch.nn import Module
-    from transformers import AutoModel
 logger = get_logger(__name__)
 
 
 class AtriaModelBuilder(ModelBuilder):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         assert self._model_type is not None, (
             "model_type must be specified for TransformersModelBuilder."
         )
@@ -41,25 +40,25 @@ class AtriaModelBuilder(ModelBuilder):
     def get_config(
         self, model_name_or_path: str, **kwargs
     ) -> TransformersEncoderModelConfig:
-        config = load_model_config(
-            model_name=model_name_or_path, cache_dir=self._cache_dir, **kwargs
-        )
+        config = load_model_config(model_name=model_name_or_path)
+        config.load_from_hf(model_name_or_path=model_name_or_path)
         if self._model_type == "sequence_classification":
             head_config = SequenceClassificationHeadConfig(
-                num_labels=kwargs.get("num_labels", 2),
-                sub_task=kwargs.get(
+                num_labels=kwargs.pop("num_labels", 2),
+                sub_task=kwargs.pop(
                     "sub_task", ClassificationSubTask.single_label_classification
                 ),
             )
             config = config.model_copy(update={"head_config": head_config})
         elif self._model_type == "token_classification":
             head_config = TokenClassificationHeadConfig(
-                num_labels=kwargs.get("num_labels", 2)
+                num_labels=kwargs.pop("num_labels", 2)
             )
             config = config.model_copy(update={"head_config": head_config})
         elif self._model_type == "question_answering":
             head_config = QuestionAnsweringHeadConfig()
             config = config.model_copy(update={"head_config": head_config})
+        config = config.model_copy(update=kwargs)
         return config.model_validate(config)
 
     def _build(
@@ -69,15 +68,4 @@ class AtriaModelBuilder(ModelBuilder):
         logger.info(
             f"Building model '{model_name_or_path}' with parameters:\n{pretty_repr(config, expand_all=True)}"
         )
-        task_cls = self.get_task_class()
-        if pretrained:
-            return task_cls.from_pretrained(
-                model_name_or_path, config=config, cache_dir=self._cache_dir
-            )
-        else:
-            return task_cls.from_config(config=config)
-
-    def get_task_class(self) -> type[AutoModel]:
-        raise NotImplementedError(
-            "Subclasses must implement the `get_task_class` method to return the appropriate model class."
-        )
+        return config.build(cache_dir=self._cache_dir)

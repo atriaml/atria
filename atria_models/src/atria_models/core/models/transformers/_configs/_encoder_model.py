@@ -70,6 +70,47 @@ class TransformersEncoderModelConfig(ModuleConfig):
             values["layers_config"]["hidden_size"] = hidden_size
         return values
 
+    def load_from_hf(self, model_name_or_path: str, **kwargs) -> Self:
+        # load bert config from hf
+        from transformers import AutoConfig, AutoTokenizer
+
+        config = AutoConfig.from_pretrained(model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        embeddings_config = EmbeddingsConfig(
+            vocab_size=config.vocab_size,
+            hidden_size=config.hidden_size,
+            max_position_embeddings=config.max_position_embeddings,
+            type_vocab_size=config.type_vocab_size,
+            pad_token_id=tokenizer.pad_token_id,
+            bos_token_id=tokenizer.bos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            mask_token_id=tokenizer.mask_token_id,
+            position_embedding_type="absolute",
+        )
+        attention_config = AttentionConfig(
+            num_attention_heads=config.num_attention_heads,
+            attention_probs_dropout_prob=config.attention_probs_dropout_prob,
+            hidden_size=config.hidden_size,
+        )
+        layers_config = LayersConfig(
+            num_hidden_layers=config.num_hidden_layers,
+            hidden_size=config.hidden_size,
+            intermediate_size=config.intermediate_size,
+            hidden_act=config.hidden_act,
+            chunk_size_feed_forward=getattr(config, "chunk_size_feed_forward", 0),
+            hidden_dropout_prob=config.hidden_dropout_prob,
+            layer_norm_eps=config.layer_norm_eps,
+            initializer_range=config.initializer_range,
+            classifier_dropout=getattr(config, "classifier_dropout", None),
+        )
+        return self.model_copy(
+            update={
+                "embeddings_config": embeddings_config,
+                "attention_config": attention_config,
+                "layers_config": layers_config,
+            }
+        )
+
 
 T_TransformersEncoderModelConfig = TypeVar(
     "T_TransformersEncoderModelConfig", bound=TransformersEncoderModelConfig
