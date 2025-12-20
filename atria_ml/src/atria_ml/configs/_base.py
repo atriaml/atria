@@ -220,7 +220,7 @@ class RunConfig(RepresentationMixin, BaseModel):
         config_hash = hashlib.sha256(
             json.dumps(params, sort_keys=True).encode()
         ).hexdigest()[:8]
-        return Path(self.env.run_dir) / f"outputs-{config_hash}.json"
+        return Path(self.env.run_dir) / "test" / f"{config_hash}.json"
 
     def metrics_file_exists(self) -> bool:
         output_file_path = self.get_metrics_file_path()
@@ -228,6 +228,8 @@ class RunConfig(RepresentationMixin, BaseModel):
 
     def dump_metrics_file(self, data: dict) -> None:
         output_file_path = self.get_metrics_file_path()
+        if not output_file_path.parent.exists():
+            output_file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file_path, "w") as f:
             json.dump({"config": self.model_dump(), "data": data}, f, indent=4)
         logger.info(f"Metrics dumped to {output_file_path}")
