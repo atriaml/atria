@@ -80,6 +80,22 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         else:
             cleaned["metadata"] = None
 
+        if is_batched:
+            import torch
+
+            # ensure that each of the tensor fields are tensors of batch size 1
+            batch_sizes = set()
+            for name, value in cleaned.items():
+                if name == "metadata":
+                    continue
+                if value is not None:
+                    if isinstance(value, torch.Tensor):
+                        batch_sizes.add(value.shape[0])
+
+            if len(batch_sizes) > 1:
+                raise ValueError(
+                    f"All tensor fields must have the same batch size. Found batch sizes: {batch_sizes}"
+                )
         return cleaned
 
     #
@@ -92,7 +108,6 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         import torch
 
         # ensure that each of the tensor fields are tensors of batch size 1
-        batch_sizes = set()
         for name, _ in self.__class__.model_fields.items():
             if name == "metadata":
                 continue
@@ -102,12 +117,6 @@ class TensorDataModel(RepresentationMixin, BaseModel):
                     raise TypeError(
                         f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
                     )
-                if self._is_batched:
-                    batch_sizes.add(value.shape[0])
-        if self._is_batched and len(batch_sizes) > 1:
-            raise ValueError(
-                f"All tensor fields must have the same batch size. Found batch sizes: {batch_sizes}"
-            )
         return self
 
     @classmethod
