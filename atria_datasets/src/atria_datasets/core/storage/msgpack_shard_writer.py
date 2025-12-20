@@ -29,6 +29,12 @@ from datadings.writer import Writer
 logger = get_logger(__name__)
 
 
+class DuplicateKeyError(Exception):
+    """Custom exception for duplicate keys in MsgpackFileWriter."""
+
+    pass
+
+
 class MsgpackFileWriter(Writer):
     """
     Writer for file-based datasets.
@@ -52,7 +58,7 @@ class MsgpackFileWriter(Writer):
             ValueError: If a duplicate key is encountered.
         """
         if key in self._keys_set:
-            raise ValueError(f"Duplicate key {key!r} not allowed.")
+            raise DuplicateKeyError(f"Duplicate key {key!r} not allowed.")
         self._keys.append(key)
         self._keys_set.add(key)
         self._hash.update(packed)
