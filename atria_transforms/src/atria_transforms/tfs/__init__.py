@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from atria_transforms.tfs._hf_processor import HuggingfaceProcessor  # noqa
     from atria_transforms.tfs._image_transforms import StandardImageTransform  # noqa
     from atria_transforms.tfs._document_processor._base import DocumentProcessor  # noqa
+    from atria_transforms.tfs._image_processor._base import ImageProcessor  # noqa
     from atria_transforms.tfs._document_processor._task_tfs import (
         SequenceClassificationDocumentProcessor,
         TokenClassificationDocumentProcessor,

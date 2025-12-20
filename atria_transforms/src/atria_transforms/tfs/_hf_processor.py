@@ -6,11 +6,13 @@ from typing import TYPE_CHECKING, Any
 from atria_logger import get_logger
 
 if TYPE_CHECKING:
+    from transformers import AutoProcessor
     from transformers.tokenization_utils_base import (
         BatchEncoding,
         PreTrainedTokenizerBase,
     )
 
+from atria_transforms.constants import _DEFAULT_ATRIA_TFS_CACHE_DIR
 from atria_transforms.core import DataTransform
 from atria_transforms.registry import DATA_TRANSFORMS
 
@@ -23,7 +25,7 @@ class HuggingfaceProcessor(DataTransform):
 
     # tokenizer config
     # file args
-    cache_dir: str = "./cache"
+    cache_dir: str | None = None
     local_files_only: bool = False
 
     # ocr args only for multimodal processors
@@ -52,7 +54,6 @@ class HuggingfaceProcessor(DataTransform):
     return_length: bool = False
     return_tensors: str = "pt"
     verbose: bool = True
-    overflow_sampling: str = "return_all"
 
     @property
     def tokenizer(self) -> PreTrainedTokenizerBase:
@@ -67,18 +68,11 @@ class HuggingfaceProcessor(DataTransform):
         return set(self.tokenizer.all_special_ids)
 
     def model_post_init(self, context) -> None:
-        assert self.overflow_sampling in [
-            "return_all",
-            "return_random_n",
-            "no_overflow",
-            "return_first_n",
-        ], f"Overflow sampling strategy {self.overflow_sampling} is not supported."
-
         self._hf_processor = None
 
     def _prepare_init_kwargs(self) -> dict:
         init_kwargs = {
-            "cache_dir": self.cache_dir,
+            "cache_dir": self.cache_dir or _DEFAULT_ATRIA_TFS_CACHE_DIR,
             "local_files_only": self.local_files_only,
             "apply_ocr": self.apply_ocr,
             "do_normalize": self.do_normalize,
@@ -98,7 +92,7 @@ class HuggingfaceProcessor(DataTransform):
             "stride": self.stride,
             "pad_to_multiple_of": self.pad_to_multiple_of,
             "is_split_into_words": self.is_split_into_words,
-            "return_overflowing_tokens": self.overflow_sampling != "no_overflow",
+            "return_overflowing_tokens": True,
             "return_token_type_ids": self.return_token_type_ids,
             "return_attention_mask": self.return_attention_mask,
             "return_special_tokens_mask": self.return_special_tokens_mask,
@@ -108,7 +102,7 @@ class HuggingfaceProcessor(DataTransform):
             "verbose": self.verbose,
         }
 
-        self._possible_args = inspect.signature(processor.__call__).parameters  # type: ignore
+        self._possible_args = inspect.signature(processor.__call__).parameters.keys()  # type: ignore
         for key in list(call_kwargs.keys()):
             if key not in self._possible_args:
                 logger.warning(
@@ -119,6 +113,8 @@ class HuggingfaceProcessor(DataTransform):
         return call_kwargs
 
     def _initialize_transform(self):
+        from transformers import AutoProcessor
+
         processor = AutoProcessor.from_pretrained(
             self.tokenizer_name, **self._prepare_init_kwargs()
         )
