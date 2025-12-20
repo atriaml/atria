@@ -4,5 +4,5 @@ from atria_ml.schedulers._configs import *  # noqa: F401
 from atria_ml.schedulers._registry_group import LR_SCHEDULERS
 
 if __name__ == "__main__":
-    OPTIMIZERS.dump()
+    OPTIMIZERS.dump(refresh=True)
     LR_SCHEDULERS.dump()
