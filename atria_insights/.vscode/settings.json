@@ -42,9 +42,11 @@
     "notebook.output.scrolling": false,
     "python.analysis.extraPaths": [
         "./src",
+        "../atria_models/src/**/*.py"
     ],
     "python.analysis.include": [
         "src/**/*.py",
+        "../atria_models/src/**/*.py"
     ],
     "python.defaultInterpreterPath": "./.venv/bin/python",
     "[python]": {
