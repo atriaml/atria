@@ -307,7 +307,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         self._validate_non_missing_fields(module_path, config)
 
         if config_import_path is not None:
-            print("config_import_path", config_import_path)
             config_cls = typing.cast(
                 T_ModuleConfig, _resolve_module_from_path(config_import_path)
             )
@@ -324,15 +323,26 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         else:
             return config
 
-    def dump(self, path: Path | None = None) -> Path:
+    def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
         """Dump registry.json into the package folder."""
         if path is None:
             pkg_dir = self._package_dir()
             path = pkg_dir / "registry.json"
 
+        registry = {}
+        if path.exists():
+            if refresh:
+                path.unlink()
+            else:
+                with open(path) as f:
+                    logger.debug(f"Loading existing registry from {path} for dumping.")
+                    registry = json.load(f)
+
+        registry[self._name] = self._store
+
         with open(path, "w") as f:
             logger.debug(f"Dumping '{self._name}' group registry to {path}")
-            json.dump(self._store, f, indent=4)
+            json.dump(registry, f, indent=4)
 
         return path
 
@@ -345,8 +355,10 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             return
 
         with open(path) as f:
-            logger.debug(f"Loading '{self._name}' group registry from {path}")
-            self._store = json.load(f)
+            registry = json.load(f)
+            if self._name in registry:
+                logger.debug(f"Loading '{self._name}' group registry from {path}")
+                self._store = registry[self._name]
 
     def __repr__(self) -> str:
         return f"<RegistryGroup name={self._name} package={self._package} registered_modules={yaml.dump(self.store, indent=4)}>"
