@@ -13,6 +13,7 @@ authors = [{ name = "Saifullah", email = "saifullah.saifullah@dfki.de" }]
 dependencies = [
     "atria-logger",
     "atria-registry",
+    "atria-transforms",
     "atria-types",
     "boto3>=1.39.4",
     "datadings",
@@ -138,6 +139,7 @@ datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 atria-types = { path = "../atria_types", editable = true }
 atria-logger = { path = "../atria_logger", editable = true }
 atria-registry = { path = "../atria_registry", editable = true }
+atria-transforms = { path = "../atria_transforms", editable = true }
 [dependency-groups]
 dev = [
     "coverage>=7.9.2",
