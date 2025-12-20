@@ -23,7 +23,7 @@ class LoggingConfig(RepresentationMixin, BaseModel):
 
 class EarlyStoppingConfig(RepresentationMixin, BaseModel):
     enabled: bool = False
-    monitored_metric: str = "val/loss"
+    monitored_metric: str = "validation/running_avg_loss"
     min_delta: float = 0.0
     patience: int = 3
     cumulative_delta: bool = False
