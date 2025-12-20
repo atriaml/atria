@@ -1,1 +1,96 @@
-{}
+{
+    "optimizers": {
+        "adam": {
+            "hash": "e7262849",
+            "config": {
+                "module_path": "torch.optim.Adam",
+                "lr": 0.01,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-08,
+                "weight_decay": 0.0,
+                "amsgrad": false
+            },
+            "import_path": "atria_ml.optimizers._configs.AdamOptimizerConfig"
+        },
+        "adamw": {
+            "hash": "efafd682",
+            "config": {
+                "module_path": "torch.optim.AdamW",
+                "lr": 0.01,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-08,
+                "weight_decay": 0.0,
+                "amsgrad": false
+            },
+            "import_path": "atria_ml.optimizers._configs.AdamWOptimizerConfig"
+        },
+        "adagrad": {
+            "hash": "206ab93f",
+            "config": {
+                "module_path": "torch.optim.Adagrad",
+                "lr": 0.01,
+                "lr_decay": 0.0,
+                "weight_decay": 0.0,
+                "initial_accumulator_value": 0.0,
+                "eps": 1e-10
+            },
+            "import_path": "atria_ml.optimizers._configs.AdagradOptimizerConfig"
+        },
+        "rmsprop": {
+            "hash": "d678b01b",
+            "config": {
+                "module_path": "torch.optim.RMSprop",
+                "lr": 0.01,
+                "alpha": 0.99,
+                "eps": 1e-08,
+                "weight_decay": 0.0,
+                "momentum": 0.0,
+                "centered": false
+            },
+            "import_path": "atria_ml.optimizers._configs.RMSpropOptimizerConfig"
+        },
+        "adadelta": {
+            "hash": "be2e734f",
+            "config": {
+                "module_path": "torch.optim.Adadelta",
+                "lr": 0.01,
+                "rho": 0.9,
+                "eps": 1e-06,
+                "weight_decay": 0.0
+            },
+            "import_path": "atria_ml.optimizers._configs.AdadeltaOptimizerConfig"
+        },
+        "sgd": {
+            "hash": "aa441893",
+            "config": {
+                "module_path": "torch.optim.SGD",
+                "lr": 0.01,
+                "momentum": 0.0,
+                "weight_decay": 0.0,
+                "dampening": 0.0,
+                "nesterov": false
+            },
+            "import_path": "atria_ml.optimizers._configs.SGDOptimizerConfig"
+        },
+        "lars": {
+            "hash": "c0a498d7",
+            "config": {
+                "module_path": "atria_ml.optimizers._lars.LARS",
+                "lr": 0.01,
+                "momentum": 0.0,
+                "weight_decay": 0.0,
+                "dampening": 0.0,
+                "nesterov": false,
+                "eta": 0.001
+            },
+            "import_path": "atria_ml.optimizers._configs.LARSOptimizerConfig"
+        }
+    },
+    "lr_schedulers": {}
+}
