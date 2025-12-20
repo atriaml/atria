@@ -91,3 +91,8 @@ outputs/
 test_data/
 atria_datasets/examples/data/
 visualizations/
+atria_transforms/src/atria_transforms/tfs/_ocr_engines/_base.py
+atria_transforms/src/atria_transforms/tfs/_ocr_engines/tesseract.py
+atria_datasets/.vscode/settings.json
+tesseract_ocr_output.png/test_doc.png
+test.ipynb
