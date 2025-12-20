@@ -31,9 +31,9 @@ class TokenClassificationModelOutput(ModelOutput):
 
 @dataclass(frozen=True)
 class LayoutTokenClassificationModelOutput(ModelOutput):
-    word_logits: torch.Tensor | None = None
-    predicted_word_labels: torch.Tensor | None = None
-    target_word_labels: torch.Tensor | None = None
+    layout_token_logits: torch.Tensor | None = None
+    layout_token_targets: torch.Tensor | None = None
+    layout_token_bboxes: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)
