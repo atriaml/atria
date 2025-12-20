@@ -1,0 +1,353 @@
+{
+    "explainable_model_pipelines": {
+        "image_classification": {
+            "hash": "3747d659",
+            "config": {
+                "module_path": "atria_insights.core.model_pipelines._image_pipeline.ExplainableImageClassificationPipeline",
+                "model_pipeline_config": {
+                    "module_path": null,
+                    "model": {
+                        "builder_type": "timm",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": null,
+                        "model_name_or_path": "resnet18",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": null,
+                    "eval_transform": null,
+                    "metrics": null
+                },
+                "feature_segmentor_config": {
+                    "module_path": null,
+                    "type": "noop"
+                },
+                "baseline_generator_config": {
+                    "module_path": "torchxai.ignite._utilities._prepare_baselines_from_type",
+                    "type": "simple",
+                    "baseline_strategy": "zeros",
+                    "baselines_fixed_value": 0.5
+                },
+                "baselines_fixed_value": 0.5,
+                "explainer_config": {
+                    "module_path": "torchxai.explainers.SaliencyExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/saliency"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false
+            },
+            "import_path": "atria_insights.core.model_pipelines._image_pipeline.ExplainableImageModelPipelineConfig"
+        },
+        "sequence_classification": {
+            "hash": "687d5464",
+            "config": {
+                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceClassificationPipeline",
+                "model_pipeline_config": {
+                    "module_path": null,
+                    "model": {
+                        "builder_type": "timm",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": null,
+                        "model_name_or_path": "resnet18",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": null,
+                    "eval_transform": null,
+                    "metrics": null
+                },
+                "feature_segmentor_config": {
+                    "type": "sequence",
+                    "group_tokens_to_words": true,
+                    "image_segmentor": {
+                        "module_path": null,
+                        "type": "noop"
+                    }
+                },
+                "baseline_generator_config": {
+                    "type": "sequence",
+                    "baselines_config": {
+                        "text": "zero",
+                        "token_type": "zero",
+                        "position": "zero",
+                        "spatial_position": "zero",
+                        "image": "black"
+                    }
+                },
+                "baselines_fixed_value": 0.5,
+                "explainer_config": {
+                    "module_path": "torchxai.explainers.SaliencyExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/saliency"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false
+            },
+            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+        },
+        "token_classification": {
+            "hash": "f858fd82",
+            "config": {
+                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableTokenClassificationPipeline",
+                "model_pipeline_config": {
+                    "module_path": null,
+                    "model": {
+                        "builder_type": "timm",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": null,
+                        "model_name_or_path": "resnet18",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": null,
+                    "eval_transform": null,
+                    "metrics": null
+                },
+                "feature_segmentor_config": {
+                    "type": "sequence",
+                    "group_tokens_to_words": true,
+                    "image_segmentor": {
+                        "module_path": null,
+                        "type": "noop"
+                    }
+                },
+                "baseline_generator_config": {
+                    "type": "sequence",
+                    "baselines_config": {
+                        "text": "zero",
+                        "token_type": "zero",
+                        "position": "zero",
+                        "spatial_position": "zero",
+                        "image": "black"
+                    }
+                },
+                "baselines_fixed_value": 0.5,
+                "explainer_config": {
+                    "module_path": "torchxai.explainers.SaliencyExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/saliency"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false
+            },
+            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+        },
+        "question_answering": {
+            "hash": "605be957",
+            "config": {
+                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableQuestionAnsweringPipeline",
+                "model_pipeline_config": {
+                    "module_path": null,
+                    "model": {
+                        "builder_type": "timm",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": null,
+                        "model_name_or_path": "resnet18",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": null,
+                    "eval_transform": null,
+                    "metrics": null
+                },
+                "feature_segmentor_config": {
+                    "type": "sequence",
+                    "group_tokens_to_words": true,
+                    "image_segmentor": {
+                        "module_path": null,
+                        "type": "noop"
+                    }
+                },
+                "baseline_generator_config": {
+                    "type": "sequence",
+                    "baselines_config": {
+                        "text": "zero",
+                        "token_type": "zero",
+                        "position": "zero",
+                        "spatial_position": "zero",
+                        "image": "black"
+                    }
+                },
+                "baselines_fixed_value": 0.5,
+                "explainer_config": {
+                    "module_path": "torchxai.explainers.SaliencyExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/saliency"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false
+            },
+            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+        }
+    },
+    "explainer": {
+        "grad": {
+            "saliency": {
+                "hash": "8c23d2a9",
+                "config": {
+                    "module_path": "torchxai.explainers.SaliencyExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/saliency"
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.SaliencyExplainerConfig"
+            },
+            "integrated_gradients": {
+                "hash": "002a3704",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.integrated_gradients.IntegratedGradientsExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/integrated_gradients",
+                    "n_steps": 50
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.IntegratedGradientsExplainerConfig"
+            },
+            "deeplift": {
+                "hash": "c7cc7972",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.deeplift.DeepLiftExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/deeplift"
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.DeepLiftExplainerConfig"
+            },
+            "deeplift_shap": {
+                "hash": "08707dba",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.deeplift_shap.DeepLiftShapExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/deeplift_shap"
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.DeepLiftShapExplainerConfig"
+            },
+            "gradient_shap": {
+                "hash": "525c83e0",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.gradient_shap.GradientShapExplainer",
+                    "internal_batch_size": 1,
+                    "grad_batch_size": 64,
+                    "type": "grad/gradient_shap",
+                    "n_samples": 25
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.GradientShapExplainerConfig"
+            },
+            "guided_backprop": {
+                "hash": "d88b1f7b",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.guided_backprop.GuidedBackpropExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/guided_backprop"
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.GuidedBackpropExplainerConfig"
+            },
+            "input_x_gradient": {
+                "hash": "8a25988d",
+                "config": {
+                    "module_path": "torchxai.explainers._grad.input_x_gradient.InputXGradientExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "grad/input_x_gradient"
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.InputXGradientExplainerConfig"
+            }
+        },
+        "perturbation": {
+            "feature_ablation": {
+                "hash": "5890ccc5",
+                "config": {
+                    "module_path": "torchxai.explainers._perturbation.feature_ablation.FeatureAblationExplainer",
+                    "internal_batch_size": 64,
+                    "grad_batch_size": 64,
+                    "type": "perturbation/feature_ablation",
+                    "weight_attributions": true
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.FeatureAblationExplainerConfig"
+            },
+            "kernel_shap": {
+                "hash": "fec790b0",
+                "config": {
+                    "module_path": "torchxai.explainers._perturbation.kernel_shap.KernelShapExplainer",
+                    "internal_batch_size": 1,
+                    "grad_batch_size": 64,
+                    "type": "perturbation/kernel_shap",
+                    "n_samples": 25,
+                    "weight_attributions": true
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.KernelShapExplainerConfig"
+            },
+            "lime": {
+                "hash": "2b83bc8a",
+                "config": {
+                    "module_path": "torchxai.explainers._perturbation.lime.LimeExplainer",
+                    "internal_batch_size": 1,
+                    "grad_batch_size": 64,
+                    "type": "perturbation/lime",
+                    "n_samples": 25,
+                    "alpha": 0.01,
+                    "weight_attributions": true
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.LimeExplainerConfig"
+            },
+            "occlusion": {
+                "hash": "331b6f0e",
+                "config": {
+                    "module_path": "torchxai.explainers._perturbation.occlusion.OcclusionExplainer",
+                    "internal_batch_size": 1,
+                    "grad_batch_size": 64,
+                    "type": "perturbation/occlusion",
+                    "sliding_window_shapes": [
+                        3,
+                        16,
+                        16
+                    ],
+                    "strides": [
+                        3,
+                        4,
+                        4
+                    ]
+                },
+                "import_path": "atria_insights.core.explainers._torchxai.OcclusionExplainerConfig"
+            }
+        },
+        "random": {
+            "hash": "8e4af39b",
+            "config": {
+                "module_path": "torchxai.explainers.random.RandomExplainer",
+                "internal_batch_size": 64,
+                "grad_batch_size": 64,
+                "type": "random"
+            },
+            "import_path": "atria_insights.core.explainers._torchxai.RandomExplainerConfig"
+        }
+    },
+    "explainability_metric": {
+        "axiomatic": {
+            "completeness": {
+                "hash": "f31d7d31",
+                "config": {
+                    "module_path": "torchxai.ignite.CompletenessMetric",
+                    "baseline_strategy": "zeros",
+                    "baselines_fixed_value": 0.5
+                },
+                "import_path": "atria_insights.core.explainability_metrics._torchxai.CompletenessMetricConfig"
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 from atria_insights.core.explainers._api import load_explainer_config
 from atria_insights.core.explainers._base import ExplainerConfig
-from atria_insights.core.explainers._registry_group import EXPLAINER
+from atria_insights.core.explainers._registry_group import EXPLAINERS
 from atria_insights.core.explainers._torchxai import (
     DeepLiftExplainerConfig,
     DeepLiftShapExplainerConfig,
@@ -16,7 +16,7 @@ from atria_insights.core.explainers._torchxai import (
 __all__ = [
     "load_explainer_config",
     "ExplainerConfig",
-    "EXPLAINER",
+    "EXPLAINERS",
     "SaliencyExplainerConfig",
     "IntegratedGradientsExplainerConfig",
     "DeepLiftExplainerConfig",

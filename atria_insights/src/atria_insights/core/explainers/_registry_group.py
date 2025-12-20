@@ -11,6 +11,6 @@ class ExplainersRegistryGroup(RegistryGroup[ExplainerConfig]):
 
 ModuleRegistry().add_registry_group(
     name="EXPLAINER",
-    registry_group=ExplainersRegistryGroup(name="explainer", package="atria_ml"),
+    registry_group=ExplainersRegistryGroup(name="explainer", package="atria_insights"),
 )
-EXPLAINER: ExplainersRegistryGroup = ModuleRegistry().get_registry_group("EXPLAINER")  # type: ignore
+EXPLAINERS: ExplainersRegistryGroup = ModuleRegistry().get_registry_group("EXPLAINER")  # type: ignore

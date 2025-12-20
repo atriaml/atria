@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from functools import partial
+from typing import Literal
 
 from atria_registry import ModuleConfig
-from torchxai.ignite._utilities import BaselineStrategy
+
+from atria_insights.core.data_types.common import BaselineStrategy
 
 
-class DefaultBaselineGenerator(ModuleConfig):
+class SimpleBaselineGeneratorConfig(ModuleConfig):
     __builds_with_kwargs__: bool = True
+    type: Literal["simple"] = "simple"
     module_path: str | None = "torchxai.ignite._utilities._prepare_baselines_from_type"
     baseline_strategy: BaselineStrategy = BaselineStrategy.zeros
     baselines_fixed_value: float = 0.5

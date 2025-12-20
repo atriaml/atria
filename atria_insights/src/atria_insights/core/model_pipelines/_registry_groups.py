@@ -23,11 +23,11 @@ class ExplainableModelPipelineRegistryGroup(
 
 
 ModuleRegistry().add_registry_group(
-    name="EXPLAINABLE_MODEL_PIPELINE",
+    name="EXPLAINABLE_MODEL_PIPELINES",
     registry_group=ExplainableModelPipelineRegistryGroup(
-        name="EXPLAINABLE_MODEL_PIPELINE", package="atria_insights"
+        name="explainable_model_pipelines", package="atria_insights"
     ),
 )
-EXPLAINABLE_MODEL_PIPELINE: ExplainableModelPipelineRegistryGroup = typing.cast(
-    ExplainableModelPipelineRegistryGroup, ModuleRegistry().EXPLAINABLE_MODEL_PIPELINE
+EXPLAINABLE_MODEL_PIPELINES: ExplainableModelPipelineRegistryGroup = typing.cast(
+    ExplainableModelPipelineRegistryGroup, ModuleRegistry().EXPLAINABLE_MODEL_PIPELINES
 )

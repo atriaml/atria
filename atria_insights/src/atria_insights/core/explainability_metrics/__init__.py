@@ -3,7 +3,7 @@ from atria_insights.core.explainability_metrics._api import (
 )
 from atria_insights.core.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.core.explainability_metrics._registry_group import (
-    EXPLAINABILITY_METRIC,
+    EXPLAINABILITY_METRICS,
 )
 from atria_insights.core.explainability_metrics._torchxai import (
     CompletenessMetricConfig,
@@ -12,6 +12,6 @@ from atria_insights.core.explainability_metrics._torchxai import (
 __all__ = [
     "load_explainability_metric_config",
     "ExplainabilityMetricConfig",
-    "EXPLAINABILITY_METRIC",
+    "EXPLAINABILITY_METRICS",
     "CompletenessMetricConfig",
 ]

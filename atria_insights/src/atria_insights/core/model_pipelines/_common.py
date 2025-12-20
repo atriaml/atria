@@ -15,8 +15,11 @@ from atria_insights.core.model_pipelines._feature_segmentors import (
     FeatureSegmentorConfigType,
     NoOpSegmenterConfig,
 )
-from atria_insights.core.model_pipelines.baseline_generators._default import (
-    BaselinesGeneratorConfig,
+from atria_insights.core.model_pipelines.baseline_generators import (
+    BaselineGeneratorConfigType,
+)
+from atria_insights.core.model_pipelines.baseline_generators._simple import (
+    SimpleBaselineGeneratorConfig,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +37,9 @@ class ExplanationTargetStrategy(str, enum.Enum):
 class ExplainableModelPipelineConfig(ModuleConfig):
     model_pipeline_config: ModelPipelineConfig = ModelPipelineConfig()
     feature_segmentor_config: FeatureSegmentorConfigType = NoOpSegmenterConfig()
-    baseline_generator_config: BaselinesGeneratorConfig = BaselinesGeneratorConfig()
+    baseline_generator_config: BaselineGeneratorConfigType = (
+        SimpleBaselineGeneratorConfig()
+    )
     baselines_fixed_value: float = 0.5
     explainer_config: ExplainerConfigType = SaliencyExplainerConfig()
     explainability_metrics: dict[str, ExplainabilityMetricConfig] | None = None  #

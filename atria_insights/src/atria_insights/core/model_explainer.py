@@ -105,7 +105,7 @@ class ModelExplainer:
             ),
         )
 
-    def _build(self, local_rank: int) -> ModelExplainerState:
+    def _build(self, local_rank: int = 0) -> ModelExplainerState:
         self._initialize_runtime(local_rank=local_rank)
 
         # setup logging

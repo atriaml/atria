@@ -3,16 +3,16 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from atria_insights.core.explainers._base import ExplainerConfig
-from atria_insights.core.explainers._registry_group import EXPLAINER
+from atria_insights.core.explainers._registry_group import EXPLAINERS
 
 
-@EXPLAINER.register("grad/saliency")
+@EXPLAINERS.register("grad/saliency")
 class SaliencyExplainerConfig(ExplainerConfig):
     type: Literal["grad/saliency"] = "grad/saliency"
     module_path: str | None = "torchxai.explainers.SaliencyExplainer"
 
 
-@EXPLAINER.register("grad/integrated_gradients")
+@EXPLAINERS.register("grad/integrated_gradients")
 class IntegratedGradientsExplainerConfig(ExplainerConfig):
     type: Literal["grad/integrated_gradients"] = "grad/integrated_gradients"
     module_path: str | None = (
@@ -21,13 +21,13 @@ class IntegratedGradientsExplainerConfig(ExplainerConfig):
     n_steps: int = 50
 
 
-@EXPLAINER.register("grad/deeplift")
+@EXPLAINERS.register("grad/deeplift")
 class DeepLiftExplainerConfig(ExplainerConfig):
     type: Literal["grad/deeplift"] = "grad/deeplift"
     module_path: str | None = "torchxai.explainers._grad.deeplift.DeepLiftExplainer"
 
 
-@EXPLAINER.register("grad/deeplift_shap")
+@EXPLAINERS.register("grad/deeplift_shap")
 class DeepLiftShapExplainerConfig(ExplainerConfig):
     type: Literal["grad/deeplift_shap"] = "grad/deeplift_shap"
     module_path: str | None = (
@@ -35,7 +35,7 @@ class DeepLiftShapExplainerConfig(ExplainerConfig):
     )
 
 
-@EXPLAINER.register("grad/gradient_shap")
+@EXPLAINERS.register("grad/gradient_shap")
 class GradientShapExplainerConfig(ExplainerConfig):
     type: Literal["grad/gradient_shap"] = "grad/gradient_shap"
     module_path: str | None = (
@@ -45,7 +45,7 @@ class GradientShapExplainerConfig(ExplainerConfig):
     n_samples: int = 25
 
 
-@EXPLAINER.register("grad/guided_backprop")
+@EXPLAINERS.register("grad/guided_backprop")
 class GuidedBackpropExplainerConfig(ExplainerConfig):
     type: Literal["grad/guided_backprop"] = "grad/guided_backprop"
     module_path: str | None = (
@@ -53,7 +53,7 @@ class GuidedBackpropExplainerConfig(ExplainerConfig):
     )
 
 
-@EXPLAINER.register("grad/input_x_gradient")
+@EXPLAINERS.register("grad/input_x_gradient")
 class InputXGradientExplainerConfig(ExplainerConfig):
     type: Literal["grad/input_x_gradient"] = "grad/input_x_gradient"
     module_path: str | None = (
@@ -61,7 +61,7 @@ class InputXGradientExplainerConfig(ExplainerConfig):
     )
 
 
-@EXPLAINER.register("perturbation/feature_ablation")
+@EXPLAINERS.register("perturbation/feature_ablation")
 class FeatureAblationExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/feature_ablation"] = "perturbation/feature_ablation"
     module_path: str | None = (
@@ -70,7 +70,7 @@ class FeatureAblationExplainerConfig(ExplainerConfig):
     weight_attributions: bool = True
 
 
-@EXPLAINER.register("perturbation/kernel_shap")
+@EXPLAINERS.register("perturbation/kernel_shap")
 class KernelShapExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/kernel_shap"] = "perturbation/kernel_shap"
     module_path: str | None = (
@@ -81,7 +81,7 @@ class KernelShapExplainerConfig(ExplainerConfig):
     weight_attributions: bool = True
 
 
-@EXPLAINER.register("perturbation/lime")
+@EXPLAINERS.register("perturbation/lime")
 class LimeExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/lime"] = "perturbation/lime"
     module_path: str | None = "torchxai.explainers._perturbation.lime.LimeExplainer"
@@ -91,7 +91,7 @@ class LimeExplainerConfig(ExplainerConfig):
     weight_attributions: bool = True
 
 
-@EXPLAINER.register("perturbation/occlusion")
+@EXPLAINERS.register("perturbation/occlusion")
 class OcclusionExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/occlusion"] = "perturbation/occlusion"
     module_path: str | None = (
@@ -106,7 +106,7 @@ class OcclusionExplainerConfig(ExplainerConfig):
     internal_batch_size: int = 1
 
 
-@EXPLAINER.register("random")
+@EXPLAINERS.register("random")
 class RandomExplainerConfig(ExplainerConfig):
     type: Literal["random"] = "random"
     module_path: str | None = "torchxai.explainers.random.RandomExplainer"

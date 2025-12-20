@@ -1,12 +1,11 @@
-from torchxai.ignite import BaselineStrategy
-
+from atria_insights.core.data_types.common import BaselineStrategy
 from atria_insights.core.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.core.explainability_metrics._registry_group import (
-    EXPLAINABILITY_METRIC,
+    EXPLAINABILITY_METRICS,
 )
 
 
-@EXPLAINABILITY_METRIC.register("axiomatic/completeness")
+@EXPLAINABILITY_METRICS.register("axiomatic/completeness")
 class CompletenessMetricConfig(ExplainabilityMetricConfig):
     module_path: str | None = "torchxai.ignite.CompletenessMetric"
     baseline_strategy: BaselineStrategy = BaselineStrategy.zeros

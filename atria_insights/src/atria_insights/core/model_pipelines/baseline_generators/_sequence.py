@@ -1,114 +1,134 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import TYPE_CHECKING, Literal
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Any, Literal
 
-import torch
-from atria_registry import ModuleConfig
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from transformers.configuration_utils import PretrainedConfig
+    import torch
+    from atria_models.core.models.transformers._models._encoder_model import (
+        TransformersEncoderModel,
+    )
+
+
+class SequenceBaselinesConfig(BaseModel):
+    text: Literal["zero", "mask_token_id", "pad_token_id"] = "zero"
+    token_type: Literal["zero", "pad_token_id"] = "zero"
+    position: Literal["zero", "pad_token_id"] = "zero"
+    spatial_position: Literal["zero"] = "zero"
+    image: Literal["white", "black", "random", "mean"] = "black"
+
 
 class SequenceBaselineGenerator:
-    def __init__(self, model_adaptor: ModelAdaptor) -> None:
-        self.pad_token_id = config.pad_token_id
-        self.bos_token_id = config.bos_token_id
-        self.eos_token_id = config.eos_token_id
+    def __init__(
+        self,
+        *,
+        model: TransformersEncoderModel,
+        baselines_config: SequenceBaselinesConfig,
+    ) -> None:
+        self._model = model
+        self._baselines_config = baselines_config
 
-    def __call__(self, input_ids: torch.Tensor, attention_mask: torch.Tensor,
-        if position_ids is None:
-            # Create the position ids from the input token ids. Any padded tokens remain padded.
-            position_ids = (
-                self._model.layoutlmv3.embeddings.create_position_ids_from_input_ids(
-                    input_ids, self._model.layoutlmv3.embeddings.padding_idx
-                ).to(input_ids.device)
+    @property
+    def special_token_ids(self) -> dict[str, int]:
+        return self._model.config.embeddings.special_token_ids
+
+    def __call__(
+        self,
+        inputs: OrderedDict[str, torch.Tensor],
+        target_inputs: list[str] | None = None,
+    ) -> OrderedDict[str, torch.Tensor]:
+        input_embeddings = self._model.ids_to_embeddings(**inputs).to_ordered_dict()
+        baseline_embeddings = OrderedDict()
+        for key in input_embeddings.keys():
+            if target_inputs is not None and key not in target_inputs:
+                continue
+            if input_embeddings[key] is None:
+                raise ValueError(f"{key} embeddings cannot be None")
+
+            baseline_embeddings[key] = self._replace_embeddings(
+                embeddings=input_embeddings[key],
+                baseline_embeddings=self._create_baseline_from_input(
+                    self._baselines_config.text, input_embeddings[key]
+                ),
+                special_tokens_mask=self._get_special_tokens_mask(inputs["token_ids"]),
             )
 
-        return OrderedDict(
-            input_embeddings=self._prepare_input_ids_baselines(
-                input_ids, self._baselines_config
-            ),
-            position_embeddings=self._prepare_position_ids_baselines(
-                input_ids, position_ids, self._baselines_config
-            ),
-            spatial_position_embeddings=self._generate_spatial_position_baselines(
-                input_ids, bbox, self._baselines_config
-            ),
-            # notice here that the patch embeddings are generated from the pixel values first and then
-            # the patch embeddings baselines are generated according to the patch embeddings shape
-            patch_embeddings=self._generate_patch_embedding_baselines(
-                pixel_values, self._baselines_config
-            ),
-        )
+        return baseline_embeddings
 
-    def _prepare_input_ids_baselines(
-        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+    def _get_special_tokens_mask(self, input_ids: torch.Tensor) -> torch.Tensor:
+        import torch
+
+        special_tokens_mask = torch.zeros_like(
+            input_ids, dtype=torch.bool, device=input_ids.device
+        )
+        for token_id in self.special_token_ids.values():
+            special_tokens_mask[input_ids == token_id] = True
+        return special_tokens_mask
+
+    def _replace_embeddings(
+        self, embeddings, baseline_embeddings, special_tokens_mask=None
+    ):
+        import torch
+
+        batch_size, seq_len, _ = embeddings.size()
+
+        # make a mask to replace non-special tokens
+        replace_mask = torch.full((batch_size, seq_len), 1, device=embeddings.device)
+
+        if special_tokens_mask is not None:
+            replace_mask.masked_fill_(special_tokens_mask, value=0.0)
+
+        # convert to bool
+        replace_mask = replace_mask.bool().unsqueeze(-1).expand_as(embeddings)
+
+        # expand the mask to the same size as the embeddings
+        return embeddings * ~replace_mask + replace_mask * baseline_embeddings
+
+    def _create_embedding_from_special_token(
+        self,
+        input_tensor: torch.Tensor,
+        token_id: int,
+        target_embedding: str = "token_embedding",
     ) -> torch.Tensor:
-        input_ids_baselines = (
-            attention_mask * self.pad_token_id
-            + (1 - attention_mask) * self.pad_token_id
+        import torch
+
+        embeddings = self._model.ids_to_embeddings(
+            torch.full_like(input_tensor, token_id)
+        ).to_ordered_dict()
+        assert embeddings[target_embedding] is not None, (
+            "Token embeddings should not be None"
         )
-        input_ids_baselines[input_ids == self.bos_token_id] = self.bos_token_id
-        input_ids_baselines[input_ids == self.eos_token_id] = self.eos_token_id
-        return input_ids_baselines
+        return embeddings[target_embedding]
 
+    # get special tokens mask
+    def _create_baseline_from_input(
+        self,
+        baseline_type: Literal["zero", "mask_token_id", "pad_token_id"],
+        input_embeddings: torch.Tensor,
+    ):
+        import torch
 
-class QuickshiftSegmenterConfig(ModuleConfig):
-    type: Literal["quickshift"] = "quickshift"
-    kernel_size: int = 4
-    max_dist: int = 200
-    ratio: float = 0.2
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "quickshift",
-                kernel_size=self.kernel_size,
-                max_dist=self.max_dist,
-                ratio=self.ratio,
+        if baseline_type == "zero":
+            return torch.zeros_like(input_embeddings)
+        elif baseline_type in ["mask_token_id", "pad_token_id"]:
+            return self._create_embedding_from_special_token(
+                input_embeddings, self.special_token_ids[baseline_type]
             )
-        )
-
-
-class FelzenszwalbSegmenterConfig(ModuleConfig):
-    type: Literal["felzenszwalb"] = "felzenszwalb"
-    scale: float = 100.0
-    sigma: float = 0.5
-    min_size: int = 50
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "felzenszwalb",
-                scale=self.scale,
-                sigma=self.sigma,
-                min_size=self.min_size,
+        else:
+            raise ValueError(
+                f"Invalid masking type: {baseline_type} for word embeddings. Supported types are 'zero', 'mask_token', and 'pad_token'"
             )
+
+
+class SequenceBaselineGeneratorConfig(BaseModel):
+    type: Literal["sequence"] = "sequence"
+    baselines_config: SequenceBaselinesConfig = SequenceBaselinesConfig()
+
+    def build(
+        self, *, model: TransformersEncoderModel, **kwargs: Any
+    ) -> SequenceBaselineGenerator:
+        return SequenceBaselineGenerator(
+            model=model, baselines_config=self.baselines_config
         )
-
-
-class SlicSegmenterConfig(ModuleConfig):
-    type: Literal["slic"] = "slic"
-    n_segments: int = 100
-    compactness: float = 10.0
-    sigma: float = 1.0
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "slic",
-                n_segments=self.n_segments,
-                compactness=self.compactness,
-                sigma=self.sigma,
-            )
-        )
-
-
-FeatureSegmentorConfigType = Annotated[
-    NoOpSegmenterConfig,
-    GridSegmenterConfig,
-    QuickshiftSegmenterConfig,
-    FelzenszwalbSegmenterConfig,
-    SlicSegmenterConfig,
-    Field(discriminator="type"),
-]

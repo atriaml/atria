@@ -45,16 +45,21 @@ class ExplainableModelPipeline(
             self.config.explanation_target_strategy == ExplanationTargetStrategy.all
         )
 
+        # build model with wrapped forward
+        self._wrapped_model = self._wrap_model_forward(self._model_pipeline._model)
+
         # build explainer
         self._explainer = self.config.explainer_config.build(
-            model=self._model_pipeline._model, multi_target=multi_target
+            model=self._wrapped_model, multi_target=multi_target
         )
 
         # build feature segmentor
         self._feature_segmentor = self.config.feature_segmentor_config.build()
 
         # build baselines generator
-        self._baseline_generator = self.config.baseline_generator_config.build()
+        self._baseline_generator = self.config.baseline_generator_config.build(
+            model=self._model_pipeline._model
+        )
 
         # get possible explainer args
         # filster args here so there is no error on fowrard
@@ -67,10 +72,31 @@ class ExplainableModelPipeline(
     def ops(self) -> Any:
         return self._model_pipeline.ops
 
-    @abstractmethod
-    def _model_forward(self, batch: T_TensorDataModel) -> Any:
-        """Forward pass through the model. Must be implemented by subclasses."""
-        pass
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        class WrappedModel(torch.nn.Module):
+            def __init__(self, model: torch.nn.Module) -> None:
+                super().__init__()
+                self._model = model
+
+            def forward(
+                self,
+                explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
+                additional_forward_args: dict[str, Any] | None = None,
+            ) -> torch.Tensor:
+                from torch.nn.functional import softmax
+
+                model_outputs = self._model(
+                    explained_inputs, **(additional_forward_args or {})
+                )
+                if isinstance(model_outputs, dict):
+                    logits = model_outputs["logits"]
+                elif hasattr(model_outputs, "logits"):
+                    logits = model_outputs.logits
+                else:
+                    logits = model_outputs
+                return softmax(logits, dim=-1)
+
+        return WrappedModel(model)
 
     @abstractmethod
     def _target(
@@ -86,7 +112,9 @@ class ExplainableModelPipeline(
         """Prepare the input features for the explainer."""
         pass
 
-    def _additional_forward_args(self, batch: T_TensorDataModel) -> Any | None:
+    def _additional_forward_args(
+        self, batch: T_TensorDataModel
+    ) -> dict[str, Any] | None:
         """Prepare any additional forward arguments for the explainer."""
         return None
 
@@ -145,34 +173,40 @@ class ExplainableModelPipeline(
     def _prepare_explanation_inputs(
         self,
         batch: T_TensorDataModel,
-        target: ExplanationTargetType | list[ExplanationTargetType],
         train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
     ) -> ExplanationInputs:
         """Prepare the inputs for the explainer step."""
-        # prepare explained inputs
-        inputs = self._explained_inputs(batch)
+        with torch.no_grad():
+            # prepare explained inputs
+            inputs = self._explained_inputs(batch)
 
-        # prepare additional forward args
-        additional_forward_args = self._additional_forward_args(batch) or ()
+            # prepare additional forward args
+            additional_forward_args = self._additional_forward_args(batch) or {}
 
-        # prepare baselines
-        baselines = self._baselines(
-            explained_inputs=inputs, train_baselines=train_baselines
-        )
+            # forward pass
+            model_outputs = self._wrapped_model(inputs, additional_forward_args)
 
-        # prepare feature mask
-        feature_mask = self._feature_mask(explained_inputs=inputs)
+            # prepare target
+            target = self._target(batch=batch, model_outputs=model_outputs)
 
-        # prepare explanation inputs
-        return ExplanationInputs(
-            sample_id=batch.metadata.sample_id,
-            inputs=inputs,
-            additional_forward_args=additional_forward_args,
-            baselines=baselines,
-            feature_mask=feature_mask,
-            target=target,
-            frozen_features=None,
-        )
+            # prepare baselines
+            baselines = self._baselines(
+                explained_inputs=inputs, train_baselines=train_baselines
+            )
+
+            # prepare feature mask
+            feature_mask = self._feature_mask(explained_inputs=inputs)
+
+            # prepare explanation inputs
+            return ExplanationInputs(
+                sample_id=batch.metadata.sample_id,
+                inputs=inputs,
+                additional_forward_args=additional_forward_args,
+                baselines=baselines,
+                feature_mask=feature_mask,
+                target=target,
+                frozen_features=None,
+            )
 
     def _explainer_forward(
         self, explanation_inputs: ExplanationInputs
@@ -214,10 +248,8 @@ class ExplainableModelPipeline(
         batch: T_TensorDataModel,
         train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
     ) -> ExplanationState:
-        model_outputs = self._model_forward(batch)
-        target = self._target(batch=batch, model_outputs=model_outputs)
         explainer_step_inputs = self._prepare_explanation_inputs(
-            batch=batch, target=target, train_baselines=train_baselines
+            batch=batch, train_baselines=train_baselines
         )
         return self._explainer_forward(explanation_inputs=explainer_step_inputs)
 

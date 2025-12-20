@@ -21,7 +21,7 @@ from atria_insights.core.model_pipelines._common import (
 )
 from atria_insights.core.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.core.model_pipelines._registry_groups import (
-    EXPLAINABLE_MODEL_PIPELINE,
+    EXPLAINABLE_MODEL_PIPELINES,
 )
 
 logger = get_logger(__name__)
@@ -63,20 +63,6 @@ class ExplainableImageModelPipeline(
             f"{self.__class__.__name__} can only be used with ImageModelPipeline. Found {self._model_pipeline=}"
         )
 
-    def _model_forward(
-        self, batch: ImageTensorDataModel | DocumentTensorDataModel
-    ) -> torch.Tensor:
-        from torch.nn.functional import softmax
-
-        model_outputs = self._model_pipeline._model(batch.image)
-        if isinstance(model_outputs, dict):
-            logits = model_outputs["logits"]
-        elif hasattr(model_outputs, "logits"):
-            logits = model_outputs.logits
-        else:
-            logits = model_outputs
-        return softmax(logits, dim=-1)
-
     def _target(
         self,
         batch: ImageTensorDataModel | DocumentTensorDataModel,
@@ -110,6 +96,6 @@ class ExplainableImageModelPipeline(
         return batch.image
 
 
-@EXPLAINABLE_MODEL_PIPELINE.register("image_classification")
+@EXPLAINABLE_MODEL_PIPELINES.register("image_classification")
 class ExplainableImageClassificationPipeline(ExplainableImageModelPipeline):
     __config__ = ExplainableImageModelPipelineConfig
