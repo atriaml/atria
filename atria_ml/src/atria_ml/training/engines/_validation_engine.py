@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,7 @@ from atria_ml.training.engines._trainer_child_engine import (
     TrainerChildEngineConfig,
     TrainerChildEngineDependencies,
 )
+from atria_ml.training.engines.utilities import _format_metrics_for_logging
 
 if TYPE_CHECKING:
     pass
@@ -56,6 +58,7 @@ class ValidationEngine(
         self.attach_early_stopping_callback()
         if self._config.model_checkpoint.enabled:
             self.attach_best_checkpointer()
+        self.attach_metrics_output_file()
         return engine
 
     def attach_early_stopping_callback(self) -> None:
@@ -105,3 +108,35 @@ class ValidationEngine(
             include_self=True,
         )
         self._engine.add_event_handler(Events.COMPLETED, best_model_saver)
+
+    def attach_metrics_output_file(self) -> None:
+        from ignite.engine import Engine, Events
+
+        def log_metrics_to_file(engine: Engine) -> None:
+            parent_epoch = self._deps.training_engine._engine.state.epoch
+            output_file_path = (
+                Path(self._deps.output_dir) / "validation" / "metrics.json"
+            )
+
+            if not output_file_path.parent.exists():
+                output_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Load existing metrics if file exists
+            if output_file_path.exists():
+                with open(output_file_path) as f:
+                    all_metrics = json.load(f)
+            else:
+                all_metrics = {}
+
+            # Add current epoch metrics
+            metrics = _format_metrics_for_logging(engine.state.metrics)
+            all_metrics[f"epoch_{parent_epoch}"] = metrics
+
+            logger.debug(
+                f"Dumping validation metrics for epoch {parent_epoch} to {output_file_path}:\n{json.dumps(metrics, indent=4)}"
+            )
+            with open(output_file_path, "w") as f:
+                json.dump(all_metrics, f, indent=4)
+            logger.info(f"Metrics dumped to {output_file_path}")
+
+        self._engine.add_event_handler(Events.COMPLETED, log_metrics_to_file)
