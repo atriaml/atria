@@ -5,5 +5,5 @@ from atria_models.core.models.transformers._models._bert import *  # noqa
 from atria_models import MODEL_PIPELINES, MODELS
 
 if __name__ == "__main__":
-    MODEL_PIPELINES.dump()
+    MODEL_PIPELINES.dump(refresh=True)
     MODELS.dump()
