@@ -1,4 +1,7 @@
 import pandas as pd
+from atria_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def _get_line_bboxes(
@@ -15,12 +18,28 @@ def _get_line_bboxes(
 
 
 def _normalize_bbox(bbox: list[int], size: tuple[int, int]) -> list[float]:
-    return [
+    normalized = [
         float(bbox[0] / size[0]),
         float(bbox[1] / size[1]),
         float(bbox[2] / size[0]),
         float(bbox[3] / size[1]),
     ]
+
+    clipped_normalized = []
+    for coord in normalized:
+        if coord < 0.0:
+            logger.warning(
+                f"Clipping bounding box coordinate {coord} to 0.0 (was outside [0, 1] range)"
+            )
+            clipped_normalized.append(0.0)
+        elif coord > 1.0:
+            logger.warning(
+                f"Clipping bounding box coordinate {coord} to 1.0 (was outside [0, 1] range)"
+            )
+            clipped_normalized.append(1.0)
+        else:
+            clipped_normalized.append(coord)
+    return clipped_normalized
 
 
 def _get_sorted_indices(df: pd.DataFrame) -> pd.DataFrame:
