@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
-from atria_ml.task_pipelines.configs._base import RunConfig
 
+from atria_ml.configs._base import RunConfig
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._configs import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -109,29 +109,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
     def attach_validation_engine(self, validation_engine: ValidationEngine) -> None:
         self._validation_engine = validation_engine  # type: ignore
-
-    def run(self, checkpoint_path: str | Path | None = None) -> State | None:
-        if (
-            checkpoint_path is None
-            and self._config.model_checkpoint.resume_from_checkpoint
-        ):
-            # load resume checkpoint_path for training if none provided
-            checkpoint_path = _find_checkpoint(
-                output_dir=self._deps.output_dir, checkpoint_type="last"
-            )
-
-        # before running the engine log the first batch
-        try:
-            first_batch = next(iter(self._deps.dataloader))
-            logger.info(
-                f"First batch input for engine [{self.__class__.__name__}]: {first_batch}"
-            )
-        except Exception as e:
-            logger.warning(
-                f"Could not fetch the first batch from dataloader for engine [{self.__class__.__name__}]: {e}"
-            )
-
-        return super().run(checkpoint_path=checkpoint_path)
 
     def _build_engine(self) -> tuple[EngineStep, Engine]:
         # build optimizers
@@ -282,6 +259,20 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
             ),
             state_attributes=["optimizer_step", "ema_momentum"],
         )
+
+        if self._lr_schedulers is not None:
+
+            @self._engine.on(
+                Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate)
+            )
+            def progress_on_iteration_completed(engine: Engine) -> None:
+                # update lr scheduler metrics in progress bar
+                engine.state.metrics.update(
+                    {
+                        f"lr/optimizer/{k}": float(sch.get_param())
+                        for k, sch in self._lr_schedulers.items()
+                    }
+                )
 
         def _log_training_metrics(logger, epoch, elapsed, tag, metrics):
             metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
@@ -483,9 +474,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                     )
 
                     self._engine.add_event_handler(combined_events, sch)
-
-                    # update scheduler in dict
-                    self._lr_schedulers[k] = sch  # type: ignore
                 elif isinstance(inner_sch, ReduceLROnPlateauScheduler):
                     logger.info(
                         "Warmup updates are triggered per optimizer steps whereas the scheduler updates are triggered per validation step."
@@ -527,6 +515,8 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                         warmup_duration=self.total_warmup_steps,
                     )
                     self._engine.add_event_handler(OptimizerEvents.optimizer_step, sch)
+                # update scheduler in dict
+                self._lr_schedulers[k] = sch  # type: ignore
             else:
                 if not isinstance(inner_sch, ParamScheduler):
                     # convert scheduler to ignite scheduler
@@ -551,6 +541,9 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
                         f"Initialized lr scheduler {inner_sch.__class__.__name__}. Scheduler updates are triggered per optimizer step. "
                     )
                     self._engine.add_event_handler(OptimizerEvents.optimizer_step, sch)
+
+                # update scheduler in dict
+                self._lr_schedulers[k] = sch  # type: ignore
 
     def _to_load_state_dict(self) -> dict[str, Any]:
         from atria_ml.training.engines.utilities import (
@@ -695,3 +688,69 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
             f"\tTotal optimizer update over complete training cycle (scaled by grad accumulation steps) = {self.total_update_steps}"
         )
         logger.info(f"\tTotal warmup steps = {self.total_warmup_steps}")
+
+    def run(self, checkpoint_path: str | Path | None = None) -> State | None:
+        from atria_ml.training.engines.utilities import FixedBatchIterator
+
+        # run engine
+        if self._deps.output_dir is not None:
+            logger.info(
+                f"Running {self.__class__.__name__} engine with batch size [{self._deps.dataloader.batch_size}] and output_dir: {self._deps.output_dir}"
+            )
+        else:
+            logger.info(f"Running engine {self.__class__.__name__}.")
+
+        # move model pipeline to device
+        self._deps.model_pipeline.ops.to_device(self._deps.device)
+
+        if (
+            checkpoint_path is None
+            and self._config.model_checkpoint.resume_from_checkpoint
+        ):
+            # load resume checkpoint_path for training if none provided
+            checkpoint_path = _find_checkpoint(
+                output_dir=self._deps.output_dir, checkpoint_type="last"
+            )
+
+        # before running the engine log the first batch
+        try:
+            first_batch = next(iter(self._deps.dataloader))
+            logger.info(
+                f"First batch input for engine [{self.__class__.__name__}]: {first_batch}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch the first batch from dataloader for engine [{self.__class__.__name__}]: {e}"
+            )
+
+        # load checkpoint if provided
+        if checkpoint_path is not None:
+            self._load_checkpoint(checkpoint_path=checkpoint_path)
+
+            resume_epoch = self._engine.state.epoch
+            if (
+                self._engine._is_done(self._engine.state)
+                and resume_epoch >= self._config.max_epochs
+            ):  # if we are resuming from last checkpoint and training is already finished
+                logger.warning(
+                    f"{self.__class__.__name__} has already been finished! Either increase the number of "
+                    f"epochs (current={self._config.max_epochs}) >= {resume_epoch} "
+                    "OR reset the training from start."
+                )
+                return
+
+            logger.info(
+                f"Resuming {self.__class__.__name__} engine with checkpoint: {checkpoint_path}."
+            )
+
+        return self._engine.run(
+            (
+                FixedBatchIterator(
+                    self._deps.dataloader, self._deps.dataloader.batch_size
+                )
+                if self._config.use_fixed_batch_iterator
+                else self._deps.dataloader
+            ),
+            max_epochs=self._config.max_epochs,
+            epoch_length=self._config.epoch_length,
+        )
