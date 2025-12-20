@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from atria_logger import get_logger
 from PIL.Image import Image as PILImage
 
 from atria_types._data_instance._visualizers._base import Visualizer
@@ -9,18 +11,29 @@ from atria_types._utilities._viz import _draw_bboxes_on_image
 
 if TYPE_CHECKING:
     from atria_types._data_instance._document_instance import DocumentInstance
+logger = get_logger(__name__)
 
 
 class DocumentVisualizer(Visualizer):
     def __init__(self, instance: DocumentInstance) -> None:
         self.instance = instance
 
-    def _draw_on_image(self, image: PILImage) -> PILImage:
+    def _draw_on_image(
+        self, image: PILImage, draw_segment_bboxes: bool = False
+    ) -> PILImage:
         # Placeholder for drawing logic specific to the data instance type
-        if len(self.instance.content.bbox_list) > 0:
+        if self.instance.content is None:
+            return image
+
+        bbox_list = (
+            self.instance.content.segment_bbox_list
+            if draw_segment_bboxes
+            else self.instance.content.bbox_list
+        )
+        if len(bbox_list) > 0:
             bboxes = [
                 bbox.ops.unnormalize(width=image.width, height=image.height)
-                for bbox in self.instance.content.bbox_list
+                for bbox in bbox_list
                 if bbox is not None
             ]
 
@@ -30,4 +43,16 @@ class DocumentVisualizer(Visualizer):
                 bboxes=bboxes,
                 bboxes_text=self.instance.content.text_list,
             )
+
         return image
+
+    def visualize(self, output_path: str, draw_segment_bboxes: bool = False) -> None:
+        image = self._load_image()
+        image = self._draw_on_image(
+            image.copy().convert("RGB"), draw_segment_bboxes=draw_segment_bboxes
+        )
+        Path(output_path).mkdir(parents=True, exist_ok=True)
+        logger.debug(
+            f"Saving visualization for sample {self.instance.sample_id} to {output_path}"
+        )
+        image.save(Path(output_path) / f"{self.output_name}.png")
