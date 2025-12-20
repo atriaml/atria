@@ -27,7 +27,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     module_path: str | None = None
 
     @property
-    def hash(self) -> str | None:
+    def hash(self) -> str:
         return _get_config_hash(self.model_dump())
 
     @property
@@ -100,8 +100,12 @@ class PydanticConfigurableModule(RepresentationMixin, BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
 
     @property
+    def hash(self) -> str:
+        return _get_config_hash(self.model_dump())
+
+    @property
     def kwargs(self) -> dict[str, Any]:
-        return self.model_dump(exclude={"module_path"})
+        return self.model_dump()
 
     def to_yaml(self) -> str:
         """Serialize the ModuleConfig to a YAML string."""
