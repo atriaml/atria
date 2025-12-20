@@ -23,6 +23,8 @@ class TensorOperations:
 
     def _map_tensors(self, fn: Callable) -> TensorDataModel:
         """Apply function to all tensor fields."""
+        import torch
+
         updates = {}
         for field_name in self.model_fields.keys():
             if field_name == "metadata":
