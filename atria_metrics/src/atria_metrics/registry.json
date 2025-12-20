@@ -1,172 +1,207 @@
 {
-    "accuracy": {
-        "hash": "d5a4cf11",
-        "config": {
-            "module_path": "ignite.metrics.Accuracy",
-            "name": "accuracy",
-            "is_multilabel": false,
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.classification.AccuracyMetricConfig"
-    },
-    "precision": {
-        "hash": "fa8a577c",
-        "config": {
-            "module_path": "ignite.metrics.Precision",
-            "name": "precision",
-            "average": true,
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.classification.PrecisionMetricConfig"
-    },
-    "recall": {
-        "hash": "981447f8",
-        "config": {
-            "module_path": "ignite.metrics.Recall",
-            "name": "recall",
-            "average": true,
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.classification.RecallMetricConfig"
-    },
-    "confusion_matrix": {
-        "hash": "d0e91555",
-        "config": {
-            "module_path": "ignite.metrics.ConfusionMatrix",
-            "name": "confusion_matrix",
-            "average": "recall",
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.classification.ConfusionMatrixMetricConfig"
-    },
-    "f1_score": {
-        "hash": "569b0a80",
-        "config": {
-            "module_path": "atria_metrics.core.classification.f1_score",
-            "name": "f1_score"
-        },
-        "import_path": "atria_metrics.registry.classification.F1ScoreMetricConfig"
-    },
-    "coco_eval": {
-        "hash": "471525c1",
-        "config": {
-            "module_path": "atria_metrics.core.detection.cocoeval.CocoEvalMetric",
-            "name": "coco_eval"
-        },
-        "import_path": "atria_metrics.registry.detection.CocoEvalMetricConfig"
-    },
-    "seqeval_accuracy_score": {
-        "hash": "15df6747",
-        "config": {
-            "module_path": "seqeval.metrics.accuracy_score",
-            "name": "seqeval_accuracy_score",
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.entity_labeling.SeqEvalAccuracyMetricConfig"
-    },
-    "seqeval_precision_score": {
-        "hash": "e49c512d",
-        "config": {
-            "module_path": "seqeval.metrics.precision_score",
-            "name": "seqeval_precision_score",
-            "scheme": "IOB2"
-        },
-        "import_path": "atria_metrics.registry.entity_labeling.SeqEvalPrecisionMetricConfig"
-    },
-    "seqeval_recall_score": {
-        "hash": "37b428c3",
-        "config": {
-            "module_path": "seqeval.metrics.recall_score",
-            "name": "seqeval_recall_score",
-            "scheme": "IOB2"
-        },
-        "import_path": "atria_metrics.registry.entity_labeling.SeqEvalRecallMetricConfig"
-    },
-    "seqeval_f1_score": {
-        "hash": "5c0733d5",
-        "config": {
-            "module_path": "seqeval.metrics.f1_score",
-            "name": "seqeval_f1_score",
-            "scheme": "IOB2",
-            "skip_unrolling": false
-        },
-        "import_path": "atria_metrics.registry.entity_labeling.SeqEvalF1ScoreMetricConfig"
-    },
-    "seqeval_classification_report": {
-        "hash": "f1464b70",
-        "config": {
-            "module_path": "seqeval.metrics.classification_report",
-            "name": "seqeval_classification_report",
-            "scheme": "IOB2"
-        },
-        "import_path": "atria_metrics.registry.entity_labeling.SeqEvalClassificationReportMetricConfig"
-    },
-    "due": {
-        "DocVQA": {
-            "hash": "1ef1ce30",
+    "metrics": {
+        "accuracy": {
+            "hash": "d5a4cf11",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "DocVQA",
-                "metric": "ANLS",
-                "ignore_case": true,
-                "name": "anls"
+                "module_path": "ignite.metrics.Accuracy",
+                "name": "accuracy",
+                "is_multilabel": false,
+                "skip_unrolling": false
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.DocVQAEvalConfig"
+            "import_path": "atria_metrics.registry.classification.AccuracyMetricConfig"
         },
-        "InfographicsVQA": {
-            "hash": "2170fc6a",
+        "precision": {
+            "hash": "fa8a577c",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "InfographicsVQA",
-                "metric": "ANLS",
-                "ignore_case": true,
-                "name": "anls"
+                "module_path": "ignite.metrics.Precision",
+                "name": "precision",
+                "average": true,
+                "skip_unrolling": false
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.InfographicsVQAEvalConfig"
+            "import_path": "atria_metrics.registry.classification.PrecisionMetricConfig"
         },
-        "KleisterCharity": {
-            "hash": "522fbd12",
+        "recall": {
+            "hash": "981447f8",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "KleisterCharity",
-                "metric": "F1",
-                "ignore_case": true,
-                "name": "f1"
+                "module_path": "ignite.metrics.Recall",
+                "name": "recall",
+                "average": true,
+                "skip_unrolling": false
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.KleisterCharityEvalConfig"
+            "import_path": "atria_metrics.registry.classification.RecallMetricConfig"
         },
-        "DeepForm": {
-            "hash": "d0f157be",
+        "confusion_matrix": {
+            "hash": "d0e91555",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "DeepForm",
-                "metric": "F1",
-                "ignore_case": true,
-                "name": "f1"
+                "module_path": "ignite.metrics.ConfusionMatrix",
+                "name": "confusion_matrix",
+                "average": "recall",
+                "skip_unrolling": false
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.DeepFormEvalConfig"
+            "import_path": "atria_metrics.registry.classification.ConfusionMatrixMetricConfig"
         },
-        "WikiTableQuestions": {
-            "hash": "56930711",
+        "f1_score": {
+            "hash": "569b0a80",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "WikiTableQuestions",
-                "metric": "WTQ",
-                "ignore_case": false,
-                "name": "wtq"
+                "module_path": "atria_metrics.core.classification.f1_score",
+                "name": "f1_score"
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.WikiTableQuestionsEvalConfig"
+            "import_path": "atria_metrics.registry.classification.F1ScoreMetricConfig"
         },
-        "TabFact": {
-            "hash": "ff6b5324",
+        "coco_eval": {
+            "hash": "471525c1",
             "config": {
-                "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
-                "dataset_name": "TabFact",
-                "metric": "F1",
-                "ignore_case": false,
-                "name": "f1"
+                "module_path": "atria_metrics.core.detection.cocoeval.CocoEvalMetric",
+                "name": "coco_eval"
             },
-            "import_path": "atria_metrics.registry.question_answering.due_eval.TabFactEvalConfig"
+            "import_path": "atria_metrics.registry.detection.CocoEvalMetricConfig"
+        },
+        "seqeval_accuracy_score": {
+            "hash": "15df6747",
+            "config": {
+                "module_path": "seqeval.metrics.accuracy_score",
+                "name": "seqeval_accuracy_score",
+                "skip_unrolling": false
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalAccuracyMetricConfig"
+        },
+        "seqeval_precision_score": {
+            "hash": "e49c512d",
+            "config": {
+                "module_path": "seqeval.metrics.precision_score",
+                "name": "seqeval_precision_score",
+                "scheme": "IOB2"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalPrecisionMetricConfig"
+        },
+        "seqeval_recall_score": {
+            "hash": "37b428c3",
+            "config": {
+                "module_path": "seqeval.metrics.recall_score",
+                "name": "seqeval_recall_score",
+                "scheme": "IOB2"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalRecallMetricConfig"
+        },
+        "seqeval_f1_score": {
+            "hash": "5c0733d5",
+            "config": {
+                "module_path": "seqeval.metrics.f1_score",
+                "name": "seqeval_f1_score",
+                "scheme": "IOB2",
+                "skip_unrolling": false
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalF1ScoreMetricConfig"
+        },
+        "seqeval_classification_report": {
+            "hash": "f1464b70",
+            "config": {
+                "module_path": "seqeval.metrics.classification_report",
+                "name": "seqeval_classification_report",
+                "scheme": "IOB2"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalClassificationReportMetricConfig"
+        },
+        "due": {
+            "DocVQA": {
+                "hash": "1ef1ce30",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "DocVQA",
+                    "metric": "ANLS",
+                    "ignore_case": true,
+                    "name": "anls"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.DocVQAEvalConfig"
+            },
+            "InfographicsVQA": {
+                "hash": "2170fc6a",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "InfographicsVQA",
+                    "metric": "ANLS",
+                    "ignore_case": true,
+                    "name": "anls"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.InfographicsVQAEvalConfig"
+            },
+            "KleisterCharity": {
+                "hash": "522fbd12",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "KleisterCharity",
+                    "metric": "F1",
+                    "ignore_case": true,
+                    "name": "f1"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.KleisterCharityEvalConfig"
+            },
+            "DeepForm": {
+                "hash": "d0f157be",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "DeepForm",
+                    "metric": "F1",
+                    "ignore_case": true,
+                    "name": "f1"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.DeepFormEvalConfig"
+            },
+            "WikiTableQuestions": {
+                "hash": "56930711",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "WikiTableQuestions",
+                    "metric": "WTQ",
+                    "ignore_case": false,
+                    "name": "wtq"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.WikiTableQuestionsEvalConfig"
+            },
+            "TabFact": {
+                "hash": "ff6b5324",
+                "config": {
+                    "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "dataset_name": "TabFact",
+                    "metric": "F1",
+                    "ignore_case": false,
+                    "name": "f1"
+                },
+                "import_path": "atria_metrics.registry.question_answering.due_eval.TabFactEvalConfig"
+            }
+        },
+        "seqeval": {
+            "hash": "7a60421c",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.seqeval_metric.SeqEvalMetric",
+                "name": "seqeval",
+                "scheme": "IOB2"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.SeqEvalMetricConfig"
+        },
+        "layout_precision": {
+            "hash": "e237ed04",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_precision.LayoutPrecision",
+                "name": "layout_precision"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutPrecisionMetricConfig"
+        },
+        "layout_recall": {
+            "hash": "b22ad905",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_recall.LayoutRecall",
+                "name": "layout_recall"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutRecallMetricConfig"
+        },
+        "layout_f1": {
+            "hash": "fdac6594",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_f1.layout_f1",
+                "name": "layout_f1"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutF1MetricConfig"
         }
     }
 }
