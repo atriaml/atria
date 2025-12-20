@@ -1,85 +1,110 @@
 {
-    "standard_image_transform": {
-        "hash": "ff09ad4a",
-        "config": {
-            "to_rgb": true,
-            "do_normalize": true,
-            "do_resize": true,
-            "stats": "imagenet",
-            "resize_height": 224,
-            "resize_width": 224,
-            "image_mean": null,
-            "image_std": null
+    "data_transforms": {
+        "standard_image_transform": {
+            "hash": "ff09ad4a",
+            "config": {
+                "to_rgb": true,
+                "do_normalize": true,
+                "do_resize": true,
+                "stats": "imagenet",
+                "resize_height": 224,
+                "resize_width": 224,
+                "image_mean": null,
+                "image_std": null
+            },
+            "import_path": "atria_transforms.tfs._image_transforms.StandardImageTransform"
         },
-        "import_path": "atria_transforms.tfs._image_transforms.StandardImageTransform"
-    },
-    "hf_processor": {
-        "hash": "5c52820e",
-        "config": {
-            "tokenizer_name": "microsoft/layoutlmv3-base",
-            "cache_dir": "./cache",
-            "local_files_only": false,
-            "apply_ocr": false,
-            "do_normalize": false,
-            "do_resize": false,
-            "do_rescale": false,
-            "add_prefix_space": true,
-            "do_lower_case": true,
-            "add_special_tokens": true,
-            "padding": "max_length",
-            "truncation": true,
-            "max_length": 512,
-            "stride": 0,
-            "pad_to_multiple_of": 8,
-            "is_split_into_words": true,
-            "return_token_type_ids": null,
-            "return_attention_mask": true,
-            "return_special_tokens_mask": false,
-            "return_offsets_mapping": false,
-            "return_length": false,
-            "return_tensors": "pt",
-            "verbose": true,
-            "overflow_sampling": "return_all"
+        "hf_processor": {
+            "hash": "fdb66e8f",
+            "config": {
+                "tokenizer_name": "microsoft/layoutlmv3-base",
+                "cache_dir": null,
+                "local_files_only": false,
+                "apply_ocr": false,
+                "do_normalize": false,
+                "do_resize": false,
+                "do_rescale": false,
+                "add_prefix_space": true,
+                "do_lower_case": true,
+                "add_special_tokens": true,
+                "padding": "max_length",
+                "truncation": true,
+                "max_length": 512,
+                "stride": 0,
+                "pad_to_multiple_of": 8,
+                "is_split_into_words": true,
+                "return_token_type_ids": null,
+                "return_attention_mask": true,
+                "return_special_tokens_mask": false,
+                "return_offsets_mapping": false,
+                "return_length": false,
+                "return_tensors": "pt",
+                "verbose": true
+            },
+            "import_path": "atria_transforms.tfs._hf_processor.HuggingfaceProcessor"
         },
-        "import_path": "atria_transforms.tfs._hf_processor.HuggingfaceProcessor"
-    },
-    "document_processor": {
-        "hash": "bf232108",
-        "config": {
-            "add_segment_level_info": false,
-            "use_segment_level_bboxes": false,
-            "max_segment_num": 150
+        "document_processor": {
+            "hash": "dd2c5a32",
+            "config": {
+                "overflow_strategy": "return_all",
+                "load_bboxes": true,
+                "load_image": true,
+                "add_segment_level_info": false,
+                "use_segment_level_bboxes": false,
+                "max_segment_num": 150
+            },
+            "import_path": "atria_transforms.tfs._document_processor._base.DocumentProcessor"
         },
-        "import_path": "atria_transforms.tfs._document_processor._base.DocumentProcessor"
-    },
-    "sequence_classification_document_processor": {
-        "hash": "bf232108",
-        "config": {
-            "add_segment_level_info": false,
-            "use_segment_level_bboxes": false,
-            "max_segment_num": 150
+        "sequence_classification_document_processor": {
+            "hash": "dd2c5a32",
+            "config": {
+                "overflow_strategy": "return_all",
+                "load_bboxes": true,
+                "load_image": true,
+                "add_segment_level_info": false,
+                "use_segment_level_bboxes": false,
+                "max_segment_num": 150
+            },
+            "import_path": "atria_transforms.tfs._document_processor._task_tfs.SequenceClassificationDocumentProcessor"
         },
-        "import_path": "atria_transforms.tfs._document_processor._task_tfs.SequenceClassificationDocumentProcessor"
-    },
-    "token_classification_document_processor": {
-        "hash": "bf232108",
-        "config": {
-            "add_segment_level_info": false,
-            "use_segment_level_bboxes": false,
-            "max_segment_num": 150
+        "token_classification_document_processor": {
+            "hash": "dd2c5a32",
+            "config": {
+                "overflow_strategy": "return_all",
+                "load_bboxes": true,
+                "load_image": true,
+                "add_segment_level_info": false,
+                "use_segment_level_bboxes": false,
+                "max_segment_num": 150
+            },
+            "import_path": "atria_transforms.tfs._document_processor._task_tfs.TokenClassificationDocumentProcessor"
         },
-        "import_path": "atria_transforms.tfs._document_processor._task_tfs.TokenClassificationDocumentProcessor"
-    },
-    "question_answering_document_processor": {
-        "hash": "30272a14",
-        "config": {
-            "add_segment_level_info": false,
-            "use_segment_level_bboxes": false,
-            "max_segment_num": 150,
-            "ignore_samples_with_no_answer": false,
-            "is_training": false,
-            "truncation": "only_second"
+        "question_answering_document_processor": {
+            "hash": "bc53b115",
+            "config": {
+                "overflow_strategy": "return_all",
+                "load_bboxes": true,
+                "load_image": true,
+                "add_segment_level_info": false,
+                "use_segment_level_bboxes": false,
+                "max_segment_num": 150,
+                "ignore_samples_with_no_answer": false,
+                "is_training": false,
+                "truncation": "only_second"
+            },
+            "import_path": "atria_transforms.tfs._document_processor._task_tfs.QuestionAnsweringDocumentProcessor"
         },
-        "import_path": "atria_transforms.tfs._document_processor._task_tfs.QuestionAnsweringDocumentProcessor"
+        "image_processor": {
+            "hash": "44136fa3",
+            "config": {},
+            "import_path": "atria_transforms.tfs._image_processor._base.ImageProcessor"
+        },
+        "unroll_qa_pairs_transform": {
+            "hash": "a1f24409",
+            "config": {
+                "remove_no_answer_samples": false
+            },
+            "import_path": "atria_transforms.tfs._document_processor._task_tfs.UnrollQAPairsTransform"
+        }
     }
 }

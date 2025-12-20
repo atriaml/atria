@@ -17,6 +17,7 @@ dependencies = [
     "transformers>=4.37.0",
     "atria-registry",
     "typeguard>=4.4.4",
+    "pytesseract>=0.3.13",
 ]
 
 
