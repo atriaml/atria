@@ -3,36 +3,44 @@
 import sys
 import traceback
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic
 
 import rich
 import rich.pretty
 from atria_logger import get_logger
-from atria_types import BaseDataInstance, DatasetSplitType
+from atria_types import DatasetSplitType
 from atria_types._utilities._repr import RepresentationMixin
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance
 
 if TYPE_CHECKING:
     import pandas as pd
+
 logger = get_logger(__name__)
 
 
-class InstanceTransform:
+class InstanceTransform(Generic[T_BaseDataInstance]):
     def __init__(
         self,
-        data_model: T_BaseDataInstance,
-        input_transform: Callable | None = None,
-        output_transform: Callable | None = None,
+        data_model: type[T_BaseDataInstance],
+        input_transform: Callable[[Any], T_BaseDataInstance] | None = None,
+        output_transform: Callable[
+            [T_BaseDataInstance], T_BaseDataInstance | list[T_BaseDataInstance]
+        ]
+        | None = None,
     ):
         self._data_model = data_model
         self._input_transform = input_transform
         self._output_transform = output_transform
 
-    def __call__(self, index: int, data_instance: Any) -> BaseDataInstance:
+    def __call__(
+        self, index: int, input: Any
+    ) -> T_BaseDataInstance | list[T_BaseDataInstance]:
         # apply input transformation
         if self._input_transform is not None:
-            data_instance: BaseDataInstance = self._input_transform(data_instance)
+            data_instance = self._input_transform(input)
+        else:
+            data_instance = input  # type: ignore
 
         # assert that the transformed instance is of the expected data model type
         assert isinstance(data_instance, self._data_model), (
@@ -49,13 +57,15 @@ class InstanceTransform:
         return data_instance
 
 
-class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
-    __repr_fields__ = [
+class SplitIterator(
+    Sequence[T_BaseDataInstance], RepresentationMixin, Generic[T_BaseDataInstance]
+):
+    __repr_fields__ = {
         "base_iterator",
         "input_transform",
         "output_transform",
         "subset_indices",
-    ]
+    }
 
     def __init__(
         self,
@@ -71,7 +81,7 @@ class SplitIterator(Sequence[T_BaseDataInstance], RepresentationMixin):
         self._base_iterator = base_iterator
         self._max_len = max_len
         self._subset_indices = subset_indices
-        self._tf = InstanceTransform(
+        self._tf = InstanceTransform[T_BaseDataInstance](
             input_transform=input_transform,
             data_model=data_model,
             output_transform=output_transform,
