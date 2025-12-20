@@ -10,7 +10,7 @@ fi
 
 for package in "${PACKAGES[@]}"; do
     echo "Building registry for ${package}..."
-    ATRIA_LOG_LEVEL=DEBUG uv run python "${package}/src/${package}/build_registry.py"
+    ATRIA_LOG_LEVEL=DEBUG BUILD_REGISTRY=1 uv run python "${package}/src/${package}/build_registry.py"
     if [ $? -eq 0 ]; then
         echo "✓ Successfully built registry for ${package}"
     else
