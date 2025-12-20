@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from atria_logger import get_logger
 from atria_types import DocumentInstance
@@ -29,6 +29,15 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
         default_factory=StandardImageTransform
     )
 
+    # overflow sampling
+    overflow_strategy: Literal["return_first", "return_random", "return_all"] = (
+        "return_all"
+    )
+
+    # image args
+    load_bboxes: bool = True
+    load_image: bool = True
+
     # segment-level-rank info args
     add_segment_level_info: bool = False
     use_segment_level_bboxes: bool = False
@@ -37,15 +46,22 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
     def __call__(
         self, document_instance: DocumentInstance
     ) -> DocumentTensorDataModel | list[DocumentTensorDataModel]:
+        assert isinstance(document_instance, DocumentInstance), (
+            f"{self.__class__.__name__} only supports DocumentInstance inputs, "
+            f"but received input of type {type(document_instance)}"
+        )
+
         # convert DocumentInstance to Huggingface processor inputs
         hf_processor_inputs = _document_instance_to_hf_processor_inputs(
             document_instance,
             use_segment_level_bboxes=self.use_segment_level_bboxes,
             image_transform=self.image_transform,
+            load_bboxes=self.load_bboxes,
+            load_image=self.load_image,
         )
 
         # perform tokenization using the hf_processor
-        tokenization_data = self.hf_processor(**hf_processor_inputs)
+        tokenization_data = self.hf_processor(hf_processor_inputs)
 
         # post-process tokenizer outputs to generate segment-level info and align word ids and labels
         processed_outputs = self._post_process_tokenizer_outputs(
@@ -65,6 +81,16 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
         ]
         if bs == 1:
             return processed[0]
+        else:
+            if self.overflow_strategy == "return_first":
+                return processed[0]
+            elif self.overflow_strategy == "return_random":
+                import random
+
+                random_idx = random.randint(0, bs - 1)
+                return processed[random_idx]
+            elif self.overflow_strategy == "return_all":
+                return processed
         return processed
 
     def _post_process_tokenizer_outputs(
@@ -82,6 +108,8 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             add_segment_level_info=self.add_segment_level_info,
             all_special_ids=self.hf_processor.tokenizer.all_special_ids,
             max_segment_num=self.max_segment_num,
+            load_bboxes=self.load_bboxes,
+            load_image=self.load_image,
         )
 
         # attach more info
@@ -98,13 +126,14 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
         self, processed_outputs: dict[str, Any], overflow_sample_idx: int
     ) -> DocumentTensorDataModel:
         data = {
-            key: value[overflow_sample_idx]
+            key: value[overflow_sample_idx] if value is not None else None
             for key, value in processed_outputs.items()
             if key
             in [
                 "token_ids",
                 "attention_mask",
-                "token_bboxestoken_type_ids",
+                "token_bboxes",
+                "token_type_ids",
                 "token_labels",
                 "sequence_ids",
                 "word_ids",
@@ -121,13 +150,11 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
 
         # by default, we return for eery overflowing segment a separate DocumentTensorDataModel
         index = processed_outputs.get("index", None)
+        assert index is not None, "index must be present in processed outputs"
         sample_id = processed_outputs.get("sample_id", None)
         assert sample_id is not None, "sample_id must be present in processed outputs"
         words = processed_outputs.get("words", None)
         assert words is not None, "words must be present in processed outputs"
         return DocumentTensorDataModel(
-            index=index,  # type: ignore
-            sample_id=sample_id,  # type: ignore
-            words=words,  # type: ignore
-            **processed_outputs,
+            index=index, sample_id=sample_id, words=words, **data
         )
