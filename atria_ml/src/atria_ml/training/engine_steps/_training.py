@@ -47,7 +47,7 @@ class TrainingStep(EngineStep):
         )
 
     @property
-    def stage(self) -> str:
+    def name(self) -> str:
         return "train"
 
     def _validate_gradient_config(self) -> None:

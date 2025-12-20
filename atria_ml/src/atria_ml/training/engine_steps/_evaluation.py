@@ -63,7 +63,7 @@ class ValidationStep(EvaluationStep):
         self._training_engine = training_engine
 
     @property
-    def stage(self) -> str:
+    def name(self) -> str:
         return "validation"
 
     def _model_step(
