@@ -20,7 +20,7 @@ from atria_datasets.registry.vqa.due import *  # noqa
 
 
 def main():
-    DATASETS.dump()
+    DATASETS.dump(refresh=True)
 
 
 if __name__ == "__main__":
