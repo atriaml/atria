@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic
+from typing import TYPE_CHECKING, Any, Generic, Self
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
@@ -79,7 +79,7 @@ class Dataset(
     __abstract__ = True
     __requires_access_token__ = False
     __extract_downloads__ = True
-    __data_model__: type[T_BaseDataInstance]
+    __data_model__: type[BaseDataInstance]
     __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
     __config__: type[T_DatasetConfig] = DatasetConfig
 
@@ -184,8 +184,38 @@ class Dataset(
         """Dataset metadata containing description, version, and other information."""
         return self._metadata()
 
+    def process_dataset(
+        self,
+        train_transform: Callable,
+        eval_transform: Callable | None = None,
+        split: DatasetSplitType | None = None,
+        processed_data_dir: str | None = None,
+        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        overwrite_existing_cached: bool = False,
+        store_artifact_content: bool = True,
+        max_cache_image_size: int | None = None,
+        num_processes: int = 8,
+    ) -> Self:
+        """Process the entire dataset and return a new Dataset instance."""
+        from atria_datasets.core.dataset._dataset_processor import DatasetProcessor
+
+        split_iterators = DatasetProcessor(
+            dataset=self,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+            split=split,
+            data_dir=processed_data_dir,
+            cached_storage_type=cached_storage_type,
+            overwrite_existing_cached=overwrite_existing_cached,
+            store_artifact_content=store_artifact_content,
+            max_cache_image_size=max_cache_image_size,
+            num_processes=num_processes,
+        ).process_splits()
+        self._split_iterators.update(split_iterators)
+        return self
+
     @property
-    def data_model(self) -> type[T_BaseDataInstance]:
+    def data_model(self) -> type[BaseDataInstance]:
         """The data model class used for type validation and instantiation."""
         return self.__data_model__
 
