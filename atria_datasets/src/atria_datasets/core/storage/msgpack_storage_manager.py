@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 import tqdm
 from atria_logger import get_logger
 
+from atria_datasets.core.storage.msgpack_shard_writer import DuplicateKeyError
 from atria_datasets.core.storage.online_shard_writer_actor import OnlineShardWriter
 from atria_datasets.core.storage.utilities import FileStorageType
 
@@ -39,9 +40,7 @@ def shard_writer_worker(
     worker_id,
     sample_queue,
     result_queue,
-    storage_dir,
-    config_name,
-    split_name,
+    split_dir,
     data_model,
     max_shard_size,
     preprocess_transform,
@@ -49,13 +48,7 @@ def shard_writer_worker(
     import queue
 
     try:
-        shard_file_pattern = str(
-            Path(storage_dir)
-            / config_name
-            / "msgpack"
-            / split_name
-            / f"{worker_id:06d}-%06d.msgpack"
-        )
+        shard_file_pattern = str(split_dir / f"{worker_id:06d}-%06d.msgpack")
         writer = OnlineShardWriter(
             data_model=data_model,
             storage_type=FileStorageType.MSGPACK,
@@ -72,6 +65,11 @@ def shard_writer_worker(
                     break
                 idx, sample = item
                 writer.write(idx, sample)
+            except DuplicateKeyError:
+                logger.error(
+                    f"Found duplicate key error at sample index {idx}. Skipping sample."
+                )
+                continue
             except queue.Empty:
                 # Timeout occurred, continue waiting
                 continue
@@ -88,7 +86,7 @@ def shard_writer_worker(
 
 
 def write_split_parallel(
-    split_iterator, storage_dir, config_name, num_processes=4, max_shard_size=100_000
+    split_iterator, split_dir, num_processes=4, max_shard_size=100_000
 ):
     import multiprocessing as mp
 
@@ -108,9 +106,7 @@ def write_split_parallel(
                     i,
                     sample_queues[i],
                     result_queue,
-                    storage_dir,
-                    config_name,
-                    split_name,
+                    split_dir,
                     split_iterator.data_model,
                     max_shard_size,
                     split_iterator._tf,
@@ -192,39 +188,25 @@ def write_split_parallel(
     return write_info
 
 
-def write_split_single(
-    split_iterator, storage_dir, config_name, max_shard_size=100_000
-):
-    """
-    Writes a dataset split to storage shards using a single process.
-
-    Args:
-        split_iterator: The split iterator containing the data to write
-        storage_dir: The storage directory path
-        config_name: The configuration name for the dataset
-        max_shard_size: Maximum number of samples per shard
-
-    Returns:
-        list: List of shard information objects
-    """
+def write_split_single(split_iterator, split_dir, max_shard_size=100_000):
     split_name = split_iterator.split.value
     data_iterator = iter(split_iterator)
-
-    shard_file_pattern = str(
-        Path(storage_dir) / config_name / "msgpack" / split_name / "000000-%06d.msgpack"
-    )
-
     writer = OnlineShardWriter(
         data_model=split_iterator.data_model,
         storage_type=FileStorageType.MSGPACK,
-        storage_file_pattern=shard_file_pattern,
+        storage_file_pattern=str(split_dir / "000000-%06d.msgpack"),
         max_shard_size=max_shard_size,
         preprocess_transform=split_iterator._tf,
     )
     writer.load()
 
     for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
-        writer.write(idx, sample)
+        try:
+            writer.write(idx, sample)
+        except DuplicateKeyError:
+            logger.error(
+                f"Found duplicate key error at sample index {idx}. Skipping sample."
+            )
 
     write_info = writer.close()
     write_info = [x for x in write_info if x.nsamples > 0]
@@ -254,12 +236,14 @@ class MsgpackStorageManager:
         num_processes: int = 8,
         max_memory: int = 1000_000_000,
         max_shard_size: int = 100_000,
+        name_suffix: str = "",
     ):
         self._storage_dir = Path(storage_dir)
         self._config_name = config_name
         self._num_processes = num_processes
         self._max_memory = max_memory
         self._max_shard_size = max_shard_size
+        self._name_suffix = name_suffix
 
         if not self._storage_dir.exists():
             self._storage_dir.mkdir(parents=True, exist_ok=True)
@@ -269,13 +253,18 @@ class MsgpackStorageManager:
         (self._storage_dir / config_name).mkdir(parents=True, exist_ok=True)
 
     def split_dir(self, split: DatasetSplitType) -> Path:
-        return Path(self._storage_dir) / f"{self._config_name}/msgpack/{split.value}"
+        split_dir = (
+            Path(self._storage_dir)
+            / f"{self._config_name}/msgpack/{split.value}/{self._name_suffix}"
+        )
+        split_dir.mkdir(parents=True, exist_ok=True)
+        return split_dir
 
     def dataset_exists(self) -> bool:
         return (Path(self._storage_dir) / f"{self._config_name}/msgpack/").exists()
 
     def split_exists(self, split: DatasetSplitType) -> bool:
-        return self.split_dir(split).exists()
+        return len(self.split_files(split)) != 0
 
     def split_files(self, split: DatasetSplitType) -> bool:
         return list(self.split_dir(split).glob("*.msgpack"))
@@ -377,8 +366,7 @@ class MsgpackStorageManager:
             # --- Multi-process mode using multiprocessing ---
             write_info = write_split_parallel(
                 split_iterator=split_iterator,
-                storage_dir=str(self._storage_dir),
-                config_name=self._config_name,
+                split_dir=split_dir,
                 num_processes=self._num_processes,
                 max_shard_size=self._max_shard_size,
             )
@@ -386,8 +374,7 @@ class MsgpackStorageManager:
             # --- Single-process mode ---
             write_info = write_split_single(
                 split_iterator=split_iterator,
-                storage_dir=str(self._storage_dir),
-                config_name=self._config_name,
+                split_dir=split_dir,
                 max_shard_size=self._max_shard_size,
             )
 
