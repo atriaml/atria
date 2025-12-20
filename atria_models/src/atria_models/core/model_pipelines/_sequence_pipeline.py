@@ -1,14 +1,40 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from atria_logger import get_logger
+from atria_metrics.registry.classification import (
+    AccuracyMetricConfig,
+    ConfusionMatrixMetricConfig,
+    F1ScoreMetricConfig,
+    PrecisionMetricConfig,
+    RecallMetricConfig,
+)
+from atria_metrics.registry.entity_labeling import (
+    LayoutF1MacroMetricConfig,
+    LayoutF1MetricConfig,
+    LayoutPrecisionMacroMetricConfig,
+    LayoutPrecisionMetricConfig,
+    LayoutRecallMacroMetricConfig,
+    LayoutRecallMetricConfig,
+    SeqEvalMetricConfig,
+)
 from atria_transforms.data_types._document import DocumentTensorDataModel
+from atria_transforms.tfs._document_processor._task_tfs import (
+    SequenceClassificationDocumentProcessor,
+    TokenClassificationDocumentProcessor,
+)
+from atria_transforms.tfs._hf_processor import HuggingfaceProcessor
+from pydantic import Field, model_validator
 from torch._tensor import Tensor
 
-from atria_models.core.model_pipelines._common import ModelPipelineConfig
+from atria_models.core.model_builders._common import ModelBuilderType
+from atria_models.core.model_pipelines._common import ModelConfig, ModelPipelineConfig
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
-from atria_models.core.model_pipelines.utilities import _postprocess_qa_predictions
+from atria_models.core.model_pipelines.utilities import (
+    _postprocess_qa_predictions,
+    log_tensors_debug_info,
+)
 from atria_models.core.types.model_outputs import (
     ClassificationModelOutput,
     LayoutTokenClassificationModelOutput,
@@ -21,6 +47,7 @@ from atria_models.registry.registry_groups import MODEL_PIPELINES
 
 if TYPE_CHECKING:
     import torch
+    from ignite.metrics import Metric
 
 logger = get_logger(__name__)
 
@@ -39,7 +66,9 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         self, batch: DocumentTensorDataModel, **kwargs
     ) -> ModelOutput:
         inputs = self._input_transform(batch, require_labels=True)
+        log_tensors_debug_info(inputs, title="train_inputs")
         model_output = self._model(**inputs)
+        log_tensors_debug_info(model_output, title="train_model_output")
         loss = self._compute_loss(model_output=model_output, batch=batch)
         return self._output_transform(loss=loss, model_output=model_output, batch=batch)
 
@@ -50,7 +79,9 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         **kwargs,
     ) -> ModelOutput:
         inputs = self._input_transform(batch, require_labels=True)
+        log_tensors_debug_info(inputs, title=f"{stage}_inputs")
         model_output = self._model(**inputs)
+        log_tensors_debug_info(model_output, title=f"{stage}_model_output")
         loss = self._compute_loss(model_output=model_output, batch=batch)
         return self._output_transform(loss=loss, model_output=model_output, batch=batch)
 
@@ -58,7 +89,9 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         self, batch: DocumentTensorDataModel, **kwargs
     ) -> ModelOutput:
         inputs = self._input_transform(batch, require_labels=False)
+        log_tensors_debug_info(inputs, title="predict_inputs")
         model_output = self._model(**inputs)
+        log_tensors_debug_info(model_output, title="predict_model_output")
         return self._output_transform(loss=None, model_output=model_output, batch=batch)
 
     def _model_build_kwargs(self) -> dict[str, object]:
@@ -126,13 +159,74 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         )
 
 
+class SequenceClassificationPipelineConfig(SequenceModelPipelineConfig):
+    model: ModelConfig = ModelConfig(
+        model_name_or_path="bert-base-uncased",
+        builder_type=ModelBuilderType.transformers,
+        model_type="sequence_classification",
+    )
+    metrics: (
+        list[
+            Annotated[
+                AccuracyMetricConfig
+                | PrecisionMetricConfig
+                | RecallMetricConfig
+                | F1ScoreMetricConfig
+                | ConfusionMatrixMetricConfig,
+                Field(discriminator="name"),
+            ]
+        ]
+        | None
+    ) = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_transforms(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "train_transform" not in values or values["train_transform"] is None:
+            values["train_transform"] = SequenceClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_first",
+            )
+        else:
+            values["train_transform"] = (
+                SequenceClassificationDocumentProcessor.model_validate(
+                    values["train_transform"]
+                )
+            )
+        if "eval_transform" not in values or values["eval_transform"] is None:
+            values["eval_transform"] = SequenceClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_first",
+            )
+        else:
+            values["eval_transform"] = (
+                SequenceClassificationDocumentProcessor.model_validate(
+                    values["eval_transform"]
+                )
+            )
+        if "metrics" not in values or values["metrics"] is None:
+            values["metrics"] = [
+                AccuracyMetricConfig(),
+                PrecisionMetricConfig(),
+                RecallMetricConfig(),
+                F1ScoreMetricConfig(),
+                ConfusionMatrixMetricConfig(),
+            ]
+        return values
+
+
 @MODEL_PIPELINES.register("sequence_classification")
 class SequenceClassificationPipeline(SequenceModelPipeline):
-    __config__ = SequenceModelPipelineConfig
+    __config__ = SequenceClassificationPipelineConfig
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.classification is not None, (
             "Labels must be provided for classification tasks."
+            "Make sure the target dataset provides `labels.classification` in its metadata."
         )
         return {"num_labels": len(self._labels.classification)}
 
@@ -182,10 +276,73 @@ class SequenceClassificationPipeline(SequenceModelPipeline):
             else None,
         )
 
+    def build_metrics(
+        self,
+        stage: Literal["train", "validation", "test"],
+        device: torch.device | str = "cpu",
+    ) -> dict[str, Metric]:
+        if self.config.metrics is None:
+            return {}
+        assert self._labels.classification is not None, (
+            "Labels must be provided for classification tasks."
+        )
+        metrics = {}
+        for metric_config in self.config.metrics:
+            logger.info(f"Building metric: {metric_config}")
+            metric = metric_config.build(
+                device=device, num_classes=len(self._labels.classification), stage=stage
+            )
+            metrics[metric_config.name] = metric
+        return metrics
+
+
+class TokenClassificationPipelineConfig(SequenceModelPipelineConfig):
+    model: ModelConfig = ModelConfig(
+        model_name_or_path="bert-base-uncased",
+        builder_type=ModelBuilderType.transformers,
+        model_type="token_classification",
+    )
+    metrics: (
+        list[Annotated[SeqEvalMetricConfig, Field(discriminator="name")]] | None
+    ) = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_transforms(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "train_transform" not in values or values["train_transform"] is None:
+            values["train_transform"] = TokenClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_random",  # for token classification, we want all tokens
+            )
+        else:
+            values["train_transform"] = (
+                TokenClassificationDocumentProcessor.model_validate(
+                    values["train_transform"]
+                )
+            )
+        if "eval_transform" not in values or values["eval_transform"] is None:
+            values["eval_transform"] = TokenClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_all",  # for token classification, we want all tokens
+            )
+        else:
+            values["eval_transform"] = (
+                TokenClassificationDocumentProcessor.model_validate(
+                    values["eval_transform"]
+                )
+            )
+        if "metrics" not in values or values["metrics"] is None:
+            values["metrics"] = [SeqEvalMetricConfig()]
+        return values
+
 
 @MODEL_PIPELINES.register("token_classification")
 class TokenClassificationPipeline(SequenceModelPipeline):
-    __config__ = SequenceModelPipelineConfig
+    __config__ = TokenClassificationPipelineConfig
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.ser is not None, "Labels must be provided for ser tasks."
@@ -231,9 +388,106 @@ class TokenClassificationPipeline(SequenceModelPipeline):
             target_label_names=target_label_names,
         )
 
+    def build_metrics(
+        self,
+        stage: Literal["train", "validation", "test"],
+        device: torch.device | str = "cpu",
+    ) -> dict[str, Metric]:
+        if self.config.metrics is None:
+            return {}
+        metrics = {}
+        for metric_config in self.config.metrics:
+            logger.info(f"Building metric: {metric_config}")
+            metric = metric_config.build(device=device, stage=stage)
+            metrics[metric_config.name] = metric
+        return metrics
+
+
+class LayoutTokenClassificationPipelineConfig(SequenceModelPipelineConfig):
+    model: ModelConfig = ModelConfig(
+        model_name_or_path="bert-base-uncased",
+        builder_type=ModelBuilderType.transformers,
+        model_type="token_classification",
+    )
+    metrics: (
+        list[
+            Annotated[
+                LayoutPrecisionMetricConfig
+                | LayoutRecallMetricConfig
+                | LayoutF1MetricConfig
+                | LayoutPrecisionMacroMetricConfig
+                | LayoutRecallMacroMetricConfig
+                | LayoutF1MacroMetricConfig,
+                Field(discriminator="name"),
+            ]
+        ]
+        | None
+    ) = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_transforms(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "train_transform" not in values or values["train_transform"] is None:
+            values["train_transform"] = TokenClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_random",  # for token classification, we want all tokens
+            )
+        else:
+            values["train_transform"] = (
+                TokenClassificationDocumentProcessor.model_validate(
+                    values["train_transform"]
+                )
+            )
+        if "eval_transform" not in values or values["eval_transform"] is None:
+            values["eval_transform"] = TokenClassificationDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_all",  # for token classification, we want all tokens
+            )
+        else:
+            values["eval_transform"] = (
+                TokenClassificationDocumentProcessor.model_validate(
+                    values["eval_transform"]
+                )
+            )
+        if "metrics" not in values or values["metrics"] is None:
+            values["metrics"] = [
+                LayoutPrecisionMetricConfig(),
+                LayoutRecallMetricConfig(),
+                LayoutF1MetricConfig(),
+                LayoutPrecisionMacroMetricConfig(average="macro"),
+                LayoutRecallMacroMetricConfig(average="macro"),
+                LayoutF1MacroMetricConfig(average="macro"),
+            ]
+        return values
+
 
 @MODEL_PIPELINES.register("layout_token_classification")
 class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
+    __config__ = LayoutTokenClassificationPipelineConfig
+
+    def _input_transform(
+        self, batch: DocumentTensorDataModel, require_labels: bool = False
+    ) -> dict[str, torch.Tensor | None]:
+        inputs = super()._input_transform(batch, require_labels=require_labels)
+        assert self.config.use_bbox, (
+            f"{self.__class__.__name__} requires use_bbox to be True in the config."
+        )
+        assert "bbox" in self._model_args_list, (
+            f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
+            f"with {self.__class__.__name__}."
+        )
+        assert batch.token_bboxes is not None, (
+            f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
+        )
+        assert "bbox" in inputs, (
+            f"{self.__class__.__name__} requires 'bbox' in the model inputs"
+        )
+        return inputs
+
     def _output_transform(
         self,
         loss: torch.Tensor | None,
@@ -241,17 +495,14 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
         batch: DocumentTensorDataModel,
     ) -> ModelOutput:
         assert batch.token_labels is not None, "Token labels cannot be None"
-        assert self._labels.ser is not None, "Labels must be provided for ser tasks."
-        target_word_labels = batch.token_labels[batch.token_labels != -100]
-        predicted_word_labels = model_output.logits.argmax(-1)[
-            batch.token_labels != -100
-        ]
-        word_logits = model_output.logits[:, batch.token_labels != -100, :]
+        assert batch.token_bboxes is not None, (
+            "For layout token classification, token bboxes cannot be None"
+        )
         return LayoutTokenClassificationModelOutput(
             loss=loss,
-            word_logits=word_logits,
-            predicted_word_labels=predicted_word_labels,
-            target_word_labels=target_word_labels,
+            layout_token_logits=model_output.logits,
+            layout_token_targets=batch.token_labels,
+            layout_token_bboxes=batch.token_bboxes,
         )
 
 
