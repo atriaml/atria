@@ -4,9 +4,13 @@ from typing import TYPE_CHECKING, Any
 
 from atria_logger import get_logger
 from atria_types import DocumentInstance
-from atria_types._generic._annotations import AnnotationType
+from atria_types._generic._annotations import (
+    AnnotationType,
+    QuestionAnsweringAnnotation,
+)
 from atria_types._generic._qa_pair import QAPair
 
+from atria_transforms.core._tfs._base import DataTransform
 from atria_transforms.data_types._document import DocumentTensorDataModel
 
 from ...registry import DATA_TRANSFORMS
@@ -31,19 +35,60 @@ class SequenceClassificationDocumentProcessor(DocumentProcessor):
         hf_processor_inputs: dict[str, Any],
         tokenization_data: BatchEncoding,
     ) -> dict[str, Any]:
+        import torch
+
         processed_outputs = super()._post_process_tokenizer_outputs(
             document_instance, hf_processor_inputs, tokenization_data
         )
 
-        processed_outputs["label"] = document_instance.get_annotation_by_type(
+        label = document_instance.get_annotation_by_type(
             AnnotationType.classification
         ).label.value
+        processed_outputs["label"] = torch.tensor(label, dtype=torch.long)
         return processed_outputs
 
 
 @DATA_TRANSFORMS.register("token_classification_document_processor")
 class TokenClassificationDocumentProcessor(DocumentProcessor):
     pass
+
+
+@DATA_TRANSFORMS.register("unroll_qa_pairs_transform")
+class UnrollQAPairsTransform(DataTransform[list[DocumentInstance]]):
+    remove_no_answer_samples: bool = False
+
+    def __call__(self, document_instance: DocumentInstance) -> list[DocumentInstance]:
+        qa_annotations = document_instance.get_annotation_by_type(
+            annotation_type=AnnotationType.question_answering
+        )
+
+        document_instance_per_qa_pair = []
+        for qa_pair in qa_annotations.qa_pairs:
+            annotation = QuestionAnsweringAnnotation(qa_pairs=[qa_pair])
+
+            def has_answer(qa_pair: QAPair):
+                for answer_span in qa_pair.answer_spans:
+                    if answer_span.start != -1 and answer_span.end != -1:
+                        return True
+                return False
+
+            assert qa_pair.answer_spans is not None
+            if self.remove_no_answer_samples:
+                if not has_answer(qa_pair):
+                    logger.debug(
+                        f"Skipping QA Pair with id {qa_pair.id} due to no answer spans."
+                    )
+                    continue
+
+            new_document_instance = document_instance.model_copy(
+                update={
+                    "sample_id": f"{document_instance.sample_id}_qa_{qa_pair.id}",
+                    "annotations": [annotation],
+                }
+            )
+            document_instance_per_qa_pair.append(new_document_instance)
+
+        return document_instance_per_qa_pair
 
 
 @DATA_TRANSFORMS.register("question_answering_document_processor")
