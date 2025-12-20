@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
+from atria_logger import enable_file_logging
 from atria_logger._api import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from omegaconf import OmegaConf
 
+from atria_ml.configs._base import RunConfig
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
-from atria_ml.task_pipelines.configs._base import RunConfig
 from atria_ml.training.engines._test_engine import (
     NoCheckpointFoundError,
     TestEngine,
@@ -89,6 +90,8 @@ class Trainer:
             log_dir = Path(self._config.env.run_dir) / "tensorboard"
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
+
+            enable_file_logging(str(Path(self._config.env.run_dir) / "training.log"))
         else:
             tb_logger = None
         return tb_logger
@@ -250,8 +253,9 @@ class Trainer:
         if dataset.test is not None:
             dataset.test.output_transform = eval_transform
 
-        print("train_transform", train_transform)
-        print("eval_transform", eval_transform)
+        logger.info("Data transforms:")
+        logger.info(f"Train transform:\n{train_transform}")
+        logger.info(f"Eval transform:\n{eval_transform}")
 
         # build data pipeline
         data_pipeline = DataPipeline(dataset=dataset)
