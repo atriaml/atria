@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import yaml
 from atria_logger import get_logger
 from atria_registry._module_base import ModuleConfig
-from atria_types import BaseDataInstance
+from atria_types import BaseDataInstance, DocumentInstance, ImageInstance
 from atria_types._common import DatasetSplitType
 from pydantic import ConfigDict
 
@@ -20,7 +20,10 @@ from atria_datasets.core.constants import (
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
-    from atria_datasets.core.dataset._datasets import Dataset
+    from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
+    from atria_datasets.core.storage.msgpack_storage_manager import (
+        MsgpackStorageManager,
+    )
 
 logger = get_logger(__name__)
 
@@ -46,8 +49,10 @@ class DatasetConfig(ModuleConfig):
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
         **kwargs,
-    ) -> Dataset:
-        return super().build(
+    ) -> ImageDataset | DocumentDataset:
+        from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
+
+        dataset = super().build(
             data_dir=data_dir,
             split=split,
             access_token=access_token,
@@ -60,6 +65,12 @@ class DatasetConfig(ModuleConfig):
             max_cache_image_size=max_cache_image_size,
             **kwargs,
         )
+        if dataset.__data_model__ == ImageInstance:
+            return cast(ImageDataset, dataset)
+        elif dataset.__data_model__ == DocumentInstance:
+            return cast(DocumentDataset, dataset)
+        else:
+            raise TypeError(f"Unsupported data model type: {dataset.__data_model__}")
 
 
 class HuggingfaceDatasetConfig(DatasetConfig):
@@ -117,7 +128,8 @@ def _get_storage_manager(
     storage_dir: str,
     config_name: str,
     num_processes: int,
-):
+    name_suffix: str = "",
+) -> MsgpackStorageManager:
     if cached_storage_type == FileStorageType.DELTALAKE:
         from atria_datasets.core.storage.deltalake_storage_manager import (
             DeltalakeStorageManager,
@@ -137,6 +149,7 @@ def _get_storage_manager(
             storage_dir=storage_dir,
             config_name=config_name,
             num_processes=num_processes,
+            name_suffix=name_suffix,
         )
     else:
         raise ValueError(f"Unsupported storage type: {cached_storage_type}")
