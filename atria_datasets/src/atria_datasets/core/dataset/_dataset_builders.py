@@ -37,7 +37,7 @@ class DefaultOutputTransformer:
         data_dir: str,
         store_artifact_content: bool = True,
         resize_images: bool = False,
-        image_max_size: int = 1024,
+        image_max_size: int | None = None,
     ):
         self._data_dir = data_dir
         self._store_artifact_content = store_artifact_content
@@ -52,11 +52,13 @@ class DefaultOutputTransformer:
             and isinstance(sample, (ImageInstance, DocumentInstance))
             and sample.image is not None
         ):
+            assert self._image_max_size is not None, (
+                "`image_max_size` must be provided when `resize_images` is True."
+            )
             image = sample.image.ops.resize_with_aspect_ratio(
                 max_size=self._image_max_size
             )
             sample = sample.update(image=image)
-
         return sample.ops.convert_file_paths_to_relative(parent_dir=self._data_dir)
 
 
@@ -81,9 +83,6 @@ class DatasetBuilder:
         self._split = split
         self._access_token = access_token
         self._allowed_keys = allowed_keys
-        self._storage_dir = (
-            Path(self.default_data_dir) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
-        )
         self._split_iterator_type = split_iterator_type
 
     @property
@@ -150,7 +149,7 @@ class DatasetBuilder:
             split_iterators[split] = self._prepare_split(split)
         return split_iterators
 
-    def _validate_data_dir(self, data_dir: str | Path) -> Path:
+    def _validate_data_dir(self, data_dir: str | Path) -> str:
         """
         Validate and create data directory if needed.
 
