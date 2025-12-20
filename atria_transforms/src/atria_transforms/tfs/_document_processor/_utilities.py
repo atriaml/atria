@@ -21,6 +21,8 @@ def _document_instance_to_hf_processor_inputs(
     use_segment_level_bboxes: bool = False,
     image_transform: Callable | None = None,
     context: str | None = None,
+    load_image: bool = True,
+    load_bboxes: bool = True,
 ) -> dict[str, Any]:
     if document_instance.content is None:
         return {}
@@ -33,15 +35,16 @@ def _document_instance_to_hf_processor_inputs(
         if document_instance.content.text_list is not None:
             inputs["text"] = document_instance.content.text_list
 
-    if document_instance.content.bbox_list is not None:
+    if load_bboxes and document_instance.content.bbox_list is not None:
         inputs["boxes"] = (
             document_instance.content.segment_bbox_list
             if use_segment_level_bboxes
             and document_instance.content.segment_bbox_list is not None
             else document_instance.content.bbox_list
         )
+        inputs["boxes"] = [bbox.value for bbox in inputs["boxes"]]
 
-    if document_instance.image is not None:
+    if load_image and document_instance.image is not None:
         inputs["images"] = (
             image_transform(document_instance.image.content)
             if image_transform is not None
@@ -180,24 +183,35 @@ def _post_process_tokenizer_outputs(
     add_segment_level_info: bool = False,
     all_special_ids: list[int] | None = None,
     max_segment_num: int = 150,
+    load_bboxes: bool = True,
+    load_image: bool = True,
 ) -> dict[str, Any]:
     all_special_ids = [] if all_special_ids is None else list(all_special_ids)
     sequence_ids, word_ids = _extract_sequence_and_word_ids(tokenization_data)
-    token_bboxes = tokenization_data.get("bbox", None)
-    if token_bboxes is None and input_word_boxes is not None:
-        token_bboxes = _extract_token_bboxes_from_word_bboxes(
-            input_word_boxes, word_ids
-        )
+
+    if load_bboxes:
+        token_bboxes = tokenization_data.get("bbox", None)
+        if token_bboxes is None and input_word_boxes is not None:
+            token_bboxes = _extract_token_bboxes_from_word_bboxes(
+                input_word_boxes, word_ids
+            )
+    else:
+        token_bboxes = None
+
     token_labels = tokenization_data.get("labels", None)
     if token_labels is None and input_word_labels is not None:
         token_labels = _extract_token_labels_from_word_labels(
             input_word_labels, word_ids
         )
-    image = tokenization_data.get("pixel_values", None)
-    if image is not None:
-        image = image[0]
-    if image is None and input_image is not None:
-        image = input_image
+
+    if load_image:
+        image = tokenization_data.get("pixel_values", None)
+        if image is not None:
+            image = image[0]
+        if image is None and input_image is not None:
+            image = input_image
+    else:
+        image = None
 
     outputs = {
         "token_ids": tokenization_data.get("input_ids"),
@@ -226,14 +240,16 @@ def _post_process_tokenizer_outputs(
     assert outputs["attention_mask"] is not None, (
         "attention_mask is None in the tokenizer outputs."
     )
-    assert outputs["token_bboxes"] is not None, (
-        "token_bboxes is None in the tokenizer outputs."
-    )
+    if load_bboxes:
+        assert outputs["token_bboxes"] is not None, (
+            "token_bboxes is None in the tokenizer outputs."
+        )
     assert outputs["sequence_ids"] is not None, (
         "sequence_ids is None in the tokenizer outputs."
     )
     assert outputs["word_ids"] is not None, "word_ids is None in the tokenizer outputs."
-    assert outputs["image"] is not None, "image is None in the tokenizer outputs."
+    if load_image:
+        assert outputs["image"] is not None, "image is None in the tokenizer outputs."
     if input_word_labels is not None:
         assert outputs["token_labels"] is not None, (
             "token_labels is None in the tokenizer outputs."
