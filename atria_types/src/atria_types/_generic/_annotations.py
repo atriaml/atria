@@ -51,12 +51,10 @@ class EntityLabelingAnnotation(BaseDataModel):
 
 class QuestionAnsweringAnnotation(BaseDataModel):
     type: Literal["question_answering"] = AnnotationType.question_answering.value
-    qa_pairs: Annotated[list[QAPair] | None, TableSchemaMetadata(pa_type="string")] = (
-        None
-    )
+    qa_pairs: Annotated[list[QAPair], TableSchemaMetadata(pa_type="string")]
 
     @field_validator("qa_pairs", mode="before")
-    def validate_qa_pairs(cls, value) -> list[QAPair] | None:
+    def validate_qa_pairs(cls, value) -> list[QAPair]:
         if isinstance(value, str):
             import json
 
@@ -67,7 +65,7 @@ class QuestionAnsweringAnnotation(BaseDataModel):
         return value
 
     @field_serializer("qa_pairs")
-    def serialize_qa_pairs(self, value: list[QAPair]) -> str | None:
+    def serialize_qa_pairs(self, value: list[QAPair]) -> str:
         import json
 
         if value is not None:

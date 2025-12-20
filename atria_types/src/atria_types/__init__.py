@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         LayoutAnalysisAnnotation,
         QuestionAnsweringAnnotation,
         ObjectDetectionAnnotation,
+        AnnotationType,
     )
     from ._generic._pdf import PDF
     from ._generic._image import Image
@@ -73,6 +74,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "LayoutAnalysisAnnotation",
             "QuestionAnsweringAnnotation",
             "ObjectDetectionAnnotation",
+            "AnnotationType",
         ],
         "_generic._pdf": ["PDF"],
         "_generic._image": ["Image"],

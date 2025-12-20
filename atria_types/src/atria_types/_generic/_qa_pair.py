@@ -19,9 +19,7 @@ class AnswerSpan(BaseDataModel):
 class QAPair(BaseDataModel):
     id: IntField
     question_text: StrField
-    answer_spans: Annotated[
-        list[AnswerSpan] | None, TableSchemaMetadata(pa_type="string")
-    ] = None
+    answer_spans: Annotated[list[AnswerSpan], TableSchemaMetadata(pa_type="string")]
 
     @property
     def answers(self) -> list[str]:

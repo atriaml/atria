@@ -8,7 +8,6 @@ from PIL import ImageDraw, ImageFont
 
 if TYPE_CHECKING:
     from atria_types._generic._bounding_box import BoundingBox
-    from atria_types._generic._image import Image
 
 # Color palette for bounding boxes
 _COLOR_PALETTE = [
@@ -172,7 +171,7 @@ def _draw_text_label(
 
 
 def _draw_bboxes_on_image(
-    image: Image,
+    image: PILImage.Image,
     bboxes: list[BoundingBox],
     bboxes_text: list[str] | None = None,
     bbox_labels: list[str] | None = None,

@@ -61,7 +61,7 @@ class BoundingBox(BaseDataModel):
             for coord in self.value:
                 assert 0.0 <= coord <= 1.0, (
                     "All bounding box coordinates must be in the range [0, 1] "
-                    "when 'normalized' is True."
+                    f"when 'normalized' is True. Found {self.value=}"
                 )
         return self
 
