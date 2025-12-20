@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import field
 from functools import partial
@@ -17,7 +18,10 @@ from pydantic import BaseModel, ConfigDict
 
 from atria_ml.training._configs import LoggingConfig
 from atria_ml.training.engine_steps import EngineStep
-from atria_ml.training.engines.utilities import _extract_output
+from atria_ml.training.engines.utilities import (
+    _extract_output,
+    _format_metrics_for_logging,
+)
 
 logger = get_logger(__name__)
 
@@ -143,8 +147,9 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                     elapsed,
                     tag,
                 )
-                for k, v in metrics.items():
-                    logger.info(f"\t{k}: {v}")
+                formatted_metrics = _format_metrics_for_logging(metrics)
+                logger.info(f"{self._engine_step.name} metrics:")
+                logger.info(json.dumps(formatted_metrics, indent=4))
 
             @self._engine.on(Events.EPOCH_COMPLETED)
             def progress_on_epoch_completed(engine: Engine) -> None:
@@ -311,22 +316,6 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         # load checkpoint if provided
         if checkpoint_path is not None:
             self._load_checkpoint(checkpoint_path=checkpoint_path)
-
-            resume_epoch = self._engine.state.epoch
-            if (
-                self._engine._is_done(self._engine.state)
-                and resume_epoch >= self._config.max_epochs
-            ):  # if we are resuming from last checkpoint and training is already finished
-                logger.warning(
-                    f"{self.__class__.__name__} has already been finished! Either increase the number of "
-                    f"epochs (current={self._config.max_epochs}) >= {resume_epoch} "
-                    "OR reset the training from start."
-                )
-                return
-
-            logger.info(
-                f"Resuming {self.__class__.__name__} engine with checkpoint: {checkpoint_path}."
-            )
 
         return self._engine.run(
             (
