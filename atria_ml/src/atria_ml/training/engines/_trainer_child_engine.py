@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeVar
 
 from atria_logger import get_logger
-from ignite.engine import Engine
 
 from atria_ml.training.engine_steps import EngineStep
 from atria_ml.training.engine_steps._evaluation import ValidationStep
@@ -11,7 +10,7 @@ from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDepe
 from atria_ml.training.engines._trainer import TrainerEngine
 
 if TYPE_CHECKING:
-    from ignite.engine import Engine, State
+    from ignite.engine import State
 
 
 logger = get_logger(__name__)
@@ -63,13 +62,6 @@ class TrainerChildEngine(
                     self._deps.training_engine._engine
                 ),
             )
-
-            @self._engine.on(
-                Events.TERMINATE | Events.INTERRUPT | Events.EXCEPTION_RAISED
-            )
-            def on_terminate(engine: Engine) -> None:
-                if self._deps.tb_logger is not None:
-                    self._deps.tb_logger.close()
 
     def _build_engine_step(self) -> EngineStep:
         return ValidationStep(
