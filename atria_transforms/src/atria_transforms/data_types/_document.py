@@ -32,7 +32,7 @@ class DocumentTensorDataModel(TensorDataModel):
     first_token_idxes_mask: torch.Tensor | None = None
 
     # sample level fields
-    image: torch.Tensor
+    image: torch.Tensor | None = None
     label: torch.Tensor | None = None
 
     # extractive QA specific fields
