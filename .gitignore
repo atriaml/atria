@@ -101,3 +101,7 @@ atria_types/.vscode/settings.json
 atria_types/test.png/doc_002.png
 atria_transforms/.vscode/settings.json
 atria_transforms/tesseract_ocr_output.png/test_doc.png
+test_iterator.py
+test_pool.py
+test_pool2.py
+test.ipynb
