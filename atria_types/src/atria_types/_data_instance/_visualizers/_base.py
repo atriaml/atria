@@ -45,7 +45,7 @@ class Visualizer:
     def _draw_on_image(self, image: PILImage) -> PILImage:
         return image
 
-    def visualize(self, output_path: str) -> None:
+    def visualize(self, output_path: str) -> PILImage:
         image = self._load_image()
         image = self._draw_on_image(image.copy().convert("RGB"))
         Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -53,3 +53,4 @@ class Visualizer:
             f"Saving visualization for sample {self.instance.sample_id} to {output_path}"
         )
         image.save(Path(output_path) / f"{self.output_name}.png")
+        return image

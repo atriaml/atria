@@ -46,7 +46,9 @@ class DocumentVisualizer(Visualizer):
 
         return image
 
-    def visualize(self, output_path: str, draw_segment_bboxes: bool = False) -> None:
+    def visualize(
+        self, output_path: str, draw_segment_bboxes: bool = False
+    ) -> PILImage:
         image = self._load_image()
         image = self._draw_on_image(
             image.copy().convert("RGB"), draw_segment_bboxes=draw_segment_bboxes
@@ -56,3 +58,4 @@ class DocumentVisualizer(Visualizer):
             f"Saving visualization for sample {self.instance.sample_id} to {output_path}"
         )
         image.save(Path(output_path) / f"{self.output_name}.png")
+        return image
