@@ -1,5 +1,3 @@
-from functools import cached_property
-
 from PIL.Image import Image as PILImage
 
 from atria_types._base._data_model import BaseDataModel
@@ -10,7 +8,7 @@ class PDF(BaseDataModel):
     file_path: OptStrField = None
     num_pages: OptIntField = None
 
-    @cached_property
+    @property
     def pages(self) -> list[PILImage]:
         """Lazily extract pages from PDF when accessed."""
         if self.file_path is None:
