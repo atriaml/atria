@@ -1,23 +1,12 @@
-"""Aspect Ratio Group Batch Sampler Module
-
-This module defines the `AspectRatioGroupBatchSampler` class, which is a batch
-sampler that groups input sample images based on their aspect ratios. It extends
-the `GroupBatchSampler` and uses a grouping strategy to improve training efficiency
-for models sensitive to input dimensions.
-"""
-
 from typing import TYPE_CHECKING
 
-from atria_registry import BATCH_SAMPLER
-
-from atria_datasets.core.batch_samplers.group_batch_sampler import GroupBatchSampler
+from atria_datasets.core.batch_samplers._group_batch_sampler import GroupBatchSampler
 from atria_datasets.core.batch_samplers.utilities import _create_aspect_ratio_groups
 
 if TYPE_CHECKING:
     from torch.utils.data.sampler import RandomSampler, SequentialSampler
 
 
-@BATCH_SAMPLER.register("aspect_ratio_group_batch_sampler")
 class AspectRatioGroupBatchSampler(GroupBatchSampler):
     """
     A batch sampler that groups input sample images based on their aspect ratio.
