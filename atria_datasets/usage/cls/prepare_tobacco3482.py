@@ -12,7 +12,7 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 def main():
     dataset_config = load_dataset_config("tobacco3482/image_with_ocr")
-    dataset = dataset_config.build(enable_cached_splits=True)
+    dataset = dataset_config.build(enable_cached_splits=True, max_cache_image_size=224)
     logger.info(f"Loaded dataset:\n{dataset}")
 
     # get first sample

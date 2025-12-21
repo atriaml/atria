@@ -186,7 +186,7 @@ class Docile(DocumentDataset):
         else:
             return _ALL_LABELS
 
-    def _prepare_dataset(self, split: DatasetSplitType, data_dir: str):
+    def _prepare_dataset(self, split: DatasetSplitType, data_dir: str | Path) -> tuple:
         split_dir = "annotated-trainval"
         if not hasattr(self, "_dataset"):
             data_dir = Path(data_dir)
@@ -208,7 +208,9 @@ class Docile(DocumentDataset):
                 data_dir / split_dir,
                 image_shape=self.config.image_shape,
             )
-        return dataset, label_names
+            self._dataset = dataset
+            self._label_names = label_names
+        return self._dataset, self._label_names
 
     def _split_iterator(self, split: DatasetSplitType, data_dir: str):
         dataset, label_names = self._prepare_dataset(split, data_dir)

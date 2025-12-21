@@ -24,10 +24,14 @@ if TYPE_CHECKING:
         HuggingfaceImageDataset,
     )
     from atria_datasets.core.dataset._split_iterators import SplitIterator
-    from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
-    from atria_datasets.core.download_manager.download_file_info import DownloadFileInfo
-    from atria_datasets.core.download_manager.download_manager import DownloadManager
-    from atria_datasets.core.download_manager.file_downloader import (
+    from atria_datasets.core.dataset_splitters._standard_splitter import (
+        StandardSplitter,
+    )
+    from atria_datasets.core.download_manager._download_file_info import (
+        DownloadFileInfo,
+    )
+    from atria_datasets.core.download_manager._download_manager import DownloadManager
+    from atria_datasets.core.download_manager._file_downloader import (
         FileDownloader,
         FTPFileDownloader,
         GoogleDriveDownloader,
@@ -37,7 +41,7 @@ if TYPE_CHECKING:
     from atria_datasets.core.storage.deltalake_storage_manager import (
         DeltalakeStorageManager,
     )
-    from atria_datasets.core.storage.msgpack_shard_writer import (
+    from atria_datasets.core.storage._shard_writers._msgpack import (
         MsgpackFileWriter,
         MsgpackShardWriter,
     )

@@ -7,7 +7,7 @@ logger = get_logger(__name__)
 
 
 def main():
-    dataset_config = load_dataset_config("due_benchmark/DocVQA")
+    dataset_config = load_dataset_config("due_benchmark/WikiTableQuestions")
     dataset = dataset_config.build(enable_cached_splits=True)
     logger.info(f"Loaded dataset:\n{dataset}")
 

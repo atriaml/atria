@@ -1,31 +1,3 @@
-"""
-Shard List Datasets Module
-
-This module defines the `MsgpackShardListDataset` and `TarShardListDataset` classes, which
-provide utilities for loading and iterating over datasets stored in shard files. These classes
-support Msgpack-based and tar-based shard formats, respectively.
-
-Classes:
-    - MsgpackShardListDataset: A dataset class for reading Msgpack-based shard files.
-    - TarShardListDataset: A dataset class for reading tar-based shard files.
-
-Dependencies:
-    - shutil: For file and directory operations.
-    - pathlib.Path: For handling file paths.
-    - typing: For type annotations.
-    - numpy: For numerical operations.
-    - wids: For handling tar-based shard datasets.
-    - datadings.reader.MsgpackReader: For reading Msgpack-based shard files.
-    - torch.utils.data.Dataset: For creating PyTorch-compatible datasets.
-    - atria_logger: For logging utilities.
-    - atria_datasets.core.datasets.metadata.DatasetShardInfo: For shard metadata.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
-
 import shutil
 from collections.abc import Sequence
 from pathlib import Path

@@ -204,7 +204,7 @@ class DatasetBuilder:
                     data_dir, access_token
                 )
             else:
-                from atria_datasets.core.download_manager.download_manager import (
+                from atria_datasets.core.download_manager._download_manager import (
                     DownloadManager,
                 )
 

@@ -101,7 +101,6 @@ class SplitIterator:
 
         # make path for preprocessed data
         self._data_dir = data_dir
-        split = "dev" if split.value == "validation" else split.value
         extracted_name = config.config_name
         if config.config_name == "InfographicsVQA":
             extracted_name = "infographics_vqa"
@@ -117,7 +116,7 @@ class SplitIterator:
             / config.config_name  # base name then extracted name
             / "aws_neurips_time"
             / extracted_name,
-            split=split,
+            split="dev" if split.value == "validation" else split.value,
             ocr=config.ocr_engine,
             segment_levels=config.segment_levels,
         )
@@ -181,6 +180,21 @@ class SplitIterator:
                 ]
                 for bbox in sample["token_bboxes_in_page"]
             ]
+
+            # if any box coord is out of bound, raise a warning
+            for bbox in sample["token_bboxes_in_page"]:
+                for coord in bbox:
+                    if coord < 0.0 or coord > 1.0:
+                        logger.warning(
+                            f"Bounding box coordinate {coord} out of bounds [0,1] in sample {sample['sample_id']}, page {page_idx}"
+                        )
+
+            # clip bboxes to be within [0,1]
+            for bbox in sample["token_bboxes_in_page"]:
+                bbox[0] = max(0.0, min(1.0, bbox[0]))
+                bbox[1] = max(0.0, min(1.0, bbox[1]))
+                bbox[2] = max(0.0, min(1.0, bbox[2]))
+                bbox[3] = max(0.0, min(1.0, bbox[3]))
             sample["annotations"] = {
                 "question": question,
                 "answers": gold_answers,
@@ -199,9 +213,9 @@ class SplitIterator:
         last_sample_id = None
         last_sample_page_idx = None
 
-        def group_sample(grouped: list[any]):
+        def group_sample(grouped: list[dict]):
             # we remap all due benchmark keys to what we require in our datasets
-            grouped = {
+            grouped_dict = {
                 "page_idx": grouped[0]["page_idx"],
                 "page_size": grouped[0]["page_size"],
                 "tokens_in_page": grouped[0]["tokens_in_page"],
@@ -216,7 +230,7 @@ class SplitIterator:
                 / "pdfs"
                 / self._config.config_name  # base name then extracted name
                 / self._config.config_name
-                / (grouped["sample_id"])
+                / (grouped_dict["sample_id"])
             )
 
             if not str(pdf_file_path).endswith(".pdf"):
@@ -227,8 +241,8 @@ class SplitIterator:
                 logger.warning(f"File {pdf_file_path} not found. Skipping it")
                 return None
 
-            grouped["pdf_file_path"] = pdf_file_path
-            return grouped
+            grouped_dict["pdf_file_path"] = pdf_file_path
+            return grouped_dict
 
         grouped = []
         for sample in self._generate_samples():
@@ -254,9 +268,6 @@ class SplitIterator:
             if group_sampled is not None:
                 yield group_sampled
 
-    def __len__(self) -> int:
-        return len(self._benchmark_dataset)
-
 
 @DATASETS.register(
     "due_benchmark",
@@ -273,7 +284,7 @@ class SplitIterator:
 class DueBenchmark(DocumentDataset):
     __config__ = DueBenchmarkConfig
 
-    def _download_urls(self) -> list[str]:
+    def _download_urls(self) -> dict[str, str]:
         return {
             f"{key}/{self.config.config_name}": url.format(
                 config_name=self.config.config_name
@@ -297,10 +308,8 @@ class DueBenchmark(DocumentDataset):
             DatasetSplitType.validation,
         ]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Iterable[tuple[Path, Path, int]]:
-        return SplitIterator(split=split, data_dir=Path(data_dir), config=self.config)
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
+        return SplitIterator(split=split, data_dir=data_dir, config=self.config)
 
     # Load the specific page from PDF as image
     def _load_pdf_page_as_image(

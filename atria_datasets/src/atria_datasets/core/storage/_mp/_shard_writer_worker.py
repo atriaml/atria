@@ -7,7 +7,7 @@ writing of dataset samples to storage shards.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import ray
 import webdataset as wds
@@ -15,7 +15,7 @@ from atria_logger import get_logger
 from atria_types import DatasetShardInfo
 
 from atria_datasets.core.dataset._split_iterators import InstanceTransform
-from atria_datasets.core.storage.msgpack_shard_writer import MsgpackShardWriter
+from atria_datasets.core.storage._shard_writers._msgpack import MsgpackShardWriter
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
@@ -27,13 +27,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class OnlineShardWriter:
-    """
-    Single-process shard writer for writing dataset samples to storage shards.
-
-    Supports multiple storage formats (Msgpack, WebDataset) and optional preprocessing.
-    """
-
+class ShardWriterWorker:
     def __init__(
         self,
         data_model: type[BaseDataInstance],
@@ -50,7 +44,7 @@ class OnlineShardWriter:
         self._writer: MsgpackShardWriter | wds.writer.ShardWriter | None = None
         self._write_info: list[DatasetShardInfo] = []
 
-    def load(self):
+    def load(self) -> Self:
         """Initializes the underlying shard writer based on the storage type."""
         if self._storage_type == FileStorageType.MSGPACK:
             self._writer = MsgpackShardWriter(
@@ -69,6 +63,7 @@ class OnlineShardWriter:
             )
         assert self._writer.fname is not None, "Writer filename is None."
         self._write_info.append(DatasetShardInfo(url=self._writer.fname))
+        return self
 
     def write(self, index: int, sample: BaseDataInstance):
         """Writes a single dataset sample to the shard."""
@@ -127,11 +122,11 @@ class OnlineShardWriter:
 
 
 @ray.remote
-class OnlineShardWriterActor:
+class ShardWriterWorkerActor:
     """Ray actor wrapper around the single-process ShardWriter."""
 
     def __init__(self, *args, **kwargs):
-        self._writer = OnlineShardWriter(*args, **kwargs)
+        self._writer = ShardWriterWorker(*args, **kwargs)
 
     def load(self):
         return self._writer.load()

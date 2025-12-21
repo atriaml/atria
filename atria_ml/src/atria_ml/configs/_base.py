@@ -8,7 +8,7 @@ import codename
 from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import Dataset
-from atria_datasets.core.dataset_splitters.standard_splitter import StandardSplitter
+from atria_datasets.core.dataset_splitters._standard_splitter import StandardSplitter
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._common import ModelPipelineConfig

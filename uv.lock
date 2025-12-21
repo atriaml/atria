@@ -166,6 +166,7 @@ source = { editable = "atria_datasets" }
 dependencies = [
     { name = "atria-logger" },
     { name = "atria-registry" },
+    { name = "atria-transforms" },
     { name = "atria-types" },
     { name = "boto3" },
     { name = "datadings" },
@@ -203,6 +204,7 @@ dependencies = [
 requires-dist = [
     { name = "atria-logger", editable = "atria_logger" },
     { name = "atria-registry", editable = "atria_registry" },
+    { name = "atria-transforms", editable = "atria_transforms" },
     { name = "atria-types", editable = "atria_types" },
     { name = "boto3", specifier = ">=1.39.4" },
     { name = "coverage", marker = "extra == 'test'" },
@@ -455,6 +457,7 @@ dependencies = [
     { name = "atria-types" },
     { name = "mmcv" },
     { name = "mmdet" },
+    { name = "pytesseract" },
     { name = "transformers" },
     { name = "typeguard" },
 ]
@@ -466,6 +469,7 @@ requires-dist = [
     { name = "coverage", marker = "extra == 'test'" },
     { name = "mmcv", url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" },
     { name = "mmdet", specifier = "==3.3.0" },
+    { name = "pytesseract", specifier = ">=0.3.13" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "transformers", specifier = ">=4.37.0" },
     { name = "typeguard", specifier = ">=4.4.4" },
@@ -558,6 +562,7 @@ dependencies = [
     { name = "atria-types" },
     { name = "coloredlogs" },
     { name = "fire" },
+    { name = "joblib" },
     { name = "jupytext" },
     { name = "torchxai" },
     { name = "tuna" },
@@ -587,6 +592,7 @@ requires-dist = [
     { name = "atria-types", editable = "atria_types" },
     { name = "coloredlogs", specifier = ">=15.0.1" },
     { name = "fire", specifier = ">=0.7.1" },
+    { name = "joblib", specifier = ">=1.5.2" },
     { name = "jupytext", specifier = ">=1.18.1" },
     { name = "torchxai", editable = "../torchxai" },
     { name = "tuna", specifier = ">=0.5.11" },
@@ -2838,6 +2844,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bd/11/293dd436aea955d45fc4e8a35b6ae7270f5b8e00b53cf6c024c83b657a11/PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0", size = 284429, upload-time = "2019-09-20T02:07:35.714Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/59/b4572118e098ac8e46e399a1dd0f2d85403ce8bbaad9ec79373ed6badaf9/PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5", size = 16725, upload-time = "2019-09-20T02:06:22.938Z" },
+]
+
+[[package]]
+name = "pytesseract"
+version = "0.3.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/7d679b83c285974a7cb94d739b461fa7e7a9b17a3abfd7bf6cbc5c2394b0/pytesseract-0.3.13.tar.gz", hash = "sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9", size = 17689, upload-time = "2024-08-16T02:33:56.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/33/8312d7ce74670c9d39a532b2c246a853861120486be9443eebf048043637/pytesseract-0.3.13-py3-none-any.whl", hash = "sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34", size = 14705, upload-time = "2024-08-16T02:36:10.09Z" },
 ]
 
 [[package]]

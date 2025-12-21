@@ -1,27 +1,3 @@
-"""
-Dataset Splitter Module
-
-This module defines the `StandardSplitter` class, which provides utilities for splitting
-datasets into training and validation subsets. It supports both sequential and random
-splitting strategies, with configurable options for shuffle, and split ratio.
-
-Classes:
-    - StandardSplitter: A class for splitting datasets into training and validation subsets.
-
-Dependencies:
-    - copy: For deep copying datasets.
-    - typing: For type annotations.
-    - torch.utils.data: For dataset splitting utilities.
-    - atria_logger: For logging utilities.
-    - atria_registry: For registering dataset splitters.
-    - atria_datasets.core.datasets.atria_dataset: For the base dataset class.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
-
 from typing import TYPE_CHECKING
 
 from atria_types._utilities._repr import RepresentationMixin

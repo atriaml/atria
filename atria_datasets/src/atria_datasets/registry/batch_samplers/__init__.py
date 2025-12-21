@@ -1,6 +1,6 @@
-from atria_datasets.core.batch_samplers.ar_group_batch_sampler import (
+from atria_datasets.core.batch_samplers._ar_group_batch_sampler import (
     AspectRatioGroupBatchSampler,
 )
-from atria_datasets.core.batch_samplers.group_batch_sampler import GroupBatchSampler
+from atria_datasets.core.batch_samplers._group_batch_sampler import GroupBatchSampler
 
 __all__ = ["GroupBatchSampler", "AspectRatioGroupBatchSampler"]

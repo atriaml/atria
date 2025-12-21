@@ -1,6 +1,6 @@
-from .download_file_info import DownloadFileInfo
-from .download_manager import DownloadManager
-from .file_downloader import (
+from ._download_file_info import DownloadFileInfo
+from ._download_manager import DownloadManager
+from ._file_downloader import (
     FileDownloader,
     FTPFileDownloader,
     GoogleDriveDownloader,

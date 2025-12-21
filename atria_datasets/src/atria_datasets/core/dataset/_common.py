@@ -21,7 +21,7 @@ from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
-    from atria_datasets.core.storage.msgpack_storage_manager import (
+    from atria_datasets.core.storage._storage_managers._msgpack import (
         MsgpackStorageManager,
     )
 
@@ -141,7 +141,7 @@ def _get_storage_manager(
             num_processes=num_processes,
         )
     elif cached_storage_type == FileStorageType.MSGPACK:
-        from atria_datasets.core.storage.msgpack_storage_manager import (
+        from atria_datasets.core.storage._storage_managers._msgpack import (
             MsgpackStorageManager,
         )
 

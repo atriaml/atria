@@ -103,8 +103,10 @@ class SplitIterator:
                 self.data_dir / "MSCOCO_Format_Annotation/500K_valid.json"
             )
 
-        self.image_base_dir = self.data_dir / "DocBank_500K_ori_img/"
-        self.annotation_base_dir = self.data_dir / "DocBank_500K_txt/"
+        self.image_base_dir = (
+            self.data_dir / "DocBank_500K_ori_img" / "DocBank_500K_ori_img"
+        )
+        self.annotation_base_dir = self.data_dir / "DocBank_500K_txt"
 
         with open(self.split_filepath) as f:
             logger.info(f"Loading split data from {self.split_filepath}")

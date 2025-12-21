@@ -1,37 +1,3 @@
-"""
-File Storage Manager Module
-
-This module defines the `FileStorageManager` class, which provides functionality for managing
-the storage of datasets in various formats, such as Msgpack and WebDataset. It includes methods
-for writing datasets to storage, reading datasets from storage, shuffling datasets, and managing
-dataset shards.
-
-Classes:
-    - FileStorageManager: A class for managing dataset storage in file-based formats.
-
-Dependencies:
-    - glob: For file pattern matching.
-    - itertools: For iterator utilities.
-    - os: For file system operations.
-    - shutil: For file and directory operations.
-    - pathlib.Path: For handling file paths.
-    - typing: For type annotations.
-    - ray: For distributed processing.
-    - tqdm: For progress tracking.
-    - webdataset: For handling WebDataset format.
-    - atria_logger: For logging utilities.
-    - atria_registry: For registering storage managers.
-    - atria_datasets.core.datasets: For dataset-related classes and metadata.
-    - atria_datasets.core.storage.dataset_storage_manager: For the base storage manager class.
-    - atria_datasets.core.storage.shard_writer_actor: For managing shard writers.
-    - atria_datasets.core.storage.utilities: For utility functions and constants.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
-
 import multiprocessing as mp
 import pickle
 import queue

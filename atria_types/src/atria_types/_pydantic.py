@@ -236,6 +236,9 @@ def _image_validator(value: Any, handler: ValidatorFunctionWrapHandler) -> Any:
     import PIL.Image as PILImageModule
     from PIL.Image import Image as PILImage
 
+    # this is to avoid DecompressionBombError for large images
+    PILImageModule.MAX_IMAGE_PIXELS = 933120000
+
     if value is None:
         return None
 

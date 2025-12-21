@@ -7,8 +7,8 @@ logger = get_logger(__name__)
 
 
 def main():
-    dataset_config = load_dataset_config("due_benchmark/DocVQA")
-    dataset = dataset_config.build(enable_cached_splits=True)
+    dataset_config = load_dataset_config("due_benchmark/KleisterCharity")
+    dataset = dataset_config.build(enable_cached_splits=False)
     logger.info(f"Loaded dataset:\n{dataset}")
 
     # get first sample

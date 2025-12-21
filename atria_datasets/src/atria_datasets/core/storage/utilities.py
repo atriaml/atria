@@ -1,39 +1,3 @@
-"""
-Utilities Module for Dataset Storage
-
-This module provides utility classes and functions for managing dataset storage. It includes
-classes for handling file storage types, generating file URLs, and managing filenames for
-Ray datasets. Additionally, it provides helper functions for data type conversions.
-
-Classes:
-    - FileStorageType: Enum for supported file storage types (e.g., Msgpack, WebDataset).
-    - FileUrlProvider: Utility class for generating file paths and patterns for dataset storage.
-    - RayDatasetFilenameProvider: Filename provider for Ray datasets.
-
-Functions:
-    - _convert_to_python_type: Converts NumPy types in a dictionary to native Python types.
-
-Dependencies:
-    - glob: For file pattern matching.
-    - hashlib: For generating hashes.
-    - os: For file system operations.
-    - pathlib.Path: For handling file paths.
-    - typing: For type annotations.
-    - numpy: For numerical operations.
-    - pydantic.BaseModel: For data validation and serialization.
-    - ray.data.block.Block: For Ray dataset blocks.
-    - ray.data.datasource.FilenameProvider: For managing filenames in Ray datasets.
-    - atria_logger: For logging utilities.
-    - atria_core.utilities.imports: For importing base paths.
-    - atria_datasets.core.datasets.metadata: For dataset metadata.
-    - atria_datasets.core.datasets.splits: For dataset split information.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
-
 from collections.abc import Iterator
 from enum import Enum
 from pathlib import Path

@@ -1,25 +1,4 @@
-"""
-Download File Info Module
-
-This module defines the `DownloadFileInfo` class, which provides utilities for managing
-and processing information about files to be downloaded. It includes functionality for
-parsing URLs, generating hashed file names, determining file paths, and checking file
-statuses (e.g., whether a file is compressed or download is complete).
-
-Classes:
-    - DownloadFileInfo: Represents information about a file to be downloaded.
-
-Dependencies:
-    - hashlib: For generating SHA-256 hashes of URLs.
-    - re: For regular expression operations.
-    - pathlib.Path: For handling file paths.
-    - urllib.parse: For parsing URLs.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
+"""Module for managing download file information."""
 
 import hashlib
 import re

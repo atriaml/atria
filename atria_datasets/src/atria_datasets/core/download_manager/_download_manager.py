@@ -1,26 +1,4 @@
-"""
-Download Manager Module
-
-This module defines the `DownloadManager` class, which provides utilities for downloading,
-merging, extracting, and finalizing files from various sources. It supports handling
-compressed files, multi-part archives, and directory management for downloaded files.
-
-Classes:
-    - DownloadManager: Manages the downloading and extraction of dataset files.
-
-Dependencies:
-    - shutil: For file operations such as moving and extracting archives.
-    - pathlib.Path: For handling file paths.
-    - typing: For type annotations.
-    - atria_corelogger.logger: For logging utilities.
-    - atria.data.datasets.downloads.download_file_info: For managing file download information.
-    - atria.data.datasets.downloads.file_downloader: For downloading files from URLs.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
+"""Module for managing dataset downloads and extractions."""
 
 import shutil
 from pathlib import Path
@@ -29,8 +7,8 @@ import tqdm
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
 
-from atria_datasets.core.download_manager.download_file_info import DownloadFileInfo
-from atria_datasets.core.download_manager.file_downloader import FileDownloader
+from atria_datasets.core.download_manager._download_file_info import DownloadFileInfo
+from atria_datasets.core.download_manager._file_downloader import FileDownloader
 
 logger = get_logger(__name__)
 

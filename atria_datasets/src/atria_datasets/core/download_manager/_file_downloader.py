@@ -1,35 +1,4 @@
-"""
-File Downloader Module
-
-This module defines the `FileDownloader` class and its subclasses, which provide utilities
-for downloading files from various sources, including HTTP, FTP, and Google Drive. It supports
-features such as file locking, progress tracking, and handling incomplete downloads.
-
-Classes:
-    - FileDownloader: Abstract base class for file downloaders.
-    - FTPFileDownloader: Downloads files from FTP servers.
-    - HTTPDownloader: Downloads files from HTTP/HTTPS URLs.
-    - GoogleDriveDownloader: Downloads files from Google Drive.
-
-Dependencies:
-    - os: For file path operations.
-    - shutil: For moving files.
-    - abc: For defining abstract base classes.
-    - ftplib.FTP: For FTP operations.
-    - typing: For type annotations.
-    - urllib.parse: For parsing URLs.
-    - gdown: For downloading files from Google Drive.
-    - requests: For HTTP requests.
-    - tqdm: For progress tracking.
-    - filelock: For file locking.
-    - atria_corelogger.logger: For logging utilities.
-    - atria.data.datasets.downloads.download_file_info: For managing file download information.
-
-Author: Your Name (your.email@example.com)
-Date: 2025-04-07
-Version: 1.0.0
-License: MIT
-"""
+"""Module for downloading files from various sources."""
 
 import shutil
 from abc import ABC, abstractmethod
@@ -39,7 +8,7 @@ from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
 from filelock import FileLock
 
-from atria_datasets.core.download_manager.download_file_info import DownloadFileInfo
+from atria_datasets.core.download_manager._download_file_info import DownloadFileInfo
 
 logger = get_logger(__name__)
 

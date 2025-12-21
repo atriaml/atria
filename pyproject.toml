@@ -16,6 +16,7 @@ dependencies = [
     "atria-types",
     "coloredlogs>=15.0.1",
     "fire>=0.7.1",
+    "joblib>=1.5.2",
     "jupytext>=1.18.1",
     "torchxai",
     "tuna>=0.5.11",
