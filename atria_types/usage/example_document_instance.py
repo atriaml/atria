@@ -55,6 +55,32 @@ def main() -> None:
 
     logger.info("Example PDF Document Instance:\n%s", doc_from_pdf)
 
+    # try to load content from PDF
+    doc_from_pdf = DocumentInstance(
+        sample_id="doc_002",
+        page_id=1,
+        pdf=PDF(
+            file_path="/home/aletheia/Downloads/ICLR-Diff-Latest-Nov26-1541.pdf",
+            num_pages=1,
+        ),
+    )
+    doc_from_pdf = doc_from_pdf.ops.load_image_from_pdf(page_number=0)
+    doc_from_pdf = doc_from_pdf.ops.load_content_from_pdf(page_number=0)
+    doc_from_pdf.viz.visualize("test.png")
+    logger.info("Loaded image from PDF:\n%s", doc_from_pdf)
+
+    # try to load content from Image
+    doc_from_pdf = DocumentInstance(
+        sample_id="doc_002",
+        page_id=1,
+        image=Image(
+            file_path="/home/aletheia/Pictures/test.png",
+        ),
+    )
+    doc_from_pdf = doc_from_pdf.ops.load_content_from_image()
+    doc_from_pdf.viz.visualize("test.png")
+    logger.info("Loaded image from PDF:\n%s", doc_from_pdf)
+
 
 if __name__ == "__main__":
     main()
