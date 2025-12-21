@@ -92,7 +92,9 @@ def pydantic_to_hydra(obj: BaseModel):
 class RuntimeEnvConfig(RepresentationMixin, BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
     project_name: str = "atria_ml"
-    run_name: str = Field(default_factory=lambda: codename.codename())
+    exp_name: str = Field(default_factory=lambda: codename.codename())
+    dataset_name: str
+    model_name: str
     output_dir: str = "???"
     seed: int = 42
     deterministic: bool = False
@@ -101,7 +103,9 @@ class RuntimeEnvConfig(RepresentationMixin, BaseModel):
 
     @property
     def run_dir(self) -> Path:
-        return Path(self.output_dir) / self.run_name
+        return (
+            Path(self.output_dir) / self.exp_name / self.dataset_name / self.model_name
+        )
 
 
 class DataConfig(RepresentationMixin, BaseModel):

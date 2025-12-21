@@ -14,7 +14,7 @@ class GradientConfig(RepresentationMixin, BaseModel):
 
 
 class LoggingConfig(RepresentationMixin, BaseModel):
-    logging_steps: int = 100
+    logging_steps: int = 50
     refresh_rate: int = 10
     log_gpu_stats: bool = False
     profile_time: bool = False
