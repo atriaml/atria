@@ -1,6 +1,9 @@
+import pdfplumber
 from PIL.Image import Image as PILImage
 
 from atria_types._base._data_model import BaseDataModel
+from atria_types._generic._bounding_box import BoundingBox, BoundingBoxMode
+from atria_types._generic._doc_content import TextElement
 from atria_types._pydantic import OptIntField, OptStrField
 
 
@@ -65,3 +68,34 @@ class PDF(BaseDataModel):
                     f"Failed to load PDF metadata from {self.file_path}: {e}"
                 ) from e
         return self
+
+    def extract_text_elements(self, page_number: int = 0) -> list["TextElement"]:
+        assert self.file_path is not None, (
+            "PDF file path must be set to extract text elements."
+        )
+        text_elements: list[TextElement] = []
+        with pdfplumber.open(self.file_path) as pdf:
+            page = pdf.pages[page_number]
+
+            # Get crop box coordinates
+            crop = page.cropbox  # returns (x0, y0, x1, y1)
+            crop_x0, crop_y0, crop_x1, crop_y1 = crop
+            crop_width = crop_x1 - crop_x0
+            crop_height = crop_y1 - crop_y0
+
+            for w in page.within_bbox(crop).extract_words(x_tolerance=1, y_tolerance=1):
+                text = w["text"].strip()
+                if not text:
+                    continue
+
+                # Adjust coordinates relative to crop box
+                x0 = w["x0"] - crop_x0
+                top = w["top"] - crop_y0
+                x1 = w["x1"] - crop_x0
+                bottom = w["bottom"] - crop_y0
+
+                bbox = BoundingBox(
+                    value=[x0, top, x1, bottom], mode=BoundingBoxMode.XYXY
+                ).ops.normalize(width=crop_width, height=crop_height)
+                text_elements.append(TextElement(text=text, bbox=bbox))
+        return text_elements
