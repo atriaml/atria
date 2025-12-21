@@ -7,7 +7,7 @@ name = "atria_types"
 version = "0.0.0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 license = { file = "LICENSE.txt" }
 authors = [{ name = "Saifullah", email = "saifullah.saifullah@dfki.de" }]
 dependencies = [
@@ -30,6 +30,8 @@ dependencies = [
     "factory-boy>=3.3.3",
     "torch==2.1.2",
     "torchvision==0.16.2",
+    "pdfplumber>=0.11.8",
+    "pytesseract>=0.3.13",
 ]
 
 [project.optional-dependencies]
