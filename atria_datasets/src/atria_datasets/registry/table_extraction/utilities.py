@@ -35,7 +35,7 @@ def read_pascal_voc(
 
 
 def read_words_json(
-    words_file: str, image_width: int = None, image_height: int = None
+    words_file: str, image_width: int, image_height: int
 ) -> list[TextElement]:
     with open(words_file) as f:
         data = json.load(f)

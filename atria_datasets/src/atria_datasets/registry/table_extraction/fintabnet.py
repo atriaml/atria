@@ -1,5 +1,6 @@
 import os
-from collections.abc import Generator
+import random
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 from atria_logger import get_logger
@@ -55,7 +56,7 @@ _CLASSES = [
 
 
 class SplitIterator:
-    def __init__(self, split: DatasetSplitType, data_dir: str):
+    def __init__(self, split: DatasetSplitType, data_dir: str, seed: int = 42):
         self.split = split
         self.data_dir = Path(data_dir)
 
@@ -76,6 +77,8 @@ class SplitIterator:
         xml_filenames = [
             elem for elem in os.listdir(self.xmls_dir) if elem.endswith(".xml")
         ]
+        random.seed(self.seed)
+        random.shuffle(xml_filenames)
         for filename in xml_filenames:
             xml_filepath = self.xmls_dir / filename
             image_file_path = self.images_dir / filename.replace(".xml", ".jpg")
@@ -127,22 +130,20 @@ class FinTabNet(DocumentDataset):
             DatasetSplitType.test,
         ]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[DocumentInstance, None, None]:
-        return SplitIterator(split=split, data_dir=data_dir)
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
+        return SplitIterator(split=split, data_dir=data_dir, seed=self.config.seed)
 
     def _input_transform(self, inputs: tuple[Path, Path, Path]) -> DocumentInstance:
         image_file_path, xml_filepath, word_file_path = inputs
-        image = Image(file_path=image_file_path).load()
+        image = Image(file_path=str(image_file_path)).load()
         annotated_objects = read_pascal_voc(
-            xml_filepath,
+            str(xml_filepath),
             labels=_CLASSES,
             image_width=image.width,
             image_height=image.height,
         )
         text_elements = read_words_json(
-            word_file_path, image_width=image.width, image_height=image.height
+            str(word_file_path), image_width=image.width, image_height=image.height
         )
         return DocumentInstance(
             sample_id=Path(image_file_path).name,

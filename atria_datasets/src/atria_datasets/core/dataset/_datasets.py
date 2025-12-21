@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, Self
+from typing import TYPE_CHECKING, Generic, Self
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
@@ -79,7 +79,7 @@ class Dataset(
     __abstract__ = True
     __requires_access_token__ = False
     __extract_downloads__ = True
-    __data_model__: type[BaseDataInstance]
+    __data_model__: type[T_BaseDataInstance]
     __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
     __config__: type[T_DatasetConfig] = DatasetConfig
 
@@ -215,7 +215,7 @@ class Dataset(
         return self
 
     @property
-    def data_model(self) -> type[BaseDataInstance]:
+    def data_model(self) -> type[T_BaseDataInstance]:
         """The data model class used for type validation and instantiation."""
         return self.__data_model__
 
@@ -272,7 +272,7 @@ class Dataset(
         """Get all split iterators as a dictionary."""
         return self._split_iterators
 
-    def _input_transform(self, sample: Any) -> T_BaseDataInstance:
+    def _input_transform(self, *args, **kwargs) -> T_BaseDataInstance:
         """
         Transform raw sample data into the dataset's data model.
 
@@ -285,6 +285,9 @@ class Dataset(
         Raises:
             TypeError: If sample cannot be converted to the data model
         """
+        assert len(args) == 1, "Expected a single positional argument 'sample'."
+        assert len(kwargs) == 0, "No keyword arguments expected."
+        sample = args[0]
         if isinstance(sample, self.data_model):
             return sample
         elif isinstance(sample, dict):

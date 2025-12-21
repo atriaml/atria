@@ -1,5 +1,6 @@
 import os
-from collections.abc import Generator
+import random
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 from atria_logger import get_logger
@@ -11,11 +12,12 @@ from atria_types import (
     Image,
     LayoutAnalysisAnnotation,
 )
+from atria_types._generic._doc_content import DocumentContent
 
 from atria_datasets import DATASETS, DocumentDataset
 from atria_datasets.core.dataset._datasets import DatasetConfig
 
-from .utilities import read_pascal_voc
+from .utilities import read_pascal_voc, read_words_json
 
 logger = get_logger(__name__)
 
@@ -80,7 +82,9 @@ def folder_iterator(folder):
 
 
 class SplitIterator:
-    def __init__(self, task: str, data_dir: str, split: DatasetSplitType):
+    def __init__(
+        self, task: str, data_dir: str, split: DatasetSplitType, seed: int = 42
+    ) -> None:
         self.split = split
         self.data_dir = Path(data_dir)
         self.task = task
@@ -95,45 +99,38 @@ class SplitIterator:
 
         self.xml_filelist = (
             self.data_dir
-            / f"PubTables-1M-{self.task.upper()}_Filelists"
+            / f"PubTables-1M-{self.task.capitalize()}_Filelists"
             / f"{split_name}_filelist.txt"
         )
         self.images_filelist = (
             self.data_dir
-            / f"PubTables-1M-{self.task.upper()}_Filelists"
+            / f"PubTables-1M-{self.task.capitalize()}_Filelists"
             / "images_filelist.txt"
         )
 
-        # Collect paths
-        self.anns_paths = {}
-        self.images_paths = {}
+        self.ann_dir = (
+            self.data_dir
+            / f"PubTables-1M-{self.task.capitalize()}_Annotations_{split_name.capitalize()}"
+        )
+        self.img_dir = (
+            self.data_dir
+            / f"PubTables-1M-{self.task.capitalize()}_Images_{split_name.capitalize()}"
+        )
+        self.words_dir = self.data_dir / "PubTables-1M-Structure_Table_Words"
+        self.seed = seed
 
-        # Get annotation paths
-        for split_dir in ["Test", "Train", "Val"]:
-            ann_dir = (
-                self.data_dir
-                / f"PubTables-1M-{self.task.upper()}_Annotations_{split_dir}"
+        if not self.ann_dir.exists():
+            raise FileNotFoundError(
+                f"Annotation directory {self.ann_dir} does not exist."
             )
-            if ann_dir.exists():
-                for ann_file in folder_iterator(ann_dir):
-                    rel_path = Path(ann_file).relative_to(ann_dir)
-                    self.anns_paths[str(rel_path)] = Path(ann_file)
+        if not self.img_dir.exists():
+            raise FileNotFoundError(f"Image directory {self.img_dir} does not exist.")
 
-        # Get image paths
-        for split_dir in ["Test", "Train", "Val"]:
-            img_dir = (
-                self.data_dir / f"PubTables-1M-{self.task.upper()}_Images_{split_dir}"
-            )
-            if img_dir.exists():
-                for img_file in folder_iterator(img_dir):
-                    rel_path = Path(img_file).relative_to(img_dir)
-                    self.images_paths[str(rel_path)] = Path(img_file)
-
-    def __iter__(self) -> Generator[DocumentInstance, None, None]:
+    def __iter__(self) -> Generator[tuple[Path, Path, Path], None, None]:
         # Read XML file list
         with open(self.xml_filelist) as file:
             lines = file.readlines()
-            lines = [l.split("/")[-1] for l in lines]
+            lines = [l.split("/")[-1].strip() for l in lines]
         xml_file_names = {
             f.strip().replace(".xml", "") for f in lines if f.strip().endswith(".xml")
         }
@@ -142,45 +139,33 @@ class SplitIterator:
         with open(self.images_filelist) as file:
             lines = file.readlines()
         image_file_paths = {
-            f.strip().replace(".jpg", "") for f in lines if f.strip().endswith(".jpg")
+            f.strip().replace(".jpg", "").replace("images/", "")
+            for f in lines
+            if f.strip().endswith(".jpg")
         }
 
         file_paths = sorted(xml_file_names.intersection(image_file_paths))
+
+        random.seed(self.seed)
+        random.shuffle(file_paths)
+
         logger.info(f"Generating {len(file_paths)} samples...")
-
         for sample_file_path in file_paths:
-            # Find annotation file
-            ann_file = None
-            for ann_path in self.anns_paths:
-                if sample_file_path + ".xml" in ann_path:
-                    ann_file = self.anns_paths[ann_path]
-                    break
-
-            # Find image file
-            img_file = None
-            for img_path in self.images_paths:
-                if sample_file_path + ".jpg" in img_path:
-                    img_file = self.images_paths[img_path]
-                    break
-
-            if ann_file and img_file and ann_file.exists() and img_file.exists():
-                labels = (
-                    _STRUCTURE_LABELS if self.task == "structure" else _DETECTION_LABELS
+            ann_file = self.ann_dir / (sample_file_path + ".xml")
+            img_file = self.img_dir / (sample_file_path + ".jpg")
+            word_file = self.words_dir / (sample_file_path + "_words.json")
+            if not ann_file.exists() or not img_file.exists():
+                logger.warning(
+                    f"Skipping {sample_file_path} because image or annotation file does not exist."
                 )
-                annotated_objects = read_pascal_voc(ann_file, labels=labels)
+                continue
 
-                yield DocumentInstance(
-                    sample_id=Path(img_file).name,
-                    image=Image(file_path=img_file),
-                    annotations=[
-                        LayoutAnalysisAnnotation(annotated_objects=annotated_objects)
-                    ],
-                )
+            yield img_file, ann_file, word_file
 
     def __len__(self) -> int:
         with open(self.xml_filelist) as file:
             lines = file.readlines()
-        return len([l for l in lines if l.strip().endswith(".xml")])
+        return len([line for line in lines if line.strip().endswith(".xml")])
 
 
 class PubTables1MConfig(DatasetConfig):
@@ -207,7 +192,7 @@ class PubTables1MConfig(DatasetConfig):
         ),
     },
 )
-class PubTables1M(DocumentDataset):
+class PubTables1M(DocumentDataset[PubTables1MConfig]):
     __config__ = PubTables1MConfig
 
     def _download_urls(self) -> list[str]:
@@ -233,7 +218,30 @@ class PubTables1M(DocumentDataset):
             DatasetSplitType.test,
         ]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[DocumentInstance, None, None]:
-        return SplitIterator(task=self.config.task, split=split, data_dir=data_dir)
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
+        return SplitIterator(
+            task=self.config.task, split=split, data_dir=data_dir, seed=self.config.seed
+        )
+
+    def _input_transform(self, inputs: tuple[Path, Path, Path]) -> DocumentInstance:
+        image_file_path, xml_filepath, word_file_path = inputs
+        image = Image(file_path=str(image_file_path)).load()
+        annotated_objects = read_pascal_voc(
+            str(xml_filepath),
+            labels=(
+                _STRUCTURE_LABELS
+                if self.config.task == "structure"
+                else _DETECTION_LABELS
+            ),
+            image_width=image.width,
+            image_height=image.height,
+        )
+        text_elements = read_words_json(
+            str(word_file_path), image_width=image.width, image_height=image.height
+        )
+        return DocumentInstance(
+            sample_id=Path(image_file_path).name,
+            image=image,
+            content=DocumentContent(text_elements=text_elements),
+            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
+        )

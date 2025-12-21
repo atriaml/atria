@@ -1,5 +1,6 @@
 """RVL-CDIP (Ryerson Vision Lab Complex Document Information Processing) dataset"""
 
+import random
 from collections.abc import Generator, Iterable
 from pathlib import Path
 
@@ -97,6 +98,10 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
             self.split_file_paths = f.read().splitlines()
         self.image_data_dir = Path(data_dir) / _IMAGE_DATA_NAME / "images"
         self.ocr_data_dir = Path(data_dir) / _OCR_DATA_NAME / "images"
+
+        # shuffle the data
+        random.seed(config.seed)
+        random.shuffle(self.split_file_paths)
 
     def __iter__(self) -> Generator[tuple[Path, Path, int], None, None]:
         for image_file_path_with_label in self.split_file_paths:

@@ -35,6 +35,7 @@ class DatasetConfig(ModuleConfig):
     max_train_samples: int | None = None
     max_validation_samples: int | None = None
     max_test_samples: int | None = None
+    seed: int = 42
 
     def build(
         self,

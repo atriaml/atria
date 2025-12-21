@@ -48,9 +48,6 @@ class PubLayNet(HuggingfaceDocumentDataset):
                 continue
 
             bbox = BoundingBox(value=ann["bbox"], mode=BoundingBoxMode.XYWH)
-            if not bbox.is_valid:
-                continue
-
             if ann["area"] <= 0 or bbox.width < 1 or bbox.height < 1:
                 continue
 
@@ -62,8 +59,8 @@ class PubLayNet(HuggingfaceDocumentDataset):
                 AnnotatedObject(
                     label=Label(value=category_idx, name=_CLASSES[category_idx]),
                     bbox=BoundingBox(value=ann["bbox"], mode=BoundingBoxMode.XYWH)
-                    .switch_mode()
-                    .normalize(width=image.width, height=image.height),
+                    .ops.switch_mode()
+                    .ops.normalize(width=image.width, height=image.height),
                     segmentation=ann["segmentation"],
                     iscrowd=bool(ann["iscrowd"]),
                 )

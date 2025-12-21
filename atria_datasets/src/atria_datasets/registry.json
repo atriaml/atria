@@ -2,7 +2,7 @@
     "datasets": {
         "rvlcdip": {
             "image": {
-                "hash": "dcec5156",
+                "hash": "029ab021",
                 "config": {
                     "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
                     "dataset_name": "rvlcdip",
@@ -10,13 +10,14 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "load_ocr": false,
                     "type": "default"
                 },
                 "import_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdipConfig"
             },
             "image_with_ocr": {
-                "hash": "f13e5dae",
+                "hash": "2f4e6e6f",
                 "config": {
                     "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
                     "dataset_name": "rvlcdip",
@@ -24,13 +25,14 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "load_ocr": true,
                     "type": "default"
                 },
                 "import_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdipConfig"
             },
             "image_with_ocr_1k": {
-                "hash": "3bb354c8",
+                "hash": "639b65a7",
                 "config": {
                     "module_path": "atria_datasets.registry.document_classification.rvlcdip.RvlCdip",
                     "dataset_name": "rvlcdip",
@@ -38,6 +40,7 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": null,
+                    "seed": 42,
                     "load_ocr": true,
                     "type": "default"
                 },
@@ -46,7 +49,7 @@
         },
         "tobacco3482": {
             "image_only": {
-                "hash": "3fb2cbbc",
+                "hash": "caa89637",
                 "config": {
                     "module_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482",
                     "dataset_name": "tobacco3482",
@@ -54,12 +57,13 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "load_ocr": false
                 },
                 "import_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482Config"
             },
             "image_with_ocr": {
-                "hash": "48a6108c",
+                "hash": "1f5da6de",
                 "config": {
                     "module_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482",
                     "dataset_name": "tobacco3482",
@@ -67,6 +71,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "load_ocr": true
                 },
                 "import_path": "atria_datasets.registry.document_classification.tobacco3482.Tobacco3482Config"
@@ -74,33 +79,35 @@
         },
         "cifar10": {
             "default": {
-                "hash": "5917089c",
+                "hash": "80315b63",
                 "config": {
                     "module_path": "atria_datasets.registry.image_classification.cifar10.Cifar10",
                     "dataset_name": "cifar10",
                     "config_name": "default",
                     "max_train_samples": null,
                     "max_validation_samples": null,
-                    "max_test_samples": null
+                    "max_test_samples": null,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.core.dataset._common.DatasetConfig"
             },
             "1k": {
-                "hash": "09f58532",
+                "hash": "75baa466",
                 "config": {
                     "module_path": "atria_datasets.registry.image_classification.cifar10.Cifar10",
                     "dataset_name": "cifar10",
                     "config_name": "1k",
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
-                    "max_test_samples": 1000
+                    "max_test_samples": 1000,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.core.dataset._common.DatasetConfig"
             }
         },
         "huggingface_cifar10": {
             "plain_text": {
-                "hash": "82950cbc",
+                "hash": "10164e21",
                 "config": {
                     "module_path": "atria_datasets.registry.image_classification.cifar10_huggingface.HuggingfaceCifar10",
                     "dataset_name": "huggingface_cifar10",
@@ -108,13 +115,14 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "hf_repo": "uoft-cs/cifar10",
                     "hf_config_name": "plain_text"
                 },
                 "import_path": "atria_datasets.core.dataset._common.HuggingfaceDatasetConfig"
             },
             "plain_text_1k": {
-                "hash": "633d6982",
+                "hash": "a7992b66",
                 "config": {
                     "module_path": "atria_datasets.registry.image_classification.cifar10_huggingface.HuggingfaceCifar10",
                     "dataset_name": "huggingface_cifar10",
@@ -122,6 +130,7 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": 1000,
+                    "seed": 42,
                     "hf_repo": "uoft-cs/cifar10",
                     "hf_config_name": "plain_text"
                 },
@@ -130,7 +139,7 @@
         },
         "doclaynet": {
             "default": {
-                "hash": "83f0c291",
+                "hash": "89550f8a",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNet",
                     "dataset_name": "doclaynet",
@@ -138,13 +147,13 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
-                    "hf_repo": "ds4sd/DocLayNet",
-                    "hf_config_name": "2022.08"
+                    "seed": 42,
+                    "load_ocr": false
                 },
-                "import_path": "atria_datasets.core.dataset._common.HuggingfaceDatasetConfig"
+                "import_path": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNetConfig"
             },
             "1k": {
-                "hash": "ccb20556",
+                "hash": "0f8dfccc",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNet",
                     "dataset_name": "doclaynet",
@@ -152,41 +161,43 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": null,
-                    "hf_repo": "ds4sd/DocLayNet",
-                    "hf_config_name": "2022.08"
+                    "seed": 42,
+                    "load_ocr": false
                 },
-                "import_path": "atria_datasets.core.dataset._common.HuggingfaceDatasetConfig"
+                "import_path": "atria_datasets.registry.layout_analysis.doclaynet.DocLayNetConfig"
             }
         },
         "icdar2019": {
             "trackA_modern": {
-                "hash": "0c34ac71",
+                "hash": "f2e7d310",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019",
                     "dataset_name": "icdar2019",
                     "config_name": "trackA_modern",
                     "max_train_samples": null,
                     "max_validation_samples": null,
-                    "max_test_samples": null
+                    "max_test_samples": null,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019Config"
             },
             "trackA_archival": {
-                "hash": "66b80a5a",
+                "hash": "2209b89f",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019",
                     "dataset_name": "icdar2019",
                     "config_name": "trackA_archival",
                     "max_train_samples": null,
                     "max_validation_samples": null,
-                    "max_test_samples": null
+                    "max_test_samples": null,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.registry.layout_analysis.icdar2019.Icdar2019Config"
             }
         },
         "publaynet": {
             "default": {
-                "hash": "9853003e",
+                "hash": "d76f3b82",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.publaynet.PubLayNet",
                     "dataset_name": "publaynet",
@@ -194,13 +205,14 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "hf_repo": "jordanparker6/publaynet",
                     "hf_config_name": "default"
                 },
                 "import_path": "atria_datasets.core.dataset._common.HuggingfaceDatasetConfig"
             },
             "1k": {
-                "hash": "c8e4229e",
+                "hash": "e42224d6",
                 "config": {
                     "module_path": "atria_datasets.registry.layout_analysis.publaynet.PubLayNet",
                     "dataset_name": "publaynet",
@@ -208,6 +220,7 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "hf_repo": "jordanparker6/publaynet",
                     "hf_config_name": "default"
                 },
@@ -215,20 +228,21 @@
             }
         },
         "cord": {
-            "hash": "945484a5",
+            "hash": "b985c989",
             "config": {
                 "module_path": "atria_datasets.registry.ser.cord.CORD",
                 "dataset_name": "cord",
                 "config_name": "default",
                 "max_train_samples": null,
                 "max_validation_samples": null,
-                "max_test_samples": null
+                "max_test_samples": null,
+                "seed": 42
             },
             "import_path": "atria_datasets.registry.ser.cord.CordDatasetConfig"
         },
         "docbank": {
             "default": {
-                "hash": "5359d097",
+                "hash": "a8737e53",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docbank.DocBankLER",
                     "dataset_name": "docbank",
@@ -236,12 +250,13 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "max_words_per_sample": 4000
                 },
                 "import_path": "atria_datasets.registry.ser.docbank.DocBankConfig"
             },
             "1k": {
-                "hash": "32864998",
+                "hash": "8c1d5319",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docbank.DocBankLER",
                     "dataset_name": "docbank",
@@ -249,12 +264,13 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": 1000,
+                    "seed": 42,
                     "max_words_per_sample": 4000
                 },
                 "import_path": "atria_datasets.registry.ser.docbank.DocBankConfig"
             },
             "0.1k": {
-                "hash": "3f18bebe",
+                "hash": "0e9ba87c",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docbank.DocBankLER",
                     "dataset_name": "docbank",
@@ -262,6 +278,7 @@
                     "max_train_samples": 100,
                     "max_validation_samples": 100,
                     "max_test_samples": 100,
+                    "seed": 42,
                     "max_words_per_sample": 4000
                 },
                 "import_path": "atria_datasets.registry.ser.docbank.DocBankConfig"
@@ -269,7 +286,7 @@
         },
         "docile": {
             "kile": {
-                "hash": "93111a95",
+                "hash": "3ff08382",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docile.Docile",
                     "dataset_name": "docile",
@@ -277,6 +294,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "synthetic": false,
                     "overlap_threshold": 0.5,
                     "image_shape": [
@@ -288,7 +306,7 @@
                 "import_path": "atria_datasets.registry.ser.docile.DocileConfig"
             },
             "lir": {
-                "hash": "b333849f",
+                "hash": "67b81afe",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docile.Docile",
                     "dataset_name": "docile",
@@ -296,6 +314,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "synthetic": false,
                     "overlap_threshold": 0.5,
                     "image_shape": [
@@ -307,7 +326,7 @@
                 "import_path": "atria_datasets.registry.ser.docile.DocileConfig"
             },
             "kile_synthetic": {
-                "hash": "e92cbd79",
+                "hash": "74e104bc",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docile.Docile",
                     "dataset_name": "docile",
@@ -315,6 +334,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "synthetic": true,
                     "overlap_threshold": 0.5,
                     "image_shape": [
@@ -326,7 +346,7 @@
                 "import_path": "atria_datasets.registry.ser.docile.DocileConfig"
             },
             "lir_synthetic": {
-                "hash": "68e54355",
+                "hash": "9b4c34f5",
                 "config": {
                     "module_path": "atria_datasets.registry.ser.docile.Docile",
                     "dataset_name": "docile",
@@ -334,6 +354,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "synthetic": true,
                     "overlap_threshold": 0.5,
                     "image_shape": [
@@ -346,7 +367,7 @@
             }
         },
         "funsd": {
-            "hash": "f5a73928",
+            "hash": "c83a7b5f",
             "config": {
                 "module_path": "atria_datasets.registry.ser.funsd.FUNSD",
                 "dataset_name": "funsd",
@@ -354,24 +375,26 @@
                 "max_train_samples": null,
                 "max_validation_samples": null,
                 "max_test_samples": null,
+                "seed": 42,
                 "apply_reading_order_correction": true
             },
             "import_path": "atria_datasets.registry.ser.funsd.FUNSDConfig"
         },
         "sroie": {
-            "hash": "29268c62",
+            "hash": "2c89476b",
             "config": {
                 "module_path": "atria_datasets.registry.ser.sroie.SROIE",
                 "dataset_name": "sroie",
                 "config_name": "default",
                 "max_train_samples": null,
                 "max_validation_samples": null,
-                "max_test_samples": null
+                "max_test_samples": null,
+                "seed": 42
             },
             "import_path": "atria_datasets.registry.ser.sroie.SROIEDatasetConfig"
         },
         "wild_receipts": {
-            "hash": "a65d0d5f",
+            "hash": "098a0864",
             "config": {
                 "module_path": "atria_datasets.registry.ser.wild_receipts.WildReceipts",
                 "dataset_name": "wild_receipts",
@@ -379,51 +402,55 @@
                 "max_train_samples": null,
                 "max_validation_samples": null,
                 "max_test_samples": null,
+                "seed": 42,
                 "apply_reading_order_correction": true
             },
             "import_path": "atria_datasets.registry.ser.wild_receipts.WildReceiptsConfig"
         },
         "fintabnet": {
             "default": {
-                "hash": "ea8df3a0",
+                "hash": "4dbd063e",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.fintabnet.FinTabNet",
                     "dataset_name": "fintabnet",
                     "config_name": "default",
                     "max_train_samples": null,
                     "max_validation_samples": null,
-                    "max_test_samples": null
+                    "max_test_samples": null,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.registry.table_extraction.fintabnet.FinTabNetConfig"
             },
             "1k": {
-                "hash": "045bfd2f",
+                "hash": "06e1f9df",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.fintabnet.FinTabNet",
                     "dataset_name": "fintabnet",
                     "config_name": "1k",
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
-                    "max_test_samples": 1000
+                    "max_test_samples": 1000,
+                    "seed": 42
                 },
                 "import_path": "atria_datasets.registry.table_extraction.fintabnet.FinTabNetConfig"
             }
         },
         "icdar2013": {
-            "hash": "c35bab02",
+            "hash": "f7501b7f",
             "config": {
                 "module_path": "atria_datasets.registry.table_extraction.icdar2013.ICDAR2013",
                 "dataset_name": "icdar2013",
                 "config_name": "default",
                 "max_train_samples": null,
                 "max_validation_samples": null,
-                "max_test_samples": null
+                "max_test_samples": null,
+                "seed": 42
             },
             "import_path": "atria_datasets.registry.table_extraction.icdar2013.ICDAR2013Config"
         },
         "pubtables1m": {
             "detection": {
-                "hash": "b13d2fed",
+                "hash": "eba6828e",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1M",
                     "dataset_name": "pubtables1m",
@@ -431,12 +458,13 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "task": "detection"
                 },
                 "import_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1MConfig"
             },
             "detection_1k": {
-                "hash": "6a8747b9",
+                "hash": "b98c6174",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1M",
                     "dataset_name": "pubtables1m",
@@ -444,12 +472,13 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": null,
+                    "seed": 42,
                     "task": "detection"
                 },
                 "import_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1MConfig"
             },
             "structure": {
-                "hash": "f1d1d067",
+                "hash": "66290a69",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1M",
                     "dataset_name": "pubtables1m",
@@ -457,12 +486,13 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "task": "structure"
                 },
                 "import_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1MConfig"
             },
             "structure_1k": {
-                "hash": "872180f3",
+                "hash": "64169417",
                 "config": {
                     "module_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1M",
                     "dataset_name": "pubtables1m",
@@ -470,6 +500,7 @@
                     "max_train_samples": 1000,
                     "max_validation_samples": 1000,
                     "max_test_samples": null,
+                    "seed": 42,
                     "task": "structure"
                 },
                 "import_path": "atria_datasets.registry.table_extraction.pubtables1m.PubTables1MConfig"
@@ -477,7 +508,7 @@
         },
         "due_benchmark": {
             "DocVQA": {
-                "hash": "8d69bc02",
+                "hash": "f351956a",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -485,6 +516,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -496,7 +528,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "PWC": {
-                "hash": "748fc423",
+                "hash": "b54166a5",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -504,6 +536,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -515,7 +548,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "DeepForm": {
-                "hash": "486a2af8",
+                "hash": "ba5478fa",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -523,6 +556,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -534,7 +568,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "TabFact": {
-                "hash": "ee5dd305",
+                "hash": "6bb996de",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -542,6 +576,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -553,7 +588,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "WikiTableQuestions": {
-                "hash": "5e4cbbdb",
+                "hash": "1535e810",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -561,6 +596,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -572,7 +608,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "InfographicsVQA": {
-                "hash": "8489711f",
+                "hash": "914b81ae",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -580,6 +616,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"
@@ -591,7 +628,7 @@
                 "import_path": "atria_datasets.registry.vqa.due.DueBenchmarkConfig"
             },
             "KleisterCharity": {
-                "hash": "787f729a",
+                "hash": "c105e8fe",
                 "config": {
                     "module_path": "atria_datasets.registry.vqa.due.DueBenchmark",
                     "dataset_name": "due_benchmark",
@@ -599,6 +636,7 @@
                     "max_train_samples": null,
                     "max_validation_samples": null,
                     "max_test_samples": null,
+                    "seed": 42,
                     "segment_levels": [
                         "tokens",
                         "pages"

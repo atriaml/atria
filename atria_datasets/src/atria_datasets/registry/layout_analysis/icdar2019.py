@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from pathlib import Path
 
 from atria_types import (
@@ -80,8 +80,8 @@ class SplitIterator:
                         value=ann["category_id"], name=_CLASSES[ann["category_id"]]
                     ),
                     bbox=BoundingBox(value=ann["bbox"], mode=BoundingBoxMode.XYWH)
-                    .switch_mode()
-                    .normalize(width=sample["width"], height=sample["height"]),
+                    .ops.switch_mode()
+                    .ops.normalize(width=sample["width"], height=sample["height"]),
                     segmentation=ann["segmentation"],
                     iscrowd=bool(ann["iscrowd"]),
                 )
@@ -113,8 +113,8 @@ class Icdar2019Config(DatasetConfig):
         "trackA_archival": Icdar2019Config(config_name="trackA_archival"),
     },
 )
-class Icdar2019(DocumentDataset):
-    def _download_urls(self) -> list[str]:
+class Icdar2019(DocumentDataset[Icdar2019Config]):
+    def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:
@@ -129,7 +129,5 @@ class Icdar2019(DocumentDataset):
     def _available_splits(self) -> list[DatasetSplitType]:
         return [DatasetSplitType.train, DatasetSplitType.test]
 
-    def _split_iterator(
-        self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[DocumentInstance, None, None]:
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
         return SplitIterator(split=split, data_dir=data_dir, config=self.config)
