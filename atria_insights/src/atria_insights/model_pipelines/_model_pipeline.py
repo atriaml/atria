@@ -128,56 +128,32 @@ class ExplainableModelPipeline(
         return None
 
     def _baselines(
-        self,
-        explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-        train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
     ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
         """Generate baselines for the explainer."""
-        if isinstance(explained_inputs, torch.Tensor):
-            if train_baselines is not None and not isinstance(
-                train_baselines, torch.Tensor
-            ):
-                raise ValueError(
-                    "Explained inputs are a tensor, but train_baselines is not a tensor. Found: "
-                    f"{explained_inputs=},"
-                    f"{train_baselines=}"
-                )
-            baselines = (
-                train_baselines
-                if train_baselines is not None
-                else self._baseline_generator(explained_inputs)
-            )
-        else:
-            if train_baselines is not None and not isinstance(
-                train_baselines, OrderedDict
-            ):
-                raise ValueError(
-                    "Explained inputs are an OrderedDict, but train_baselines is not an OrderedDict. Found: "
-                    f"{explained_inputs=},"
-                    f"{train_baselines=}"
-                )
-            baselines = OrderedDict()
-            for key, tensor in explained_inputs.items():
-                baselines[key] = (
-                    train_baselines[key]
-                    if train_baselines is not None
-                    else self._baseline_generator(tensor)
-                )
+        logger.debug(
+            "Generating baselines using baseline generator with config: %s",
+            self.config.baseline_generator,
+        )
+        baselines = self._baseline_generator(explained_inputs)
+        log_tensor_info(baselines, name="baselines")
         return baselines
 
     def _feature_mask(
         self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
     ) -> Any:
         """Generate feature mask using the feature segmentor."""
-        if isinstance(explained_inputs, torch.Tensor):
-            return self._feature_segmentor(explained_inputs)
-        else:
-            return OrderedDict(
-                {
-                    key: self._feature_segmentor(tensor)
-                    for key, tensor in explained_inputs.items()
-                }
-            )
+        logger.debug(
+            "Generating feature mask using feature segmentor with config: %s",
+            self.config.feature_segmentor,
+        )
+        assert not isinstance(self._feature_segmentor, SequenceFeatureMaskSegmentor), (
+            "SequenceFeatureMaskSegmentor is not supported here. "
+            "Please use a different feature segmentor."
+        )
+        feature_masks = self._feature_segmentor(explained_inputs)
+        log_tensor_info(feature_masks, name="feature_masks")
+        return feature_masks
 
     def _validated_inputs(
         self,
