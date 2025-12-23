@@ -1,3 +1,5 @@
+import typing
+
 from atria_registry import ModuleRegistry, RegistryGroup
 
 from atria_insights.explainers._base import ExplainerConfig
@@ -6,7 +8,13 @@ from atria_insights.explainers._base import ExplainerConfig
 class ExplainersRegistryGroup(RegistryGroup[ExplainerConfig]):
     """Registry group for explainers."""
 
-    pass
+    def load_module_config(self, module_path: str, **kwargs) -> ExplainerConfig:
+        """Dynamically load all registered modules in the registry group."""
+        config = super().load_module_config(module_path, **kwargs)
+        assert isinstance(config, ExplainerConfig), (
+            f"Loaded config is not an ExplainerConfig: {type(config)}"
+        )
+        return typing.cast(ExplainerConfig, config)
 
 
 ModuleRegistry().add_registry_group(
