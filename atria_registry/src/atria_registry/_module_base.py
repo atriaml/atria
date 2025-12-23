@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Generic, Self, TypeVar, cast
+from typing import Any, ClassVar, Generic, Self, TypeVar, cast
 
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
@@ -28,7 +28,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     __version__ = "0.0.0"
     __builds_with_kwargs__ = False
-    __hash_exclude__: set[str] = set()
+    __hash_exclude__: ClassVar[set[str]] = set()
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
     module_path: str | None = None
 
@@ -77,6 +77,11 @@ class ModuleConfig(RepresentationMixin, BaseModel):
             raise TypeError(
                 f"Module at path {self.module_path} is neither a class nor a callable."
             )
+
+    def unsafe_update(self, **kwargs: Any):
+        """Return a new ModuleConfig with updated kwargs."""
+        for key, value in kwargs.items():
+            self.__dict__[key] = value
 
 
 class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
