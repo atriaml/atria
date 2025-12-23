@@ -1,15 +1,17 @@
 """Module defining the SplitIterator class for dataset splits."""
 
+from __future__ import annotations
+
 import sys
 import traceback
 from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Generic, Self
 
-import rich
-import rich.pretty
 from atria_logger import get_logger
 from atria_types import DatasetSplitType
 from atria_types._utilities._repr import RepresentationMixin
+from rich.repr import RichReprResult
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance
 
@@ -40,7 +42,7 @@ class InstanceTransform(Generic[T_BaseDataInstance]):
         if self._input_transform is not None:
             data_instance = self._input_transform(input)
         else:
-            data_instance = input  # type: ignore
+            data_instance = input
 
         # assert that the transformed instance is of the expected data model type
         assert isinstance(data_instance, self._data_model), (
@@ -58,7 +60,11 @@ class InstanceTransform(Generic[T_BaseDataInstance]):
 
 
 class SplitIterator(
-    Sequence[T_BaseDataInstance], RepresentationMixin, Generic[T_BaseDataInstance]
+    Sequence[
+        T_BaseDataInstance | list[T_BaseDataInstance] | tuple[int, T_BaseDataInstance]
+    ],
+    RepresentationMixin,
+    Generic[T_BaseDataInstance],
 ):
     __repr_fields__ = {
         "base_iterator",
@@ -70,10 +76,13 @@ class SplitIterator(
     def __init__(
         self,
         split: DatasetSplitType,
-        base_iterator: Sequence | Generator,
+        base_iterator: Sequence,
         data_model: type[T_BaseDataInstance],
-        input_transform: Callable | None = None,
-        output_transform: Callable | None = None,
+        input_transform: Callable[[Any], T_BaseDataInstance] | None = None,
+        output_transform: Callable[
+            [T_BaseDataInstance], T_BaseDataInstance | list[T_BaseDataInstance]
+        ]
+        | None = None,
         max_len: int | None = None,
         subset_indices: list[int] | None = None,
     ):
@@ -113,15 +122,25 @@ class SplitIterator(
         return self._base_iterator
 
     @property
-    def input_transform(self) -> Callable:
+    def input_transform(self) -> Callable[[Any], T_BaseDataInstance] | None:
         return self._tf._input_transform
 
     @property
-    def output_transform(self) -> Callable | None:
+    def output_transform(
+        self,
+    ) -> (
+        Callable[[T_BaseDataInstance], T_BaseDataInstance | list[T_BaseDataInstance]]
+        | None
+    ):
         return self._tf._output_transform
 
     @output_transform.setter
-    def output_transform(self, value: Callable) -> None:
+    def output_transform(
+        self,
+        value: Callable[
+            [T_BaseDataInstance], T_BaseDataInstance | list[T_BaseDataInstance]
+        ],
+    ) -> None:
         self._tf._output_transform = value
 
     @property
@@ -142,21 +161,25 @@ class SplitIterator(
         self._subset_indices = indices
 
     @property
-    def data_model(self) -> T_BaseDataInstance:
+    def data_model(self) -> type[T_BaseDataInstance]:
         return self._tf._data_model
 
-    def dataframe(self) -> "pd.DataFrame":
+    def dataframe(self) -> pd.DataFrame:
         """
         Displays the dataset split information in a rich format.
         """
         if hasattr(self._base_iterator, "dataframe"):
-            return self._base_iterator.dataframe()
+            return self._base_iterator.dataframe()  # type: ignore[return-value]
         else:
             raise RuntimeError(
                 "This dataset is not backed by a DataFrame or does not support dataframe representation."
             )
 
-    def __iter__(self) -> Iterator[T_BaseDataInstance]:
+    def __iter__(
+        self,
+    ) -> Iterator[
+        T_BaseDataInstance | list[T_BaseDataInstance] | tuple[int, T_BaseDataInstance]
+    ]:
         try:
             if not self._supports_indexing:
                 if self._subset_indices is not None:
@@ -179,7 +202,9 @@ class SplitIterator(
         except Exception:
             raise RuntimeError("".join(traceback.format_exception(*sys.exc_info())))
 
-    def __getitem__(self, index: int) -> T_BaseDataInstance:  # type: ignore[override]
+    def __getitem__(
+        self, index: int
+    ) -> T_BaseDataInstance | list[T_BaseDataInstance] | tuple[int, T_BaseDataInstance]:
         try:
             if isinstance(index, list):
                 return self.__getitems__(index)
@@ -190,23 +215,27 @@ class SplitIterator(
             if self._subset_indices is not None:
                 index = self._subset_indices[index]
             if self._tf_enabled:
-                return self._tf(index, self._base_iterator[index])  # type: ignore
-            return index, self._base_iterator[index]  # type: ignore
+                return self._tf(index, self._base_iterator[index])
+            return index, self._base_iterator[index]
         except Exception:
             raise RuntimeError("".join(traceback.format_exception(*sys.exc_info())))
 
-    def __getitems__(self, indices: list[int]) -> list[T_BaseDataInstance]:  # type: ignore
+    def __getitems__(
+        self, indices: list[int]
+    ) -> list[
+        T_BaseDataInstance | list[T_BaseDataInstance] | tuple[int, T_BaseDataInstance]
+    ]:
         try:
             if self._subset_indices is not None:
                 indices = [self._subset_indices[idx] for idx in indices]
-            if self._supports_multi_indexing:
-                data_instances = self._base_iterator[indices]  # type: ignore
+            if hasattr(self._base_iterator, "__getitems__"):
+                data_instances = self._base_iterator.__getitems__(indices)  # type: ignore[attr-defined]
             else:
                 assert self._supports_indexing, (
                     "The base iterator does not support multi-indexing. "
                     "Please use __getitem__ for single index access."
                 )
-                data_instances = [self._base_iterator[index] for index in indices]  # type: ignore
+                data_instances = [self._base_iterator[index] for index in indices]
             if self._tf_enabled:
                 return [
                     self._tf(index, data_instance)
@@ -229,8 +258,8 @@ class SplitIterator(
                 else self._base_iterator
             )
             if self._max_len is not None:
-                return min(self._max_len, len(iterator))  # type: ignore
-            return len(iterator)  # type: ignore
+                return min(self._max_len, len(iterator))
+            return len(iterator)
         elif self._max_len is not None:
             return self._max_len
         raise RuntimeError(
@@ -238,7 +267,7 @@ class SplitIterator(
             "Please implement the `__len__` method in your dataset class."
         )
 
-    def __rich_repr__(self) -> rich.pretty.RichReprResult:
+    def __rich_repr__(self) -> RichReprResult:
         """
         Generates a rich representation of the object.
 
@@ -250,6 +279,22 @@ class SplitIterator(
             yield "num_rows", len(self)
         except Exception:
             yield "num_rows", "unknown"
+
+    def get_random_subset(self, subset_size: int, seed: int = 42) -> Self:
+        import random
+
+        assert self._supports_indexing, (
+            "The base iterator must support indexing to get a random subset."
+        )
+
+        dataset_indices = list(range(len(self)))
+
+        random.seed(seed)
+        random.shuffle(dataset_indices)
+
+        copy_split_iterator = deepcopy(self)
+        copy_split_iterator.subset_indices = dataset_indices[:subset_size]
+        return copy_split_iterator
 
 
 class HFSplitIterator(SplitIterator):
