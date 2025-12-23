@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Self, TypeVar
 
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict
 
-from atria_registry._utilities import _get_config_hash, _resolve_module_from_path
+from atria_registry._utilities import (
+    _get_config_hash,
+    _resolve_module_from_path,
+    to_instantiable_dict,
+)
 
 T_ModuleConfig = TypeVar("T_ModuleConfig", bound="ModuleConfig")
 
@@ -23,23 +27,37 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     __version__ = "0.0.0"
     __builds_with_kwargs__ = False
+    __hash_exclude__: set[str] = set()
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
     module_path: str | None = None
 
     @property
     def hash(self) -> str:
-        return _get_config_hash(self.model_dump())
+        return _get_config_hash(self.model_dump(exclude=self.__hash_exclude__))
 
     @property
     def kwargs(self) -> dict[str, Any]:
         return self.model_dump(exclude={"module_path"})
 
+    @classmethod
+    def from_dict(cls, obj: dict) -> Self:
+        """Create a ModuleConfig from a dict, resolving _target_ entries."""
+        from hydra.utils import instantiate
+        from omegaconf import OmegaConf
+
+        omega_conf = OmegaConf.create(obj)
+        obj = instantiate(omega_conf)
+        return cls.model_validate(obj)
+
+    def to_dict(self) -> dict:
+        """Convert the ModuleConfig to a dict suitable for Hydra instantiate."""
+        return to_instantiable_dict(self)
+
     def to_yaml(self) -> str:
         """Serialize the ModuleConfig to a YAML string."""
         from omegaconf import OmegaConf
 
-        config_omegaconf = OmegaConf.create(self.model_dump())
-        return OmegaConf.to_yaml(config_omegaconf)
+        return OmegaConf.to_yaml(OmegaConf.create(self.to_dict()))
 
     def build(self, **kwargs) -> Any:
         assert self.module_path is not None, (

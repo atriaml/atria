@@ -332,6 +332,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         registry = {}
         if path.exists():
             if refresh:
+                logger.debug(f"Refreshing registry at {path}.")
                 path.unlink()
             else:
                 with open(path) as f:

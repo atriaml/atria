@@ -281,3 +281,59 @@ def _extract_nested_defaults(model: type[BaseModel]) -> dict[str, Any]:
 
 def _get_config_hash(params: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[:8]
+
+
+def to_instantiable_dict(obj: BaseModel):
+    """
+    Recursively convert a Pydantic BaseModel into a dict suitable
+    for Hydra instantiate (with _target_).
+    """
+    # First pass: collect all _target_ paths
+    targets = {}
+
+    def collect_targets(current_obj, path=""):
+        if isinstance(current_obj, BaseModel):
+            target = (
+                f"{current_obj.__class__.__module__}.{current_obj.__class__.__name__}"
+            )
+            targets[path] = target
+
+            # Traverse fields
+            for field_name, field_value in current_obj.__dict__.items():
+                field_path = f"{path}.{field_name}" if path else field_name
+                collect_targets(field_value, field_path)
+
+        elif isinstance(current_obj, list):
+            for i, item in enumerate(current_obj):
+                item_path = f"{path}[{i}]" if path else f"[{i}]"
+                collect_targets(item, item_path)
+
+        elif isinstance(current_obj, dict):
+            for key, value in current_obj.items():
+                key_path = f"{path}.{key}" if path else key
+                collect_targets(value, key_path)
+
+    # Collect all target paths
+    collect_targets(obj)
+
+    # Second pass: dump model and assign targets
+    data = obj.model_dump()
+
+    def assign_targets(current_data, path=""):
+        if path in targets:
+            if isinstance(current_data, dict):
+                current_data["_target_"] = targets[path]
+
+        if isinstance(current_data, dict):
+            for key, value in current_data.items():
+                key_path = f"{path}.{key}" if path else key
+                assign_targets(value, key_path)
+        elif isinstance(current_data, list):
+            for i, item in enumerate(current_data):
+                item_path = f"{path}[{i}]" if path else f"[{i}]"
+                assign_targets(item, item_path)
+
+    # Assign targets to the dumped data
+    assign_targets(data)
+
+    return data
