@@ -4,6 +4,9 @@ from typing import Generic
 
 import torch
 from atria_logger import get_logger
+from atria_registry import ConfigurableModule
+from torch import nn
+
 from atria_models.core.model_builders._constants import _DEFAULT_ATRIA_MODELS_CACHE_DIR
 from atria_models.core.models._checkpoint_utilities import CheckpointLoader
 from atria_models.core.models.transformers._blocks._encoder_block import EncoderBlock
@@ -35,8 +38,6 @@ from atria_models.core.models.transformers._outputs import (
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
-from atria_registry import ConfigurableModule
-from torch import nn
 
 logger = get_logger(__name__)
 
