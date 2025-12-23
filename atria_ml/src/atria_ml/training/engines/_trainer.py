@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
 
-from atria_ml.configs._base import RunConfig
+from atria_ml.configs._task import TrainingTaskConfig
 from atria_ml.optimizers._base import OptimizerConfig
 from atria_ml.optimizers._configs import SGDOptimizerConfig
 from atria_ml.schedulers._base import LRSchedulerConfig
@@ -36,7 +36,7 @@ logger = get_logger(__name__)
 
 
 class TrainerEngineDependencies(EngineDependencies):
-    run_config: RunConfig
+    run_config: TrainingTaskConfig
 
 
 class TrainerEngineConfig(EngineConfig):
