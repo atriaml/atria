@@ -68,4 +68,8 @@ class ModelPipelineOps(Generic[T_ModelPipelineConfig]):
         for k, v in self._model_pipeline.__dict__.items():
             if isinstance(v, nn.Module):
                 nn_module_dict.add_module(k, v)
-        return str(summary(nn_module_dict, verbose=0, depth=3))
+        pipeline_name = type(self._model_pipeline).__name__
+        model_summary = str(summary(nn_module_dict, verbose=0, depth=3))
+        config_summary = str(self._model_pipeline.config)
+
+        return f"{pipeline_name}:\nModel Summary:\n{model_summary}\n\nConfig Summary:\n{config_summary}\n"

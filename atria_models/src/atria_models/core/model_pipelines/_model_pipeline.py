@@ -10,6 +10,7 @@ from atria_transforms.core._data_types._base import TensorDataModel
 from atria_types._datasets import DatasetLabels
 
 from atria_models.core.model_pipelines._common import T_ModelPipelineConfig
+from atria_models.core.model_pipelines._ops import ModelPipelineOps
 from atria_models.core.types.model_outputs import ModelOutput
 
 if TYPE_CHECKING:
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
     from ignite.engine import Engine
     from ignite.metrics import Metric
 
-    from atria_models.core.model_pipelines._ops import ModelPipelineOps
 
 logger = get_logger(__name__)
 
@@ -30,14 +30,10 @@ class ModelPipeline(
 
     def __init__(self, config: T_ModelPipelineConfig, labels: DatasetLabels) -> None:
         from atria_models.core.model_builders._base import ModelBuilder
-        from atria_models.core.model_pipelines._ops import ModelPipelineOps
-        from atria_models.core.model_pipelines._state_handler import StateDictHandler
 
         super().__init__(config=config)
 
         self._labels = labels
-        self._state_dict_handler = StateDictHandler(self)
-        self._ops = ModelPipelineOps(self)
         self._model_builder = ModelBuilder.from_type(
             builder_type=self.config.model.builder_type,
             bn_to_gn=self.config.model.bn_to_gn,
@@ -62,7 +58,7 @@ class ModelPipeline(
 
     @property
     def ops(self) -> ModelPipelineOps:
-        return self._ops
+        return ModelPipelineOps(self)
 
     @property
     def ema_modules(self) -> torch.nn.Module:
@@ -71,12 +67,6 @@ class ModelPipeline(
     @property
     def trainable_parameters(self) -> dict[str, Iterator[torch.nn.Parameter]]:
         return self.ops.get_trainable_parameters()
-
-    def state_dict(self) -> dict:
-        return self._state_dict_handler.state_dict()
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        self._state_dict_handler.load_state_dict(state_dict)
 
     def _model_build_kwargs(self) -> dict[str, object]:
         return {}
@@ -124,3 +114,15 @@ class ModelPipeline(
         raise NotImplementedError(
             "Visualization step is not implemented for this model pipeline."
         )
+
+    def state_dict(self) -> dict:
+        return {
+            "model_pipeline_config": self.config.model_dump(),
+            "model": self._model.state_dict(),
+        }
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        if "model_pipeline_config" in state_dict:
+            self.config.model_validate(state_dict["model_pipeline_config"])
+        if "model" in state_dict:
+            self._model.load_state_dict(state_dict["model"], strict=True)
