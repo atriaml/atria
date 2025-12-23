@@ -1,59 +1,58 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from atria_registry._module_base import ModuleConfig
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from atria_insights.feature_segmentors._base import (
+    FeatureSegmentor,
+    NoOpSegmenterConfig,
+)
+from atria_insights.feature_segmentors._image import ImageSegmentorConfigType
 
 if TYPE_CHECKING:
     import torch
-    from lime.wrappers.scikit_image import SegmentationAlgorithm
 
 
-class GridSegmenter:
-    def __init__(self, cell_size: int = 16) -> None:
-        self.cell_size = cell_size
+class SequenceFeatureMaskSegmentorConfig(ModuleConfig):
+    module_path: str | None = (
+        "atria_insights.feature_segmentors._sequence.SequenceFeatureMaskSegmentor"
+    )
+    type: Literal["sequence"] = "sequence"
+    group_tokens_to_words: bool = True
+    image_segmentor: ImageSegmentorConfigType = Field(
+        default_factory=lambda: NoOpSegmenterConfig()
+    )
 
-    def __call__(self, images: torch.Tensor) -> torch.Tensor:
-        assert images.dim() == 4, "Input images must be a 4D tensor (B x C x H x W)"
-        feature_mask = []
-        for image in images:
-            # image dimensions are C x H x H
-            dim_x, dim_y = (
-                image.shape[1] // self.cell_size,
-                image.shape[2] // self.cell_size,
-            )
-            mask = (
-                torch.arange(dim_x * dim_y, device=images.device)
-                .view((dim_x, dim_y))
-                .repeat_interleave(self.cell_size, dim=0)
-                .repeat_interleave(self.cell_size, dim=1)
-                .long()
-                .unsqueeze(0)
-            )
-            feature_mask.append(mask)
-        return torch.stack(feature_mask)
+    def build(self, **kwargs) -> Any:
+        assert "special_token_ids" in kwargs, (
+            "special_token_ids must be provided to build SequenceFeatureMaskSegmentor"
+        )
+        return super().build(config=self, **kwargs)
 
 
-class SequenceFeatureMaskSegmentor:
+class SequenceFeatureMaskSegmentor(
+    FeatureSegmentor[SequenceFeatureMaskSegmentorConfig]
+):
+    __config__ = SequenceFeatureMaskSegmentorConfig
+
     def __init__(
         self,
-        image_segmentor: Callable,
-        group_tokens_to_words: bool = True,
-        special_token_ids: dict[str, int] | None = None,
+        config: SequenceFeatureMaskSegmentorConfig,
+        special_token_ids: dict[str, int | None],
     ) -> None:
-        self._image_segmentor = image_segmentor
-        self._group_tokens_to_words = group_tokens_to_words
-        self._special_token_ids = special_token_ids or {}
+        super().__init__(config)
+        self._image_segmentor = config.image_segmentor.build()
+        self._special_token_ids = special_token_ids
 
     def _segment_tokens(
         self, token_ids: torch.Tensor, word_ids: list[list[int]]
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         feature_masks = []
         special_token_ids_batch = []
-        if self._group_tokens_to_words:
+        if self.config.group_tokens_to_words:
             # here we group all the tokens to their respective words and keep each feature, words, 2d positions, and 1d positions separate
             for word_ids_per_sample, input_ids_per_sample in zip(
                 word_ids, token_ids, strict=True
@@ -171,139 +170,24 @@ class SequenceFeatureMaskSegmentor:
     def _create_image_level_feature_mask(self, image: torch.Tensor) -> torch.Tensor:
         return self._image_segmentor(image)
 
-    def __call__(
+    def __call__(  # type: ignore[override]
         self,
-        input_ids: torch.Tensor,
+        inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
         word_ids: list[list[int]],
-        pixel_values: torch.Tensor | None = None,
-    ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
+    ) -> OrderedDict[str, torch.Tensor]:
+        assert isinstance(inputs, OrderedDict), (
+            "SequenceFeatureMaskSegmentor expects inputs to be an OrderedDict with keys: "
+            "'input_ids', 'word_ids', and optionally 'pixel_values'"
+        )
+        input_ids = inputs["input_ids"]
+        pixel_values = inputs.get("pixel_values", None)
+
         token_feature_masks, frozen_features_per_sample = (
             self._create_token_level_feature_mask(input_ids, word_ids)
         )
+
         if pixel_values is not None:
             image_feature_mask = self._create_image_level_feature_mask(pixel_values)
             # add image feature mask to all types of embeddings
-        return OrderedDict(**token_feature_masks, image=image_feature_mask)
-
-
-class ScikitImageSegmenter:
-    def __init__(self, segmenter: SegmentationAlgorithm) -> None:
-        self._segmenter = segmenter
-
-    def __call__(self, images: torch.Tensor) -> torch.Tensor:
-        assert images.dim() == 4, "Input images must be a 4D tensor (B x C x H x W)"
-        np_images = images.permute(0, 2, 3, 1).cpu().numpy()
-        feature_masks = []
-        for np_image in np_images:
-            mask = self._segmenter(np_image)
-            feature_masks.append(torch.tensor(mask, device=images.device).unsqueeze(0))
-        return torch.stack(feature_masks)
-
-
-class NoOpSegmenterConfig(ModuleConfig):
-    type: Literal["noop"] = "noop"
-
-    def build(self, **kwargs: Any) -> Callable:
-        return lambda x: None
-
-
-class GridSegmenterConfig(ModuleConfig):
-    type: Literal["grid"] = "grid"
-    cell_size: int = 16
-
-    def build(self, **kwargs: Any) -> GridSegmenter:
-        return GridSegmenter(cell_size=self.cell_size)
-
-
-class QuickshiftSegmenterConfig(ModuleConfig):
-    type: Literal["quickshift"] = "quickshift"
-    kernel_size: int = 4
-    max_dist: int = 200
-    ratio: float = 0.2
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        from lime.wrappers.scikit_image import SegmentationAlgorithm
-
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "quickshift",
-                kernel_size=self.kernel_size,
-                max_dist=self.max_dist,
-                ratio=self.ratio,
-            )
-        )
-
-
-class FelzenszwalbSegmenterConfig(ModuleConfig):
-    type: Literal["felzenszwalb"] = "felzenszwalb"
-    scale: float = 100.0
-    sigma: float = 0.5
-    min_size: int = 50
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        from lime.wrappers.scikit_image import SegmentationAlgorithm
-
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "felzenszwalb",
-                scale=self.scale,
-                sigma=self.sigma,
-                min_size=self.min_size,
-            )
-        )
-
-
-class SlicSegmenterConfig(ModuleConfig):
-    type: Literal["slic"] = "slic"
-    n_segments: int = 100
-    compactness: float = 10.0
-    sigma: float = 1.0
-
-    def build(self, **kwargs: Any) -> ScikitImageSegmenter:
-        from lime.wrappers.scikit_image import SegmentationAlgorithm
-
-        return ScikitImageSegmenter(
-            segmenter=SegmentationAlgorithm(
-                "slic",
-                n_segments=self.n_segments,
-                compactness=self.compactness,
-                sigma=self.sigma,
-            )
-        )
-
-
-ImageSegmentorConfigType = Annotated[
-    NoOpSegmenterConfig
-    | GridSegmenterConfig
-    | QuickshiftSegmenterConfig
-    | FelzenszwalbSegmenterConfig
-    | SlicSegmenterConfig,
-    Field(discriminator="type"),
-]
-
-
-class SequenceFeatureMaskSegmentorConfig(BaseModel):
-    type: Literal["sequence"] = "sequence"
-    group_tokens_to_words: bool = True
-
-    image_segmentor: ImageSegmentorConfigType = Field(
-        default_factory=lambda: NoOpSegmenterConfig()
-    )
-
-    def build(
-        self, special_token_ids: dict[str, int] | None = None, **kwargs: Any
-    ) -> SequenceFeatureMaskSegmentor:
-        group_tokens_to_words = kwargs.pop(
-            "group_tokens_to_words", self.group_tokens_to_words
-        )
-        return SequenceFeatureMaskSegmentor(
-            image_segmentor=self.image_segmentor.build(),
-            group_tokens_to_words=group_tokens_to_words,
-            special_token_ids=special_token_ids,
-        )
-
-
-FeatureSegmentorConfigType = Annotated[
-    ImageSegmentorConfigType | SequenceFeatureMaskSegmentorConfig,
-    Field(discriminator="type"),
-]
+            return OrderedDict(**token_feature_masks, image=image_feature_mask)
+        return OrderedDict(**token_feature_masks)

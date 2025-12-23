@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel
+from atria_logger import get_logger
+from atria_registry._module_base import ModuleConfig
+
+from atria_insights.baseline_generators._base import BaselineGenerator
 
 if TYPE_CHECKING:
     import torch
@@ -11,8 +14,14 @@ if TYPE_CHECKING:
         TransformersEncoderModel,
     )
 
+logger = get_logger(__name__)
 
-class SequenceBaselinesConfig(BaseModel):
+
+class SequenceBaselineGeneratorConfig(ModuleConfig):
+    module_path: str | None = (
+        "atria_insights.baseline_generators._sequence.SequenceBaselineGenerator"
+    )
+    type: Literal["sequence"] = "sequence"
     text: Literal["zero", "mask_token_id", "pad_token_id"] = "zero"
     token_type: Literal["zero", "pad_token_id"] = "zero"
     position: Literal["zero", "pad_token_id"] = "zero"
@@ -20,37 +29,44 @@ class SequenceBaselinesConfig(BaseModel):
     image: Literal["white", "black", "random", "mean"] = "black"
 
 
-class SequenceBaselineGenerator:
+class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfig]):
+    __config__ = SequenceBaselineGeneratorConfig
+
     def __init__(
         self,
-        *,
         model: TransformersEncoderModel,
-        baselines_config: SequenceBaselinesConfig,
+        config: SequenceBaselineGeneratorConfig | None = None,
     ) -> None:
+        super().__init__(config=config)
+        assert isinstance(model, TransformersEncoderModel), (
+            "SequenceBaselineGenerator only supports TransformersEncoderModel"
+        )
         self._model = model
-        self._baselines_config = baselines_config
 
     @property
     def special_token_ids(self) -> dict[str, int]:
         return self._model.config.embeddings.special_token_ids
 
-    def __call__(
-        self,
-        inputs: OrderedDict[str, torch.Tensor],
-        target_inputs: list[str] | None = None,
-    ) -> OrderedDict[str, torch.Tensor]:
+    def __call__(  # type: ignore[override]
+        self, inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
+    ) -> OrderedDict[str, torch.Tensor] | torch.Tensor:
+        assert isinstance(inputs, OrderedDict), (
+            "SequenceBaselineGenerator only supports inputs as OrderedDict"
+        )
+        logger.debug(
+            f"Generating sequence baselines using feature-based generator for inputs: {inputs.keys()}"
+        )
         input_embeddings = self._model.ids_to_embeddings(**inputs).to_ordered_dict()
         baseline_embeddings = OrderedDict()
         for key in input_embeddings.keys():
-            if target_inputs is not None and key not in target_inputs:
-                continue
             if input_embeddings[key] is None:
                 raise ValueError(f"{key} embeddings cannot be None")
 
+            baseline_type = getattr(self.config, key)
             baseline_embeddings[key] = self._replace_embeddings(
                 embeddings=input_embeddings[key],
                 baseline_embeddings=self._create_baseline_from_input(
-                    self._baselines_config.text, input_embeddings[key]
+                    baseline_type, input_embeddings[key]
                 ),
                 special_tokens_mask=self._get_special_tokens_mask(inputs["token_ids"]),
             )
@@ -120,15 +136,3 @@ class SequenceBaselineGenerator:
             raise ValueError(
                 f"Invalid masking type: {baseline_type} for word embeddings. Supported types are 'zero', 'mask_token', and 'pad_token'"
             )
-
-
-class SequenceBaselineGeneratorConfig(BaseModel):
-    type: Literal["sequence"] = "sequence"
-    baselines_config: SequenceBaselinesConfig = SequenceBaselinesConfig()
-
-    def build(
-        self, *, model: TransformersEncoderModel, **kwargs: Any
-    ) -> SequenceBaselineGenerator:
-        return SequenceBaselineGenerator(
-            model=model, baselines_config=self.baselines_config
-        )
