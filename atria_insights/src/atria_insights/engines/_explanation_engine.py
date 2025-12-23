@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
@@ -11,7 +10,6 @@ from atria_insights.engines._explanation_step import ExplanationStep
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 
 if TYPE_CHECKING:
-    import torch
     from ignite.engine import Engine
 
 logger = get_logger(__name__)
@@ -23,7 +21,6 @@ class ExplanationEngineConfig(EngineConfig):
 
 class ExplanationEngineDependencies(EngineDependencies):
     x_model_pipeline: ExplainableModelPipeline
-    train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None
 
 
 class ExplanationEngine(
@@ -44,8 +41,6 @@ class ExplanationEngine(
         return ExplanationStep(
             x_model_pipeline=self._deps.x_model_pipeline,
             device=self._deps.device,
-            with_amp=self._config.with_amp,
-            train_baselines=self._deps.train_baselines,
             enable_outputs_caching=self._config.enable_outputs_caching,
             cache_dir=self._deps.output_dir,
         )

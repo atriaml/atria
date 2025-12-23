@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -9,14 +8,13 @@ from atria_logger import get_logger
 from atria_ml.training.engine_steps._base import EngineStep
 from atria_transforms.core._data_types._base import TensorDataModel
 from ignite.engine import Engine
-from torch.cuda.amp.autocast_mode import autocast
 
 from atria_insights.data_types._explanation_sate import (
     BatchExplanationState,
     SampleExplanationState,
 )
 from atria_insights.storage.sample_cache_managers._explanation_state import (
-    SampleExplanationStateCacher,
+    ExplanationStateCacher,
 )
 
 if TYPE_CHECKING:
@@ -31,24 +29,30 @@ class ExplanationStep(EngineStep):
         self,
         x_model_pipeline: ExplainableModelPipeline,
         device: str | torch.device,
-        train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None,
-        with_amp: bool = False,
         enable_outputs_caching: bool = False,
         cache_dir: str | Path | None = None,
+        test_run: bool = False,
     ):
+        super().__init__(
+            model_pipeline=x_model_pipeline._model_pipeline,
+            device=device,
+            with_amp=False,
+            test_run=test_run,
+        )
+
         self._x_model_pipeline = x_model_pipeline
-        self._device = torch.device(device)
-        self._train_baselines = train_baselines
-        self._with_amp = with_amp
         self._enable_outputs_caching = enable_outputs_caching
 
         if self._enable_outputs_caching:
             assert cache_dir is not None, (
                 "cache_dir must be provided if caching is enabled"
             )
-            self._cacher = SampleExplanationStateCacher(
+            self._cacher = ExplanationStateCacher(
                 cache_dir=cache_dir, config=x_model_pipeline.config
             )
+
+            logger.info("Explanation caching enabled.")
+            logger.info(f"Storing outputs to file = {self._cacher.file_path}")
 
     @property
     def name(self) -> str:
@@ -58,10 +62,8 @@ class ExplanationStep(EngineStep):
         """Compute explanations for a batch of data."""
         # Collate and move to device
         self._x_model_pipeline.ops.eval()
-        with torch.no_grad(), autocast(enabled=self._with_amp):
-            return self._x_model_pipeline.explanation_step(
-                batch=batch, train_baselines=self._train_baselines
-            )
+        with torch.no_grad():
+            return self._x_model_pipeline.explanation_step(batch=batch)
 
     def _combine_outputs(
         self,
@@ -114,10 +116,14 @@ class ExplanationStep(EngineStep):
             logger.debug(
                 f"Computing explanations for {len(missing_batch)} missing samples."
             )
-            missing_batch = missing_batch[0].batch(missing_batch).ops.to(self._device)
+            collated_missing_batch = (
+                missing_batch[0].batch(missing_batch).ops.to(self._device)
+            )
 
             # Compute explanations for missing samples
-            explanation_states = self._compute_explanations(missing_batch).tolist()
+            explanation_states = self._compute_explanations(
+                collated_missing_batch
+            ).tolist()
 
             for sample, state in zip(missing_batch, explanation_states, strict=True):
                 sample_id = sample.metadata.sample_id
