@@ -14,13 +14,15 @@ if TYPE_CHECKING:
         Dataset,
         DocumentDataset,
         ImageDataset,
+    )
+    from atria_datasets.core.dataset._common import (
         DatasetConfig,
+        HuggingfaceDatasetConfig,
     )
 
     # from atria_datasets.core.dataset.atria_hub_dataset import AtriaHubDataset
     from atria_datasets.core.dataset._hf_datasets import (
         HuggingfaceDataset,
-        HuggingfaceDatasetConfig,
         HuggingfaceDocumentDataset,
         HuggingfaceImageDataset,
     )
@@ -54,15 +56,10 @@ __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
     submod_attrs={
         "api.datasets": ["load_dataset", "load_dataset_config"],
-        "core.dataset._datasets": [
-            "Dataset",
-            "DocumentDataset",
-            "ImageDataset",
-            "DatasetConfig",
-        ],
+        "core.dataset._datasets": ["Dataset", "DocumentDataset", "ImageDataset"],
+        "core.dataset._common": ["DatasetConfig", "HuggingfaceDatasetConfig"],
         "core.dataset._hf_datasets": [
             "HuggingfaceDataset",
-            "HuggingfaceDatasetConfig",
             "HuggingfaceDocumentDataset",
             "HuggingfaceImageDataset",
         ],

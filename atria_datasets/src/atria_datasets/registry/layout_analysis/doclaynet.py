@@ -118,7 +118,7 @@ class DocLayNetConfig(DatasetConfig):
 class DocLayNet(DocumentDataset[DocLayNetConfig]):
     __config__ = DocLayNetConfig
 
-    def _download_urls(self) -> list[str]:
+    def _download_urls(self) -> dict[str, tuple[str, str]] | dict[str, str] | list[str]:
         return _DATA_URLS
 
     def _metadata(self) -> DatasetMetadata:

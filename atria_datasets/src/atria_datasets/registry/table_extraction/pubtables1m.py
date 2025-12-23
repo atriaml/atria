@@ -14,8 +14,7 @@ from atria_types import (
 )
 from atria_types._generic._doc_content import DocumentContent
 
-from atria_datasets import DATASETS, DocumentDataset
-from atria_datasets.core.dataset._datasets import DatasetConfig
+from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
 from .utilities import read_pascal_voc, read_words_json
 

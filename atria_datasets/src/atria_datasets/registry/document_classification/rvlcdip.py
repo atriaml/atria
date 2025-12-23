@@ -1,5 +1,7 @@
 """RVL-CDIP (Ryerson Vision Lab Complex Document Information Processing) dataset"""
 
+from __future__ import annotations
+
 import random
 from collections.abc import Generator, Iterable
 from pathlib import Path
@@ -16,8 +18,7 @@ from atria_types import (
     OCRType,
 )
 
-from atria_datasets import DATASETS, DocumentDataset
-from atria_datasets.core.dataset._datasets import DatasetConfig
+from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
 _CITATION = """\
 @inproceedings{harley2015icdar,
@@ -80,12 +81,6 @@ _CLASSES = [
 ]
 
 
-class RvlCdipConfig(DatasetConfig):
-    dataset_name: str = "rvlcdip"
-    load_ocr: bool = False
-    type: str = "default"
-
-
 class SplitIterator(Iterable[tuple[Path, Path, int]]):
     def __init__(self, split: DatasetSplitType, data_dir: str, config: RvlCdipConfig):
         if split == DatasetSplitType.train:
@@ -114,6 +109,12 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
 
     def __len__(self) -> int:
         return len(self.split_file_paths)
+
+
+class RvlCdipConfig(DatasetConfig):
+    dataset_name: str = "rvlcdip"
+    load_ocr: bool = False
+    type: str = "default"
 
 
 @DATASETS.register(

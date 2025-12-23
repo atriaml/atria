@@ -40,6 +40,8 @@ _CLASSES = [
     },
 )
 class Cifar10(ImageDataset):
+    __config__ = DatasetConfig
+
     def _custom_download(self, data_dir: str, access_token: str | None = None) -> None:
         from torchvision.datasets import CIFAR10
 

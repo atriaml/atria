@@ -18,8 +18,7 @@ from atria_types import (
 )
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
 
-from atria_datasets import DATASETS
-from atria_datasets.core.dataset._datasets import DatasetConfig, DocumentDataset
+from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
 from .docile_utils.preprocessor import (
     generate_unique_entities,

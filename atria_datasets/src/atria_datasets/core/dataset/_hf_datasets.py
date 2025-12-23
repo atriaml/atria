@@ -8,9 +8,9 @@ Face datasets.
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic
+from typing import TYPE_CHECKING, Generic
 
 import aiohttp
 from atria_logger import get_logger
@@ -212,7 +212,7 @@ class HuggingfaceDataset(
 
     def _split_iterator(  # type: ignore
         self, split: DatasetSplitType, data_dir: str
-    ) -> Generator[Any, None, None]:
+    ) -> Iterable:
         """
         Returns an iterator for a specific dataset split.
 
@@ -223,9 +223,12 @@ class HuggingfaceDataset(
         Yields:
             BaseDataInstanceType: The dataset instances for the specified split.
         """
-        return self._hf_dataset_builder._as_streaming_dataset_single(
-            self._hf_split_generators[split.value]
+        assert self._hf_split_generators is not None, (
+            "Hugging Face split generators have not been initialized. "
+            "Ensure that _available_splits() has been called."
         )
+        split_generator = self._hf_split_generators[split]
+        return self._hf_dataset_builder._as_streaming_dataset_single(split_generator)
 
 
 class HuggingfaceImageDataset(

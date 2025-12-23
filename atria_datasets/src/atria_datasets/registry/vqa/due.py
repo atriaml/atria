@@ -21,8 +21,7 @@ from atria_types._generic._qa_pair import AnswerSpan
 from pdf2image import convert_from_path
 from PIL.Image import Image as PILImage
 
-from atria_datasets import DATASETS, DocumentDataset
-from atria_datasets.core.dataset._datasets import DatasetConfig
+from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
 logger = get_logger(__name__)
 

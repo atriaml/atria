@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 
 class DatasetConfig(ModuleConfig):
     model_config = ConfigDict(extra="forbid")
-    dataset_name: str
+    dataset_name: str | None = None
     config_name: str = "default"
     max_train_samples: int | None = None
     max_validation_samples: int | None = None

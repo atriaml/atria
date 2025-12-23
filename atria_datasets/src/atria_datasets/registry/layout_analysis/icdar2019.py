@@ -14,8 +14,7 @@ from atria_types import (
     LayoutAnalysisAnnotation,
 )
 
-from atria_datasets import DATASETS, DocumentDataset
-from atria_datasets.core.dataset._datasets import DatasetConfig
+from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
 from .utilities import _load_coco_json
 
@@ -114,6 +113,8 @@ class Icdar2019Config(DatasetConfig):
     },
 )
 class Icdar2019(DocumentDataset[Icdar2019Config]):
+    __config__ = Icdar2019Config
+
     def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         return _DATA_URLS
 
