@@ -1,10 +1,10 @@
 {
     "explainable_model_pipelines": {
         "image_classification": {
-            "hash": "3747d659",
+            "hash": "1fea6b25",
             "config": {
-                "module_path": "atria_insights.core.model_pipelines._image_pipeline.ExplainableImageClassificationPipeline",
-                "model_pipeline_config": {
+                "module_path": "atria_insights.model_pipelines._image_pipeline.ExplainableImageClassificationPipeline",
+                "model_pipeline": {
                     "module_path": null,
                     "model": {
                         "builder_type": "timm",
@@ -15,22 +15,73 @@
                         "model_name_or_path": "resnet18",
                         "model_kwargs": {}
                     },
-                    "train_transform": null,
-                    "eval_transform": null,
-                    "metrics": null
+                    "train_transform": {
+                        "tf": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        }
+                    },
+                    "eval_transform": {
+                        "tf": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        }
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "ignite.metrics.Accuracy",
+                            "name": "accuracy",
+                            "is_multilabel": false,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "ignite.metrics.Precision",
+                            "name": "precision",
+                            "average": true,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "ignite.metrics.Recall",
+                            "name": "recall",
+                            "average": true,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "atria_metrics.core.classification.f1_score",
+                            "name": "f1_score"
+                        },
+                        {
+                            "module_path": "ignite.metrics.ConfusionMatrix",
+                            "name": "confusion_matrix",
+                            "average": "recall",
+                            "skip_unrolling": false
+                        }
+                    ],
+                    "mixup_config": null
                 },
-                "feature_segmentor_config": {
+                "feature_segmentor": {
                     "module_path": null,
                     "type": "noop"
                 },
-                "baseline_generator_config": {
+                "baseline_generator": {
                     "module_path": "torchxai.ignite._utilities._prepare_baselines_from_type",
                     "type": "simple",
                     "baseline_strategy": "zeros",
                     "baselines_fixed_value": 0.5
                 },
-                "baselines_fixed_value": 0.5,
-                "explainer_config": {
+                "explainer": {
                     "module_path": "torchxai.explainers.SaliencyExplainer",
                     "internal_batch_size": 64,
                     "grad_batch_size": 64,
@@ -40,28 +91,145 @@
                 "explanation_target_strategy": "predicted",
                 "iterative_computation": false
             },
-            "import_path": "atria_insights.core.model_pipelines._image_pipeline.ExplainableImageModelPipelineConfig"
+            "import_path": "atria_insights.model_pipelines._image_pipeline.ExplainableImageClassificationPipelineConfig"
         },
         "sequence_classification": {
-            "hash": "687d5464",
+            "hash": "69cac72e",
             "config": {
-                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceClassificationPipeline",
-                "model_pipeline_config": {
+                "module_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableSequenceClassificationPipeline",
+                "model_pipeline": {
                     "module_path": null,
                     "model": {
-                        "builder_type": "timm",
+                        "builder_type": "transformers",
                         "bn_to_gn": false,
                         "frozen_layers": "none",
                         "pretrained_checkpoint": null,
-                        "model_type": null,
-                        "model_name_or_path": "resnet18",
+                        "model_type": "sequence_classification",
+                        "model_name_or_path": "bert-base-uncased",
                         "model_kwargs": {}
                     },
-                    "train_transform": null,
-                    "eval_transform": null,
-                    "metrics": null
+                    "train_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_first",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150
+                    },
+                    "eval_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_first",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "ignite.metrics.Accuracy",
+                            "name": "accuracy",
+                            "is_multilabel": false,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "ignite.metrics.Precision",
+                            "name": "precision",
+                            "average": true,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "ignite.metrics.Recall",
+                            "name": "recall",
+                            "average": true,
+                            "skip_unrolling": false
+                        },
+                        {
+                            "module_path": "atria_metrics.core.classification.f1_score",
+                            "name": "f1_score"
+                        },
+                        {
+                            "module_path": "ignite.metrics.ConfusionMatrix",
+                            "name": "confusion_matrix",
+                            "average": "recall",
+                            "skip_unrolling": false
+                        }
+                    ],
+                    "use_bbox": true,
+                    "use_image": true,
+                    "use_segment_info": true,
+                    "input_stride": 0
                 },
-                "feature_segmentor_config": {
+                "feature_segmentor": {
                     "type": "sequence",
                     "group_tokens_to_words": true,
                     "image_segmentor": {
@@ -69,7 +237,7 @@
                         "type": "noop"
                     }
                 },
-                "baseline_generator_config": {
+                "baseline_generator": {
                     "type": "sequence",
                     "baselines_config": {
                         "text": "zero",
@@ -79,8 +247,7 @@
                         "image": "black"
                     }
                 },
-                "baselines_fixed_value": 0.5,
-                "explainer_config": {
+                "explainer": {
                     "module_path": "torchxai.explainers.SaliencyExplainer",
                     "internal_batch_size": 64,
                     "grad_batch_size": 64,
@@ -90,28 +257,122 @@
                 "explanation_target_strategy": "predicted",
                 "iterative_computation": false
             },
-            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+            "import_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableSequenceClassificationPipelineConfig"
         },
         "token_classification": {
-            "hash": "f858fd82",
+            "hash": "d173bca7",
             "config": {
-                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableTokenClassificationPipeline",
-                "model_pipeline_config": {
+                "module_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableTokenClassificationPipeline",
+                "model_pipeline": {
                     "module_path": null,
                     "model": {
-                        "builder_type": "timm",
+                        "builder_type": "transformers",
                         "bn_to_gn": false,
                         "frozen_layers": "none",
                         "pretrained_checkpoint": null,
-                        "model_type": null,
-                        "model_name_or_path": "resnet18",
+                        "model_type": "token_classification",
+                        "model_name_or_path": "bert-base-uncased",
                         "model_kwargs": {}
                     },
-                    "train_transform": null,
-                    "eval_transform": null,
-                    "metrics": null
+                    "train_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_random",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150
+                    },
+                    "eval_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "atria_metrics.core.entity_labeling.seqeval_metric.SeqEvalMetric",
+                            "name": "seqeval",
+                            "scheme": "IOB2"
+                        }
+                    ],
+                    "use_bbox": true,
+                    "use_image": true,
+                    "use_segment_info": true,
+                    "input_stride": 0
                 },
-                "feature_segmentor_config": {
+                "feature_segmentor": {
                     "type": "sequence",
                     "group_tokens_to_words": true,
                     "image_segmentor": {
@@ -119,7 +380,7 @@
                         "type": "noop"
                     }
                 },
-                "baseline_generator_config": {
+                "baseline_generator": {
                     "type": "sequence",
                     "baselines_config": {
                         "text": "zero",
@@ -129,8 +390,7 @@
                         "image": "black"
                     }
                 },
-                "baselines_fixed_value": 0.5,
-                "explainer_config": {
+                "explainer": {
                     "module_path": "torchxai.explainers.SaliencyExplainer",
                     "internal_batch_size": 64,
                     "grad_batch_size": 64,
@@ -140,28 +400,130 @@
                 "explanation_target_strategy": "predicted",
                 "iterative_computation": false
             },
-            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+            "import_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableTokenClassificationPipelineConfig"
         },
         "question_answering": {
-            "hash": "605be957",
+            "hash": "f55bb00f",
             "config": {
-                "module_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableQuestionAnsweringPipeline",
-                "model_pipeline_config": {
+                "module_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableQuestionAnsweringPipeline",
+                "model_pipeline": {
                     "module_path": null,
                     "model": {
-                        "builder_type": "timm",
+                        "builder_type": "transformers",
                         "bn_to_gn": false,
                         "frozen_layers": "none",
                         "pretrained_checkpoint": null,
-                        "model_type": null,
-                        "model_name_or_path": "resnet18",
+                        "model_type": "question_answering",
+                        "model_name_or_path": "bert-base-uncased",
                         "model_kwargs": {}
                     },
-                    "train_transform": null,
-                    "eval_transform": null,
-                    "metrics": null
+                    "train_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150,
+                        "ignore_samples_with_no_answer": false,
+                        "is_training": false,
+                        "truncation": "only_second"
+                    },
+                    "eval_transform": {
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "do_normalize": false,
+                            "do_resize": false,
+                            "do_rescale": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "load_bboxes": true,
+                        "load_image": true,
+                        "add_segment_level_info": false,
+                        "use_segment_level_bboxes": false,
+                        "max_segment_num": 150,
+                        "ignore_samples_with_no_answer": false,
+                        "is_training": false,
+                        "truncation": "only_second"
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                            "name": "due_eval",
+                            "dataset_name": "DocVQA",
+                            "metric": "ANLS",
+                            "ignore_case": true
+                        }
+                    ],
+                    "use_bbox": true,
+                    "use_image": true,
+                    "use_segment_info": true,
+                    "input_stride": 0
                 },
-                "feature_segmentor_config": {
+                "feature_segmentor": {
                     "type": "sequence",
                     "group_tokens_to_words": true,
                     "image_segmentor": {
@@ -169,7 +531,7 @@
                         "type": "noop"
                     }
                 },
-                "baseline_generator_config": {
+                "baseline_generator": {
                     "type": "sequence",
                     "baselines_config": {
                         "text": "zero",
@@ -179,8 +541,7 @@
                         "image": "black"
                     }
                 },
-                "baselines_fixed_value": 0.5,
-                "explainer_config": {
+                "explainer": {
                     "module_path": "torchxai.explainers.SaliencyExplainer",
                     "internal_batch_size": 64,
                     "grad_batch_size": 64,
@@ -190,7 +551,7 @@
                 "explanation_target_strategy": "predicted",
                 "iterative_computation": false
             },
-            "import_path": "atria_insights.core.model_pipelines._sequence_pipeline.ExplainableSequenceModelPipelineConfig"
+            "import_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableQuestionAnsweringPipelineConfig"
         }
     },
     "explainer": {
@@ -203,7 +564,7 @@
                     "grad_batch_size": 64,
                     "type": "grad/saliency"
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.SaliencyExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.SaliencyExplainerConfig"
             },
             "integrated_gradients": {
                 "hash": "002a3704",
@@ -214,7 +575,7 @@
                     "type": "grad/integrated_gradients",
                     "n_steps": 50
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.IntegratedGradientsExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.IntegratedGradientsExplainerConfig"
             },
             "deeplift": {
                 "hash": "c7cc7972",
@@ -224,7 +585,7 @@
                     "grad_batch_size": 64,
                     "type": "grad/deeplift"
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.DeepLiftExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.DeepLiftExplainerConfig"
             },
             "deeplift_shap": {
                 "hash": "08707dba",
@@ -234,7 +595,7 @@
                     "grad_batch_size": 64,
                     "type": "grad/deeplift_shap"
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.DeepLiftShapExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.DeepLiftShapExplainerConfig"
             },
             "gradient_shap": {
                 "hash": "525c83e0",
@@ -245,7 +606,7 @@
                     "type": "grad/gradient_shap",
                     "n_samples": 25
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.GradientShapExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.GradientShapExplainerConfig"
             },
             "guided_backprop": {
                 "hash": "d88b1f7b",
@@ -255,7 +616,7 @@
                     "grad_batch_size": 64,
                     "type": "grad/guided_backprop"
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.GuidedBackpropExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.GuidedBackpropExplainerConfig"
             },
             "input_x_gradient": {
                 "hash": "8a25988d",
@@ -265,7 +626,7 @@
                     "grad_batch_size": 64,
                     "type": "grad/input_x_gradient"
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.InputXGradientExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.InputXGradientExplainerConfig"
             }
         },
         "perturbation": {
@@ -278,7 +639,7 @@
                     "type": "perturbation/feature_ablation",
                     "weight_attributions": true
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.FeatureAblationExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.FeatureAblationExplainerConfig"
             },
             "kernel_shap": {
                 "hash": "fec790b0",
@@ -290,7 +651,7 @@
                     "n_samples": 25,
                     "weight_attributions": true
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.KernelShapExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.KernelShapExplainerConfig"
             },
             "lime": {
                 "hash": "2b83bc8a",
@@ -303,7 +664,7 @@
                     "alpha": 0.01,
                     "weight_attributions": true
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.LimeExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.LimeExplainerConfig"
             },
             "occlusion": {
                 "hash": "331b6f0e",
@@ -323,7 +684,7 @@
                         4
                     ]
                 },
-                "import_path": "atria_insights.core.explainers._torchxai.OcclusionExplainerConfig"
+                "import_path": "atria_insights.explainers._torchxai.OcclusionExplainerConfig"
             }
         },
         "random": {
@@ -334,7 +695,7 @@
                 "grad_batch_size": 64,
                 "type": "random"
             },
-            "import_path": "atria_insights.core.explainers._torchxai.RandomExplainerConfig"
+            "import_path": "atria_insights.explainers._torchxai.RandomExplainerConfig"
         }
     },
     "explainability_metric": {
@@ -346,7 +707,7 @@
                     "baseline_strategy": "zeros",
                     "baselines_fixed_value": 0.5
                 },
-                "import_path": "atria_insights.core.explainability_metrics._torchxai.CompletenessMetricConfig"
+                "import_path": "atria_insights.explainability_metrics._torchxai.CompletenessMetricConfig"
             }
         }
     }
