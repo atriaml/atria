@@ -17,17 +17,10 @@ logger = get_logger(__name__)
 
 
 class DataPipeline(RepresentationMixin):
-    def __init__(self, dataset: Dataset, collate_fn: str | None = "default_collate"):
+    def __init__(self, dataset: Dataset) -> None:
         self._dataset = dataset
         self._sharded_storage_kwargs = {}
         self._dataset_splitter = None
-
-        if collate_fn == "default_collate":
-            self._collate_fn = default_collate
-        elif collate_fn == "identity":
-            self._collate_fn = lambda x: x
-        else:
-            raise ValueError(f"Invalid collate_fn: {collate_fn}")
 
     @property
     def dataset(self):
@@ -63,12 +56,32 @@ class DataPipeline(RepresentationMixin):
         else:
             raise ValueError(f"Invalid split name: {split}")
 
+    def get_split_subset(self, dataset: SplitIterator, subset_size: int | None):
+        if subset_size is not None:
+            original_size = len(self._dataset.test)
+            if subset_size > original_size:
+                logger.warning(
+                    f"Requested eval subset size {subset_size} is larger than "
+                    f"the dataset size {original_size}. Using full dataset instead."
+                )
+                subset_size = original_size
+            dataset = self._dataset.test.get_random_subset(subset_size=subset_size)
+            assert len(dataset) == subset_size, (
+                "Something went wrong when creating the subset."
+            )
+            logger.info(
+                f"Using a subset of the test dataset for evaluation: "
+                f"{subset_size} / {original_size} samples."
+            )
+        return dataset
+
     def train_dataloader(
         self,
         batch_size: int = 1,
         pin_memory: bool = True,
         num_workers: int = 4,
         shuffle: bool = True,
+        subset_size: int | None = None,
     ) -> DataLoader:
         import ignite.distributed as idist
         from torch.utils.data import RandomSampler, SequentialSampler
@@ -76,9 +89,15 @@ class DataPipeline(RepresentationMixin):
         if self._dataset.train is None:
             raise ValueError("No training dataset found.")
 
+        dataset = self._dataset.train
+        if subset_size is not None:
+            dataset = self.get_split_subset(
+                self._dataset.train, subset_size=subset_size
+            )
+
         return auto_dataloader(
-            dataset=self._dataset.train,
-            collate_fn=self._collate_fn,
+            dataset=dataset,
+            collate_fn=default_collate,
             sampler=RandomSampler(self._dataset.train)
             if shuffle
             else SequentialSampler(self._dataset.train),
@@ -89,7 +108,11 @@ class DataPipeline(RepresentationMixin):
         )
 
     def validation_dataloader(
-        self, batch_size: int = 1, pin_memory: bool = True, num_workers: int = 4
+        self,
+        batch_size: int = 1,
+        pin_memory: bool = True,
+        num_workers: int = 4,
+        subset_size: int | None = None,
     ) -> DataLoader:
         dataset = self._dataset.validation or self._dataset.test
         if dataset is None:
@@ -100,6 +123,9 @@ class DataPipeline(RepresentationMixin):
                 "No validation dataset found, using test dataset for validation."
             )
 
+        if subset_size is not None:
+            dataset = self.get_split_subset(self._dataset.test, subset_size=subset_size)
+
         return self._build_evaluation_dataloader(
             dataset,
             batch_size=batch_size,
@@ -108,12 +134,21 @@ class DataPipeline(RepresentationMixin):
         )
 
     def test_dataloader(
-        self, batch_size: int = 1, pin_memory: bool = True, num_workers: int = 4
+        self,
+        batch_size: int = 1,
+        pin_memory: bool = True,
+        num_workers: int = 4,
+        subset_size: int | None = None,
     ) -> DataLoader:
         if self._dataset.test is None:
             raise ValueError("No test dataset found.")
+
+        dataset = self._dataset.test
+        if subset_size is not None:
+            dataset = self.get_split_subset(self._dataset.test, subset_size=subset_size)
+
         return self._build_evaluation_dataloader(
-            self._dataset.test,
+            dataset,
             batch_size=batch_size,
             pin_memory=pin_memory,
             num_workers=num_workers,
@@ -141,7 +176,7 @@ class DataPipeline(RepresentationMixin):
                 )
         return auto_dataloader(
             dataset=dataset,
-            collate_fn=self._collate_fn,
+            collate_fn=default_collate,
             shuffle=False,
             drop_last=False,
             sampler=SequentialSampler(dataset),

@@ -38,7 +38,7 @@ class EngineStep(ABC):
 
     @abstractmethod
     def __call__(
-        self, engine: Engine, batch: TensorDataModel
+        self, engine: Engine, batch: list[TensorDataModel]
     ) -> Any | tuple[torch.Tensor]:
         """
         Abstract method to execute the engine step.

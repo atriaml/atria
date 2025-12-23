@@ -181,15 +181,16 @@ class TrainingStep(EngineStep):
             )
 
     def __call__(
-        self, engine: Engine, batch: TensorDataModel
+        self, engine: Engine, batch: list[TensorDataModel]
     ) -> Any | tuple[torch.Tensor]:
         from atria_ml.training.engines._events import OptimizerEvents
 
         self._validate_gradient_config()
         self._reset_optimizers(engine=engine)
         self._model_pipeline.ops.train()
-        batch = batch.ops.to(self._device)
-        model_output = self._call_forward(engine=engine, batch=batch)
+        collated_batch = batch[0].batch(batch)
+        collated_batch = collated_batch.ops.to(self._device)
+        model_output = self._call_forward(engine=engine, batch=collated_batch)
         self._update_optimizers(engine=engine, loss=model_output.loss)  # type: ignore
         if (
             engine.state.iteration % self._gradient_config.gradient_accumulation_steps

@@ -121,14 +121,11 @@ def auto_dataloader(dataset: Any, **kwargs: Any) -> Any:
 
 def default_collate(
     batch: list[TensorDataModel | list[TensorDataModel]],
-) -> TensorDataModel:
+) -> list[TensorDataModel]:
     flattened_batch: list[TensorDataModel] = []
     for item in batch:
         if isinstance(item, list):
             flattened_batch.extend(item)
         else:
             flattened_batch.append(item)
-    if isinstance(batch, list) and len(batch) > 0:
-        return flattened_batch[0].batch(flattened_batch)
-    else:
-        raise ValueError("Batch is empty or not a list.")
+    return flattened_batch

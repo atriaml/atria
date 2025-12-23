@@ -33,16 +33,18 @@ class EvaluationStep(EngineStep):
         )
 
     def __call__(
-        self, engine: Engine, batch: TensorDataModel
+        self, engine: Engine, batch: list[TensorDataModel]
     ) -> Any | tuple[torch.Tensor]:
         import torch
         from torch.cuda.amp.autocast_mode import autocast
 
         self._model_pipeline.ops.eval()
+
         with torch.no_grad():
             with autocast(enabled=self._with_amp):
-                batch = batch.ops.to(self._device)
-                return self._model_step(engine=engine, batch=batch)
+                collated_batch = batch[0].batch(batch)
+                collated_batch = collated_batch.ops.to(self._device)
+                return self._model_step(engine=engine, batch=collated_batch)
 
     def _model_step(
         self, engine: Engine, batch: TensorDataModel
