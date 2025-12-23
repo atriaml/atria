@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, Self, TypeVar
+from abc import ABC
+from typing import Any, Generic, Self, TypeVar, cast
 
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
@@ -78,34 +79,55 @@ class ModuleConfig(RepresentationMixin, BaseModel):
             )
 
 
-class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig]):
+class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
     """
     Base class for Atria modules that can be registered in the Atria registry.
     All modules that are to be registered must inherit from this class.
     """
 
     __config__: type[T_ModuleConfig]
-    __abstract__: bool = True
+    __abstract__: bool = False
 
-    def __init__(self, config: T_ModuleConfig) -> None:
-        assert isinstance(config, self.__config__)
-        self._config: T_ModuleConfig = config
+    def __init__(self, config: T_ModuleConfig | dict | None = None) -> None:
+        if config is None:
+            # Use the class's default config
+            self._config = self.get_default_config()
+        elif isinstance(config, dict):
+            # Convert dict to config object
+            self._config = self.__config__.model_validate(config)
+        else:
+            # Already a config object, validate it
+            self._config = self.__config__.model_validate(config)
+
+    @classmethod
+    def get_default_config(cls) -> T_ModuleConfig:
+        """Get default config instance. Override in subclasses if needed."""
+        return cast(
+            T_ModuleConfig,
+            cls.__config__(module_path=cls.__module__ + "." + cls.__name__),
+        )
+
+    @classmethod
+    def get_config_class(cls) -> type[T_ModuleConfig]:
+        """Get the config class for this module."""
+        return cast(type[T_ModuleConfig], cls.__config__)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        # Validate presence of Config at class definition time
-        if hasattr(cls, "__abstract__") and cls.__abstract__:
+        # Skip validation for abstract classes
+        if cls.__dict__.get("__abstract__", False):
             return
 
         if not hasattr(cls, "__config__"):
             raise TypeError(
-                f"{cls.__name__} must define a nested `__config__` class inherited from ModuleConfig."
+                f"{cls.__name__} must define a `__config__` class attribute."
             )
 
         if not issubclass(cls.__config__, ModuleConfig):
             raise TypeError(
-                f"{cls.__name__}.__config__ must subclass ModuleConfig. Got {cls.__config__} instead."
+                f"{cls.__name__}.__config__ must subclass ModuleConfig. "
+                f"Got {cls.__config__} instead."
             )
 
     @property

@@ -19,7 +19,6 @@ from atria_registry._module_base import (
     ModuleConfig,
     PydanticConfigurableModule,
 )
-from atria_registry._module_builder import ModuleBuilder
 from atria_registry._utilities import (
     _extract_nested_defaults,
     _get_config_hash,
@@ -38,9 +37,6 @@ class ConfigSpec(BaseModel):
 
 
 class RegistryGroup(Generic[T_ModuleConfig]):
-    __module_builder_class__ = ModuleBuilder
-    __exclude_from_builder__ = set()
-
     def __init__(self, name: str, package: str):
         """
         Initializes the RegistryGroup.
@@ -107,13 +103,13 @@ class RegistryGroup(Generic[T_ModuleConfig]):
     ):
         if not _BUILD_REGISTRY:
 
-            def decorator(module):
+            def noop(module):
                 logger.debug(
                     f"Skipping registration of module {module_name} because _BUILD_REGISTRY is False."
                 )
                 return module
 
-            return decorator
+            return noop
 
         def decorator(module):
             if issubclass(module, ModuleConfig | PydanticConfigurableModule):
@@ -161,7 +157,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             elif issubclass(module, ConfigurableModule):
                 # check if configs are provided, if not register with default config
                 if configs is None:
-                    default_config = module.__config__()
+                    default_config = module.get_default_config()
                     self._register_module(
                         module=module, module_name=module_name, config=default_config
                     )
@@ -176,28 +172,10 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                             config=config,
                         )
                 return module
-            else:  # else we wrap it with ModuleBuilder
-                if configs is None:
-                    builder = self.__module_builder_class__(module=module)
-                    self._register_module(
-                        module=builder.__class__,
-                        module_name=module_name,
-                        config=builder.config,
-                    )
-                else:
-                    for config in configs:
-                        assert isinstance(config, ModuleConfig), (
-                            "Configs must be provided as ModuleConfig for ConfigurableModule."
-                        )
-                        builder = self.__module_builder_class__(
-                            module=module, **config.model_dump()
-                        )
-                        self._register_module(
-                            module=builder.__class__,
-                            module_name=module_name,
-                            config=builder.config,
-                        )
-            return module
+            else:
+                raise NotImplementedError(
+                    "Only ModuleConfig and ConfigurableModule can be registered."
+                )
 
         return decorator
 
@@ -226,7 +204,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
     def _register_module(
         self,
-        module: type[ConfigurableModule] | type[ModuleBuilder],
+        module: type[ConfigurableModule],
         module_name: str,
         config: T_ModuleConfig | dict[str, Any],
     ):
