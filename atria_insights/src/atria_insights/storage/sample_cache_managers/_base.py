@@ -18,11 +18,15 @@ class BaseSampleCacheManager(Generic[T]):
         self, cache_dir: str | Path, file_name: str, cacher_type: str = "hdf5"
     ):
         self._cache_dir = Path(cache_dir)
-        self._cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
         if cacher_type == "hdf5":
             self._cacher = HDF5DataCacher(file_path=str(self._cache_dir / file_name))
         else:
             raise ValueError(f"Unsupported cacher_type: {cacher_type}")
+
+    @property
+    def file_path(self) -> Path:
+        return self._cacher._file_path
 
     def sample_exists(self, sample_key: str) -> bool:
         return self._cacher.sample_exists(sample_key)
@@ -34,6 +38,9 @@ class BaseSampleCacheManager(Generic[T]):
     def load_sample(self, sample_key: str) -> T:
         cache_data = self._cacher.load_sample(sample_key)
         return self._from_cache_data(cache_data)
+
+    def list_sample_keys(self) -> list[str]:
+        return self._cacher.list_sample_keys()
 
     @abstractmethod
     def _to_cache_data(self, data: T) -> CacheData: ...

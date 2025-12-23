@@ -32,7 +32,7 @@ class HDF5DataCacher(DataCacher):
             data = data.cpu().numpy()
         if data_key in hf:
             logger.warning(
-                f"Dataset {data_key} already exists in HDF5 file. Overwriting."
+                f"Dataset {data_key} already exists in HDF5 file for {hf.name}. Overwriting..."
             )
             hf[data_key][...] = data
         else:
@@ -110,6 +110,11 @@ class HDF5DataCacher(DataCacher):
 
         with h5py.File(self._file_path, "r") as hf:
             return sample_key in hf
+
+    def list_sample_keys(self) -> list[str]:
+        logger.debug(f"Listing sample keys in HDF5 file: {self._file_path}")
+        with h5py.File(self._file_path, "r") as hf:
+            return list(hf.keys())
 
     def save_sample(self, data: CacheData) -> None:
         with h5py.File(self._file_path, "a") as hf:

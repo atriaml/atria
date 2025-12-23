@@ -26,7 +26,7 @@ def _serialize_target(
         return target.model_dump()
 
 
-class SampleExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
+class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
     def __init__(self, cache_dir: str | Path, config: ExplainableModelPipelineConfig):
         # create a child cache dir for the given explainer
         super().__init__(
