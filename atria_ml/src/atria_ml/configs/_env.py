@@ -24,6 +24,13 @@ class RuntimeEnvConfig(RepresentationMixin, BaseModel):
     n_devices: int = 1
 
     @property
+    def run_dataset_dir(self) -> Path:
+        base_path = Path(self.output_dir) / self.exp_name
+        if self.dataset_name is not None:
+            base_path = base_path / self.dataset_name
+        return base_path
+
+    @property
     def run_dir(self) -> Path:
         base_path = Path(self.output_dir) / self.exp_name
         if self.dataset_name is not None:
