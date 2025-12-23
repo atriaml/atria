@@ -161,7 +161,10 @@ class BatchExplanationInputs(BaseModel):
             if len(t) != len(feature_keys):
                 raise ValueError("Length of feature_keys must match number of tensors.")
 
-        for elem in [self.inputs, self.baselines, self.feature_mask]:
+        for elem in [
+            self.inputs,
+            self.feature_mask,
+        ]:  # baselines can be of different batch size
             _validate_batch_size_in_tuple(elem)
             _validate_feature_size_in_tuple(elem, self.feature_keys)
 
@@ -275,6 +278,11 @@ class BatchExplanationState(BaseModel):
 
     # model_outputs
     model_outputs: torch.Tensor
+
+    @property
+    def batch_size(self) -> int:
+        """Return the batch size of the explanations."""
+        return len(self.sample_id)
 
     # is multitarget
     @property
