@@ -33,6 +33,7 @@ class ModelConfig(BaseModel):
 
 
 class ModelPipelineConfig(ModuleConfig):
+    name: str
     model: ModelConfig = ModelConfig()
     train_transform: SerializeAsAny[DataTransform] | None = (
         None  # the type at runtime can be child of DataTransform so we need to use SerializeAsAny

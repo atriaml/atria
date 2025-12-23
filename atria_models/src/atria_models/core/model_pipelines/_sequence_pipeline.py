@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from atria_logger import get_logger
+from atria_metrics.core.question_answering.due_eval import DueEvalMetricConfig
 from atria_metrics.registry.classification import (
     AccuracyMetricConfig,
     ConfusionMatrixMetricConfig,
@@ -19,8 +20,10 @@ from atria_metrics.registry.entity_labeling import (
     LayoutRecallMetricConfig,
     SeqEvalMetricConfig,
 )
+from atria_metrics.registry.question_answering.due_eval import DocVQAEvalConfig
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.tfs._document_processor._task_tfs import (
+    QuestionAnsweringDocumentProcessor,
     SequenceClassificationDocumentProcessor,
     TokenClassificationDocumentProcessor,
 )
@@ -165,6 +168,7 @@ class SequenceClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="sequence_classification",
     )
+    name: str = "sequence_classification"
     metrics: (
         list[
             Annotated[
@@ -302,6 +306,7 @@ class TokenClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="token_classification",
     )
+    name: str = "token_classification"
     metrics: (
         list[Annotated[SeqEvalMetricConfig, Field(discriminator="name")]] | None
     ) = None
@@ -409,6 +414,7 @@ class LayoutTokenClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="token_classification",
     )
+    name: str = "layout_token_classification"
     metrics: (
         list[
             Annotated[
@@ -506,9 +512,54 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
         )
 
 
+class QuestionAnsweringPipelineConfig(SequenceModelPipelineConfig):
+    model: ModelConfig = ModelConfig(
+        model_name_or_path="bert-base-uncased",
+        builder_type=ModelBuilderType.transformers,
+        model_type="question_answering",
+    )
+    name: str = "question_answering"
+    metrics: (
+        list[Annotated[DueEvalMetricConfig, Field(discriminator="name")]] | None
+    ) = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_transforms(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if "train_transform" not in values or values["train_transform"] is None:
+            values["train_transform"] = QuestionAnsweringDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_all",  # for QA, we want all tokens
+            )
+        else:
+            values["train_transform"] = (
+                QuestionAnsweringDocumentProcessor.model_validate(
+                    values["train_transform"]
+                )
+            )
+        if "eval_transform" not in values or values["eval_transform"] is None:
+            values["eval_transform"] = QuestionAnsweringDocumentProcessor(
+                hf_processor=HuggingfaceProcessor(
+                    tokenizer_name="bert-base-uncased"  # default tokenizer
+                ),
+                overflow_strategy="return_all",  # for QA, we want all tokens
+            )
+        else:
+            values["eval_transform"] = (
+                QuestionAnsweringDocumentProcessor.model_validate(
+                    values["eval_transform"]
+                )
+            )
+        if "metrics" not in values or values["metrics"] is None:
+            values["metrics"] = [DocVQAEvalConfig()]
+        return values
+
+
 @MODEL_PIPELINES.register("question_answering")
 class QuestionAnsweringPipeline(SequenceModelPipeline):
-    __config__ = SequenceModelPipelineConfig
+    __config__ = QuestionAnsweringPipelineConfig
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.ser is not None, "Labels must be provided for ser tasks."
