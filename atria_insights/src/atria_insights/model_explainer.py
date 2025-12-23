@@ -20,6 +20,11 @@ from atria_insights.engines._explanation_engine import (
     ExplanationEngineConfig,
     ExplanationEngineDependencies,
 )
+from atria_insights.engines._feature_generation_engine import (
+    FeatureGenerationEngine,
+    FeatureGenerationEngineConfig,
+    FeatureGenerationEngineDependencies,
+)
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 
 if TYPE_CHECKING:
@@ -94,7 +99,6 @@ class ModelExplainer:
                 logging=self._config.logging,
                 test_run=self._config.test_run,
                 use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
-                with_amp=self._config.with_amp,
                 enable_outputs_caching=self._config.enable_outputs_caching,
             ),
             deps=ExplanationEngineDependencies(
@@ -104,6 +108,30 @@ class ModelExplainer:
                 device=torch.device(self._device),
                 output_dir=self._config.env.run_dir,
                 tb_logger=self._state.tb_logger,
+            ),
+        )
+
+    def _build_training_baseline_features_generation_engine(self):
+        import torch
+
+        train_dataloader = self._state.data_pipeline.train_dataloader(
+            batch_size=self._config.data.train_batch_size,
+            num_workers=self._config.data.num_workers,
+            pin_memory=self._config.data.pin_memory,
+        )
+        return FeatureGenerationEngine(
+            config=FeatureGenerationEngineConfig(
+                logging=self._config.logging,
+                max_features=self._config.max_training_baseline_features,
+                use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
+            ),
+            deps=FeatureGenerationEngineDependencies(
+                model_pipeline=self._state.x_model_pipeline._model_pipeline,
+                x_model_pipeline=self._state.x_model_pipeline,
+                dataloader=train_dataloader,
+                device=torch.device(self._device),
+                output_dir=self._config.env.run_dataset_dir,
+                feature_file_name="features.hdf5",
             ),
         )
 
@@ -121,6 +149,13 @@ class ModelExplainer:
 
         # log dataset info
         logger.info(f"Dataset:\n{dataset}")
+
+        # see if feature baseline generator is attached, then we updates its path
+        if self._config.x_model_pipeline.baseline_generator.type == "feature_based":
+            # hard coded for now to the path where the features will be stored
+            self._config.x_model_pipeline.baseline_generator.unsafe_update(
+                features_path=Path(self._config.env.run_dataset_dir) / "features.hdf5"
+            )
 
         # build model pipelines
         x_model_pipeline = self._config.x_model_pipeline.build(labels=labels)
@@ -152,7 +187,18 @@ class ModelExplainer:
         checkpoint_path: str | Path | None = None,
         total_samples: int | None = None,
     ) -> State:
+        # first we generate baseline features on training data if needed
+        training_baseline_features_generation_engine = (
+            self._build_training_baseline_features_generation_engine()
+        )
+
+        # generate baseline features
+        training_baseline_features_generation_engine.run()
+
+        # then we build the explanation engine
         explanation_engine = self._build_explanation_engine(total_samples=total_samples)
+
+        # run explanation engine
         state = explanation_engine.run(checkpoint_path=checkpoint_path)
         if len(state.metrics) > 0:
             metrics = _format_metrics_for_logging(state.metrics)
