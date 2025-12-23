@@ -104,68 +104,68 @@
         },
         "due": {
             "DocVQA": {
-                "hash": "1ef1ce30",
+                "hash": "a5725c1f",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "DocVQA",
                     "metric": "ANLS",
-                    "ignore_case": true,
-                    "name": "anls"
+                    "ignore_case": true
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.DocVQAEvalConfig"
             },
             "InfographicsVQA": {
-                "hash": "2170fc6a",
+                "hash": "98c9dfc9",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "InfographicsVQA",
                     "metric": "ANLS",
-                    "ignore_case": true,
-                    "name": "anls"
+                    "ignore_case": true
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.InfographicsVQAEvalConfig"
             },
             "KleisterCharity": {
-                "hash": "522fbd12",
+                "hash": "8340f055",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "KleisterCharity",
                     "metric": "F1",
-                    "ignore_case": true,
-                    "name": "f1"
+                    "ignore_case": true
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.KleisterCharityEvalConfig"
             },
             "DeepForm": {
-                "hash": "d0f157be",
+                "hash": "f62e94cd",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "DeepForm",
                     "metric": "F1",
-                    "ignore_case": true,
-                    "name": "f1"
+                    "ignore_case": true
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.DeepFormEvalConfig"
             },
             "WikiTableQuestions": {
-                "hash": "56930711",
+                "hash": "56770693",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "WikiTableQuestions",
                     "metric": "WTQ",
-                    "ignore_case": false,
-                    "name": "wtq"
+                    "ignore_case": false
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.WikiTableQuestionsEvalConfig"
             },
             "TabFact": {
-                "hash": "ff6b5324",
+                "hash": "5810da01",
                 "config": {
                     "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                    "name": "due_eval",
                     "dataset_name": "TabFact",
                     "metric": "F1",
-                    "ignore_case": false,
-                    "name": "f1"
+                    "ignore_case": false
                 },
                 "import_path": "atria_metrics.registry.question_answering.due_eval.TabFactEvalConfig"
             }
@@ -180,28 +180,58 @@
             "import_path": "atria_metrics.registry.entity_labeling.SeqEvalMetricConfig"
         },
         "layout_precision": {
-            "hash": "e237ed04",
+            "hash": "1acd9ae1",
             "config": {
                 "module_path": "atria_metrics.core.entity_labeling.layout_precision.LayoutPrecision",
-                "name": "layout_precision"
+                "name": "layout_precision",
+                "average": false
             },
             "import_path": "atria_metrics.registry.entity_labeling.LayoutPrecisionMetricConfig"
         },
         "layout_recall": {
-            "hash": "b22ad905",
+            "hash": "e7ebe7cc",
             "config": {
                 "module_path": "atria_metrics.core.entity_labeling.layout_recall.LayoutRecall",
-                "name": "layout_recall"
+                "name": "layout_recall",
+                "average": false
             },
             "import_path": "atria_metrics.registry.entity_labeling.LayoutRecallMetricConfig"
         },
         "layout_f1": {
-            "hash": "fdac6594",
+            "hash": "14d3d437",
             "config": {
                 "module_path": "atria_metrics.core.entity_labeling.layout_f1.layout_f1",
-                "name": "layout_f1"
+                "name": "layout_f1",
+                "average": false
             },
             "import_path": "atria_metrics.registry.entity_labeling.LayoutF1MetricConfig"
+        },
+        "layout_precision_macro": {
+            "hash": "1cfad895",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_precision.LayoutPrecision",
+                "name": "layout_precision_macro",
+                "average": "macro"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutPrecisionMacroMetricConfig"
+        },
+        "layout_recall_macro": {
+            "hash": "b3ab4097",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_recall.LayoutRecall",
+                "name": "layout_recall_macro",
+                "average": "macro"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutRecallMacroMetricConfig"
+        },
+        "layout_f1_macro": {
+            "hash": "b0baa89c",
+            "config": {
+                "module_path": "atria_metrics.core.entity_labeling.layout_f1.layout_f1",
+                "name": "layout_f1_macro",
+                "average": "macro"
+            },
+            "import_path": "atria_metrics.registry.entity_labeling.LayoutF1MacroMetricConfig"
         }
     }
 }

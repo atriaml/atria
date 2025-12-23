@@ -153,6 +153,7 @@ class DueEvalMetric(Metric):
 
 
 class DueEvalMetricConfig(MetricConfig):
+    name: Literal["due_eval"] = "due_eval"
     module_path: str | None = (
         "atria_metrics.core.question_answering.due_eval.DueEvalMetric"
     )
