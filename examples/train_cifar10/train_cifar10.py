@@ -14,7 +14,7 @@ from atria_transforms.api.tfs import load_transform
 config = TrainingTaskConfig(
     env=RuntimeEnvConfig(
         project_name="my_atria_project",
-        exp_name="train",
+        exp_name="train_00",
         dataset_name="cifar10",
         model_name="resnet50",
         output_dir="./outputs/",
@@ -34,6 +34,8 @@ config = TrainingTaskConfig(
     ),
     trainer=TrainerConfig(),
     do_train=True,
+    do_validation=True,
+    do_test=True,
 )
 trainer = Trainer(config=config)
 trainer.run()
