@@ -105,3 +105,7 @@ test_iterator.py
 test_pool.py
 test_pool2.py
 test.ipynb
+test_hfio.h5
+test_hfio.ipynb
+test_hfio.pt
+test_hfio.py

@@ -570,7 +570,6 @@ dependencies = [
     { name = "fire" },
     { name = "joblib" },
     { name = "jupytext" },
-    { name = "pdfplumber" },
     { name = "torchxai" },
     { name = "tuna" },
 ]
@@ -601,7 +600,6 @@ requires-dist = [
     { name = "fire", specifier = ">=0.7.1" },
     { name = "joblib", specifier = ">=1.5.2" },
     { name = "jupytext", specifier = ">=1.18.1" },
-    { name = "pdfplumber", specifier = ">=0.11.8" },
     { name = "torchxai", editable = "../torchxai" },
     { name = "tuna", specifier = ">=0.5.11" },
 ]
