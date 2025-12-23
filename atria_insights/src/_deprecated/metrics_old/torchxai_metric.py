@@ -5,13 +5,12 @@ from functools import partial
 
 import torch
 from atria_core.logger.logger import get_logger
+from atria_insights.utilities.containers import ExplainerStepOutput
 from ignite.handlers import ProgressBar
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 from ignite.utils import apply_to_tensor
 from torch.cuda.amp import autocast
 from torchxai.explainers.explainer import Explainer
-
-from atria_insights.utilities.containers import ExplainerStepOutput
 
 logger = get_logger(__name__)
 

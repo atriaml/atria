@@ -1,6 +1,12 @@
 from typing import Any
 
 import torch
+from atria_insights.explainability_metrics.torchxai_metrics._base import (
+    TorchXAIMetricBase,
+)
+from atria_insights.explainability_metrics.torchxai_metrics._utilities import (
+    ModelExplainerOutputTransform,
+)
 from torch.nn.modules import Module
 from torchxai.explainers import Explainer
 from torchxai.metrics.axiomatic.completeness import completeness
@@ -9,13 +15,7 @@ from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
     monotonicity_corr_and_non_sens,
 )
 
-from atria_insights.core.data_types import ModelExplainerOutput
-from atria_insights.core.explainability_metrics.torchxai_metrics._base import (
-    TorchXAIMetricBase,
-)
-from atria_insights.core.explainability_metrics.torchxai_metrics._utilities import (
-    ModelExplainerOutputTransform,
-)
+from atria_insights.data_types import ModelExplainerOutput
 
 
 class CompletenessMetric(TorchXAIMetricBase):

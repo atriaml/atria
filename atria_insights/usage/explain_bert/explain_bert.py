@@ -7,13 +7,13 @@ from atria_models.core.model_builders._common import ModelBuilderType  # noqa: F
 from atria_models.core.model_pipelines._common import ModelConfig  # noqa: F401
 from atria_transforms.api.tfs import load_transform  # noqa: F401
 
-from atria_insights.core.configs.explainer_config import (
+from atria_insights.configs.explainer_config import (
     DataConfig,  # noqa: F401
-    ExplainerRunConfig,  # noqa: F401
+    ExplanationTaskConfig,  # noqa: F401
     RuntimeEnvConfig,  # noqa: F401
 )
-from atria_insights.core.model_explainer import ModelExplainer
-from atria_insights.core.model_pipelines._api import (
+from atria_insights.model_explainer import ModelExplainer
+from atria_insights.model_pipelines._api import (
     load_x_model_pipeline_config,  # noqa: F401
 )
 
@@ -56,12 +56,12 @@ data_config = DataConfig(
     eval_batch_size=4,
 )
 
-config = ExplainerRunConfig(
-    env_config=env_config,
-    x_model_pipeline_config=load_x_model_pipeline_config(
+config = ExplanationTaskConfig(
+    env=env_config,
+    x_model_pipeline=load_x_model_pipeline_config(
         task_type, model_pipeline_config=model_pipeline_config
     ),
-    data_config=data_config,
+    data=data_config,
 )
 model_explainer = ModelExplainer(config=config)
 model_explainer.run()

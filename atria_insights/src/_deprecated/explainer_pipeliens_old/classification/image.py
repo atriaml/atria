@@ -4,9 +4,6 @@ import torch
 from atria_core.logger.logger import get_logger
 from atria_core.types.data_instance.document_instance import DocumentInstance
 from atria_core.types.data_instance.image_instance import ImageInstance
-from atria_registry.module_builder import ModuleBuilder
-from torch.nn.modules import Module
-
 from atria_insights.explainer_pipelines.atria_explainer_pipeline import (
     AtriaExplainerPipelineConfig,
     ExplanationPipeline,
@@ -20,6 +17,8 @@ from atria_insights.utilities.containers import (
     ImageClassificationExplainerStepOutput,
     ModelInputs,
 )
+from atria_registry.module_builder import ModuleBuilder
+from torch.nn.modules import Module
 
 logger = get_logger(__name__)
 

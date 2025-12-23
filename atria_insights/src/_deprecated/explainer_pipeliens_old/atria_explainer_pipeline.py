@@ -6,26 +6,24 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from atria_core.logger import get_logger
-from atria_models.pipelines.atria_model_pipeline import AtriaModelPipeline
-from pydantic import BaseModel, ConfigDict
-
 from atria_insights.explainer_pipelines.utilities import _explainer_forward
 from atria_insights.registry.registry_groups import (
     ExplainerBuilder,
     ExplainerMetricBuilder,
 )
+from atria_models.pipelines.atria_model_pipeline import AtriaModelPipeline
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     import torch
     from atria_core.types import BaseDataInstance
-    from ignite.handlers import ProgressBar
-    from ignite.metrics import Metric
-    from torchxai.explainers import Explainer
-
     from atria_insights.utilities.containers import (
         ExplainerStepInputs,
         ExplainerStepOutput,
     )
+    from ignite.handlers import ProgressBar
+    from ignite.metrics import Metric
+    from torchxai.explainers import Explainer
 
 logger = get_logger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Any
 
 import torch
 
-from atria_insights.core.data_types import ModelExplainerOutput
+from atria_insights.data_types import ModelExplainerOutput
 
 # @dataclasses.dataclass(frozen=True)
 # class TorchXAIMetricInput:

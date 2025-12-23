@@ -7,7 +7,7 @@ from abc import abstractmethod
 from typing import Any
 
 import torch
-from atria_insights.src.atria_insights.core.data_types import (
+from atria_insights.src.atria_insights.data_types import (
     ModelExplainerOutput,
     MultiTargetModelExplainerOutput,
 )
