@@ -5,6 +5,7 @@ from atria_insights.baseline_generators import (
     SimpleBaselineGeneratorConfig,
 )
 from atria_insights.data_types._common import BaselineStrategy
+from atria_insights.explainability_metrics._api import load_explainability_metric_config
 from atria_insights.explainers._api import load_explainer_config
 from atria_insights.explainers._torchxai import (  # noqa
     DeepLiftExplainerConfig,
@@ -15,6 +16,9 @@ from atria_insights.feature_segmentors import GridSegmenterConfig
 from atria_ml.configs._task import TrainingTaskConfig
 
 from atria_insights import ExplanationTaskConfig, ModelExplainer
+from atria_logger import get_logger
+
+logger = get_logger(__name__)
 
 _EXPLAINERS = [
     "grad/saliency",
@@ -29,6 +33,10 @@ _EXPLAINERS = [
     "perturbation/lime",
     "perturbation/occlusion",
     "random",
+]
+
+_METRICS = [
+    "axiomatic/completeness",
 ]
 
 _DEFAULT_BASELINES_GENERATOR_CONFIG = SimpleBaselineGeneratorConfig(
@@ -63,6 +71,13 @@ def main(
     if explainer_name in ["grad/deeplift_shap"]:
         baselines_generator = _DEFAULT_DEEPSHAP_BASELINES_GENERATOR_CONFIG
 
+    explainability_metrics = None
+    if len(_METRICS) > 0:
+        explainability_metrics = {
+            key: load_explainability_metric_config(key) for key in _METRICS
+        }
+        logger.debug(f"Loaded explainability metrics: {explainability_metrics.keys()}")
+
     explanation_task_config = ExplanationTaskConfig.from_training_task_config(
         training_task_config=_load_config_from_checkpoint(checkpoint_path),
         dataset_name=dataset_name,
@@ -74,6 +89,8 @@ def main(
         enable_outputs_caching=True,
         internal_batch_size=4,
         grad_batch_size=4,
+        explainability_metrics=explainability_metrics,
+        eval_batch_size=4,
     )
     print("x_model_pipeline", explanation_task_config.x_model_pipeline.hash)
     model_explainer = ModelExplainer(config=explanation_task_config)

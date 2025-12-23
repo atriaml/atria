@@ -13,14 +13,12 @@ from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
-from torchxai.data_types import ExplanationTargetType
+from torchxai.data_types import BatchExplanationTarget
 from tqdm import tqdm
 
 from atria_insights.baseline_generators import SequenceBaselineGeneratorConfig
-from atria_insights.data_types._explanation_sate import (
-    BatchExplanationInputs,
-    BatchExplanationState,
-)
+from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
+from atria_insights.data_types._explanation_state import BatchExplanationState
 from atria_insights.feature_segmentors import SequenceFeatureMaskSegmentor
 from atria_insights.model_pipelines._common import (
     ExplanationTargetStrategy,
@@ -121,7 +119,7 @@ class ExplainableModelPipeline(
     @abstractmethod
     def _target(
         self, batch: T_TensorDataModel, model_outputs: Any
-    ) -> ExplanationTargetType | list[ExplanationTargetType]:
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
         """Prepare the explanation target based on the strategy."""
         pass
 
@@ -239,7 +237,7 @@ class ExplainableModelPipeline(
 
         return input_values, additional_values, baselines_tuple, feature_mask_tuple
 
-    def _prepare_explanation_inputs(
+    def prepare_explanation_inputs(
         self, batch: T_TensorDataModel
     ) -> tuple[Any, BatchExplanationInputs]:
         """Prepare the inputs for the explainer step."""
@@ -297,9 +295,9 @@ class ExplainableModelPipeline(
                 feature_keys=input_feature_keys,
             )
 
-    def _explainer_forward(
+    def explainer_forward(
         self, explanation_inputs: BatchExplanationInputs
-    ) -> tuple[torch.Tensor, ...]:
+    ) -> tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]:
         # filster args here so there is no error on fowrard
         # verify that impossible args are not set
         kwargs = {}
@@ -340,10 +338,8 @@ class ExplainableModelPipeline(
             return self._explainer.explain(**kwargs)
 
     def explanation_step(self, batch: T_TensorDataModel) -> BatchExplanationState:
-        model_outputs, explanation_inputs = self._prepare_explanation_inputs(
-            batch=batch
-        )
-        explanations = self._explainer_forward(explanation_inputs=explanation_inputs)
+        model_outputs, explanation_inputs = self.prepare_explanation_inputs(batch=batch)
+        explanations = self.explainer_forward(explanation_inputs=explanation_inputs)
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."
         return BatchExplanationState(
             sample_id=explanation_inputs.sample_id,
@@ -354,4 +350,16 @@ class ExplainableModelPipeline(
         )
 
     def build_metrics(self, device: torch.device | str = "cpu") -> dict[str, Metric]:
-        return {}
+        if self.config.explainability_metrics is None:
+            return {}
+
+        # build explainer
+        x_metrics = {}
+        for key, value in self.config.explainability_metrics.items():
+            logger.debug(
+                "Building explainability metric '%s' with config: %s", key, value
+            )
+            x_metrics[key] = value.build(
+                model=self._wrapped_model, explainer=self._explainer, device=device
+            )
+        return x_metrics

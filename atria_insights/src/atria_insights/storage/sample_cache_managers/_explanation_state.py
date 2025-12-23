@@ -3,27 +3,17 @@ from pathlib import Path
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
-from torchxai.data_types import ExplanationTargetType
 
-from atria_insights.data_types._explanation_sate import SampleExplanationState
+from atria_insights.data_types._explanation_state import SampleExplanationState
 from atria_insights.model_pipelines._common import ExplainableModelPipelineConfig
 from atria_insights.storage.data_cachers._common import CacheData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
+from atria_insights.utilities._common import (
+    _map_tensor_dicts_to_tuples,
+    _map_tensor_tuples_to_keys,
+)
 
 logger = get_logger(__name__)
-
-
-def _map_tensor_tuples_to_keys(tensor_tuple: tuple[torch.Tensor, ...], keys):
-    return dict(zip(keys, tensor_tuple, strict=True))
-
-
-def _serialize_target(
-    target: ExplanationTargetType | list[ExplanationTargetType],
-) -> dict | list[dict]:
-    if isinstance(target, list):
-        return [t.model_dump() for t in target]
-    else:
-        return target.model_dump()
 
 
 class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
@@ -42,7 +32,34 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             return self._config.model_dump()
 
     def _to_cache_data(self, data: SampleExplanationState) -> CacheData:
-        target = _serialize_target(data.target)
+        if data.target is not None:
+            target = (
+                [t.model_dump() for t in data.target]
+                if isinstance(data.target, list)
+                else data.target.model_dump()
+            )
+        else:
+            target = None
+
+        # we store explaantions list for multi-target scenario as stacked tensors
+        if isinstance(data.explanations, list):
+            per_target_explanations = data.explanations
+            per_target_explanations = tuple(
+                map(list, zip(*per_target_explanations, strict=True))
+            )
+
+            # convert lists back to tensors
+            explanations = tuple(
+                torch.stack(tensors, dim=0) for tensors in per_target_explanations
+            )
+
+            # map to dict These are per target (batch_size, T, ...)
+            explanations = _map_tensor_tuples_to_keys(explanations, data.feature_keys)
+        else:
+            explanations = _map_tensor_tuples_to_keys(
+                data.explanations, data.feature_keys
+            )
+
         return CacheData(
             sample_id=data.sample_id,
             attrs={
@@ -51,13 +68,9 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "feature_keys": data.feature_keys,
                 "frozen_features": data.frozen_features,
                 "config_hash": self._config.hash,
+                "is_multitarget": data.is_multitarget,
             },
-            tensors={
-                "model_outputs": data.model_outputs,
-                "explanations": _map_tensor_tuples_to_keys(
-                    data.explanations, data.feature_keys
-                ),
-            },
+            tensors={"model_outputs": data.model_outputs, "explanations": explanations},
         )
 
     def _from_cache_data(self, data: CacheData) -> SampleExplanationState:
@@ -67,17 +80,20 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         feature_keys = data.attrs.get("feature_keys")
         assert feature_keys is not None, "feature_keys must be provided in attrs."
 
-        # map back arrays to feature keys
-        def _map_tensor_dicts_to_tuples(
-            tensor_tuple: dict[str, torch.Tensor] | torch.Tensor, keys: tuple[str]
-        ) -> tuple[torch.Tensor, ...]:
-            if isinstance(tensor_tuple, torch.Tensor):
-                return (tensor_tuple,)
-            return tuple(tensor_tuple[feature_key] for feature_key in keys)
+        if data.attrs.get("is_multitarget", False):
+            explanations = _map_tensor_dicts_to_tuples(
+                data.tensors["explanations"], tuple(feature_keys)
+            )
 
-        explanations = _map_tensor_dicts_to_tuples(
-            data.tensors["explanations"], tuple(feature_keys)
-        )
+            # this will be tuple of (batch_size, T, ...) -> map back to list of tuples of (batch_size, ...)
+            explanations = [
+                tuple(explanations[tgt_idx][i] for tgt_idx in range(len(explanations)))
+                for i in range(explanations[0].shape[0])
+            ]
+        else:
+            explanations = _map_tensor_dicts_to_tuples(
+                data.tensors["explanations"], tuple(feature_keys)
+            )
         model_outputs = data.tensors["model_outputs"]
         assert isinstance(model_outputs, torch.Tensor), (
             "model_outputs must be a torch.Tensor."

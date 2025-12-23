@@ -1,19 +1,26 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import typing
 
 from atria_registry import ModuleRegistry, RegistryGroup
 
-if TYPE_CHECKING:
-    from atria_insights.explainability_metrics._base import (
-        ExplainabilityMetricConfig,  # noqa
-    )
+from atria_insights.explainability_metrics._base import (
+    ExplainabilityMetricConfig,  # noqa
+)
 
 
-class ExplainabilityMetricsRegistryGroup(RegistryGroup["ExplainabilityMetricConfig"]):
+class ExplainabilityMetricsRegistryGroup(RegistryGroup[ExplainabilityMetricConfig]):
     """Registry group for explainers."""
 
-    pass
+    def load_module_config(
+        self, module_path: str, **kwargs
+    ) -> ExplainabilityMetricConfig:
+        """Dynamically load all registered modules in the registry group."""
+        config = super().load_module_config(module_path, **kwargs)
+        assert isinstance(config, ExplainabilityMetricConfig), (
+            f"Loaded config is not an ExplainerConfig: {type(config)}"
+        )
+        return typing.cast(ExplainabilityMetricConfig, config)
 
 
 ModuleRegistry().add_registry_group(

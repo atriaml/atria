@@ -33,7 +33,7 @@ class ExplanationEngine(
         self._deps = deps
         self._engine_step, self._engine = self._build_engine()
         self._x_metrics = self._deps.x_model_pipeline.build_metrics(
-            # stage=self._engine_step.name, device=self._deps.device
+            device=self._deps.device
         )
         self._attach_handlers()
 
@@ -41,7 +41,7 @@ class ExplanationEngine(
         return ExplanationStep(
             x_model_pipeline=self._deps.x_model_pipeline,
             device=self._deps.device,
-            enable_outputs_caching=self._config.enable_outputs_caching,
+            persist_to_disk=self._config.enable_outputs_caching,
             cache_dir=self._deps.output_dir,
         )
 

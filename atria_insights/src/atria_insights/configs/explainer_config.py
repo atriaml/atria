@@ -57,19 +57,25 @@ class ExplanationTaskConfig(TaskConfigBase):
         iterative_computation: bool = False,
         enable_outputs_caching: bool = False,
         max_training_baseline_features: int = 100,
+        eval_batch_size: int = 32,
+        num_workers: int = 8,
         internal_batch_size: int = 1,
         grad_batch_size: int = 1,
     ) -> ExplanationTaskConfig:
         if dataset_name is not None:
             data = DataConfig(
-                dataset_config=load_dataset_config(dataset_name), num_workers=8
+                dataset_config=load_dataset_config(dataset_name),
+                num_workers=num_workers,
+                eval_batch_size=eval_batch_size,
             )
             if data != training_task_config.data:
                 logger.warning(
                     "The provided dataset_name results in a different DataConfig than the one in the TrainingRunConfig. Using the new DataConfig."
                 )
         else:
-            data = training_task_config.data
+            data = training_task_config.data.model_copy(
+                update={"eval_batch_size": eval_batch_size, "num_workers": num_workers}
+            )
         assert training_task_config.env.model_name is not None, (
             "Model name must be specified in the TrainingRunConfig."
         )

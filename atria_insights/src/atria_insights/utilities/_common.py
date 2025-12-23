@@ -24,3 +24,21 @@ def _map_tensor_dicts_to_tuples(
     if isinstance(tensor_tuple, torch.Tensor):
         return (tensor_tuple,)
     return tuple(tensor_tuple[feature_key] for feature_key in keys)
+
+
+def _to_device(obj, device):
+    import torch
+
+    if obj is None:
+        return None
+    if isinstance(obj, torch.Tensor):
+        return obj.to(device)
+    if isinstance(obj, OrderedDict):
+        return OrderedDict({k: _to_device(v, device) for k, v in obj.items()})
+    if isinstance(obj, tuple):
+        return tuple(_to_device(v, device) for v in obj)
+    if isinstance(obj, dict):
+        return {k: _to_device(v, device) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_device(v, device) for v in obj]
+    return obj

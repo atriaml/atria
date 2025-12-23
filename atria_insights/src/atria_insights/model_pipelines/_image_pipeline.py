@@ -13,11 +13,7 @@ from atria_models.core.model_pipelines._image_pipeline import (
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_types._datasets import DatasetLabels
-from torchxai.data_types import (
-    ExplanationTargetType,
-    SingleTargetAcrossBatch,
-    SingleTargetPerSample,
-)
+from torchxai.data_types import BatchExplanationTarget
 
 from atria_insights.model_pipelines._common import (
     ExplainableModelPipelineConfig,
@@ -69,7 +65,7 @@ class ExplainableImageModelPipeline(
         self,
         batch: ImageTensorDataModel | DocumentTensorDataModel,
         model_outputs: torch.Tensor,
-    ) -> ExplanationTargetType | list[ExplanationTargetType]:
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
         assert self._model_pipeline._labels.classification is not None, (
             "Labels are required for explanation target strategies other than 'predicted'."
         )
@@ -81,9 +77,9 @@ class ExplainableImageModelPipeline(
             assert batch.label is not None, (
                 "Ground truth labels are required for explanation target strategies other than 'predicted'."
             )
-            return SingleTargetPerSample(
-                indices=batch.label.tolist(),
-                names=[label_names[idx] for idx in batch.label.tolist()],
+            return BatchExplanationTarget(
+                value=batch.label.tolist(),
+                name=[label_names[idx] for idx in batch.label.tolist()],
             )
         elif (
             self.config.explanation_target_strategy
@@ -91,14 +87,18 @@ class ExplainableImageModelPipeline(
         ):
             predictions = model_outputs.argmax(dim=-1)
             prediction_label_names = [label_names[idx] for idx in predictions]
-            return SingleTargetPerSample(
-                indices=predictions.tolist(), names=prediction_label_names
+            return BatchExplanationTarget(
+                value=predictions.tolist(), name=prediction_label_names
             )
         else:
             # in case of 'all' we compute the explanations for all classes
             total_labels = model_outputs.shape[1]
+            batch_size = model_outputs.shape[0]
             return [
-                SingleTargetAcrossBatch(index=label_index, name=str(label_index))
+                BatchExplanationTarget(
+                    value=[label_index for _ in range(batch_size)],
+                    name=[label_names[label_index] for _ in range(batch_size)],
+                )
                 for label_index in range(total_labels)
             ]
 
