@@ -1,9 +1,10 @@
 {
     "model_pipelines": {
         "image_classification": {
-            "hash": "f7e9d9ce",
+            "hash": "6a49eb56",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._image_pipeline.ImageClassificationPipeline",
+                "name": "image_classification",
                 "model": {
                     "builder_type": "timm",
                     "bn_to_gn": false,
@@ -69,12 +70,13 @@
                 ],
                 "mixup_config": null
             },
-            "import_path": "atria_models.core.model_pipelines._image_pipeline.ImageModelPipelineConfig"
+            "import_path": "atria_models.core.model_pipelines._image_pipeline.ImageClassificationPipelineConfig"
         },
         "sequence_classification": {
-            "hash": "86c2fdce",
+            "hash": "70b99554",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceClassificationPipeline",
+                "name": "sequence_classification",
                 "model": {
                     "builder_type": "transformers",
                     "bn_to_gn": false,
@@ -208,9 +210,10 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceClassificationPipelineConfig"
         },
         "token_classification": {
-            "hash": "2d2a103a",
+            "hash": "c858c209",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.TokenClassificationPipeline",
+                "name": "token_classification",
                 "model": {
                     "builder_type": "transformers",
                     "bn_to_gn": false,
@@ -321,9 +324,10 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.TokenClassificationPipelineConfig"
         },
         "layout_token_classification": {
-            "hash": "93302701",
+            "hash": "27f9e75b",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.LayoutTokenClassificationPipeline",
+                "name": "layout_token_classification",
                 "model": {
                     "builder_type": "transformers",
                     "bn_to_gn": false,
@@ -459,27 +463,126 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.LayoutTokenClassificationPipelineConfig"
         },
         "question_answering": {
-            "hash": "cbe1b2ff",
+            "hash": "ebffe0f5",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.QuestionAnsweringPipeline",
+                "name": "question_answering",
                 "model": {
-                    "builder_type": "timm",
+                    "builder_type": "transformers",
                     "bn_to_gn": false,
                     "frozen_layers": "none",
                     "pretrained_checkpoint": null,
-                    "model_type": null,
-                    "model_name_or_path": "resnet18",
+                    "model_type": "question_answering",
+                    "model_name_or_path": "bert-base-uncased",
                     "model_kwargs": {}
                 },
-                "train_transform": null,
-                "eval_transform": null,
-                "metrics": null,
+                "train_transform": {
+                    "hf_processor": {
+                        "tokenizer_name": "bert-base-uncased",
+                        "cache_dir": null,
+                        "local_files_only": false,
+                        "apply_ocr": false,
+                        "do_normalize": false,
+                        "do_resize": false,
+                        "do_rescale": false,
+                        "add_prefix_space": true,
+                        "do_lower_case": true,
+                        "add_special_tokens": true,
+                        "padding": "max_length",
+                        "truncation": true,
+                        "max_length": 512,
+                        "stride": 0,
+                        "pad_to_multiple_of": 8,
+                        "is_split_into_words": true,
+                        "return_token_type_ids": null,
+                        "return_attention_mask": true,
+                        "return_special_tokens_mask": false,
+                        "return_offsets_mapping": false,
+                        "return_length": false,
+                        "return_tensors": "pt",
+                        "verbose": true
+                    },
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_all",
+                    "load_bboxes": true,
+                    "load_image": true,
+                    "add_segment_level_info": false,
+                    "use_segment_level_bboxes": false,
+                    "max_segment_num": 150,
+                    "ignore_samples_with_no_answer": false,
+                    "is_training": false,
+                    "truncation": "only_second"
+                },
+                "eval_transform": {
+                    "hf_processor": {
+                        "tokenizer_name": "bert-base-uncased",
+                        "cache_dir": null,
+                        "local_files_only": false,
+                        "apply_ocr": false,
+                        "do_normalize": false,
+                        "do_resize": false,
+                        "do_rescale": false,
+                        "add_prefix_space": true,
+                        "do_lower_case": true,
+                        "add_special_tokens": true,
+                        "padding": "max_length",
+                        "truncation": true,
+                        "max_length": 512,
+                        "stride": 0,
+                        "pad_to_multiple_of": 8,
+                        "is_split_into_words": true,
+                        "return_token_type_ids": null,
+                        "return_attention_mask": true,
+                        "return_special_tokens_mask": false,
+                        "return_offsets_mapping": false,
+                        "return_length": false,
+                        "return_tensors": "pt",
+                        "verbose": true
+                    },
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_all",
+                    "load_bboxes": true,
+                    "load_image": true,
+                    "add_segment_level_info": false,
+                    "use_segment_level_bboxes": false,
+                    "max_segment_num": 150,
+                    "ignore_samples_with_no_answer": false,
+                    "is_training": false,
+                    "truncation": "only_second"
+                },
+                "metrics": [
+                    {
+                        "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                        "name": "due_eval",
+                        "dataset_name": "DocVQA",
+                        "metric": "ANLS",
+                        "ignore_case": true
+                    }
+                ],
                 "use_bbox": true,
                 "use_image": true,
                 "use_segment_info": true,
                 "input_stride": 0
             },
-            "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceModelPipelineConfig"
+            "import_path": "atria_models.core.model_pipelines._sequence_pipeline.QuestionAnsweringPipelineConfig"
         }
     },
     "models": {
