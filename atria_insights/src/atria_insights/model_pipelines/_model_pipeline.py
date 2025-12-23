@@ -8,6 +8,7 @@ from typing import Any, Generic
 import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
+from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
@@ -15,10 +16,12 @@ from ignite.metrics import Metric
 from torchxai.data_types import ExplanationTargetType
 from tqdm import tqdm
 
+from atria_insights.baseline_generators import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_sate import (
     BatchExplanationInputs,
     BatchExplanationState,
 )
+from atria_insights.feature_segmentors import SequenceFeatureMaskSegmentor
 from atria_insights.model_pipelines._common import (
     ExplanationTargetStrategy,
     T_ExplainableModelPipelineConfig,
@@ -54,13 +57,21 @@ class ExplainableModelPipeline(
 
         # build explainer
         self._explainer = self.config.explainer.build(
-            model=self._wrapped_model, multi_target=multi_target
+            model=self._wrapped_model,
+            multi_target=multi_target,
+            internal_batch_size=self.config.internal_batch_size,
+            grad_batch_size=self.config.grad_batch_size,
         )
 
         # build feature segmentor
         self._feature_segmentor = self.config.feature_segmentor.build()
 
         # build baselines generator
+        if isinstance(self.config.baseline_generator, SequenceBaselineGeneratorConfig):
+            raise ValueError(
+                "SequenceBaselineGeneratorConfig is not supported here. "
+                "Please use FeatureBasedBaselineGeneratorConfig or SimpleBaselineGeneratorConfig."
+            )
         self._baseline_generator = self.config.baseline_generator.build(
             model=self._model_pipeline._model
         )
@@ -229,9 +240,7 @@ class ExplainableModelPipeline(
         return input_values, additional_values, baselines_tuple, feature_mask_tuple
 
     def _prepare_explanation_inputs(
-        self,
-        batch: T_TensorDataModel,
-        train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        self, batch: T_TensorDataModel
     ) -> tuple[Any, BatchExplanationInputs]:
         """Prepare the inputs for the explainer step."""
         with torch.no_grad():
@@ -244,9 +253,7 @@ class ExplainableModelPipeline(
             )
 
             # prepare baselines
-            baselines = self._baselines(
-                explained_inputs=inputs, train_baselines=train_baselines
-            )
+            baselines = self._baselines(explained_inputs=inputs)
 
             # prepare feature mask
             feature_mask = self._feature_mask(explained_inputs=inputs)
@@ -299,9 +306,19 @@ class ExplainableModelPipeline(
         for arg in self._explainer_args:
             kwargs[arg] = getattr(explanation_inputs, arg)
 
-        logger.debug(
-            f"Explainer forward with args: {', '.join(f'{k}={v}' for k, v in kwargs.items())}"
-        )
+        logger.debug("Explainer forward with args:")
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                logger.debug(
+                    f"  {k}: Tensor shape {v.shape}, dtype {v.dtype}, device {v.device}"
+                )
+            elif isinstance(v, tuple):
+                for item in v:
+                    logger.debug(
+                        f"  {k}: Tensor shape {item.shape}, dtype {item.dtype}, device {item.device}"
+                    )
+            else:
+                logger.debug(f"  {k}: {type(v)}")
 
         if self.config.iterative_computation and isinstance(
             explanation_inputs.target, list
@@ -322,13 +339,9 @@ class ExplainableModelPipeline(
         else:
             return self._explainer.explain(**kwargs)
 
-    def explanation_step(
-        self,
-        batch: T_TensorDataModel,
-        train_baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-    ) -> BatchExplanationState:
+    def explanation_step(self, batch: T_TensorDataModel) -> BatchExplanationState:
         model_outputs, explanation_inputs = self._prepare_explanation_inputs(
-            batch=batch, train_baselines=train_baselines
+            batch=batch
         )
         explanations = self._explainer_forward(explanation_inputs=explanation_inputs)
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."

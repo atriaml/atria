@@ -24,13 +24,13 @@ from torchxai.data_types import (
     SingleTargetPerSample,
 )
 
+from atria_insights.feature_segmentors._sequence import (
+    FeatureSegmentorConfigType,
+    SequenceFeatureMaskSegmentorConfig,
+)
 from atria_insights.model_pipelines._common import (
     ExplainableModelPipelineConfig,
     ExplanationTargetStrategy,
-)
-from atria_insights.model_pipelines._feature_segmentors import (
-    FeatureSegmentorConfigType,
-    SequenceFeatureMaskSegmentorConfig,
 )
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
