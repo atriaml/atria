@@ -16,7 +16,7 @@ def main(
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
     config = TrainingTaskConfig.from_dict(checkpoint["config"])
     config = ExplanationTaskConfig.from_training_task_config(
-        config=config,
+        training_task_config=config,
         dataset_name=dataset_name,
         exp_name=exp_name,
         output_dir=output_dir,
