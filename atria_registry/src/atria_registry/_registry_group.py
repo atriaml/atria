@@ -285,14 +285,16 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         self._validate_non_missing_fields(module_path, config)
 
         if config_import_path is not None:
-            config_cls = typing.cast(
-                T_ModuleConfig, _resolve_module_from_path(config_import_path)
+            config_cls = _resolve_module_from_path(config_import_path)
+            assert issubclass(config_cls, ModuleConfig | PydanticConfigurableModule), (
+                f"Config class at path {config_import_path} is not a ModuleConfig or PydanticConfigurableModule."
             )
             try:
                 logger.debug(
                     f"Validating config={config_cls} with data={config} for module_path={module_path}"
                 )
-                return config_cls.model_validate(config)
+                config = config_cls.model_validate(config)
+                return typing.cast(T_ModuleConfig, config)
             except ValidationError as e:
                 logger.error(
                     f"Error validating config={config_cls} with data={config} for module_path={module_path}"
