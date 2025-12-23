@@ -13,7 +13,7 @@ from atria_logger._api import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from omegaconf import OmegaConf
 
-from atria_ml.configs._base import RunConfig
+from atria_ml.configs._task import TrainingTaskConfig
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
 from atria_ml.training.engines._test_engine import (
@@ -57,7 +57,7 @@ class TrainerState:
 
 
 class Trainer:
-    def __init__(self, config: RunConfig, local_rank: int = 0) -> None:
+    def __init__(self, config: TrainingTaskConfig, local_rank: int = 0) -> None:
         self._config = config
         self._state: TrainerState = self._build(local_rank=local_rank)
 
