@@ -590,7 +590,7 @@
             "deeplift_shap": {
                 "hash": "08707dba",
                 "config": {
-                    "module_path": "torchxai.explainers._grad.deeplift_shap.DeepLiftShapExplainer",
+                    "module_path": "torchxai.explainers._grad._deeplift_shap.DeepLiftShapExplainer",
                     "internal_batch_size": 64,
                     "grad_batch_size": 64,
                     "type": "grad/deeplift_shap"
