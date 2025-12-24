@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from abc import abstractmethod
 from pathlib import Path
-from typing import Generic
+from typing import Any, Generic
 
 import torch
 from atria_registry._module_base import ConfigurableModule
@@ -143,8 +143,7 @@ class ExplainabilityMetric(
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-        multi_target: bool = False,
-    ) -> dict[str, torch.Tensor]:
+    ) -> dict[str, Any]:
         """Execute the metric function. Must be implemented by subclasses."""
         pass
 
@@ -154,7 +153,6 @@ class ExplainabilityMetric(
         batch_metric_data = []
         for sample_id in sample_ids:
             cached_data = self._cacher.load_sample(sample_id)
-            print("cached_data", cached_data)
             batch_metric_data.append(cached_data)
         loaded_metric_data = BatchMetricData.fromlist(batch_metric_data)
 
@@ -212,9 +210,7 @@ class ExplainabilityMetric(
 
         # compute metric
         metric_output = self._update(
-            explanation_inputs=explanation_inputs,
-            explanations=explanations,
-            multi_target=explanation_inputs.is_multi_target,
+            explanation_inputs=explanation_inputs, explanations=explanations
         )
 
         # Measure end time

@@ -8,6 +8,9 @@ from atria_registry import ModuleConfig
 from pydantic import model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
+from atria_insights.baseline_generators._feature_based import (
+    FeatureBasedBaselineGeneratorConfig,
+)
 from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainers._torchxai import (

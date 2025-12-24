@@ -44,16 +44,6 @@ from atria_insights.model_pipelines.baseline_generators._sequence import (
 logger = get_logger(__name__)
 
 
-def _get_first_layer(module, name=None):
-    children = list(module.named_children())
-    if len(children) > 0:
-        return _get_first_layer(
-            children[0][1],
-            name=children[0][0] if name is None else name + "." + children[0][0],
-        )
-    return name, module
-
-
 class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
     feature_segmentor: FeatureSegmentorConfigType = SequenceFeatureMaskSegmentorConfig()
     baseline_generator: BaselineGeneratorConfigType = SequenceBaselineGeneratorConfig()

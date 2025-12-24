@@ -568,6 +568,7 @@ dependencies = [
     { name = "atria-types" },
     { name = "coloredlogs" },
     { name = "fire" },
+    { name = "h5typer" },
     { name = "joblib" },
     { name = "jupytext" },
     { name = "torchxai" },
@@ -598,6 +599,7 @@ requires-dist = [
     { name = "atria-types", editable = "atria_types" },
     { name = "coloredlogs", specifier = ">=15.0.1" },
     { name = "fire", specifier = ">=0.7.1" },
+    { name = "h5typer", specifier = ">=0.2.0" },
     { name = "joblib", specifier = ">=1.5.2" },
     { name = "jupytext", specifier = ">=1.18.1" },
     { name = "torchxai", editable = "../torchxai" },
@@ -1340,6 +1342,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/0a/f74d589883b13737021b2049ac796328f188dbb60c2ed35b101f5b95a3fc/h5py-3.15.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:ca8a3a22458956ee7b40d8e39c9a9dc01f82933e4c030c964f8b875592f4d831", size = 4617295, upload-time = "2025-10-16T10:34:04.154Z" },
     { url = "https://files.pythonhosted.org/packages/23/95/499b4e56452ef8b6c95a271af0dde08dac4ddb70515a75f346d4f400579b/h5py-3.15.1-cp311-cp311-win_amd64.whl", hash = "sha256:550e51131376889656feec4aff2170efc054a7fe79eb1da3bb92e1625d1ac878", size = 2882129, upload-time = "2025-10-16T10:34:06.886Z" },
     { url = "https://files.pythonhosted.org/packages/ce/bb/cfcc70b8a42222ba3ad4478bcef1791181ea908e2adbd7d53c66395edad5/h5py-3.15.1-cp311-cp311-win_arm64.whl", hash = "sha256:b39239947cb36a819147fc19e86b618dcb0953d1cd969f5ed71fc0de60392427", size = 2477121, upload-time = "2025-10-16T10:34:09.579Z" },
+]
+
+[[package]]
+name = "h5typer"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h5py" },
+    { name = "numpy" },
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/30/b4/fa2f6143b4d79722720423600bfcec01e7633f7c603cadb12275288a22e4/h5typer-0.2.0.tar.gz", hash = "sha256:642f1777a799b74023d696d8402753b2a708dbda019f777be6e01dab6af9fad3", size = 9657, upload-time = "2025-11-18T07:37:32.263Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/34/29/03d81937c825ff1ac3866003b7380b4e26e6b7a37f300f152021fc10c401/h5typer-0.2.0-py3-none-any.whl", hash = "sha256:3835a95177bab7c060dfa485021397e624e646b57a8f3c6cc0e295117ed088eb", size = 8712, upload-time = "2025-11-18T07:37:30.901Z" },
 ]
 
 [[package]]

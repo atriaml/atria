@@ -30,7 +30,7 @@ class BatchExplanationInputs(BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
     frozen_features: list[torch.Tensor] | None = None
-    feature_keys: tuple[str, ...] | None = None
+    feature_keys: tuple[str, ...]
 
     @property
     def is_multi_target(self) -> bool:

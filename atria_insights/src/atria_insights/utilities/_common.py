@@ -7,6 +7,16 @@ if TYPE_CHECKING:
     import torch
 
 
+def _get_first_layer(module, name=None):
+    children = list(module.named_children())
+    if len(children) > 0:
+        return _get_first_layer(
+            children[0][1],
+            name=children[0][0] if name is None else name + "." + children[0][0],
+        )
+    return name, module
+
+
 def _map_tensor_tuples_to_keys(
     tensor_tuple: tuple[torch.Tensor, ...], keys: tuple[str, ...]
 ) -> OrderedDict[str, torch.Tensor]:
