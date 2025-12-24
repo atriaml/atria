@@ -15,6 +15,7 @@ from torchxai.explainers import Explainer
 from torchxai.ignite._utilities import get_logger
 
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
+from atria_insights.data_types._explanation_state import MultiTargetBatchExplanation
 from atria_insights.data_types._metric_data import BatchMetricData
 from atria_insights.engines._explanation_step import ExplanationStepOutput
 from atria_insights.explainability_metrics._base import T_ExplainabilityMetricConfig
@@ -81,6 +82,7 @@ class ExplainabilityMetric(
     def _prepare_baselines(
         self, explanation_inputs: BatchExplanationInputs
     ) -> torch.Tensor | tuple[torch.Tensor, ...]:
+        print("explanation_inputs", explanation_inputs)
         if isinstance(explanation_inputs.inputs, tuple):
             assert explanation_inputs.feature_keys is not None, (
                 "Feature keys must be provided when inputs are given as tuple"
@@ -202,9 +204,16 @@ class ExplainabilityMetric(
             self._device
         )
 
+        # convert explanations to list if multi-target
+        if isinstance(explanation_state.explanations, MultiTargetBatchExplanation):
+            explanations = [e.value for e in explanation_state.explanations.value]
+        else:
+            explanations = explanation_state.explanations.value
+
+        # compute metric
         metric_output = self._update(
             explanation_inputs=explanation_inputs,
-            explanations=explanation_state.explanations,
+            explanations=explanations,
             multi_target=explanation_inputs.is_multi_target,
         )
 

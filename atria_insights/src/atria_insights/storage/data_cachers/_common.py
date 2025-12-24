@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
@@ -13,4 +15,6 @@ class SerializableSampleData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
     sample_id: str
     attrs: dict[str, AttributeType] | None = None
-    tensors: dict[str, dict[str, torch.Tensor] | torch.Tensor | list[str]] | None = None
+    tensors: (
+        dict[str, OrderedDict[str, torch.Tensor] | torch.Tensor | list[str]] | None
+    ) = None

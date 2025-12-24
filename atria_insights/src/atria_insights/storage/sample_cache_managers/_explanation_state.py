@@ -33,7 +33,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         self._dump_config()
 
     def _dump_config(self) -> dict:
-        with open("config.yaml", "w") as f:
+        with open(self.file_path.with_suffix(".yaml"), "w") as f:
             f.write(self._config.to_yaml())
             return self._config.model_dump()
 
@@ -117,6 +117,9 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             frozen_features = torch.Tensor(frozen_features)
 
         if is_multitarget:
+            assert isinstance(data.tensors["explanations"], dict), (
+                "explanations must be a dict for single-target scenario."
+            )
             explanations = _map_tensor_dicts_to_tuples(
                 data.tensors["explanations"], tuple(feature_keys)
             )

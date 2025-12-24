@@ -35,9 +35,7 @@ class ExplanationEngine(
         self._engine_step, self._engine = self._build_engine()
         if self._config.compute_metrics:
             self._x_metrics = self._deps.x_model_pipeline.build_metrics(
-                device=self._deps.device,
-                persist_to_disk=self._config.enable_outputs_caching,
-                cache_dir=self._deps.output_dir,
+                device=self._deps.device
             )
         else:
             self._x_metrics = None
@@ -45,10 +43,7 @@ class ExplanationEngine(
 
     def _build_engine_step(self) -> EngineStep:
         return ExplanationStep(
-            x_model_pipeline=self._deps.x_model_pipeline,
-            device=self._deps.device,
-            persist_to_disk=self._config.enable_outputs_caching,
-            cache_dir=self._deps.output_dir,
+            x_model_pipeline=self._deps.x_model_pipeline, device=self._deps.device
         )
 
     def _attach_metrics(self) -> None:
