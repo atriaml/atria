@@ -46,7 +46,7 @@ exclude = ["venv", ".venv", "alembic"]
 addopts = "-rXs --strict-config --strict-markers --tb=short"
 xfail_strict = true         # Treat tests that are marked as xfail but pass as test failures
 # filterwarnings = ["error"]  # Treat all warnings as errors
-pythonpath = ["atriax_agents"]
+pythonpath = ["atria_insights", "."]  # Add these paths to PYTHONPATH when running tests
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
