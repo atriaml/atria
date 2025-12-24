@@ -5,7 +5,7 @@ from typing import TypeVar
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 
-from atria_insights.storage.data_cachers._common import CacheData
+from atria_insights.storage.data_cachers._common import SerializableSampleData
 
 logger = get_logger(__name__)
 
@@ -24,7 +24,7 @@ class DataCacher(ABC):
     def list_sample_keys(self) -> list[str]: ...
 
     @abstractmethod
-    def save_sample(self, data: CacheData) -> None: ...
+    def save_sample(self, data: SerializableSampleData) -> None: ...
 
     @abstractmethod
-    def load_sample(self, sample_key: str) -> CacheData: ...
+    def load_sample(self, sample_key: str) -> SerializableSampleData: ...

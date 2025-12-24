@@ -5,7 +5,8 @@ from typing import Self
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
-from pydantic import BaseModel, ConfigDict
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict, model_validator
 from torchxai.data_types import BatchExplanationTarget, SampleExplanationTarget
 
 from atria_insights.utilities._common import _to_device
@@ -15,7 +16,192 @@ BaselineType = torch.Tensor | tuple[torch.Tensor]
 logger = get_logger(__name__)
 
 
-class SampleExplanationState(BaseModel):
+class SampleExplanation(RepresentationMixin, BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    value: tuple[torch.Tensor, ...]
+
+    @property
+    def device(self) -> torch.device:
+        return self.value[0].device
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].shape[0]
+
+    @property
+    def n_features(self) -> int:
+        return len(self.value)
+
+    @model_validator(mode="after")
+    def check_batch_size(self) -> Self:
+        batch_sizes = {tensor.shape[0] for tensor in self.value}
+        if len(batch_sizes) != 1:
+            raise ValueError(
+                f"All tensors in explanation must have the same batch size, got batch sizes: {batch_sizes}"
+            )
+        return self
+
+
+class MultiTargetSampleExplanation(RepresentationMixin, BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    value: list[SampleExplanation]
+
+    @property
+    def device(self) -> torch.device:
+        return self.value[0].device
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].batch_size
+
+    @property
+    def n_targets(self) -> int:
+        return len(self.value)
+
+    @property
+    def n_features(self) -> int:
+        return self.value[0].n_features
+
+
+class BatchExplanation(RepresentationMixin, BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    value: tuple[torch.Tensor, ...]
+
+    @property
+    def device(self) -> torch.device:
+        return self.value[0].device
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].shape[0]
+
+    @property
+    def n_features(self) -> int:
+        return len(self.value)
+
+    @classmethod
+    def fromlist(cls, data: list[SampleExplanation]) -> BatchExplanation:
+        explanations = tuple(
+            torch.cat([sample_expl.value[i] for sample_expl in data], dim=0)
+            for i in range(len(data[0].value))
+        )
+        return cls(value=explanations)
+
+    def tolist(self) -> list[SampleExplanation]:
+        batch_size = self.batch_size
+        sample_explanations = []
+        for sample_idx in range(batch_size):
+            sample_tensors = tuple(
+                tensor[sample_idx].unsqueeze(0) for tensor in self.value
+            )
+            sample_explanations.append(SampleExplanation(value=sample_tensors))
+        return sample_explanations
+
+    def to_device(self, device: str | torch.device = "cpu") -> Self:
+        return self.model_copy(
+            update={"value": tuple(tensor.to(device) for tensor in self.value)}
+        )
+
+
+class MultiTargetBatchExplanation(RepresentationMixin, BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    value: list[BatchExplanation]
+
+    @property
+    def device(self) -> torch.device:
+        return self.value[0].device
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].batch_size
+
+    @property
+    def n_targets(self) -> int:
+        return len(self.value)
+
+    @property
+    def n_features(self) -> int:
+        return self.value[0].n_features
+
+    @classmethod
+    def fromlist(
+        cls, data: list[MultiTargetSampleExplanation]
+    ) -> MultiTargetBatchExplanation:
+        # make sure all targets are same
+        first_n_target = data[0].n_targets
+        assert all(d.n_targets == first_n_target for d in data), (
+            "All SampleMultiTargetExplanation instances must have the same number of targets."
+        )
+
+        # make sure all features are same
+        first_n_features = data[0].n_features
+        assert all(d.n_features == first_n_features for d in data), (
+            "All SampleMultiTargetExplanation instances must have the same number of features."
+        )
+
+        # for target explanations we need to collect per target
+        per_target_batch_explanations = []
+        for target_idx in range(first_n_target):
+            batch_explanations = BatchExplanation.fromlist(
+                [d.value[target_idx] for d in data]
+            )
+            per_target_batch_explanations.append(batch_explanations)
+        batched = cls(value=per_target_batch_explanations)
+
+        assert batched.batch_size == len(data), (
+            "Batched explanation batch size does not match number of samples."
+        )
+        assert batched.n_targets == data[0].n_targets, (
+            "Number of targets in batched explanation does not match number of targets in samples."
+        )
+        assert batched.n_features == data[0].n_features, (
+            "Number of features in batched explanation does not match number of features in samples."
+        )
+        return batched
+
+    def tolist(self) -> list[MultiTargetSampleExplanation]:
+        per_target_sample_explanations = [
+            target_batch_expl.tolist() for target_batch_expl in self.value
+        ]
+        # now we need to transpose per target list into per sample list
+        n_samples = self.batch_size
+        multi_target_sample_explanations = []
+        for sample_idx in range(n_samples):
+            sample_explanations = [
+                per_target_sample_explanations[target_idx][sample_idx]
+                for target_idx in range(self.n_targets)
+            ]
+            multi_target_sample_explanations.append(
+                MultiTargetSampleExplanation(value=sample_explanations)
+            )
+        return multi_target_sample_explanations
+
+
+class SampleExplanationState(RepresentationMixin, BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         validate_assignment=True,
@@ -28,12 +214,17 @@ class SampleExplanationState(BaseModel):
     target: SampleExplanationTarget | list[SampleExplanationTarget] | None = None
     feature_keys: tuple[str, ...]
     frozen_features: torch.Tensor | None = None
-    explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]
+    explanations: SampleExplanation | MultiTargetSampleExplanation
     model_outputs: torch.Tensor
-    is_multitarget: bool = False
+
+    @property
+    def is_multitarget(self) -> bool:
+        if isinstance(self.explanations, MultiTargetSampleExplanation):
+            return True
+        return False
 
 
-class BatchExplanationState(BaseModel):
+class BatchExplanationState(RepresentationMixin, BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         validate_assignment=True,
@@ -46,7 +237,7 @@ class BatchExplanationState(BaseModel):
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
     feature_keys: tuple[str, ...]
     frozen_features: list[torch.Tensor] | None = None
-    explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]
+    explanations: BatchExplanation | MultiTargetBatchExplanation
     model_outputs: torch.Tensor
 
     @property
@@ -100,20 +291,10 @@ class BatchExplanationState(BaseModel):
                     "All targets must be instances of SampleExplanationTarget."
                 )
 
-        for sample_idx in range(batch_size):
-            if isinstance(self.explanations, list):
-                explanation = [
-                    tuple(
-                        explanation[sample_idx].unsqueeze(0)
-                        for explanation in self.explanations
-                    )
-                ]
-            else:
-                explanation = tuple(
-                    explanation[sample_idx].unsqueeze(0)
-                    for explanation in self.explanations
-                )
+        # create explanation states per sample
+        explanations = self.explanations.tolist()
 
+        for sample_idx in range(batch_size):
             sample_expl_state = SampleExplanationState(
                 sample_id=self.sample_id[sample_idx],
                 target=targets[sample_idx],
@@ -123,15 +304,16 @@ class BatchExplanationState(BaseModel):
                     if self.frozen_features is not None
                     else None
                 ),
-                explanations=explanation,
+                explanations=explanations[sample_idx],
                 model_outputs=self.model_outputs[sample_idx].unsqueeze(0),
-                is_multitarget=self.is_multitarget,
             )
             explanation_states.append(sample_expl_state)
         return explanation_states
 
     @classmethod
     def fromlist(cls, data: list[SampleExplanationState]) -> BatchExplanationState:
+        assert len(data) > 0, "Data list must not be empty."
+
         sample_id = [d.sample_id for d in data]
         is_multitarget = data[0].is_multitarget
         assert all(d.is_multitarget == is_multitarget for d in data), (
@@ -153,31 +335,21 @@ class BatchExplanationState(BaseModel):
                 frozen_features.append(d.frozen_features)
 
         if is_multitarget:
-            explanations_list = [d.explanations for d in data]
-            # explanations_list is now a list of lists of tuples
-            # we need to transpose this into list of tuples of lists
-            # so that we can batch per target
-            transposed_explanations = list(
-                map(list, zip(*explanations_list, strict=True))
-            )
-            explanations = [
-                tuple(
-                    torch.cat(
-                        [
-                            d_explanations[tgt_idx]
-                            for d_explanations in explanations_list
-                        ],
-                        dim=0,
-                    )
-                    for tgt_idx in range(len(transposed_explanations))
+            sample_mt_explanations = []
+            for d in data:
+                assert isinstance(d.explanations, MultiTargetSampleExplanation), (
+                    "All explanations must be of type SampleMultiTargetExplanation in multi-target case."
                 )
-                for tgt_idx in range(len(transposed_explanations))
-            ]
+                sample_mt_explanations.append(d.explanations)
+            explanations = MultiTargetBatchExplanation.fromlist(sample_mt_explanations)
         else:
-            explanations = tuple(
-                torch.cat([d.explanations[i] for d in data], dim=0)
-                for i in range(len(data[0].explanations))
-            )
+            explanations_list = []
+            for d in data:
+                assert isinstance(d.explanations, SampleExplanation), (
+                    "All explanations must be of type SampleExplanation in single-target case."
+                )
+                explanations_list.append(d.explanations)
+            explanations = BatchExplanation.fromlist(explanations_list)
 
         model_outputs = torch.cat([d.model_outputs for d in data], dim=0)
 

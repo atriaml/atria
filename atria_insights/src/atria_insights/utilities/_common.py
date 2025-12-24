@@ -9,10 +9,8 @@ if TYPE_CHECKING:
 
 def _map_tensor_tuples_to_keys(
     tensor_tuple: tuple[torch.Tensor, ...], keys: tuple[str, ...]
-) -> OrderedDict[str, torch.Tensor]:
-    return OrderedDict(
-        (feature_key, tensor_tuple[idx]) for idx, feature_key in enumerate(keys)
-    )
+) -> dict[str, torch.Tensor]:
+    return {key: tensor_tuple[idx] for idx, key in enumerate(keys)}
 
 
 # map back arrays to feature keys

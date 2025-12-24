@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 from atria_registry import ModuleConfig
@@ -22,12 +23,17 @@ class ExplainabilityMetricConfig(ModuleConfig):
     def build(  # type: ignore
         self,
         model: torch.nn.Module,
-        with_amp: bool = False,
-        device: torch.device | str = "cpu",
         explainer: Explainer | None = None,
+        device: torch.device | str = "cpu",
+        persist_to_disk: bool = True,
+        cache_dir: str | Path | None = None,
     ) -> Explainer:
         return super().build(
-            model=model, explainer=explainer, with_amp=with_amp, device=device
+            model=model,
+            explainer=explainer,
+            device=device,
+            persist_to_disk=persist_to_disk,
+            cache_dir=cache_dir,
         )
 
 

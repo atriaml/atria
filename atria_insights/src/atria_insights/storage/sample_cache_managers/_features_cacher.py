@@ -4,7 +4,7 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger import get_logger
 
 from atria_insights.data_types._features import SampleFeatures
-from atria_insights.storage.data_cachers._common import CacheData
+from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
 from atria_insights.utilities._common import (
     _map_tensor_dicts_to_tuples,
@@ -19,27 +19,36 @@ class FeaturesCacher(BaseSampleCacheManager[SampleFeatures]):
         # create a child cache dir for the given explainer
         super().__init__(cache_dir=Path(cache_dir), file_name=file_name)
 
-    def _to_cache_data(self, data: SampleFeatures) -> CacheData:
-        return CacheData(
+    def _serialize_type(self, data: SampleFeatures) -> SerializableSampleData:
+        return SerializableSampleData(
             sample_id=data.sample_id,
-            attrs={"sample_id": data.sample_id, "feature_keys": data.feature_keys},
+            attrs={
+                "sample_id": data.sample_id,
+                "feature_keys": list(data.feature_keys),
+            },
             tensors={
                 "features": _map_tensor_tuples_to_keys(data.features, data.feature_keys)
             },
         )
 
-    def _from_cache_data(self, data: CacheData) -> SampleFeatures:
+    def _deserialize_type(self, data: SerializableSampleData) -> SampleFeatures:
         assert data.attrs is not None, "attrs must be provided in CacheData."
         assert data.tensors is not None, "tensors must be provided in CacheData."
+        sample_id = data.attrs.get("sample_id")
+        assert isinstance(sample_id, str), "sample_id must be a string."
 
         feature_keys = data.attrs.get("feature_keys")
-        assert feature_keys is not None, "feature_keys must be provided in attrs."
+        assert isinstance(feature_keys, list), "feature_keys must be a list."
 
-        features = _map_tensor_dicts_to_tuples(
-            data.tensors["features"], tuple(feature_keys)
+        features = data.tensors.get("features")
+        assert features is not None, "features must be provided in tensors."
+        assert isinstance(features, dict), (
+            "features must be a dict of feature_key -> tensor."
         )
+
+        features = _map_tensor_dicts_to_tuples(features, tuple(feature_keys))  # type: ignore
         return SampleFeatures(
-            sample_id=data.attrs["sample_id"],
-            feature_keys=feature_keys,
+            sample_id=sample_id,
+            feature_keys=tuple(feature_keys),  # type: ignore
             features=features,
         )

@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 class ExplanationEngineConfig(EngineConfig):
     enable_outputs_caching: bool = True
+    compute_metrics: bool = True
 
 
 class ExplanationEngineDependencies(EngineDependencies):
@@ -32,9 +33,14 @@ class ExplanationEngine(
         self._config = config
         self._deps = deps
         self._engine_step, self._engine = self._build_engine()
-        self._x_metrics = self._deps.x_model_pipeline.build_metrics(
-            device=self._deps.device
-        )
+        if self._config.compute_metrics:
+            self._x_metrics = self._deps.x_model_pipeline.build_metrics(
+                device=self._deps.device,
+                persist_to_disk=self._config.enable_outputs_caching,
+                cache_dir=self._deps.output_dir,
+            )
+        else:
+            self._x_metrics = None
         self._attach_handlers()
 
     def _build_engine_step(self) -> EngineStep:

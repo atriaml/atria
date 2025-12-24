@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -11,7 +10,6 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
-from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
 
 from atria_insights.configs.explainer_config import ExplanationTaskConfig
@@ -84,7 +82,7 @@ class ModelExplainer:
         return tb_logger
 
     def _build_explanation_engine(
-        self, total_samples: int | None = None
+        self, total_samples: int | None = None, compute_metrics: bool = True
     ) -> ExplanationEngine:
         import torch
 
@@ -100,6 +98,7 @@ class ModelExplainer:
                 test_run=self._config.test_run,
                 use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
                 enable_outputs_caching=self._config.enable_outputs_caching,
+                compute_metrics=compute_metrics,
             ),
             deps=ExplanationEngineDependencies(
                 model_pipeline=self._state.x_model_pipeline._model_pipeline,
@@ -195,16 +194,8 @@ class ModelExplainer:
         # generate baseline features
         training_baseline_features_generation_engine.run()
 
-        # then we build the explanation engine
+        # then we build the explanation engine first to compute the explanations
         explanation_engine = self._build_explanation_engine(total_samples=total_samples)
 
         # run explanation engine
-        state = explanation_engine.run(checkpoint_path=checkpoint_path)
-        if len(state.metrics) > 0:
-            metrics = _format_metrics_for_logging(state.metrics)
-            logger.info("Final explanation metrics:")
-            logger.info(json.dumps(metrics, indent=4))
-
-            # serialize test metrics
-            self._config.dump_metrics_file(data=metrics)  #  type: ignore
-        return state
+        return explanation_engine.run(checkpoint_path=checkpoint_path)

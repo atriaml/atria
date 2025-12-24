@@ -5,7 +5,7 @@ from typing import Generic, TypeVar
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 
-from atria_insights.storage.data_cachers._common import CacheData
+from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.data_cachers._hdf5 import HDF5DataCacher
 
 logger = get_logger(__name__)
@@ -32,18 +32,18 @@ class BaseSampleCacheManager(Generic[T]):
         return self._cacher.sample_exists(sample_key)
 
     def save_sample(self, data: T) -> None:
-        cached_data = self._to_cache_data(data)
+        cached_data = self._serialize_type(data)
         self._cacher.save_sample(cached_data)
 
     def load_sample(self, sample_key: str) -> T:
         cache_data = self._cacher.load_sample(sample_key)
-        return self._from_cache_data(cache_data)
+        return self._deserialize_type(cache_data)
 
     def list_sample_keys(self) -> list[str]:
         return self._cacher.list_sample_keys()
 
     @abstractmethod
-    def _to_cache_data(self, data: T) -> CacheData: ...
+    def _serialize_type(self, data: T) -> SerializableSampleData: ...
 
     @abstractmethod
-    def _from_cache_data(self, data: CacheData) -> T: ...
+    def _deserialize_type(self, data: SerializableSampleData) -> T: ...

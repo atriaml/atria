@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from abc import abstractmethod
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any, Generic
 
 import torch
@@ -349,7 +350,12 @@ class ExplainableModelPipeline(
             model_outputs=model_outputs,
         )
 
-    def build_metrics(self, device: torch.device | str = "cpu") -> dict[str, Metric]:
+    def build_metrics(
+        self,
+        device: torch.device | str = "cpu",
+        persist_to_disk: bool = False,
+        cache_dir: str | Path | None = None,
+    ) -> dict[str, Metric]:
         if self.config.explainability_metrics is None:
             return {}
 
@@ -360,6 +366,10 @@ class ExplainableModelPipeline(
                 "Building explainability metric '%s' with config: %s", key, value
             )
             x_metrics[key] = value.build(
-                model=self._wrapped_model, explainer=self._explainer, device=device
+                model=self._wrapped_model,
+                explainer=self._explainer,
+                device=device,
+                persist_to_disk=persist_to_disk,
+                cache_dir=cache_dir,
             )
         return x_metrics

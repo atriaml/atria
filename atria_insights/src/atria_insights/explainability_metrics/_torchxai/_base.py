@@ -11,12 +11,11 @@ import torch
 from atria_registry._module_base import ConfigurableModule
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
-from ignite.utils import apply_to_tensor
-from torch.cuda.amp.autocast_mode import autocast
 from torchxai.explainers import Explainer
 from torchxai.ignite._utilities import get_logger
 
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
+from atria_insights.data_types._metric_data import BatchMetricData
 from atria_insights.engines._explanation_step import ExplanationStepOutput
 from atria_insights.explainability_metrics._base import T_ExplainabilityMetricConfig
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
@@ -41,24 +40,22 @@ class ExplainabilityMetric(
         self,
         model: torch.nn.Module,
         explainer: Explainer,
-        config: T_ExplainabilityMetricConfig,
-        with_amp: bool = False,
+        config: T_ExplainabilityMetricConfig | None = None,
         device="cpu",
-        persist_to_disk: bool = False,
+        persist_to_disk: bool = True,
         cache_dir: str | Path | None = None,
     ):
         ConfigurableModule.__init__(self, config=config)
 
         self._model = model
-        self._with_amp = with_amp
 
         self._results = []
         self._num_examples = 0
 
         # baseline generator
         self._explainer = explainer
-        self._baselines_generator = config.baselines_generator.build(model=model)
-        self._feature_segmentor = config.feature_segmentor.build()
+        self._baselines_generator = self.config.baselines_generator.build(model=model)
+        self._feature_segmentor = self.config.feature_segmentor.build()
 
         # cache to disk
         self._persist_to_disk = persist_to_disk
@@ -66,9 +63,7 @@ class ExplainabilityMetric(
             assert cache_dir is not None, (
                 "cache_dir must be provided if caching is enabled"
             )
-            self._cacher = MetricDataCacher(
-                cache_dir=cache_dir, config=x_model_pipeline.config
-            )
+            self._cacher = MetricDataCacher(cache_dir=cache_dir, config=self.config)
 
             logger.info("Explanation caching enabled.")
             logger.info(f"Storing outputs to file = {self._cacher.file_path}")
@@ -151,30 +146,67 @@ class ExplainabilityMetric(
         """Execute the metric function. Must be implemented by subclasses."""
         pass
 
+    def _load_from_disk(self, sample_ids: list[str]) -> dict[str, torch.Tensor]:
+        """Load metric data from disk cache."""
+        # load full batch from cache
+        batch_metric_data = []
+        for sample_id in sample_ids:
+            cached_data = self._cacher.load_sample(sample_id)
+            print("cached_data", cached_data)
+            batch_metric_data.append(cached_data)
+        loaded_metric_data = BatchMetricData.fromlist(batch_metric_data)
+
+        logger.debug(
+            f"Loaded cached metric data for full batch of size {len(sample_ids)} from disk."
+        )
+
+        return loaded_metric_data.data
+
     @reinit__is_reduced
     def update(self, explanation_step_output: ExplanationStepOutput) -> None:
         """
         Update internal state with output from engine.
         output_transform must return dict with key 'metric_kwargs'.
         """
+        if self._persist_to_disk:
+            # check if full batch is already done
+            is_batch_done = True
+            for sample_id in explanation_step_output.explanation_inputs.sample_id:
+                if not self._cacher.sample_exists(sample_id):
+                    is_batch_done = False
+                    break
+
+            if is_batch_done:
+                # load full batch from cache
+                logger.debug(
+                    f"Found cached explanations for full batch of size {len(explanation_step_output.explanation_inputs.sample_id)} from disk."
+                )
+                data = self._load_from_disk(
+                    sample_ids=explanation_step_output.explanation_inputs.sample_id
+                )
+                self._results.append(data)
+                self._num_examples += (
+                    explanation_step_output.explanation_inputs.batch_size
+                )
+                return
+
         # Measure execution time
         start_time = time.time()
 
         # Compute metric
-        with autocast(enabled=self._with_amp):
-            # put items to device
-            explanation_inputs = explanation_step_output.explanation_inputs.to_device(
-                self._device
-            )
-            explanation_state = explanation_step_output.explanation_state.to_device(
-                self._device
-            )
+        # put items to device
+        explanation_inputs = explanation_step_output.explanation_inputs.to_device(
+            self._device
+        )
+        explanation_state = explanation_step_output.explanation_state.to_device(
+            self._device
+        )
 
-            metric_output = self._update(
-                explanation_inputs=explanation_inputs,
-                explanations=explanation_state.explanations,
-                multi_target=explanation_inputs.is_multi_target,
-            )
+        metric_output = self._update(
+            explanation_inputs=explanation_inputs,
+            explanations=explanation_state.explanations,
+            multi_target=explanation_inputs.is_multi_target,
+        )
 
         # Measure end time
         end_time = time.time()
@@ -188,14 +220,19 @@ class ExplainabilityMetric(
             ]
         )
 
-        # detach tensors to move them to CPU
-        metric_output = apply_to_tensor(
-            metric_output, lambda tensor: tensor.detach().cpu()
+        metric_data = BatchMetricData(
+            sample_id=explanation_inputs.sample_id,
+            data={**metric_output, "sample_exec_time": sample_exec_time},
         )
+
+        # save to disk
+        if self._persist_to_disk:
+            for sample_metric_data in metric_data.tolist():
+                self._cacher.save_sample(sample_metric_data)
 
         # Accumulate results
         self._num_examples += explanation_inputs.batch_size
-        self._results.append({**metric_output, "sample_exec_time": sample_exec_time})  # type: ignore
+        self._results.append(metric_data.data)
 
     # -----------------------------------------------------------------
     def compute(self):

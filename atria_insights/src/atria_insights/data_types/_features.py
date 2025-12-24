@@ -5,7 +5,7 @@ from collections import OrderedDict
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 logger = get_logger(__name__)
 
@@ -31,6 +31,14 @@ class BatchFeatures(BaseModel):
         if not data:
             raise ValueError("data list is empty")
 
+        # make sure all samples have the same feature keys
+        first_feature_keys = data[0].feature_keys
+        for d in data:
+            if d.feature_keys != first_feature_keys:
+                raise ValueError(
+                    "All SampleFeatures must have the same feature_keys to form a batch."
+                )
+
         feature_keys = data[0].feature_keys
         sample_ids = [d.sample_id for d in data]
         features = tuple(
@@ -49,3 +57,12 @@ class SampleFeatures(BaseModel):
     sample_id: str
     feature_keys: tuple[str, ...]
     features: tuple[torch.Tensor, ...]
+
+    @model_validator(mode="after")
+    def _validate_features_length(self) -> SampleFeatures:
+        assert len(self.features) > 0, "features must contain at least one tensor."
+        if len(self.feature_keys) != len(self.features):
+            raise ValueError(
+                "Length of feature_keys must match length of features tensors."
+            )
+        return self
