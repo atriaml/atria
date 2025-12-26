@@ -156,7 +156,6 @@ class EncoderBlock(nn.Module):
         all_attentions = ()
         last_hidden_state = hidden_state
 
-        print("last_hidden_state 0", last_hidden_state.sum().item())
         for i, layer_module in enumerate(self.layers):
             if self.config.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_state,)
@@ -167,7 +166,6 @@ class EncoderBlock(nn.Module):
             )
 
             last_hidden_state = layer_outputs.hidden_state
-            print(f"last_hidden_state {i}", last_hidden_state.sum().item())
             if self.config.output_attentions:
                 all_attentions = all_attentions + (layer_outputs.attentions,)
 
