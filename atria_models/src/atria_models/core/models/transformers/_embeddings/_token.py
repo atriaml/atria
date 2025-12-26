@@ -2,15 +2,16 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 import torch
+from torch import nn
+
 from atria_models.core.models.transformers._configs._encoder_model import (
     EmbeddingsConfig,
 )
-from torch import nn
 
 
 @dataclass(frozen=True)
 class TokenEmbeddingOutputs:
-    token_embeddings: torch.Tensor | None = None
+    token_embeddings: torch.Tensor
     position_embeddings: torch.Tensor | None = None
     token_type_embeddings: torch.Tensor | None = None
 
@@ -20,7 +21,7 @@ class TokenEmbeddingOutputs:
             total = total + self.token_type_embeddings
         return total
 
-    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor]:
+    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor | None]:
         return OrderedDict(
             token_embeddings=self.token_embeddings,
             position_embeddings=self.position_embeddings,
@@ -54,12 +55,12 @@ class TokenEmbeddings(nn.Module):
     def _build_buffers(self):
         self.register_buffer(
             "position_ids",
-            torch.arange(self._config.max_position_embeddings).unsqueeze(0),
+            torch.arange(self._config.max_position_embeddings).expand((1, -1)),
             persistent=False,
         )
         self.register_buffer(
             "token_type_ids",
-            torch.zeros((1, self._config.max_position_embeddings), dtype=torch.long),
+            torch.zeros(self.position_ids.size(), dtype=torch.long),
             persistent=False,
         )
 
