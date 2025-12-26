@@ -4,13 +4,13 @@ from pathlib import Path
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
-from torchxai.data_types import SampleExplanationTarget
 
 from atria_insights.data_types._explanation_state import (
     MultiTargetSampleExplanation,
     SampleExplanation,
     SampleExplanationState,
 )
+from atria_insights.data_types._targets import SampleExplanationTarget
 from atria_insights.model_pipelines._common import ExplainableModelPipelineConfig
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager

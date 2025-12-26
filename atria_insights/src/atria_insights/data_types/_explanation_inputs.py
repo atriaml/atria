@@ -6,8 +6,8 @@ import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
-from torchxai.data_types import BatchExplanationTarget
 
+from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.utilities._common import _to_device
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]

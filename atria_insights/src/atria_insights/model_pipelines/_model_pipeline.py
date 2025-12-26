@@ -13,7 +13,6 @@ from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
-from torchxai.data_types import BatchExplanationTarget
 from tqdm import tqdm
 
 from atria_insights.baseline_generators import SequenceBaselineGeneratorConfig
@@ -22,6 +21,7 @@ from atria_insights.data_types._explanation_state import (
     BatchExplanation,
     BatchExplanationState,
 )
+from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
 from atria_insights.feature_segmentors import SequenceFeatureMaskSegmentor
 from atria_insights.model_pipelines._common import (
@@ -316,6 +316,8 @@ class ExplainableModelPipeline(
     def explainer_forward(
         self, explanation_inputs: BatchExplanationInputs
     ) -> tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]:
+        from torchxai.data_types import ExplanationTarget
+
         # filster args here so there is no error on fowrard
         # verify that impossible args are not set
         kwargs = {}
@@ -336,24 +338,59 @@ class ExplainableModelPipeline(
             else:
                 logger.debug(f"  {k}: {type(v)}")
 
-        if self.config.iterative_computation and isinstance(
-            explanation_inputs.target, list
-        ):
+        def _map_target(
+            target: BatchExplanationTarget | list[BatchExplanationTarget] | None,
+        ) -> ExplanationTarget | list[ExplanationTarget]:
+            if target is None:
+                return ExplanationTarget.from_raw_input(None)
+            if isinstance(target, BatchExplanationTarget):
+                return ExplanationTarget.from_raw_input(target.value)
+            elif isinstance(target, list):
+                return [ExplanationTarget.from_raw_input(t.value) for t in target]
+            else:
+                raise ValueError(
+                    "Target must be of type BatchExplanationTarget, list of BatchExplanationTarget, or None."
+                )
+
+        # map targets
+        target = _map_target(kwargs.pop("target", None))
+
+        if self.config.iterative_computation and isinstance(target, list):
             # disable multi-target for iterative computation
             self._explainer.multi_target = False
 
-            target = explanation_inputs.target
             per_target_explanations = []
             for t in tqdm(target, desc="Computing explanations per target"):
-                kwargs = {**kwargs, "target": t}
-                curr_explanations = self._explainer.explain(**kwargs)
+                curr_explanations = self._explainer.explain(**kwargs, target=t)
+                assert isinstance(curr_explanations, tuple), (
+                    "Explainer returned invalid type during iterative computation. "
+                    "Expected tuple."
+                )
                 per_target_explanations.append(curr_explanations)
 
             # re-enable multi-target
             self._explainer.multi_target = True
             return per_target_explanations
         else:
-            return self._explainer.explain(**kwargs)
+            # we need to map the atria_insights target to torchxai target
+            explanations = self._explainer.explain(**kwargs, target=target)
+
+            # validated explanations
+            validated_explanations = []
+            if isinstance(explanations, tuple):
+                return explanations
+            elif isinstance(explanations, list):
+                for exp in explanations:
+                    if not isinstance(exp, tuple):
+                        raise ValueError(
+                            "Explainer returned a list but elements are not tuples."
+                        )
+                    validated_explanations.append(exp)
+                return validated_explanations
+            else:
+                raise ValueError(
+                    "Explainer returned invalid type. Expected tuple or list of tuples."
+                )
 
     def _validate_and_load_from_disk(
         self, explanation_inputs: BatchExplanationInputs, model_outputs: torch.Tensor

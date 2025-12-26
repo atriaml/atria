@@ -13,8 +13,8 @@ from atria_models.core.model_pipelines._image_pipeline import (
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_types._datasets import DatasetLabels
-from torchxai.data_types import BatchExplanationTarget
 
+from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.model_pipelines._common import (
     ExplainableModelPipelineConfig,
     ExplanationTargetStrategy,
