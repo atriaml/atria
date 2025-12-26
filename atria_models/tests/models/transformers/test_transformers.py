@@ -10,6 +10,10 @@ from atria_models.core.models.transformers._models._bert import (
     BertEncoderModel,
     BertEncoderModelConfig,
 )
+from atria_models.core.models.transformers._models._roberta import (
+    RoBertaEncoderModel,
+    RoBertaEncoderModelConfig,
+)
 
 
 @dataclass
@@ -29,12 +33,18 @@ MODEL_CONFIGS = {
     "bert-base-uncased": {
         "atria_config_factory": lambda: BertEncoderModelConfig(),
         "atria_model_factory": lambda config: BertEncoderModel(config),
-    }
+    },
+    "roberta-base": {
+        "atria_config_factory": lambda: RoBertaEncoderModelConfig(),
+        "atria_model_factory": lambda config: RoBertaEncoderModel(config),
+    },
 }
 
 
 @pytest.fixture(
-    scope="session", params=["bert-base-uncased"], ids=lambda x: x.replace("-", "_")
+    scope="session",
+    params=["bert-base-uncased", "roberta-base"],
+    ids=lambda x: x.replace("-", "_"),
 )
 def model_container(request) -> ModelTestContainer:
     """Create a model test container for the specified model."""
@@ -185,16 +195,20 @@ def _compare_model_outputs(
     container.atria_model.eval()
 
     with torch.no_grad():
-        hf_output = container.transformers_model(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            token_type_ids=inputs["token_type_ids"],
-        )
-        atria_output = container.atria_model(
-            tokens_ids_or_embedding=inputs["input_ids"],
-            token_type_ids_or_embeddings=inputs["token_type_ids"],
-            attention_mask=inputs["attention_mask"],
-        )
+        hf_inputs = {}
+        atria_inputs = {}
+        for key in ["input_ids", "attention_mask", "token_type_ids"]:
+            if key in inputs:
+                hf_inputs[key] = inputs[key]
+
+                if key == "input_ids":
+                    atria_inputs["tokens_ids_or_embedding"] = inputs[key]
+                elif key == "attention_mask":
+                    atria_inputs["attention_mask"] = inputs[key]
+                elif key == "token_type_ids":
+                    atria_inputs["token_types_ids_or_embedding"] = inputs[key]
+        hf_output = container.transformers_model(**hf_inputs)
+        atria_output = container.atria_model(**atria_inputs)
 
     values_match = torch.allclose(
         hf_output.last_hidden_state,
