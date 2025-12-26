@@ -24,29 +24,29 @@ class EncoderOutput:
 
 @dataclass(frozen=True)
 class SequenceClassificationHeadOutput:
-    loss: torch.FloatTensor | None = None
-    logits: torch.FloatTensor | None = None
+    loss: torch.Tensor | None = None
+    logits: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)
 class TokenClassificationHeadOutput:
-    loss: torch.FloatTensor | None = None
-    logits: torch.FloatTensor | None = None
+    loss: torch.Tensor | None = None
+    logits: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)
 class QuestionAnsweringHeadOutput:
-    loss: torch.FloatTensor | None = None
-    start_logits: torch.FloatTensor | None = None
-    end_logits: torch.FloatTensor | None = None
+    loss: torch.Tensor | None = None
+    start_logits: torch.Tensor | None = None
+    end_logits: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)
 class TransformersEncoderModelOutput:
-    last_hidden_state: torch.FloatTensor | None = None
-    pooler_output: torch.FloatTensor | None = None
-    hidden_states: tuple[torch.FloatTensor, ...] | None = None
-    attentions: tuple[torch.FloatTensor, ...] | None = None
+    last_hidden_state: torch.Tensor | None = None
+    pooler_output: torch.Tensor | None = None
+    hidden_states: tuple[torch.Tensor, ...] | None = None
+    attentions: tuple[torch.Tensor, ...] | None = None
     head_output: (
         SequenceClassificationHeadOutput
         | TokenClassificationHeadOutput

@@ -23,6 +23,7 @@ class CheckpointLoader:
 
     def load_from_checkpoint(self, checkpoint_path: str, strict: bool = False) -> None:
         """Load checkpoint from local path."""
+        logger.info(f"Loading checkpoint from: {checkpoint_path}")
         if checkpoint_path.startswith("hf://"):
             repo_id = checkpoint_path[5:]  # Remove 'hf://' prefix
             checkpoint_path = hf_hub_download(
