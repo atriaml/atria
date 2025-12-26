@@ -38,6 +38,13 @@ from atria_models.core.model_pipelines.utilities import (
     _postprocess_qa_predictions,
     log_tensors_debug_info,
 )
+from atria_models.core.models.transformers._models._encoder_model import (
+    TransformersEncoderModel,
+)
+from atria_models.core.models.transformers._outputs import (
+    SequenceClassificationHeadOutput,
+    TransformersEncoderModelOutput,
+)
 from atria_models.core.types.model_outputs import (
     ClassificationModelOutput,
     LayoutTokenClassificationModelOutput,
@@ -110,11 +117,18 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
     def _input_transform(
         self, batch: DocumentTensorDataModel, require_labels: bool = False
     ) -> dict[str, torch.Tensor | None]:
-        inputs = {
-            "input_ids": batch.token_ids,
-            "token_type_ids": batch.token_type_ids,
-            "attention_mask": batch.attention_mask,
-        }
+        if isinstance(self._model, TransformersEncoderModel):
+            inputs = {
+                "tokens_ids_or_embedding": batch.token_ids,
+                "token_types_ids_or_embedding": batch.token_type_ids,
+                "attention_mask": batch.attention_mask,
+            }
+        else:
+            inputs = {
+                "input_ids": batch.token_ids,
+                "token_type_ids": batch.token_type_ids,
+                "attention_mask": batch.attention_mask,
+            }
 
         if "pixel_values" in self._model_args_list and self.config.use_image:
             assert batch.image is not None, "Image cannot be None"
@@ -240,14 +254,24 @@ class SequenceClassificationPipeline(SequenceModelPipeline):
         assert batch.label is not None, "Labels cannot be None"
         return {"labels": batch.label}
 
+    def _get_logits(self, model_output: Any) -> torch.Tensor:
+        if isinstance(model_output, TransformersEncoderModelOutput):
+            assert model_output.head_output is not None, "Head output cannot be None"
+            assert isinstance(
+                model_output.head_output, SequenceClassificationHeadOutput
+            ), "Head output must be of type SequenceClassificationHeadOutput"
+            assert model_output.head_output.logits is not None, "Logits cannot be None"
+            return model_output.head_output.logits
+        else:
+            return model_output.logits
+
     def _compute_loss(
         self, model_output: Any, batch: DocumentTensorDataModel
     ) -> Tensor:
         from torch.nn.functional import cross_entropy
 
         assert batch.label is not None, "Labels cannot be None"
-        logits = model_output.logits
-        loss = cross_entropy(logits, batch.label)
+        loss = cross_entropy(self._get_logits(model_output=model_output), batch.label)
         return loss
 
     def _output_transform(
@@ -260,7 +284,7 @@ class SequenceClassificationPipeline(SequenceModelPipeline):
             "Labels must be provided for classification tasks."
         )
         assert batch.label is not None, "Labels cannot be None"
-        logits = model_output.logits
+        logits = self._get_logits(model_output=model_output)
         predicted_labels = logits.argmax(dim=-1)
         return ClassificationModelOutput(
             loss=loss,
