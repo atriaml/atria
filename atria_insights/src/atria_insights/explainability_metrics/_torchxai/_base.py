@@ -10,6 +10,7 @@ from typing import Any, Generic
 import torch
 from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
+from ignite.engine import Engine
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
 from torchxai.data_types import ExplanationTarget
@@ -19,6 +20,7 @@ from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import MultiTargetBatchExplanation
 from atria_insights.data_types._metric_data import BatchMetricData
 from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.engines._events import MetricUpdateEvents
 from atria_insights.engines._explanation_step import ExplanationStepOutput
 from atria_insights.explainability_metrics._base import T_ExplainabilityMetricConfig
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
@@ -90,7 +92,7 @@ class ExplainabilityMetric(
         inputs = _map_tensor_tuples_to_keys(
             explanation_inputs.inputs, explanation_inputs.feature_keys
         )
-        baselines = self._baselines_generator(inputs=inputs)
+        baselines = self._baselines_generator(inputs)
         return _map_tensor_dicts_to_tuples(
             baselines, keys=explanation_inputs.feature_keys
         )
@@ -104,7 +106,7 @@ class ExplainabilityMetric(
         inputs = _map_tensor_tuples_to_keys(
             explanation_inputs.inputs, explanation_inputs.feature_keys
         )
-        feature_mask = self._feature_segmentor(inputs=inputs)
+        feature_mask = self._feature_segmentor(inputs)
         return _map_tensor_dicts_to_tuples(
             feature_mask, keys=explanation_inputs.feature_keys
         )
@@ -159,6 +161,14 @@ class ExplainabilityMetric(
 
         return loaded_metric_data.data
 
+    @torch.no_grad()
+    def iteration_completed(self, engine: Engine) -> None:
+        engine.state.x_metric_started = self.name
+        engine.fire_event(MetricUpdateEvents.X_METRIC_STARTED)
+        super().iteration_completed(engine)
+        engine.state.x_metric_completed = self.name
+        engine.fire_event(MetricUpdateEvents.X_METRIC_COMPLETED)
+
     @reinit__is_reduced
     def update(self, explanation_step_output: ExplanationStepOutput) -> None:
         """
@@ -176,7 +186,7 @@ class ExplainabilityMetric(
             if is_batch_done:
                 # load full batch from cache
                 logger.debug(
-                    f"Found cached explanations for full batch of size {len(explanation_step_output.explanation_inputs.sample_id)} from disk."
+                    f"Found cached metric for full batch of size {len(explanation_step_output.explanation_inputs.sample_id)} from disk."
                 )
                 data = self._load_from_disk(
                     sample_ids=explanation_step_output.explanation_inputs.sample_id
@@ -186,6 +196,8 @@ class ExplainabilityMetric(
                     explanation_step_output.explanation_inputs.batch_size
                 )
                 return
+
+        logger.debug(f"Computing metric {self.name}.")
 
         # Measure execution time
         start_time = time.time()

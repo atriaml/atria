@@ -119,7 +119,7 @@ class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
     )
 
     n_perturbations_per_feature: int = 10
-    max_features_processed_per_batch: int | None = None
+    max_features_processed_per_batch: int | None = 40
     percentage_feature_removal_per_step: float = 0
     zero_attribution_threshold: float = 0.00001
     zero_variance_threshold: float = 0.00001
@@ -145,7 +145,7 @@ class MonotonicityCorrAndNonSens(
         )
 
         if self.config.perturb_func == "fixed":
-            perturb_func = default_fixed_baseline_perturb_func
+            perturb_func = default_fixed_baseline_perturb_func()
         else:
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"

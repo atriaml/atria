@@ -203,6 +203,11 @@ class MultiTargetBatchExplanation(RepresentationMixin, BaseModel):
             )
         return multi_target_sample_explanations
 
+    def to_device(self, device: str | torch.device = "cpu") -> Self:
+        return self.model_copy(
+            update={"value": [be.to_device(device) for be in self.value]}
+        )
+
 
 class SampleExplanationState(RepresentationMixin, BaseModel):
     model_config = ConfigDict(
@@ -406,7 +411,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
     def to_device(self, device: str | torch.device = "cpu") -> Self:
         return self.model_copy(
             update={
-                "explanations": _to_device(self.explanations, device),
+                "explanations": self.explanations.to_device(device),
                 "frozen_features": _to_device(self.frozen_features, device),
             }
         )

@@ -44,7 +44,8 @@ class ExplanationStep(EngineStep):
 
     @property
     def name(self) -> str:
-        return "explanation"
+        explainer_type = self._x_model_pipeline.config.explainer.type
+        return f"{explainer_type}"
 
     def __call__(
         self, engine: Engine, batch: list[TensorDataModel]

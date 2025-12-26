@@ -20,6 +20,7 @@ from atria_insights.explainability_metrics._torchxai._base import Explainability
 class AOPCConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/aopc"] = "faithfulness/aopc"  # type: ignore
     module_path: str | None = "atria_insights.explainability_metrics.AOPC"
+    max_features_processed_per_batch: int | None = 10
     total_feature_bins: int = 100
     n_random_perms: int = 10
     seed: int | None = None
@@ -71,7 +72,7 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     )
     perturb_func: str = "fixed"
     n_perturb_samples: int = 10
-    max_examples_per_batch: int | None = None
+    max_examples_per_batch: int | None = 10
     percent_features_perturbed: float = 0.1
     show_progress: bool = False
     return_intermediate_results: bool = False
@@ -90,7 +91,7 @@ class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig
         )
 
         if self.config.perturb_func == "fixed":
-            perturb_func = default_fixed_baseline_perturb_func
+            perturb_func = default_fixed_baseline_perturb_func()
         else:
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"
@@ -129,7 +130,7 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
     module_path: str | None = (
         "atria_insights.explainability_metrics.FaithfulnessEstimate"
     )
-    max_features_processed_per_batch: int | None = None
+    max_features_processed_per_batch: int | None = 10
     percentage_feature_removal_per_step: float = 0.0
     show_progress: bool = False
     return_intermediate_results: bool = False

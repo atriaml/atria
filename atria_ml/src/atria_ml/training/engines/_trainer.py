@@ -661,7 +661,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         from atria_ml.training.engines._events import OptimizerEvents
 
         self._engine.register_events(
-            *OptimizerEvents,
+            *OptimizerEvents,  # type: ignore[arg-type]
             event_to_attr={
                 OptimizerEvents.optimizer_step: OptimizerEvents.optimizer_step.value
             },
@@ -715,8 +715,11 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         # before running the engine log the first batch
         try:
             first_batch = next(iter(self._deps.dataloader))
+            logger.info(f"First batch input for engine [{self.__class__.__name__}]:")
+            total_elements = len(first_batch)
+            first_sample = first_batch[0]
             logger.info(
-                f"First batch input for engine [{self.__class__.__name__}]: {first_batch}"
+                f"\tTotal elements in the batch: {total_elements}, First sample input: {first_sample}"
             )
         except Exception as e:
             logger.warning(

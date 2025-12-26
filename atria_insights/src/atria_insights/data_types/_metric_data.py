@@ -35,7 +35,7 @@ class BatchMetricData(BaseModel):
     )
 
     sample_id: list[str]
-    data: dict[str, torch.Tensor | list[float | str]]
+    data: dict[str, torch.Tensor | list[float | str | torch.Tensor]]
 
     def tolist(self) -> list[SampleMetricData]:
         metric_data_list = []

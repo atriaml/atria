@@ -55,7 +55,6 @@ class ExplanationTaskConfig(TaskConfigBase):
             ExplanationTargetStrategy.predicted
         ),
         iterative_computation: bool = False,
-        enable_outputs_caching: bool = False,
         max_training_baseline_features: int = 100,
         eval_batch_size: int = 32,
         num_workers: int = 8,
@@ -101,7 +100,6 @@ class ExplanationTaskConfig(TaskConfigBase):
                 internal_batch_size=internal_batch_size,
                 grad_batch_size=grad_batch_size,
             ),
-            enable_outputs_caching=enable_outputs_caching,
             max_training_baseline_features=max_training_baseline_features,
             logging=logging,
         )

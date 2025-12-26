@@ -50,8 +50,6 @@ class ExplainableModelPipelineConfig(ModuleConfig):
     iterative_computation: bool = False
     internal_batch_size: int = 1
     grad_batch_size: int = 1
-    persist_to_disk: bool = False
-    cache_dir: str | None = None
 
     @model_validator(mode="after")
     def validate_explainer(self) -> Self:
@@ -63,9 +61,6 @@ class ExplainableModelPipelineConfig(ModuleConfig):
                 raise ValueError(
                     "DeepLIFT/DeepSHAP explainer requires a FeatureBasedBaselineGeneratorConfig."
                 )
-
-        if self.persist_to_disk and not self.cache_dir:
-            raise ValueError("cache_dir must be specified if persist_to_disk is True.")
 
         return self
 

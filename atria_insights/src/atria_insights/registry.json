@@ -1,7 +1,7 @@
 {
     "explainable_model_pipelines": {
         "image_classification": {
-            "hash": "691b0c3d",
+            "hash": "9b51b1ed",
             "config": {
                 "module_path": "atria_insights.model_pipelines._image_pipeline.ExplainableImageClassificationPipeline",
                 "model_pipeline": {
@@ -90,9 +90,7 @@
                 "explanation_target_strategy": "predicted",
                 "iterative_computation": false,
                 "internal_batch_size": 1,
-                "grad_batch_size": 1,
-                "persist_to_disk": false,
-                "cache_dir": null
+                "grad_batch_size": 1
             },
             "import_path": "atria_insights.model_pipelines._image_pipeline.ExplainableImageClassificationPipelineConfig"
         },
@@ -719,7 +717,7 @@
                 "import_path": "atria_insights.explainability_metrics._torchxai._axiomatic.InputInvarianceConfig"
             },
             "monotonicity_corr_and_non_sens": {
-                "hash": "d84c1885",
+                "hash": "64eeed53",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.MonotonicityCorrAndNonSens",
                     "type": "axiomatic/monotonicity_corr_and_non_sens",
@@ -735,7 +733,7 @@
                         "cell_size": 16
                     },
                     "n_perturbations_per_feature": 10,
-                    "max_features_processed_per_batch": null,
+                    "max_features_processed_per_batch": 40,
                     "percentage_feature_removal_per_step": 0,
                     "zero_attribution_threshold": 1e-05,
                     "zero_variance_threshold": 1e-05,
@@ -986,10 +984,10 @@
         },
         "localization": {
             "attr_localization": {
-                "hash": "a4afd081",
+                "hash": "3e9fa2c5",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.AttrLocalization",
-                    "type": "attr_localization",
+                    "type": "localization/attr_localization",
                     "baselines_generator": {
                         "module_path": "atria_insights.baseline_generators._simple.SimpleBaselineGenerator",
                         "type": "simple",

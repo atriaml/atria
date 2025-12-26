@@ -48,7 +48,22 @@ from atria_insights.explainability_metrics._torchxai._robustness import (
 )
 
 ExplainabilityMetricConfigType = Annotated[
-    ExplainabilityMetricConfig, Field(discriminator="type")
+    CompletenessConfig
+    | InputInvarianceConfig
+    | MonotonicityCorrAndNonSensConfig
+    | ComplexityEntropyConfig
+    | ComplexitySConfig
+    | EffectiveComplexityConfig
+    | SparsenessConfig
+    | AOPCConfig
+    | FaithfulnessCorrelationConfig
+    | FaithfulnessEstimateConfig
+    | InfidelityConfig
+    | SensitivityNConfig
+    | MonotonicityConfig
+    | SensitivityMaxAvgConfig
+    | AttrLocalizationConfig,
+    Field(discriminator="type"),
 ]
 
 __all__ = [

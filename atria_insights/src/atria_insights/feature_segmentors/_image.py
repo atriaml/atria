@@ -83,7 +83,7 @@ class GridSegmenter(FeatureSegmentor[GridSegmenterConfig]):
                 .long()
                 .unsqueeze(0)
             )
-            feature_mask.append(mask)
+            feature_mask.append(mask.expand_as(image))
         return torch.stack(feature_mask)
 
     def __call__(  # type: ignore[override]

@@ -44,9 +44,18 @@ class ExplainableImageModelPipeline(
     __config__ = ExplainableImageModelPipelineConfig
 
     def __init__(
-        self, config: ExplainableImageModelPipelineConfig, labels: DatasetLabels
+        self,
+        config: ExplainableImageModelPipelineConfig,
+        labels: DatasetLabels,
+        persist_to_disk: bool = True,
+        cache_dir: str | None = None,
     ) -> None:
-        super().__init__(config=config, labels=labels)
+        super().__init__(
+            config=config,
+            labels=labels,
+            persist_to_disk=persist_to_disk,
+            cache_dir=cache_dir,
+        )
         assert isinstance(self._model_pipeline, ImageModelPipeline), (
             f"{self.__class__.__name__} can only be used with ImageModelPipeline. Found {self._model_pipeline=}"
         )

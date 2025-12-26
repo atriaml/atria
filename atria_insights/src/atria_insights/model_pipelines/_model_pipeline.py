@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from abc import abstractmethod
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any, Generic
 
 import torch
@@ -45,9 +46,17 @@ class ExplainableModelPipeline(
     __config__: type[T_ExplainableModelPipelineConfig]
 
     def __init__(
-        self, config: T_ExplainableModelPipelineConfig, labels: DatasetLabels
+        self,
+        config: T_ExplainableModelPipelineConfig,
+        labels: DatasetLabels,
+        persist_to_disk: bool = True,
+        cache_dir: str | None = None,
     ) -> None:
         super().__init__(config=config)
+        self._persist_to_disk = persist_to_disk
+        self._cache_dir = cache_dir
+        if self._persist_to_disk and not self._cache_dir:
+            raise ValueError("cache_dir must be specified if persist_to_disk is True.")
 
         self._model_pipeline = self.config.model_pipeline.build(labels=labels)
 
@@ -88,12 +97,17 @@ class ExplainableModelPipeline(
             self._explainer.explain
         ).parameters.keys()
 
-        if self.config.persist_to_disk:
-            assert self.config.cache_dir is not None, (
+        self._explainer_dir = None
+        if self._persist_to_disk:
+            assert self._cache_dir is not None, (
                 "cache_dir must be specified if persist_to_disk is True."
             )
+            self._explainer_dir = (
+                Path(self._cache_dir) / config.explainer.type.split("/")[-1]
+            )
+            self._dump_config(config_dir=self._explainer_dir)
             self._cacher = ExplanationStateCacher(
-                cache_dir=self.config.cache_dir, config=self.config
+                cache_dir=self._explainer_dir, config=self.config
             )
 
             logger.info("Explanation caching enabled.")
@@ -102,6 +116,12 @@ class ExplainableModelPipeline(
     @property
     def ops(self) -> Any:
         return ModelPipelineOps(self._model_pipeline)
+
+    def _dump_config(self, config_dir: Path) -> dict:
+        config_dir.mkdir(parents=True, exist_ok=True)
+        with open(config_dir / "config.yaml", "w") as f:
+            f.write(self._config.to_yaml())
+            return self._config.model_dump()
 
     def summarize(self):
         logger.info("XAI Model Pipeline Summary:")
@@ -408,6 +428,8 @@ class ExplainableModelPipeline(
         )
         assert explanation_state.target == explanation_inputs.target, (
             "Targets do not match between loaded explanation states and explanation inputs."
+            " Found "
+            f"{explanation_state.target} =/= {explanation_inputs.target}"
         )
         assert explanation_state.feature_keys == explanation_inputs.feature_keys, (
             "Feature keys do not match between loaded explanation states and explanation inputs."
@@ -417,24 +439,31 @@ class ExplainableModelPipeline(
         ), (
             "Frozen features do not match between loaded explanation states and explanation inputs."
         )
-        assert torch.allclose(
-            explanation_state.model_outputs.detach().cpu(),
-            model_outputs.detach().cpu(),
-            atol=1e-4,
+        assert (
+            torch.mean(
+                torch.abs(
+                    explanation_state.model_outputs.detach().cpu()
+                    - model_outputs.detach().cpu()
+                )
+            ).item()
+            < 1e-3
         ), (
             "Model outputs do not match between loaded explanation states and current model outputs."
             f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
         )
 
         return ExplanationStepOutput(
-            explanation_inputs=explanation_inputs, explanation_state=explanation_state
+            explanation_inputs=explanation_inputs,
+            explanation_state=explanation_state.to_device(
+                explanation_inputs.inputs[0].device
+            ),
         )
 
     def explanation_step(self, batch: T_TensorDataModel) -> ExplanationStepOutput:
         # prepare explanation inputs
         model_outputs, explanation_inputs = self.prepare_explanation_inputs(batch=batch)
 
-        if self.config.persist_to_disk:
+        if self._persist_to_disk:
             # check if full batch is already done
             is_batch_done = True
             for sample_id in explanation_inputs.sample_id:
@@ -447,9 +476,15 @@ class ExplainableModelPipeline(
                 logger.debug(
                     f"Found cached explanations for full batch of size {len(batch)}. Loading from disk."
                 )
-                return self._validate_and_load_from_disk(
-                    explanation_inputs=explanation_inputs, model_outputs=model_outputs
-                )
+                try:
+                    return self._validate_and_load_from_disk(
+                        explanation_inputs=explanation_inputs,
+                        model_outputs=model_outputs,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to validate loaded explanations due to error: {e}. Recomputing explanations."
+                    )
 
         explanations = self.explainer_forward(explanation_inputs=explanation_inputs)
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."
@@ -465,7 +500,7 @@ class ExplainableModelPipeline(
         )
 
         # save to disk
-        if self.config.persist_to_disk:
+        if self._persist_to_disk:
             for sample_explanation_state in explanation_state.tolist():
                 self._cacher.save_sample(sample_explanation_state)
 
@@ -487,7 +522,7 @@ class ExplainableModelPipeline(
                 model=self._wrapped_model,
                 explainer=self._explainer,
                 device=device,
-                persist_to_disk=self.config.persist_to_disk,
-                cache_dir=self.config.cache_dir,
+                persist_to_disk=self._persist_to_disk,
+                cache_dir=self._explainer_dir,
             )
         return x_metrics

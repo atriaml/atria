@@ -37,6 +37,18 @@ _EXPLAINERS = [
 
 _METRICS = [
     "axiomatic/completeness",
+    "axiomatic/monotonicity_corr_and_non_sens",
+    "complexity/complexity_entropy",
+    "complexity/complexity_s",
+    "complexity/effective_complexity",
+    "complexity/sparseness",
+    "faithfulness/aopc",
+    "faithfulness/faithfulness_correlation",
+    "faithfulness/faithfulness_estimate",
+    "faithfulness/infidelity",
+    "faithfulness/monotonicity",
+    "faithfulness/sensitivity_n",
+    "robustness/sensitivity_max_and_avg",
 ]
 
 _DEFAULT_BASELINES_GENERATOR_CONFIG = SimpleBaselineGeneratorConfig(
@@ -86,15 +98,13 @@ def main(
         explainer=load_explainer_config(explainer_name),
         baseline_generator=baselines_generator,
         feature_segmentor=_DEFAULT_FEATURE_SEGMENTOR_CONFIG,
-        enable_outputs_caching=True,
         internal_batch_size=4,
         grad_batch_size=4,
         explainability_metrics=explainability_metrics,
         eval_batch_size=4,
     )
-    print("x_model_pipeline", explanation_task_config.x_model_pipeline.hash)
     model_explainer = ModelExplainer(config=explanation_task_config)
-    model_explainer.run(checkpoint_path=checkpoint_path, total_samples=1000)
+    model_explainer.run(checkpoint_path=checkpoint_path, total_samples=100)
 
 
 if __name__ == "__main__":

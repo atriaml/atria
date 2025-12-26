@@ -157,7 +157,9 @@ class ModelExplainer:
             )
 
         # build model pipelines
-        x_model_pipeline = self._config.x_model_pipeline.build(labels=labels)
+        x_model_pipeline = self._config.x_model_pipeline.build(
+            labels=labels, persist_to_disk=True, cache_dir=self._config.env.run_dir
+        )
 
         # log model pipeline
         logger.info(x_model_pipeline.summarize())
