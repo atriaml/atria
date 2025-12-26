@@ -5,7 +5,8 @@ from atria_insights.model_pipelines._registry_groups import (
     EXPLAINABLE_MODEL_PIPELINES,
     # noqa
 )
-from atria_insights.model_pipelines._sequence_pipeline import *  # noqa
+
+# from atria_insights.model_pipelines._sequence_pipeline import *  # noqa
 
 
 def main():
