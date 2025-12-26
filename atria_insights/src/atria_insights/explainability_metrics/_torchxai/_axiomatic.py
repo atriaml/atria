@@ -15,46 +15,13 @@ from atria_insights.utilities._common import _get_first_layer
 
 
 @EXPLAINABILITY_METRICS.register("axiomatic/completeness")
-class CompletenessMetricConfig(ExplainabilityMetricConfig):
+class CompletenessConfig(ExplainabilityMetricConfig):
     type: Literal["axiomatic/completeness"] = "axiomatic/completeness"  # type: ignore
-    module_path: str | None = (
-        "atria_insights.explainability_metrics._torchxai._axiomatic.CompletenessMetric"
-    )
+    module_path: str | None = "atria_insights.explainability_metrics.Completeness"
 
 
-@EXPLAINABILITY_METRICS.register("axiomatic/input_invariance")
-class InputInvarianceMetricConfig(ExplainabilityMetricConfig):
-    type: Literal["axiomatic/input_invariance"] = (  # type: ignore
-        "axiomatic/input_invariance"
-    )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics._torchxai._axiomatic.InputInvarianceMetric"
-    )
-    constant_shift_value: float = 1.0
-
-
-@EXPLAINABILITY_METRICS.register("axiomatic/monotonicity_corr_and_non_sens")
-class MonotonicityCorrAndNonSensMetricConfig(ExplainabilityMetricConfig):
-    type: Literal["axiomatic/monotonicity_corr_and_non_sens"] = (  # type: ignore
-        "axiomatic/monotonicity_corr_and_non_sens"
-    )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics._torchxai._axiomatic.MonotonicityCorrAndNonSensMetric"
-    )
-
-    n_perturbations_per_feature: int = 10
-    max_features_processed_per_batch: int | None = None
-    percentage_feature_removal_per_step: float = 0
-    zero_attribution_threshold: float = 0.00001
-    zero_variance_threshold: float = 0.00001
-    use_percentage_attribution_threshold: bool = False
-    perturb_func: str = "fixed"
-    show_progress: bool = False
-    return_ratio: bool = False
-
-
-class CompletenessMetric(ExplainabilityMetric[CompletenessMetricConfig]):
-    __config__ = CompletenessMetricConfig
+class Completeness(ExplainabilityMetric[CompletenessConfig]):
+    __config__ = CompletenessConfig
 
     def _update(
         self,
@@ -65,18 +32,27 @@ class CompletenessMetric(ExplainabilityMetric[CompletenessMetricConfig]):
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
             additional_forward_args=explanation_inputs.additional_forward_args,
-            target=explanation_inputs.target,
+            target=self._map_target(explanation_inputs.target),
             attributions=explanations,  # type: ignore
             baselines=self._prepare_baselines(explanation_inputs),
-            is_multi_target=explanation_inputs.is_multi_target,
+            multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )
         assert isinstance(outputs, dict)
         return outputs
 
 
-class InputInvarianceMetric(ExplainabilityMetric[InputInvarianceMetricConfig]):
-    __config__ = InputInvarianceMetricConfig
+@EXPLAINABILITY_METRICS.register("axiomatic/input_invariance")
+class InputInvarianceConfig(ExplainabilityMetricConfig):
+    type: Literal["axiomatic/input_invariance"] = (  # type: ignore
+        "axiomatic/input_invariance"
+    )
+    module_path: str | None = "atria_insights.explainability_metrics.InputInvariance"
+    constant_shift_value: float = 1.0
+
+
+class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
+    __config__ = InputInvarianceConfig
 
     def _input_shifts(
         self, inputs: torch.Tensor | tuple[torch.Tensor, ...]
@@ -93,7 +69,6 @@ class InputInvarianceMetric(ExplainabilityMetric[InputInvarianceMetricConfig]):
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-        is_multi_target: bool = False,
     ) -> dict[str, Any]:
         # input invariance only works on single input features
         # for each input feature key in the tuple an input layer name is needed
@@ -102,11 +77,11 @@ class InputInvarianceMetric(ExplainabilityMetric[InputInvarianceMetricConfig]):
         input_layer_names = [_get_first_layer(self._model)]
 
         assert isinstance(explanation_inputs.feature_keys, tuple), (
-            "InputInvarianceMetric only supports single input feature."
+            f"{self.__class__.__name__} only supports single input feature."
             f"Got: {explanation_inputs.feature_keys}"
         )
         assert len(explanation_inputs.feature_keys) == 1, (
-            "InputInvarianceMetric only supports single input feature."
+            f"{self.__class__.__name__} only supports single input feature."
             f"Got: {explanation_inputs.feature_keys}"
         )
 
@@ -120,13 +95,13 @@ class InputInvarianceMetric(ExplainabilityMetric[InputInvarianceMetricConfig]):
             # this is used to compute attributions on the go during metric computation
             # this metric does not use metric baselines
             inputs=explanation_inputs.inputs,
-            target=explanation_inputs.target,
+            target=self._map_target(explanation_inputs.target),
             additional_forward_args=explanation_inputs.additional_forward_args,
             baselines=explanation_inputs.baselines,  # notice explainer baselines, this is different from metric baselines
             feature_mask=explanation_inputs.feature_mask,  # notice explainer feature mask, this is different from metric feature mask
             constant_shifts=self._input_shifts(explanation_inputs.inputs),
             input_layer_names=input_layer_names,
-            is_multi_target=explanation_inputs.is_multi_target,
+            multi_target=explanation_inputs.is_multi_target,
             return_intermediate_results=False,
             return_dict=True,
         )
@@ -134,16 +109,36 @@ class InputInvarianceMetric(ExplainabilityMetric[InputInvarianceMetricConfig]):
         return outputs
 
 
-class MonotonicityCorrAndNonSensMetric(
-    ExplainabilityMetric[MonotonicityCorrAndNonSensMetricConfig]
+@EXPLAINABILITY_METRICS.register("axiomatic/monotonicity_corr_and_non_sens")
+class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
+    type: Literal["axiomatic/monotonicity_corr_and_non_sens"] = (  # type: ignore
+        "axiomatic/monotonicity_corr_and_non_sens"
+    )
+    module_path: str | None = (
+        "atria_insights.explainability_metrics.MonotonicityCorrAndNonSens"
+    )
+
+    n_perturbations_per_feature: int = 10
+    max_features_processed_per_batch: int | None = None
+    percentage_feature_removal_per_step: float = 0
+    zero_attribution_threshold: float = 0.00001
+    zero_variance_threshold: float = 0.00001
+    use_percentage_attribution_threshold: bool = False
+    perturb_func: str = "fixed"
+    return_intermediate_results: bool = True
+    show_progress: bool = False
+    return_ratio: bool = False
+
+
+class MonotonicityCorrAndNonSens(
+    ExplainabilityMetric[MonotonicityCorrAndNonSensConfig]
 ):
-    __config__ = MonotonicityCorrAndNonSensMetricConfig
+    __config__ = MonotonicityCorrAndNonSensConfig
 
     def _update(
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-        is_multi_target: bool = False,
     ) -> dict[str, Any]:
         from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
             default_fixed_baseline_perturb_func,
@@ -160,14 +155,14 @@ class MonotonicityCorrAndNonSensMetric(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
             additional_forward_args=explanation_inputs.additional_forward_args,
-            attributions=explanations,
+            attributions=explanations,  # type: ignore
             # NOTE:
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
             baselines=self._prepare_baselines(explanation_inputs),
             feature_mask=self._prepare_feature_mask(explanation_inputs),
-            target=explanation_inputs.target,  # type: ignore
+            target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             perturb_func=perturb_func,
             n_perturbations_per_feature=self.config.n_perturbations_per_feature,
@@ -178,7 +173,7 @@ class MonotonicityCorrAndNonSensMetric(
             use_percentage_attribution_threshold=self.config.use_percentage_attribution_threshold,
             return_ratio=self.config.return_ratio,
             show_progress=self.config.show_progress,
-            return_intermediate_results=False,
-            is_multi_target=is_multi_target,
+            return_intermediate_results=self.config.return_intermediate_results,
+            multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )

@@ -8,15 +8,17 @@ from pathlib import Path
 from typing import Any, Generic
 
 import torch
+from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
+from torchxai.data_types import ExplanationTarget
 from torchxai.explainers import Explainer
-from torchxai.ignite._utilities import get_logger
 
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import MultiTargetBatchExplanation
 from atria_insights.data_types._metric_data import BatchMetricData
+from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
 from atria_insights.explainability_metrics._base import T_ExplainabilityMetricConfig
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
@@ -82,49 +84,44 @@ class ExplainabilityMetric(
     def _prepare_baselines(
         self, explanation_inputs: BatchExplanationInputs
     ) -> torch.Tensor | tuple[torch.Tensor, ...]:
-        print("explanation_inputs", explanation_inputs)
-        if isinstance(explanation_inputs.inputs, tuple):
-            assert explanation_inputs.feature_keys is not None, (
-                "Feature keys must be provided when inputs are given as tuple"
-            )
-            inputs = _map_tensor_tuples_to_keys(
-                explanation_inputs.inputs, explanation_inputs.feature_keys
-            )
-            baselines = self._baselines_generator(inputs=inputs)
-            return _map_tensor_dicts_to_tuples(
-                baselines, keys=explanation_inputs.feature_keys
-            )
-        else:
-            assert isinstance(explanation_inputs.inputs, torch.Tensor), (
-                f"Unexpected type for inputs: {type(explanation_inputs.inputs)}"
-            )
-            baselines = self._baselines_generator(inputs=explanation_inputs.inputs)
-            assert isinstance(baselines, torch.Tensor), (
-                f"Unexpected type for baselines: {type(baselines)}"
-            )
-            return baselines
+        assert explanation_inputs.feature_keys is not None, (
+            "Feature keys must be provided when inputs are given as tuple"
+        )
+        inputs = _map_tensor_tuples_to_keys(
+            explanation_inputs.inputs, explanation_inputs.feature_keys
+        )
+        baselines = self._baselines_generator(inputs=inputs)
+        return _map_tensor_dicts_to_tuples(
+            baselines, keys=explanation_inputs.feature_keys
+        )
 
-    def _prepare_feature_mask(self, explanation_inputs: BatchExplanationInputs):
-        if isinstance(explanation_inputs.inputs, tuple):
-            assert explanation_inputs.feature_keys is not None, (
-                "Feature keys must be provided when inputs are given as tuple"
-            )
-            inputs = _map_tensor_tuples_to_keys(
-                explanation_inputs.inputs, explanation_inputs.feature_keys
-            )
-            feature_mask = self._feature_segmentor(inputs=inputs)
-            return _map_tensor_dicts_to_tuples(
-                feature_mask, keys=explanation_inputs.feature_keys
-            )
+    def _prepare_feature_mask(
+        self, explanation_inputs: BatchExplanationInputs
+    ) -> tuple[torch.Tensor, ...]:
+        assert explanation_inputs.feature_keys is not None, (
+            "Feature keys must be provided when inputs are given as tuple"
+        )
+        inputs = _map_tensor_tuples_to_keys(
+            explanation_inputs.inputs, explanation_inputs.feature_keys
+        )
+        feature_mask = self._feature_segmentor(inputs=inputs)
+        return _map_tensor_dicts_to_tuples(
+            feature_mask, keys=explanation_inputs.feature_keys
+        )
+
+    def _map_target(
+        self, target: BatchExplanationTarget | list[BatchExplanationTarget] | None
+    ) -> ExplanationTarget | list[ExplanationTarget]:
+        if target is None:
+            return ExplanationTarget.from_raw_input(None)
+        if isinstance(target, BatchExplanationTarget):
+            return ExplanationTarget.from_raw_input(target.value)
+        elif isinstance(target, list):
+            return [ExplanationTarget.from_raw_input(t.value) for t in target]
         else:
-            assert isinstance(explanation_inputs.inputs, torch.Tensor), (
-                f"Unexpected type for inputs: {type(explanation_inputs.inputs)}"
+            raise ValueError(
+                "Target must be of type BatchExplanationTarget, list of BatchExplanationTarget, or None."
             )
-            feature_mask = self._feature_segmentor(inputs=explanation_inputs.inputs)
-            assert isinstance(feature_mask, torch.Tensor), (
-                f"Unexpected type for feature mask: {type(feature_mask)}"
-            )
-            return feature_mask
 
     @property
     def name(self) -> str:
