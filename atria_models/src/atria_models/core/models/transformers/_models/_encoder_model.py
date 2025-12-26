@@ -56,7 +56,7 @@ class TransformersEncoderModel(
         ConfigurableModule.__init__(self, config=config)
         self._cache_dir = cache_dir or str(_DEFAULT_ATRIA_MODELS_CACHE_DIR)
         self._build()
-        if config.pretrained:
+        if self.config.pretrained:
             self._load_checkpoint()
 
     @property
