@@ -51,9 +51,8 @@ class ShardWriterActor:
             self.writer.write(idx, sample)
         except DuplicateKeyError:
             logger.error(f"Duplicate key at index {idx}, skipping")
-        except Exception as e:
+        except Exception:
             logger.exception(f"Error writing sample at index {idx}")
-            raise e
         return True
 
     def close(self):
@@ -380,6 +379,8 @@ class SingleSplitWriter:
                 writer.write(idx, sample)
             except DuplicateKeyError:
                 logger.error(f"Duplicate key at sample index {idx}. Skipping.")
+            except Exception:
+                logger.exception(f"Error writing sample at index {idx}")
 
         write_info = writer.close()
         return self._finalize_shards(write_info)
