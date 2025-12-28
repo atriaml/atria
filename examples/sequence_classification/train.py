@@ -24,7 +24,7 @@ def main(
     dataset_name: str = "tobacco3482/image_with_ocr",
     model_name: str = "bert-base-uncased",
     builder_type: ModelBuilderType = ModelBuilderType.atria,
-    exp_name: str = "train_seq_cls_00",
+    exp_name: str = "train_seq_cls_01",
     output_dir: str = "./outputs",
     stats: Literal["imagenet", "standard", "openai_clip", "custom"] = "standard",
     image_size: int = 224,

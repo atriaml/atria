@@ -587,7 +587,7 @@
     },
     "models": {
         "bert-base-uncased": {
-            "hash": "d277e63e",
+            "hash": "80ea2d5c",
             "config": {
                 "module_path": "atria_models.core.models.transformers._models._bert.BertEncoderModel",
                 "type": "transformers_encoder",
@@ -606,10 +606,12 @@
                 "attention_config": {
                     "num_attention_heads": 12,
                     "attention_probs_dropout_prob": 0.1,
-                    "hidden_size": 768
+                    "hidden_size": 768,
+                    "use_cogview_trick": false
                 },
                 "checkpoint_config": {
                     "pretrained_checkpoint": "hf://bert-base-uncased",
+                    "remove_root_prefix": true,
                     "key_mapping": [
                         [
                             "encoder.layer.",
@@ -645,7 +647,7 @@
                         ],
                         [
                             "embeddings.layer_norm.",
-                            "embeddings_aggregator.layer_norm."
+                            "embeddings_postprocessor.layer_norm."
                         ]
                     ]
                 },
@@ -661,6 +663,7 @@
                     "classifier_dropout": null
                 },
                 "head_config": null,
+                "attach_pooler": true,
                 "output_attentions": false,
                 "output_hidden_states": false,
                 "pretrained": true
@@ -747,6 +750,332 @@
                 "pretrained": true
             },
             "import_path": "atria_models.core.models.transformers._models._roberta.RoBertEncoderModelConfig"
+        },
+        "roberta-base": {
+            "hash": "3e262e65",
+            "config": {
+                "module_path": "atria_models.core.models.transformers._models._roberta.RoBertaEncoderModel",
+                "type": "transformers_encoder",
+                "embeddings_config": {
+                    "vocab_size": 50265,
+                    "hidden_size": 768,
+                    "max_position_embeddings": 514,
+                    "type_vocab_size": 1,
+                    "pad_token_id": 1,
+                    "unk_token_id": 100,
+                    "cls_token_id": 101,
+                    "sep_token_id": 102,
+                    "mask_token_id": 103,
+                    "position_embedding_type": "absolute"
+                },
+                "attention_config": {
+                    "num_attention_heads": 12,
+                    "attention_probs_dropout_prob": 0.1,
+                    "hidden_size": 768,
+                    "use_cogview_trick": false
+                },
+                "checkpoint_config": {
+                    "pretrained_checkpoint": "hf://roberta-base",
+                    "remove_root_prefix": true,
+                    "key_mapping": [
+                        [
+                            "encoder.layer.",
+                            "encoder.layers."
+                        ],
+                        [
+                            "LayerNorm",
+                            "layer_norm"
+                        ],
+                        [
+                            "layer_norm.beta",
+                            "layer_norm.bias"
+                        ],
+                        [
+                            "layer_norm.gamma",
+                            "layer_norm.weight"
+                        ],
+                        [
+                            ".attention.self.",
+                            ".multi_head_attention."
+                        ],
+                        [
+                            ".attention.output.",
+                            ".attention_output_ffn."
+                        ],
+                        [
+                            ".intermediate.",
+                            ".intermediate_ffn."
+                        ],
+                        [
+                            ".output.",
+                            ".output_ffn."
+                        ],
+                        [
+                            "embeddings.layer_norm.",
+                            "embeddings_postprocessor.layer_norm."
+                        ]
+                    ]
+                },
+                "layers_config": {
+                    "num_hidden_layers": 12,
+                    "hidden_size": 768,
+                    "intermediate_size": 3072,
+                    "hidden_act": "gelu",
+                    "chunk_size_feed_forward": 0,
+                    "hidden_dropout_prob": 0.1,
+                    "layer_norm_eps": 1e-05,
+                    "initializer_range": 0.02,
+                    "classifier_dropout": null
+                },
+                "head_config": null,
+                "attach_pooler": true,
+                "output_attentions": false,
+                "output_hidden_states": false,
+                "pretrained": true
+            },
+            "import_path": "atria_models.core.models.transformers._models._roberta.RoBertaEncoderModelConfig"
+        },
+        "layoutlmv3-base": {
+            "hash": "21cce1e6",
+            "config": {
+                "module_path": "atria_models.core.models.transformers._models._layoutlmv3._layoutlmv3.LayoutLMv3EncoderModel",
+                "type": "transformers_encoder",
+                "embeddings_config": {
+                    "vocab_size": 50265,
+                    "hidden_size": 768,
+                    "max_position_embeddings": 514,
+                    "type_vocab_size": 1,
+                    "pad_token_id": 1,
+                    "unk_token_id": 100,
+                    "cls_token_id": 101,
+                    "sep_token_id": 102,
+                    "mask_token_id": 103,
+                    "position_embedding_type": "absolute",
+                    "max_2d_position_embeddings": 1024,
+                    "coordinate_size": 128,
+                    "shape_size": 128
+                },
+                "attention_config": {
+                    "num_attention_heads": 12,
+                    "attention_probs_dropout_prob": 0.1,
+                    "hidden_size": 768,
+                    "use_cogview_trick": true,
+                    "has_relative_attention_bias": true,
+                    "has_spatial_attention_bias": true,
+                    "rel_pos_bins": 32,
+                    "max_rel_pos": 128,
+                    "rel_2d_pos_bins": 64,
+                    "max_rel_2d_pos": 256
+                },
+                "checkpoint_config": {
+                    "pretrained_checkpoint": "hf://microsoft/layoutlmv3-base",
+                    "remove_root_prefix": true,
+                    "key_mapping": [
+                        [
+                            "encoder.layer.",
+                            "encoder.layers."
+                        ],
+                        [
+                            "LayerNorm",
+                            "layer_norm"
+                        ],
+                        [
+                            ".attention.self.",
+                            ".multi_head_attention."
+                        ],
+                        [
+                            ".attention.output.",
+                            ".attention_output_ffn."
+                        ],
+                        [
+                            ".intermediate.",
+                            ".intermediate_ffn."
+                        ],
+                        [
+                            ".output.",
+                            ".output_ffn."
+                        ],
+                        [
+                            ".cls_token",
+                            ".visual_embeddings.cls_token"
+                        ],
+                        [
+                            ".pos_embed",
+                            ".visual_embeddings.pos_embed"
+                        ],
+                        [
+                            ".norm.",
+                            ".visual_embeddings.image_norm."
+                        ],
+                        [
+                            ".patch_embed.proj.",
+                            ".visual_embeddings.proj."
+                        ],
+                        [
+                            ".embeddings.layer_norm.",
+                            ".embeddings_postprocessor.layer_norm."
+                        ],
+                        [
+                            ".encoder.rel_pos_bias.",
+                            ".attention_bias_module.rel_pos_bias."
+                        ],
+                        [
+                            ".encoder.rel_pos_x_bias.",
+                            ".attention_bias_module.rel_pos_x_bias."
+                        ],
+                        [
+                            ".encoder.rel_pos_y_bias.",
+                            ".attention_bias_module.rel_pos_y_bias."
+                        ]
+                    ]
+                },
+                "layers_config": {
+                    "num_hidden_layers": 12,
+                    "hidden_size": 768,
+                    "intermediate_size": 3072,
+                    "hidden_act": "gelu",
+                    "chunk_size_feed_forward": 0,
+                    "hidden_dropout_prob": 0.1,
+                    "layer_norm_eps": 1e-05,
+                    "initializer_range": 0.02,
+                    "classifier_dropout": null
+                },
+                "head_config": null,
+                "attach_pooler": false,
+                "output_attentions": false,
+                "output_hidden_states": false,
+                "pretrained": true,
+                "image_embeddings_config": {
+                    "input_size": 224,
+                    "num_channels": 3,
+                    "patch_size": 16
+                },
+                "text_embed": true,
+                "visual_embed": true
+            },
+            "import_path": "atria_models.core.models.transformers._models._layoutlmv3._config.LayoutLMv3EncoderModelConfig"
+        },
+        "lilt-roberta-base": {
+            "hash": "bba55891",
+            "config": {
+                "module_path": "atria_models.core.models.transformers._models._lilt._lilt.LiLTEncoderModel",
+                "type": "transformers_encoder",
+                "embeddings_config": {
+                    "vocab_size": 50265,
+                    "hidden_size": 768,
+                    "max_position_embeddings": 514,
+                    "type_vocab_size": 1,
+                    "pad_token_id": 1,
+                    "unk_token_id": 100,
+                    "cls_token_id": 101,
+                    "sep_token_id": 102,
+                    "mask_token_id": 103,
+                    "position_embedding_type": "absolute",
+                    "max_2d_position_embeddings": 1024,
+                    "channel_shrink_ratio": 4
+                },
+                "attention_config": {
+                    "num_attention_heads": 12,
+                    "attention_probs_dropout_prob": 0.1,
+                    "hidden_size": 768,
+                    "use_cogview_trick": false
+                },
+                "checkpoint_config": {
+                    "pretrained_checkpoint": "hf://SCUT-DLVCLab/lilt-roberta-en-base",
+                    "remove_root_prefix": false,
+                    "key_mapping": [
+                        [
+                            "encoder.layer.",
+                            "encoder.layers."
+                        ],
+                        [
+                            "LayerNorm",
+                            "layer_norm"
+                        ],
+                        [
+                            ".attention.self.",
+                            ".multi_head_attention."
+                        ],
+                        [
+                            ".attention.output.",
+                            ".attention_output_ffn."
+                        ],
+                        [
+                            ".intermediate.",
+                            ".intermediate_ffn."
+                        ],
+                        [
+                            ".output.",
+                            ".output_ffn."
+                        ],
+                        [
+                            ".attention.layout_self.",
+                            ".multi_head_attention."
+                        ],
+                        [
+                            ".attention.layout_output.",
+                            ".layout_attention_output_ffn."
+                        ],
+                        [
+                            ".layout_intermediate.",
+                            ".layout_intermediate_ffn."
+                        ],
+                        [
+                            ".layout_output.",
+                            ".layout_output_ffn."
+                        ],
+                        [
+                            "layout_embeddings.x_position_embeddings.",
+                            "embeddings.layout_embeddings.x_position_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.y_position_embeddings.",
+                            "embeddings.layout_embeddings.y_position_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.h_position_embeddings.",
+                            "embeddings.layout_embeddings.h_position_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.w_position_embeddings.",
+                            "embeddings.layout_embeddings.w_position_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.box_linear_embeddings.",
+                            "embeddings.layout_embeddings.box_linear_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.box_position_embeddings.",
+                            "embeddings.layout_embeddings.box_position_embeddings."
+                        ],
+                        [
+                            "layout_embeddings.layer_norm.",
+                            "embeddings_postprocessor.layout_layer_norm."
+                        ],
+                        [
+                            "embeddings.layer_norm.",
+                            "embeddings_postprocessor.layer_norm."
+                        ]
+                    ]
+                },
+                "layers_config": {
+                    "num_hidden_layers": 12,
+                    "hidden_size": 768,
+                    "intermediate_size": 3072,
+                    "hidden_act": "gelu",
+                    "chunk_size_feed_forward": 0,
+                    "hidden_dropout_prob": 0.1,
+                    "layer_norm_eps": 1e-05,
+                    "initializer_range": 0.02,
+                    "classifier_dropout": null
+                },
+                "head_config": null,
+                "attach_pooler": true,
+                "output_attentions": false,
+                "output_hidden_states": false,
+                "pretrained": true
+            },
+            "import_path": "atria_models.core.models.transformers._models._lilt._config.LiLTEncoderModelConfig"
         }
     }
 }

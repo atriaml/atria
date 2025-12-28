@@ -3,7 +3,19 @@
 ## Train the model
 
 ```bash
-train.py --dataset_name tobacco3482/image_with_ocr --model_name bert-base-uncased --max_epochs 50 --batch-size 32 --optim adam --lr 2e-5
+python train.py --dataset_name tobacco3482/image_with_ocr --model_name bert-base-uncased --max_epochs 50 --batch-size 32 --optim adam --lr 2e-5
+```
+
+```bash
+python train.py --dataset_name tobacco3482/image_with_ocr --model_name roberta-base-uncased --max_epochs 50 --batch-size 32 --optim adam --lr 2e-5
+```
+
+```bash
+python train.py --dataset_name tobacco3482/image_with_ocr --model_name lilt-base --max_epochs 50 --batch-size 32 --optim adam --lr 2e-5
+```
+
+```bash
+python train.py --dataset_name tobacco3482/image_with_ocr --model_name layoutlmv3-base --max_epochs 50 --batch-size 32 --optim adam --lr 2e-5
 ```
 
 ## Explain the model predictions

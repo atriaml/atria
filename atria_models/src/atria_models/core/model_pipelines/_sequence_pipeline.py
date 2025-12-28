@@ -119,7 +119,7 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
     ) -> dict[str, torch.Tensor | None]:
         if isinstance(self._model, TransformersEncoderModel):
             inputs = {
-                "token_id_or_embeddings": batch.token_ids,
+                "token_ids_or_embeddings": batch.token_ids,
                 "token_type_ids_or_embeddings": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
             }
@@ -130,14 +130,20 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                 "attention_mask": batch.attention_mask,
             }
 
-        if "pixel_values" in self._model_args_list and self.config.use_image:
+        if self.config.use_image:
             assert batch.image is not None, "Image cannot be None"
             if isinstance(self._model, TransformersEncoderModel):
+                assert "image" in self._model_args_list, (
+                    f"{self._model.__class__.__name__} does not support 'image' as input argument."
+                )
                 inputs["image"] = batch.image
             else:
+                assert "pixel_values" in self._model_args_list, (
+                    f"{self._model.__class__.__name__} does not support 'pixel_values' as input argument."
+                )
                 inputs["pixel_values"] = batch.image
 
-        if "bbox" in self._model_args_list and self.config.use_bbox:
+        if self.config.use_bbox:
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
             token_bboxes = batch.token_bboxes
             if batch.metadata.bbox_normalized[0] and token_bboxes is not None:
@@ -147,8 +153,20 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                     else None
                 )
             if isinstance(self._model, TransformersEncoderModel):
+                assert (
+                    "layout_ids_or_embeddings" in self._model_args_list
+                    and "layout_ids" in self._model_args_list
+                ), (
+                    f"{self._model.__class__.__name__} does not support 'layout_ids_or_embeddings' or 'bbox' "
+                    f"as input argument and cannot be used with bbox information."
+                )
+                inputs["layout_ids_or_embeddings"] = token_bboxes
                 inputs["layout_ids"] = token_bboxes
             else:
+                assert "bbox" in self._model_args_list, (
+                    f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
+                    f"with bbox information."
+                )
                 inputs["bbox"] = token_bboxes
 
         if "segment_index" in self._model_args_list and self.config.use_segment_info:

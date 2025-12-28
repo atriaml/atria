@@ -41,7 +41,7 @@ class AtriaModelBuilder(ModelBuilder):
         self, model_name_or_path: str, **kwargs
     ) -> TransformersEncoderModelConfig:
         config = load_model_config(model_name=model_name_or_path)
-        config.load_from_hf(model_name_or_path=model_name_or_path)
+        # config.load_from_hf(model_name_or_path=model_name_or_path)
         if self._model_type == "sequence_classification":
             head_config = SequenceClassificationHeadConfig(
                 num_labels=kwargs.pop("num_labels", 2),
