@@ -43,10 +43,13 @@ class DocumentVisualizer(Visualizer):
 
             bbox_labels = None
             if draw_word_labels:
-                ann = self.instance.get_annotation_by_type(
-                    annotation_type=AnnotationType.entity_labeling
-                )
-                bbox_labels = [label.name for label in ann.word_labels]
+                try:
+                    ann = self.instance.get_annotation_by_type(
+                        annotation_type=AnnotationType.entity_labeling
+                    )
+                    bbox_labels = [label.name for label in ann.word_labels]
+                except Exception:  # noqa: E722
+                    pass
 
             # Draw bounding boxes on the image
             image = _draw_bboxes_on_image(
