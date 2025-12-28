@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from atria_logger import get_logger
+
 from atria_types._base._ops._base_ops import StandardOps
 from atria_types._generic._bounding_box import BoundingBox, BoundingBoxMode
 
@@ -56,13 +57,17 @@ class BoundingBoxOps(StandardOps[BoundingBox]):
         assert self.bbox.y1 <= height, "y1 must be less than or equal to height."
         assert self.bbox.x2 <= width, "x2 must be less than or equal to width."
         assert self.bbox.y2 <= height, "y2 must be less than or equal to height."
+
+        def clip(value: float, min_value: float, max_value: float) -> float:
+            return min(max(value, min_value), max_value)
+
         if self.bbox.mode == BoundingBoxMode.XYWH:
             return BoundingBox(
                 value=[
-                    self.bbox.x1 / width,
-                    self.bbox.y1 / height,
-                    self.bbox.width / width,
-                    self.bbox.height / height,
+                    clip(self.bbox.x1 / width, 0.0, 1.0),
+                    clip(self.bbox.y1 / height, 0.0, 1.0),
+                    clip(self.bbox.width / width, 0.0, 1.0),
+                    clip(self.bbox.height / height, 0.0, 1.0),
                 ],
                 mode=self.bbox.mode,
                 normalized=True,
@@ -70,10 +75,10 @@ class BoundingBoxOps(StandardOps[BoundingBox]):
         else:
             return BoundingBox(
                 value=[
-                    self.bbox.x1 / width,
-                    self.bbox.y1 / height,
-                    self.bbox.x2 / width,
-                    self.bbox.y2 / height,
+                    clip(self.bbox.x1 / width, 0.0, 1.0),
+                    clip(self.bbox.y1 / height, 0.0, 1.0),
+                    clip(self.bbox.x2 / width, 0.0, 1.0),
+                    clip(self.bbox.y2 / height, 0.0, 1.0),
                 ],
                 mode=self.bbox.mode,
                 normalized=True,
