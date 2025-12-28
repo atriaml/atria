@@ -7,6 +7,7 @@ from atria_logger import get_logger
 from PIL.Image import Image as PILImage
 
 from atria_types._data_instance._visualizers._base import Visualizer
+from atria_types._generic._annotations import AnnotationType
 from atria_types._utilities._viz import _draw_bboxes_on_image
 
 if TYPE_CHECKING:
@@ -19,7 +20,10 @@ class DocumentVisualizer(Visualizer):
         self.instance = instance
 
     def _draw_on_image(
-        self, image: PILImage, draw_segment_bboxes: bool = False
+        self,
+        image: PILImage,
+        draw_segment_bboxes: bool = False,
+        draw_word_labels: bool = False,
     ) -> PILImage:
         # Placeholder for drawing logic specific to the data instance type
         if self.instance.content is None:
@@ -37,21 +41,34 @@ class DocumentVisualizer(Visualizer):
                 if bbox is not None
             ]
 
+            bbox_labels = None
+            if draw_word_labels:
+                ann = self.instance.get_annotation_by_type(
+                    annotation_type=AnnotationType.entity_labeling
+                )
+                bbox_labels = [label.name for label in ann.word_labels]
+
             # Draw bounding boxes on the image
             image = _draw_bboxes_on_image(
                 image=image,
                 bboxes=bboxes,
                 bboxes_text=self.instance.content.text_list,
+                bbox_labels=bbox_labels,
             )
 
         return image
 
     def visualize(
-        self, output_path: str, draw_segment_bboxes: bool = False
+        self,
+        output_path: str,
+        draw_segment_bboxes: bool = False,
+        draw_word_labels: bool = True,
     ) -> PILImage:
         image = self._load_image()
         image = self._draw_on_image(
-            image.copy().convert("RGB"), draw_segment_bboxes=draw_segment_bboxes
+            image.copy().convert("RGB"),
+            draw_segment_bboxes=draw_segment_bboxes,
+            draw_word_labels=draw_word_labels,
         )
         Path(output_path).mkdir(parents=True, exist_ok=True)
         logger.debug(
