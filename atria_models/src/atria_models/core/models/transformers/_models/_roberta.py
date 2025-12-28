@@ -39,7 +39,7 @@ class RoBertaEncoderModelConfig(TransformersEncoderModelConfig):
             (".intermediate.", ".intermediate_ffn."),
             (".output.", ".output_ffn."),
             # Embeddings
-            ("embeddings.layer_norm.", "embeddings_aggregator.layer_norm."),
+            ("embeddings.layer_norm.", "embeddings_postprocessor.layer_norm."),
         ],
     )
     embeddings_config: EmbeddingsConfig = EmbeddingsConfig(
@@ -127,5 +127,5 @@ class RoBertaTokenEmbeddings(TokenEmbeddings):
 class RoBertaEncoderModel(TransformersEncoderModel):
     __config__ = RoBertaEncoderModelConfig
 
-    def _build_embeddings(self):
+    def _build_text_layout_embeddings(self):
         return RoBertaTokenEmbeddings(config=self.config.embeddings_config)

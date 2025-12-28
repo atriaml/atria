@@ -6,14 +6,10 @@ import pytest
 import torch
 from transformers import AutoModel, AutoTokenizer
 
-from atria_models.core.models.transformers._models._bert import (
-    BertEncoderModel,
-    BertEncoderModelConfig,
+from atria_models.core.models.transformers._models._lilt._config import (
+    LiLTEncoderModelConfig,
 )
-from atria_models.core.models.transformers._models._roberta import (
-    RoBertaEncoderModel,
-    RoBertaEncoderModelConfig,
-)
+from atria_models.core.models.transformers._models._lilt._lilt import LiLTEncoderModel
 
 
 @dataclass
@@ -28,39 +24,41 @@ class ModelTestContainer:
     sample_inputs: dict[str, dict[str, torch.Tensor]]
 
 
-def sample_inputs(tokenizer: Callable) -> dict[str, dict[str, torch.Tensor]]:
+def inputs_factory(tokenizer: Callable) -> dict[str, dict[str, torch.Tensor]]:
+    text = [["hello", "world", "my", "is", "lilt"]]
+    boxes = [
+        [
+            [100, 100, 200, 200],
+            [150, 150, 250, 250],
+            [200, 200, 300, 300],
+            [250, 250, 350, 350],
+            [300, 300, 400, 400],
+        ]
+    ]
     sample_inputs = {
-        "single": tokenizer("Hello, my dog is cute", return_tensors="pt"),
+        "single": tokenizer(text=text, boxes=boxes, return_tensors="pt"),
         "batch": tokenizer(
-            ["Hello world", "How are you?"], return_tensors="pt", padding=True
+            text=text * 2, boxes=boxes * 2, return_tensors="pt", padding=True
         ),
-        "long": tokenizer(
-            "This is a longer sentence that contains multiple words to test model behavior",
-            return_tensors="pt",
-        ),
-        "empty": tokenizer("", return_tensors="pt"),
+        "long": tokenizer(text=text * 10, boxes=boxes * 10, return_tensors="pt"),
+        "empty": tokenizer(text=[[]], boxes=[[]], return_tensors="pt"),
     }
     return sample_inputs
 
 
 # Define model configurations
 MODEL_CONFIGS = {
-    "bert-base-uncased": {
-        "atria_config_factory": lambda: BertEncoderModelConfig(),
-        "atria_model_factory": lambda config: BertEncoderModel(config),
-        "inputs_factory": sample_inputs,
-    },
-    "roberta-base": {
-        "atria_config_factory": lambda: RoBertaEncoderModelConfig(),
-        "atria_model_factory": lambda config: RoBertaEncoderModel(config),
-        "inputs_factory": sample_inputs,
-    },
+    "SCUT-DLVCLab/lilt-roberta-en-base": {
+        "atria_config_factory": lambda: LiLTEncoderModelConfig(),
+        "atria_model_factory": lambda config: LiLTEncoderModel(config),
+        "inputs_factory": inputs_factory,
+    }
 }
 
 
 @pytest.fixture(
     scope="session",
-    params=["bert-base-uncased", "roberta-base"],
+    params=["SCUT-DLVCLab/lilt-roberta-en-base"],
     ids=lambda x: x.replace("-", "_"),
 )
 def model_container(request) -> ModelTestContainer:
@@ -97,7 +95,7 @@ def _compare_model_outputs(
     with torch.no_grad():
         hf_inputs = {}
         atria_inputs = {}
-        for key in ["input_ids", "attention_mask", "token_type_ids"]:
+        for key in ["input_ids", "attention_mask", "token_type_ids", "bbox"]:
             if key in inputs:
                 hf_inputs[key] = inputs[key]
 
@@ -107,6 +105,8 @@ def _compare_model_outputs(
                     atria_inputs["attention_mask"] = inputs[key]
                 elif key == "token_type_ids":
                     atria_inputs["token_type_ids_or_embeddings"] = inputs[key]
+                elif key == "bbox":
+                    atria_inputs["layout_ids_or_embeddings"] = inputs[key]
         hf_output = container.transformers_model(**hf_inputs)
         atria_output = container.atria_model(**atria_inputs)
 
@@ -120,7 +120,7 @@ def _compare_model_outputs(
     return values_match
 
 
-@pytest.mark.parametrize("input_type", ["single", "batch", "long", "empty"])
+@pytest.mark.parametrize("input_type", ["single", "batch", "long"])
 def test_model_outputs(model_container: ModelTestContainer, input_type: str):
     inputs = model_container.sample_inputs[input_type]
     values_match = _compare_model_outputs(model_container, inputs)

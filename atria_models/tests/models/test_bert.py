@@ -42,7 +42,7 @@ model2.eval()
 with torch.no_grad():
     outputs1 = model1(input_ids=input_ids)
 with torch.no_grad():
-    outputs2 = model2(tokens_ids_or_embedding=input_ids)
+    outputs2 = model2(token_ids_or_embeddings=input_ids)
 
 print("Outputs from original BERT model:", outputs1.last_hidden_state)
 print("Outputs from clean BERT model:", outputs2.last_hidden_state)

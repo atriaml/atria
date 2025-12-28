@@ -23,6 +23,7 @@ class SequenceClassificationHeadConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=False, frozen=True)
     num_labels: int = 2
     sub_task: ClassificationSubTask = ClassificationSubTask.single_label_classification
+    add_pooling_layer: bool = True
 
 
 class TokenClassificationHeadConfig(BaseModel):
@@ -56,6 +57,7 @@ class TransformersEncoderModelConfig(ModuleConfig):
     checkpoint_config: CheckpointConfig = CheckpointConfig()
     layers_config: LayersConfig = LayersConfig()
     head_config: HeadConfigType | None = None
+    attach_pooler: bool = True
     output_attentions: bool = False
     output_hidden_states: bool = False
     pretrained: bool = True

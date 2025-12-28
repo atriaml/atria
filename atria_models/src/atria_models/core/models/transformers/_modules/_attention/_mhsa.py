@@ -12,49 +12,47 @@ class MultiHeadSelfAttention(nn.Module):
     def __init__(self, config: AttentionConfig):
         super().__init__()
 
-        self.config = config
+        self._config = config
 
         self._build_layers()
 
     def _validate_attributes(self):
-        if self.config.all_head_size % self.config.num_attention_heads != 0:
+        if self._config.all_head_size % self._config.num_attention_heads != 0:
             raise ValueError(
-                f"The hidden size ({self.config.hidden_size}) is not a multiple of the number of attention "
-                f"heads ({self.config.num_attention_heads})"
+                f"The hidden size ({self._config.hidden_size}) is not a multiple of the number of attention "
+                f"heads ({self._config.num_attention_heads})"
             )
 
     def _build_kqv(self):
         # build the key, query, value projection layers
-        self.query = nn.Linear(self.config.hidden_size, self.config.all_head_size)
-        self.key = nn.Linear(self.config.hidden_size, self.config.all_head_size)
-        self.value = nn.Linear(self.config.hidden_size, self.config.all_head_size)
+        self.query = nn.Linear(self._config.hidden_size, self._config.all_head_size)
+        self.key = nn.Linear(self._config.hidden_size, self._config.all_head_size)
+        self.value = nn.Linear(self._config.hidden_size, self._config.all_head_size)
 
     def _build_layers(self):
         self._build_kqv()
-        self.dropout = nn.Dropout(self.config.attention_probs_dropout_prob)
+        self.dropout = nn.Dropout(self._config.attention_probs_dropout_prob)
 
     def _transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
         new_x_shape = x.size()[:-1] + (
-            self.config.num_attention_heads,
-            self.config.attention_head_size,
+            self._config.num_attention_heads,
+            self._config.attention_head_size,
         )
         x = x.view(new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def _expand_attention_mask(
-        self, attention_mask: torch.LongTensor
-    ) -> torch.LongTensor:
+    def _expand_attention_mask(self, attention_mask: torch.Tensor) -> torch.Tensor:
         if attention_mask.dim() == 3:
-            return cast(torch.LongTensor, attention_mask[:, None, :, :])
+            return cast(torch.Tensor, attention_mask[:, None, :, :])
         elif attention_mask.dim() == 2:
-            return cast(torch.LongTensor, attention_mask[:, None, None, :])
+            return cast(torch.Tensor, attention_mask[:, None, None, :])
         else:
             raise ValueError(
                 f"Wrong shape for attention_mask (shape {attention_mask.shape})"
             )
 
     def _attention_mask_to_additive_bias(
-        self, attention_mask: torch.LongTensor, dtype: torch.dtype
+        self, attention_mask: torch.Tensor, dtype: torch.dtype
     ) -> torch.Tensor:
         attention_mask_with_dtype = attention_mask.to(dtype=dtype)
         attention_mask_with_dtype = (1.0 - attention_mask_with_dtype) * torch.finfo(
@@ -64,37 +62,60 @@ class MultiHeadSelfAttention(nn.Module):
 
     def _reshape_output(self, context_layer: torch.Tensor) -> torch.Tensor:
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
-        new_context_layer_shape = context_layer.size()[:-2] + (self.config.hidden_size,)
+        new_context_layer_shape = context_layer.size()[:-2] + (
+            self._config.hidden_size,
+        )
         context_layer = context_layer.view(new_context_layer_shape)
         return context_layer
 
+    def _cogview_attention(self, attention_scores, alpha=32):
+        """
+        https://huggingface.co/papers/2105.13290 Section 2.4 Stabilization of training: Precision Bottleneck Relaxation
+        (PB-Relax). A replacement of the original nn.Softmax(dim=-1)(attention_scores). Seems the new attention_probs
+        will result in a slower speed and a little bias. Can use torch.allclose(standard_attention_probs,
+        cogview_attention_probs, atol=1e-08) for comparison. The smaller atol (e.g., 1e-08), the better.
+        """
+        scaled_attention_scores = attention_scores / alpha
+        max_value = scaled_attention_scores.amax(dim=(-1)).unsqueeze(-1)
+        new_attention_scores = (scaled_attention_scores - max_value) * alpha
+        return nn.Softmax(dim=-1)(new_attention_scores)
+
     def forward(
         self,
-        hidden_states: torch.Tensor,
-        attention_mask: torch.LongTensor | None = None,
+        hidden_state: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
         head_mask: torch.FloatTensor | None = None,
+        attention_bias: torch.Tensor | None = None,
     ) -> AttentionOutput:
         # Project the queries, keys and values
-        key_state = self._transpose_for_scores(self.key(hidden_states))
-        value_state = self._transpose_for_scores(self.value(hidden_states))
-        query_state = self._transpose_for_scores(self.query(hidden_states))
+        key_state = self._transpose_for_scores(self.key(hidden_state))
+        value_state = self._transpose_for_scores(self.value(hidden_state))
+        query_state = self._transpose_for_scores(self.query(hidden_state))
 
         # Take the dot product between "query" and "key" to get the raw attention scores.
         attention_scores = torch.matmul(query_state, key_state.transpose(-1, -2))
 
+        if attention_bias is not None:
+            attention_scores += attention_bias
+
         # Scale the attention scores as in the original Transformer paper
-        attention_scores = attention_scores / math.sqrt(self.config.attention_head_size)
+        attention_scores = attention_scores / math.sqrt(
+            self._config.attention_head_size
+        )
 
         # Apply the attention mask (0, 1) -> (-inf, 0)
         if attention_mask is not None:
             attention_mask = self._expand_attention_mask(attention_mask)
             attention_additive_bias = self._attention_mask_to_additive_bias(
-                attention_mask, dtype=hidden_states.dtype
+                attention_mask, dtype=hidden_state.dtype
             )
             attention_scores = attention_scores + attention_additive_bias
 
         # Normalize the attention scores to probabilities.
-        attentions = nn.functional.softmax(attention_scores, dim=-1)
+        if self._config.use_cogview_trick:
+            attentions = self._cogview_attention(attention_scores)
+        else:
+            attentions = nn.functional.softmax(attention_scores, dim=-1)
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.

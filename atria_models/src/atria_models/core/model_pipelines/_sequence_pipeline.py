@@ -119,8 +119,8 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
     ) -> dict[str, torch.Tensor | None]:
         if isinstance(self._model, TransformersEncoderModel):
             inputs = {
-                "tokens_ids_or_embedding": batch.token_ids,
-                "token_types_ids_or_embedding": batch.token_type_ids,
+                "token_id_or_embeddings": batch.token_ids,
+                "token_type_ids_or_embeddings": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
             }
         else:
@@ -132,7 +132,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
 
         if "pixel_values" in self._model_args_list and self.config.use_image:
             assert batch.image is not None, "Image cannot be None"
-            inputs["pixel_values"] = batch.image
+            if isinstance(self._model, TransformersEncoderModel):
+                inputs["image"] = batch.image
+            else:
+                inputs["pixel_values"] = batch.image
 
         if "bbox" in self._model_args_list and self.config.use_bbox:
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
@@ -143,7 +146,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                     if token_bboxes is not None
                     else None
                 )
-            inputs["bbox"] = token_bboxes
+            if isinstance(self._model, TransformersEncoderModel):
+                inputs["layout_ids"] = token_bboxes
+            else:
+                inputs["bbox"] = token_bboxes
 
         if "segment_index" in self._model_args_list and self.config.use_segment_info:
             inputs.update(

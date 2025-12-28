@@ -36,6 +36,7 @@ class AttentionConfig(BaseModel):
     num_attention_heads: int = 12
     attention_probs_dropout_prob: float = 0.1
     hidden_size: int = 768
+    use_cogview_trick: bool = False
 
     @property
     def attention_head_size(self) -> int:
@@ -75,4 +76,5 @@ class CheckpointConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=False, frozen=True)
     pretrained_checkpoint: str = "hf://bert-base-uncased"
+    remove_root_prefix: bool = True
     key_mapping: list[tuple[str, str]] = Field(default_factory=list)

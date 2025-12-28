@@ -99,3 +99,15 @@ class TokenEmbeddings(nn.Module):
             position_embeddings=self.position_embeddings(position_ids),
             token_type_embeddings=self.token_type_embeddings(token_type_ids),
         )
+
+
+class TokenEmbeddingsPostProcessor(nn.Module):
+    def __init__(self, hidden_size: int, layer_norm_eps: float, dropout_prob: float):
+        super().__init__()
+        self.layer_norm = nn.LayerNorm(hidden_size, eps=layer_norm_eps)
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, embeddings: TokenEmbeddingOutputs) -> torch.Tensor:
+        agg = self.layer_norm(embeddings.sum())
+        agg = self.dropout(agg)
+        return agg

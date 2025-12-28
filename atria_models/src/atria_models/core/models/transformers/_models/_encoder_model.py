@@ -17,12 +17,10 @@ from atria_models.core.models.transformers._configs._encoder_model import (
     TokenClassificationHeadConfig,
     TransformersEncoderModelConfig,
 )
-from atria_models.core.models.transformers._embeddings._aggregators import (
-    EmbeddingsAggregator,
-)
 from atria_models.core.models.transformers._embeddings._token import (
     TokenEmbeddingOutputs,
     TokenEmbeddings,
+    TokenEmbeddingsPostProcessor,
 )
 from atria_models.core.models.transformers._heads._question_answering import (
     QuestionAnsweringHead,
@@ -33,7 +31,6 @@ from atria_models.core.models.transformers._heads._sequence_classification impor
 from atria_models.core.models.transformers._heads._token_classification import (
     TokenClassificationHead,
 )
-from atria_models.core.models.transformers._modules._pooler import DefaultPooler
 from atria_models.core.models.transformers._outputs import (
     TransformersEncoderModelOutput,
 )
@@ -66,6 +63,7 @@ class TransformersEncoderModel(
             model=self,
             cache_dir=self._cache_dir,
             checkpoint_key_mapping=self.config.checkpoint_config.key_mapping,
+            remove_root_prefix=self.config.checkpoint_config.remove_root_prefix,
         )
 
     @property
@@ -74,38 +72,42 @@ class TransformersEncoderModel(
 
     def forward(
         self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None = None,
-        token_types_ids_or_embedding: torch.Tensor | None = None,
+        token_ids_or_embeddings: torch.Tensor,
+        position_ids_or_embeddings: torch.Tensor | None = None,
+        token_type_ids_or_embeddings: torch.Tensor | None = None,
         attention_mask: torch.Tensor | None = None,
         head_mask: torch.Tensor | None = None,
         is_embedding: bool = False,
         **head_kwargs,
     ) -> TransformersEncoderModelOutput:
         hidden_state = self._resolve_embeddings(
-            tokens_ids_or_embedding=tokens_ids_or_embedding,
-            positions_ids_or_embedding=positions_ids_or_embedding,
-            token_types_ids_or_embedding=token_types_ids_or_embedding,
+            token_ids_or_embeddings=token_ids_or_embeddings,
+            position_ids_or_embeddings=position_ids_or_embeddings,
+            token_type_ids_or_embeddings=token_type_ids_or_embeddings,
             is_embedding=is_embedding,
         )
+        batch_size, seq_length = hidden_state.shape[0], hidden_state.shape[1]
+
+        if attention_mask is None:
+            attention_mask = torch.ones(
+                (batch_size, seq_length), device=hidden_state.device
+            )
+
         head_mask = _resolve_head_mask(
             head_mask, self.config.layers_config.num_hidden_layers, self.dtype
         )
+
         encoder_outputs = self.encoder(
             hidden_state=hidden_state,
             attention_mask=attention_mask,
             head_mask=head_mask,
         )
         last_hidden_state = encoder_outputs.last_hidden_state
-        pooled_output = self.pooler(last_hidden_state)
         head_output = None
         if self.head is not None:
-            head_output = self._head_forward(
-                last_hidden_state, pooled_output, **head_kwargs
-            )
+            head_output = self._head_forward(last_hidden_state, **head_kwargs)
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
-            pooler_output=pooled_output,
             hidden_states=encoder_outputs.hidden_states,
             attentions=encoder_outputs.attentions,
             head_output=head_output,
@@ -131,23 +133,20 @@ class TransformersEncoderModel(
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def _build_embeddings(self):
+    def _build_text_layout_embeddings(self) -> nn.Module:
         return TokenEmbeddings(config=self.config.embeddings_config)
 
-    def _build_embeddings_aggregator(self):
-        return EmbeddingsAggregator(
+    def _build_embeddings_postprocessor(self) -> nn.Module:
+        return TokenEmbeddingsPostProcessor(
             hidden_size=self.config.layers_config.hidden_size,
             layer_norm_eps=self.config.layers_config.layer_norm_eps,
             dropout_prob=self.config.layers_config.hidden_dropout_prob,
         )
 
-    def _build_encoder(self):
+    def _build_encoder(self) -> nn.Module:
         return EncoderBlock(config=self.config)
 
-    def _build_pooler(self):
-        return DefaultPooler(hidden_size=self.config.layers_config.hidden_size)
-
-    def _build_head(self):
+    def _build_head(self) -> nn.Module | None:
         if self.config.head_config is None:
             return None
 
@@ -161,6 +160,7 @@ class TransformersEncoderModel(
                     if self.config.layers_config.classifier_dropout is not None
                     else self.config.layers_config.hidden_dropout_prob
                 ),
+                add_pooling_layer=self.config.head_config.add_pooling_layer,
             )
         elif isinstance(self.config.head_config, TokenClassificationHeadConfig):
             return TokenClassificationHead(
@@ -182,10 +182,9 @@ class TransformersEncoderModel(
             )
 
     def _build(self):
-        self.embeddings = self._build_embeddings()
-        self.embeddings_aggregator = self._build_embeddings_aggregator()
+        self.embeddings = self._build_text_layout_embeddings()
+        self.embeddings_postprocessor = self._build_embeddings_postprocessor()
         self.encoder = self._build_encoder()
-        self.pooler = self._build_pooler()
         self.head = self._build_head()
 
     def _load_checkpoint(self):
@@ -196,27 +195,24 @@ class TransformersEncoderModel(
 
     def _resolve_embeddings(
         self,
-        tokens_ids_or_embedding: torch.Tensor,
-        positions_ids_or_embedding: torch.Tensor | None,
-        token_types_ids_or_embedding: torch.Tensor | None,
+        token_ids_or_embeddings: torch.Tensor,
+        position_ids_or_embeddings: torch.Tensor | None,
+        token_type_ids_or_embeddings: torch.Tensor | None,
         is_embedding: bool = False,
     ):
         if not is_embedding:
             embeddings = self.ids_to_embeddings(
-                token_ids=tokens_ids_or_embedding,
-                position_ids=positions_ids_or_embedding,
-                token_type_ids=token_types_ids_or_embedding,
+                token_ids=token_ids_or_embeddings,
+                position_ids=position_ids_or_embeddings,
+                token_type_ids=token_type_ids_or_embeddings,
             )
-            token_embeddings = embeddings.token_embeddings
-            position_embeddings = embeddings.position_embeddings
-            token_type_embeddings = embeddings.token_type_embeddings
         else:
-            token_embeddings = tokens_ids_or_embedding
-            position_embeddings = positions_ids_or_embedding
-            token_type_embeddings = token_types_ids_or_embedding
-        return self.embeddings_aggregator(
-            (token_embeddings, position_embeddings, token_type_embeddings)
-        )
+            embeddings = TokenEmbeddingOutputs(
+                token_embeddings=token_ids_or_embeddings,
+                position_embeddings=position_ids_or_embeddings,
+                token_type_embeddings=token_type_ids_or_embeddings,
+            )
+        return self.embeddings_postprocessor(embeddings=embeddings)
 
     def ids_to_embeddings(
         self,
@@ -231,14 +227,9 @@ class TransformersEncoderModel(
             token_type_ids=token_type_ids,
         )
 
-    def _head_forward(
-        self,
-        last_hidden_state: torch.Tensor,
-        pooled_output: torch.Tensor,
-        **head_kwargs,
-    ):
+    def _head_forward(self, last_hidden_state: torch.Tensor, **head_kwargs):
         if isinstance(self.head, SequenceClassificationHead):
-            return self.head(pooled_hidden_state=pooled_output, **head_kwargs)
+            return self.head(last_hidden_state=last_hidden_state, **head_kwargs)
         elif isinstance(self.head, TokenClassificationHead):
             return self.head(last_hidden_state=last_hidden_state, **head_kwargs)
         elif isinstance(self.head, QuestionAnsweringHead):

@@ -44,7 +44,6 @@ class QuestionAnsweringHeadOutput:
 @dataclass(frozen=True)
 class TransformersEncoderModelOutput:
     last_hidden_state: torch.Tensor | None = None
-    pooler_output: torch.Tensor | None = None
     hidden_states: tuple[torch.Tensor, ...] | None = None
     attentions: tuple[torch.Tensor, ...] | None = None
     head_output: (

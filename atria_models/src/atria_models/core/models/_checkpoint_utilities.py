@@ -16,9 +16,11 @@ class CheckpointLoader:
         model: nn.Module,
         cache_dir: str,
         checkpoint_key_mapping: list[tuple[str, str]] | None = None,
+        remove_root_prefix: bool = True,
     ):
         self.model = model
         self.cache_dir = cache_dir
+        self.remove_root_prefix = remove_root_prefix
         self._rewrite_rules = checkpoint_key_mapping or []
 
     def load_from_checkpoint(self, checkpoint_path: str, strict: bool = False) -> None:
@@ -48,7 +50,7 @@ class CheckpointLoader:
         """Process raw state dict by removing prefix, remapping keys, and privatizing."""
         processed_dict = {}
 
-        def _remove_first_component(key: str) -> str:
+        def _remove_root_prefix(key: str) -> str:
             """Remove the first component from a dot-separated key."""
             return ".".join(key.split(".")[1:])
 
@@ -60,11 +62,11 @@ class CheckpointLoader:
             return key
 
         for key, value in state_dict.items():
-            # Remove model prefix (e.g., 'bert.')
-            processed_key = _remove_first_component(key)
-            # Apply rewrite rules
-            processed_key = _remap_key(processed_key)
+            processed_dict[_remap_key(key)] = value
 
-            processed_dict[processed_key] = value
+        processed_dict = {
+            _remove_root_prefix(k) if self.remove_root_prefix else k: v
+            for k, v in processed_dict.items()
+        }
 
         return processed_dict

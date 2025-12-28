@@ -10,6 +10,7 @@ from torch.nn.functional import (
 from atria_models.core.models.transformers._configs._encoder_model import (
     ClassificationSubTask,
 )
+from atria_models.core.models.transformers._modules._pooler import DefaultPooler
 from atria_models.core.models.transformers._outputs import (
     SequenceClassificationHeadOutput,
 )
@@ -22,8 +23,9 @@ class SequenceClassificationHead(nn.Module):
         self,
         num_labels: int,
         subtask: ClassificationSubTask = ClassificationSubTask.single_label_classification,
-        classifier_dropout: float | None = None,
-        hidden_size: int | None = None,
+        classifier_dropout: float = 0.1,
+        hidden_size: int = 768,
+        add_pooling_layer: bool = True,
     ):
         super().__init__()
 
@@ -31,9 +33,16 @@ class SequenceClassificationHead(nn.Module):
         self.sub_task = subtask
         self.classifier_dropout = classifier_dropout
         self.hidden_size = hidden_size
+        self.add_pooling_layer = add_pooling_layer
+
         self._build_layers()
 
     def _build_layers(self):
+        self.pooler = (
+            DefaultPooler(self.hidden_size)
+            if self.add_pooling_layer and self.hidden_size is not None
+            else None
+        )
         self.dropout = nn.Dropout(self.classifier_dropout)
         self.classifier = nn.Linear(self.hidden_size, self.num_labels)
 
@@ -54,9 +63,14 @@ class SequenceClassificationHead(nn.Module):
                 raise ValueError(f"Unknown sub_task {self.sub_task}")
 
     def forward(
-        self, pooled_hidden_state: torch.Tensor, labels: torch.Tensor | None = None
+        self, last_hidden_state: torch.Tensor, labels: torch.Tensor | None = None
     ) -> SequenceClassificationHeadOutput:
-        pooled_hidden_state = self.dropout(pooled_hidden_state)
-        logits = self.classifier(pooled_hidden_state)
+        last_hidden_state = (
+            self.pooler(last_hidden_state)
+            if self.pooler is not None
+            else last_hidden_state[:, 0]
+        )
+        last_hidden_state = self.dropout(last_hidden_state)
+        logits = self.classifier(last_hidden_state)
         loss = self._get_loss(logits, labels) if labels is not None else None
         return SequenceClassificationHeadOutput(loss=loss, logits=logits)

@@ -30,7 +30,7 @@ class BertEncoderModelConfig(TransformersEncoderModelConfig):
             (".intermediate.", ".intermediate_ffn."),
             (".output.", ".output_ffn."),
             # Embeddings
-            ("embeddings.layer_norm.", "embeddings_aggregator.layer_norm."),
+            ("embeddings.layer_norm.", "embeddings_postprocessor.layer_norm."),
         ],
     )
 
