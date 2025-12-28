@@ -37,7 +37,9 @@ class DownloadManager(RepresentationMixin):
         self.download_dir = download_dir
 
     def _prepare_urls_and_dirs(
-        self, data_urls: str | list[str] | dict[str, str]
+        self,
+        data_urls: str | list[str] | dict[str, str],
+        access_token: str | None = None,
     ) -> list[DownloadFileInfo]:
         """
         Prepares the URLs and directories for downloading files.
@@ -69,6 +71,8 @@ class DownloadManager(RepresentationMixin):
                 url, url_ext = url
             else:
                 url_ext = None
+            if access_token is not None and "{access_token}" in url:
+                url = url.format(access_token=access_token)
             download_file_infos.append(
                 DownloadFileInfo(
                     url=url,
@@ -247,7 +251,9 @@ class DownloadManager(RepresentationMixin):
         Returns:
             Dict[str, Path]: A dictionary mapping file names to their final output paths.
         """
-        download_file_infos = self._prepare_urls_and_dirs(data_urls)
+        download_file_infos = self._prepare_urls_and_dirs(
+            data_urls=data_urls, access_token=access_token
+        )
         if extract:
             for download_file_info in download_file_infos:
                 download_file_info.update_extract_path()

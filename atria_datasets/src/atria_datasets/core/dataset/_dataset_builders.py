@@ -143,9 +143,7 @@ class DatasetBuilder:
         for split in self.dataset._available_splits():
             if self._split is not None and split != self._split:
                 continue
-            self._prepare_downloads(
-                data_dir=self._data_dir, access_token=self._access_token
-            )
+            self._prepare_downloads()
             split_iterators[split] = self._prepare_split(split)
         return split_iterators
 
@@ -176,9 +174,7 @@ class DatasetBuilder:
 
         return str(data_dir)
 
-    def _prepare_downloads(
-        self, data_dir: str, access_token: str | None = None
-    ) -> None:
+    def _prepare_downloads(self) -> None:
         """
         Download and prepare remote dataset files.
 
@@ -190,29 +186,26 @@ class DatasetBuilder:
             This method is idempotent - subsequent calls will not re-download files.
         """
         if not self._downloads_prepared:
-            if self.dataset.__requires_access_token__:
-                if access_token is not None:
-                    self._access_token = access_token
-                else:
-                    logger.warning(
-                        "access_token must be passed to download this dataset. "
-                        f"See `{self.dataset.metadata.homepage}` for instructions to get the access token"
-                    )
+            if self.dataset.__requires_access_token__ and self._access_token is None:
+                logger.warning(
+                    "access_token must be passed to download this dataset. "
+                    f"See `{self.dataset.metadata.homepage}` for instructions to get the access token"
+                )
 
             if self.dataset._custom_download.__func__ is not Dataset._custom_download:
                 self._downloaded_files = self.dataset._custom_download(
-                    data_dir, access_token
+                    self._data_dir, self._access_token
                 )
             else:
                 from atria_datasets.core.download_manager._download_manager import (
                     DownloadManager,
                 )
 
-                download_dir = Path(data_dir) / _DEFAULT_DOWNLOAD_PATH
+                download_dir = Path(self._data_dir) / _DEFAULT_DOWNLOAD_PATH
                 download_dir.mkdir(parents=True, exist_ok=True)
 
                 download_manager = DownloadManager(
-                    data_dir=Path(data_dir), download_dir=download_dir
+                    data_dir=Path(self._data_dir), download_dir=download_dir
                 )
 
                 download_urls = self.dataset._download_urls()
@@ -220,7 +213,7 @@ class DatasetBuilder:
                     self._downloaded_files = download_manager.download_and_extract(
                         download_urls,
                         extract=self.dataset.__extract_downloads__,
-                        access_token=access_token,
+                        access_token=self._access_token,
                     )
                     logger.info(f"Downloaded files {self._downloaded_files}")
 
@@ -306,9 +299,7 @@ class CachedDatasetBuilder(DatasetBuilder):
                 split_exists = False
 
             if not split_exists:
-                self._prepare_downloads(
-                    data_dir=str(self._data_dir), access_token=self._access_token
-                )
+                self._prepare_downloads()
                 logger.info(
                     f"Caching split [{split.value}] to {self._storage_dir} with max_len={self.max_split_samples[split]}"
                 )
