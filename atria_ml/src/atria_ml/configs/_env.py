@@ -22,6 +22,7 @@ class RuntimeEnvConfig(RepresentationMixin, BaseModel):
     deterministic: bool = False
     backend: str | None = "nccl"
     n_devices: int = 1
+    overwrite_output_dir: bool = False
 
     @property
     def run_dataset_dir(self) -> Path:

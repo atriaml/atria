@@ -109,3 +109,14 @@ test_hfio.h5
 test_hfio.ipynb
 test_hfio.pt
 test_hfio.py
+experiments/train_baselines/base.sh
+experiments/train_baselines/jobs_set_cls.sh
+experiments/train_baselines/jobs_set_dla_doclaynet.sh
+experiments/train_baselines/jobs_set_dla_icdar_publaynet.sh
+experiments/train_baselines/jobs_set_kie.sh
+experiments/train_baselines/jobs_set_vqa.sh
+experiments/train_baselines/train_classification.sh
+experiments/train_baselines/train_entity_labeling.sh
+experiments/train_baselines/train_layout_analysis.sh
+experiments/train_baselines/train_question_answering.sh
+experiments/train_baselines/sequence_classification/train.sh

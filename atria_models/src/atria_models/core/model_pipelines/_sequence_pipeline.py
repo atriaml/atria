@@ -29,7 +29,6 @@ from atria_transforms.tfs._document_processor._task_tfs import (
 )
 from atria_transforms.tfs._hf_processor import HuggingfaceProcessor
 from pydantic import Field, model_validator
-from torch._tensor import Tensor
 
 from atria_models.core.model_builders._common import ModelBuilderType
 from atria_models.core.model_pipelines._common import ModelConfig, ModelPipelineConfig
@@ -42,7 +41,9 @@ from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
 from atria_models.core.models.transformers._outputs import (
+    QuestionAnsweringHeadOutput,
     SequenceClassificationHeadOutput,
+    TokenClassificationHeadOutput,
     TransformersEncoderModelOutput,
 )
 from atria_models.core.types.model_outputs import (
@@ -58,6 +59,7 @@ from atria_models.registry.registry_groups import MODEL_PIPELINES
 if TYPE_CHECKING:
     import torch
     from ignite.metrics import Metric
+    from torch import Tensor
 
 logger = get_logger(__name__)
 
@@ -79,7 +81,7 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         log_tensors_debug_info(inputs, title="train_inputs")
         model_output = self._model(**inputs)
         log_tensors_debug_info(model_output, title="train_model_output")
-        loss = self._compute_loss(model_output=model_output, batch=batch)
+        loss = self._get_loss(model_output=model_output)
         return self._output_transform(loss=loss, model_output=model_output, batch=batch)
 
     def evaluation_step(  # type: ignore[override]
@@ -92,7 +94,7 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
         log_tensors_debug_info(inputs, title=f"{stage}_inputs")
         model_output = self._model(**inputs)
         log_tensors_debug_info(model_output, title=f"{stage}_model_output")
-        loss = self._compute_loss(model_output=model_output, batch=batch)
+        loss = self._get_loss(model_output=model_output)
         return self._output_transform(loss=loss, model_output=model_output, batch=batch)
 
     def predict_step(  # type: ignore[override]
@@ -109,10 +111,56 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
             "_model_build_kwargs must be implemented in subclasses."
         )
 
-    def _compute_loss(
-        self, model_output: Any, batch: DocumentTensorDataModel
-    ) -> torch.Tensor:
-        raise NotImplementedError("_compute_loss must be implemented in subclasses.")
+    def _get_logits(self, model_output: Any) -> torch.Tensor | tuple[torch.Tensor, ...]:
+        if isinstance(model_output, TransformersEncoderModelOutput):
+            assert model_output.head_output is not None, "Head output cannot be None"
+            if isinstance(
+                model_output.head_output,
+                SequenceClassificationHeadOutput | TokenClassificationHeadOutput,
+            ):
+                assert model_output.head_output.logits is not None, (
+                    "Logits cannot be None"
+                )
+                return model_output.head_output.logits
+            elif isinstance(model_output.head_output, QuestionAnsweringHeadOutput):
+                assert model_output.head_output.start_logits is not None, (
+                    "Start logits cannot be None"
+                )
+                assert model_output.head_output.end_logits is not None, (
+                    "End logits cannot be None"
+                )
+                return (
+                    model_output.head_output.start_logits,
+                    model_output.head_output.end_logits,
+                )
+            else:
+                raise ValueError(
+                    f"Head output must be of type SequenceClassificationHeadOutput, TokenClassificationHeadOutput or QuestionAnsweringHeadOutput, got {type(model_output.head_output)}"
+                )
+        else:
+            if hasattr(model_output, "logits"):
+                assert model_output.logits is not None, "Logits cannot be None"
+                return model_output.logits
+            elif hasattr(model_output, "start_logits") and hasattr(
+                model_output, "end_logits"
+            ):
+                assert model_output.start_logits is not None, (
+                    "Start logits cannot be None"
+                )
+                assert model_output.end_logits is not None, "End logits cannot be None"
+                return model_output.start_logits, model_output.end_logits
+            else:
+                raise ValueError(
+                    "Model output does not have logits or start_logits and end_logits"
+                )
+
+    def _get_loss(self, model_output: Any) -> torch.Tensor:
+        if isinstance(model_output, TransformersEncoderModelOutput):
+            assert model_output.head_output is not None, "Head output cannot be None"
+            assert model_output.head_output.loss is not None, "Loss cannot be None"
+            return model_output.head_output.loss
+        else:
+            return model_output.loss
 
     def _input_transform(
         self, batch: DocumentTensorDataModel, require_labels: bool = False
@@ -131,17 +179,14 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
             }
 
         if self.config.use_image:
-            assert batch.image is not None, "Image cannot be None"
             if isinstance(self._model, TransformersEncoderModel):
-                assert "image" in self._model_args_list, (
-                    f"{self._model.__class__.__name__} does not support 'image' as input argument."
-                )
-                inputs["image"] = batch.image
+                if "image" in self._model_args_list:
+                    assert batch.image is not None, "Image cannot be None"
+                    inputs["image"] = batch.image
             else:
-                assert "pixel_values" in self._model_args_list, (
-                    f"{self._model.__class__.__name__} does not support 'pixel_values' as input argument."
-                )
-                inputs["pixel_values"] = batch.image
+                if "pixel_values" in self._model_args_list:
+                    assert batch.image is not None, "Image cannot be None"
+                    inputs["pixel_values"] = batch.image
 
         if self.config.use_bbox:
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
@@ -153,21 +198,17 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                     else None
                 )
             if isinstance(self._model, TransformersEncoderModel):
-                assert (
-                    "layout_ids_or_embeddings" in self._model_args_list
-                    and "layout_ids" in self._model_args_list
-                ), (
-                    f"{self._model.__class__.__name__} does not support 'layout_ids_or_embeddings' or 'bbox' "
-                    f"as input argument and cannot be used with bbox information."
-                )
-                inputs["layout_ids_or_embeddings"] = token_bboxes
-                inputs["layout_ids"] = token_bboxes
+                if "layout_ids_or_embeddings" in self._model_args_list:
+                    assert token_bboxes is not None, "Token bboxes cannot be None"
+                    inputs["layout_ids_or_embeddings"] = token_bboxes
+
+                if "layout_ids" in self._model_args_list:
+                    assert token_bboxes is not None, "Token bboxes cannot be None"
+                    inputs["layout_ids"] = token_bboxes
             else:
-                assert "bbox" in self._model_args_list, (
-                    f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
-                    f"with bbox information."
-                )
-                inputs["bbox"] = token_bboxes
+                if "bbox" in self._model_args_list:
+                    assert token_bboxes is not None, "Token bboxes cannot be None"
+                    inputs["bbox"] = token_bboxes
 
         if "segment_index" in self._model_args_list and self.config.use_segment_info:
             inputs.update(
@@ -278,37 +319,20 @@ class SequenceClassificationPipeline(SequenceModelPipeline):
         assert batch.label is not None, "Labels cannot be None"
         return {"labels": batch.label}
 
-    def _get_logits(self, model_output: Any) -> torch.Tensor:
-        if isinstance(model_output, TransformersEncoderModelOutput):
-            assert model_output.head_output is not None, "Head output cannot be None"
-            assert isinstance(
-                model_output.head_output, SequenceClassificationHeadOutput
-            ), "Head output must be of type SequenceClassificationHeadOutput"
-            assert model_output.head_output.logits is not None, "Logits cannot be None"
-            return model_output.head_output.logits
-        else:
-            return model_output.logits
-
-    def _compute_loss(
-        self, model_output: Any, batch: DocumentTensorDataModel
-    ) -> Tensor:
-        from torch.nn.functional import cross_entropy
-
-        assert batch.label is not None, "Labels cannot be None"
-        loss = cross_entropy(self._get_logits(model_output=model_output), batch.label)
-        return loss
-
     def _output_transform(
         self,
         loss: torch.Tensor | None,
         model_output: Any,
         batch: DocumentTensorDataModel,
     ) -> ModelOutput:
+        import torch
+
         assert self._labels.classification is not None, (
             "Labels must be provided for classification tasks."
         )
         assert batch.label is not None, "Labels cannot be None"
         logits = self._get_logits(model_output=model_output)
+        assert isinstance(logits, torch.Tensor), "Logits must be a torch.Tensor"
         predicted_labels = logits.argmax(dim=-1)
         return ClassificationModelOutput(
             loss=loss,
@@ -407,22 +431,20 @@ class TokenClassificationPipeline(SequenceModelPipeline):
         assert batch.token_labels is not None, "Labels cannot be None"
         return {"labels": batch.token_labels}
 
-    def _compute_loss(
-        self, model_output: Any, batch: DocumentTensorDataModel
-    ) -> Tensor:
-        return model_output.loss
-
     def _output_transform(
         self,
         loss: torch.Tensor | None,
         model_output: Any,
         batch: DocumentTensorDataModel,
     ) -> ModelOutput:
+        import torch
+
         assert batch.token_labels is not None, "Token labels cannot be None"
         assert self._labels.ser is not None, "Labels must be provided for ser tasks."
         target_label_names = []
         predicted_label_names = []
-        logits = model_output.logits
+        logits = self._get_logits(model_output=model_output)
+        assert isinstance(logits, torch.Tensor), "Logits must be a torch.Tensor"
         predictions = logits.argmax(-1)
         for prediction, target in zip(predictions, batch.token_labels, strict=True):
             curr_target_label_names = [
@@ -530,16 +552,31 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
         assert self.config.use_bbox, (
             f"{self.__class__.__name__} requires use_bbox to be True in the config."
         )
-        assert "bbox" in self._model_args_list, (
-            f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
-            f"with {self.__class__.__name__}."
-        )
-        assert batch.token_bboxes is not None, (
-            f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
-        )
-        assert "bbox" in inputs, (
-            f"{self.__class__.__name__} requires 'bbox' in the model inputs"
-        )
+        if isinstance(self._model, TransformersEncoderModel):
+            assert "layout_ids_or_embeddings" in self._model_args_list, (
+                f"{self._model.__class__.__name__} does not support 'layout_ids_or_embeddings' as input argument and cannot be used "
+                f"with {self.__class__.__name__}."
+            )
+            assert batch.token_bboxes is not None, (
+                f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
+            )
+            assert "layout_ids_or_embeddings" in inputs, (
+                f"{self.__class__.__name__} requires 'layout_ids_or_embeddings' in the model inputs"
+            )
+            assert "layout_ids" in inputs, (
+                f"{self.__class__.__name__} requires 'layout_ids' in the model inputs"
+            )
+        else:
+            assert "bbox" in self._model_args_list, (
+                f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
+                f"with {self.__class__.__name__}."
+            )
+            assert batch.token_bboxes is not None, (
+                f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
+            )
+            assert "bbox" in inputs, (
+                f"{self.__class__.__name__} requires 'bbox' in the model inputs"
+            )
         return inputs
 
     def _output_transform(
@@ -548,13 +585,17 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
         model_output: Any,
         batch: DocumentTensorDataModel,
     ) -> ModelOutput:
+        import torch
+
         assert batch.token_labels is not None, "Token labels cannot be None"
         assert batch.token_bboxes is not None, (
             "For layout token classification, token bboxes cannot be None"
         )
+        logits = self._get_logits(model_output=model_output)
+        assert isinstance(logits, torch.Tensor), "Logits must be a torch.Tensor"
         return LayoutTokenClassificationModelOutput(
             loss=loss,
-            layout_token_logits=model_output.logits,
+            layout_token_logits=logits,
             layout_token_targets=batch.token_labels,
             layout_token_bboxes=batch.token_bboxes,
         )
@@ -634,6 +675,11 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
         model_output: Any,
         batch: DocumentTensorDataModel,
     ) -> QAModelOutput:
+        star_logits, end_logits = self._get_logits(model_output=model_output)
+        assert isinstance(star_logits, torch.Tensor), (
+            "Start logits must be a torch.Tensor"
+        )
+        assert isinstance(end_logits, torch.Tensor), "End logits must be a torch.Tensor"
         pred_answers_per_question_id = _postprocess_qa_predictions(
             words=batch.metadata.words,
             word_ids=batch.word_ids.detach().cpu(),

@@ -82,6 +82,28 @@ class Trainer:
         )
         logger.info(f"Seed set to {self._config.env.seed} on device: {self._device}")
 
+        # if overwrite_output_dir is set, clear the output directory
+        if self._config.env.overwrite_output_dir:
+            output_dir = Path(self._config.env.run_dir)
+
+            def rm_dir_contents(dir_path: Path):
+                if not dir_path.exists():
+                    return
+                logger.warning("env.overwrite_output_dir is set to True.")
+                logger.warning(f"Removing contents of directory: {dir_path}")
+                for item in dir_path.iterdir():
+                    if item.is_dir():
+                        rm_dir_contents(item)
+                        item.rmdir()
+                    else:
+                        item.unlink()
+
+            # remove all checkpoints
+            rm_dir_contents(output_dir / "checkpoints")
+            rm_dir_contents(output_dir / "tensorboard")
+            rm_dir_contents(output_dir / "validation")
+            rm_dir_contents(output_dir / "test")
+
     def _setup_logging(self) -> TensorboardLogger | None:
         import ignite.distributed as idist
         from ignite.handlers import TensorboardLogger
