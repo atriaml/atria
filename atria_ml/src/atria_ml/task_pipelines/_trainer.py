@@ -168,6 +168,7 @@ class Trainer:
         )
         return ValidationEngine(
             config=ValidationEngineConfig(
+                # epoch_length=2, # do this for quick debugging
                 logging=self._config.logging,
                 test_run=self._config.test_run,
                 use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
@@ -252,6 +253,19 @@ class Trainer:
 
         # build dataset
         dataset = self._config.data.build_dataset()
+
+        # preprocess dataset splits
+        if (
+            self._config.data.preprocess_train_transform is not None
+            and self._config.data.preprocess_eval_transform is not None
+        ):
+            # process the dataset with a custom transform
+            dataset = dataset.process_dataset(
+                train_transform=self._config.data.preprocess_train_transform,
+                eval_transform=self._config.data.preprocess_eval_transform,
+                max_cache_image_size=self._config.data.max_cache_image_size,
+                num_processes=self._config.data.num_processes,
+            )
 
         # load labels
         labels = dataset.metadata.dataset_labels

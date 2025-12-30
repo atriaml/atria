@@ -169,7 +169,7 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
             )
 
             # perform tokenization using the hf_processor
-            tokenization_data = self.hf_processor(**hf_processor_inputs)
+            tokenization_data = self.hf_processor(hf_processor_inputs)
 
             # post-process tokenizer outputs to generate segment-level info and align word ids and labels
             processed_outputs = self._post_process_qa_tokenizer_outputs(
@@ -201,6 +201,8 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
         tokenization_data: BatchEncoding,
         qa_pair: QAPair,
     ) -> dict[str, Any]:
+        import numpy as np
+
         processed_outputs = self._post_process_tokenizer_outputs(
             document_instance, hf_processor_inputs, tokenization_data
         )
@@ -272,3 +274,48 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
             "qa_question": qa_pair.question_text,
             "qa_answer": qa_pair.answers,
         }
+
+    def _resolve_overflow(
+        self, processed_outputs: dict[str, Any], overflow_sample_idx: int
+    ) -> DocumentTensorDataModel:
+        data = {
+            key: value[overflow_sample_idx] if value is not None else None
+            for key, value in processed_outputs.items()
+            if key
+            in [
+                "token_ids",
+                "attention_mask",
+                "token_bboxes",
+                "token_type_ids",
+                "token_labels",
+                "sequence_ids",
+                "word_ids",
+                "token_answer_start",
+                "token_answer_end",
+            ]
+        }
+
+        # image is the same for all overflowing segments of the same document
+        if "image":
+            data["image"] = processed_outputs["image"]
+
+        # if label is present at sample level, add it
+        if "label" in processed_outputs:
+            data["label"] = processed_outputs["label"]
+
+        # by default, we return for eery overflowing segment a separate DocumentTensorDataModel
+        index = processed_outputs.get("index", None)
+        assert index is not None, "index must be present in processed outputs"
+        sample_id = processed_outputs.get("sample_id", None)
+        assert sample_id is not None, "sample_id must be present in processed outputs"
+        words = processed_outputs.get("words", None)
+        assert words is not None, "words must be present in processed outputs"
+        return DocumentTensorDataModel(
+            index=index,
+            sample_id=sample_id,
+            words=words,
+            question_id=processed_outputs.get("question_id", None),
+            qa_question=processed_outputs.get("qa_question", None),
+            qa_answers=processed_outputs.get("qa_answer", None),
+            **data,
+        )

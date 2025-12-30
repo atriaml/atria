@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import Dataset
@@ -40,6 +42,10 @@ class DataConfig(RepresentationMixin, BaseModel):
     # dataset split args
     splitting_enabled: bool = True
     split_ratio: float = 0.9
+
+    # preprocess transforms
+    preprocess_train_transform: Callable | None = None
+    preprocess_eval_transform: Callable | None = None
 
     def build_dataset(self) -> Dataset:
         dataset = self.dataset_config.build(

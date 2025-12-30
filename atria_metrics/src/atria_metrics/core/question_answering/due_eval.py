@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-_DUE_CONFIG_REPO = "https://github.com/saifullah3396/duetest/blob/main/{dataset_name}/{split}/document.jsonl"
+_DUE_CONFIG_REPO = "https://raw.githubusercontent.com/saifullah3396/duetest/main/{dataset_name}/{split}/document.jsonl"
 
 
 class DueEvalMetric(Metric):
@@ -64,14 +64,19 @@ class DueEvalMetric(Metric):
         self._sample_level_qa_pairs = defaultdict(dict)
 
     def update(self, output: QAModelOutput) -> None:
-        assert output.qa_pairs is not None, (
-            "model_output.qa_pairs is None. Cannot update DueEvalMetric."
+        assert (
+            output.sample_id is not None
+            and output.question is not None
+            and output.answer is not None
+        ), (
+            f"DueEvalMetric expects QAModelOutput with sample_id, question, and answer fields. "
+            f"Got: {output}"
         )
-        for qa_pair in output.qa_pairs:
-            if qa_pair.question not in self._sample_level_qa_pairs[qa_pair.sample_id]:
-                self._sample_level_qa_pairs[qa_pair.sample_id][qa_pair.question] = (
-                    qa_pair.answer
-                )
+        for sample_id, question, answer in zip(
+            output.sample_id, output.question, output.answer, strict=True
+        ):
+            if question not in self._sample_level_qa_pairs[sample_id]:
+                self._sample_level_qa_pairs[sample_id][question] = answer
 
     def compute(self) -> float:
         reference = []
@@ -106,6 +111,15 @@ class DueEvalMetric(Metric):
                     }
                 )
                 reference.append(per_sample_reference)
+
+        if len(answers) == 0:
+            raise ValueError(
+                "No answers were collected for DueEvaluator. "
+                "Please ensure that the model outputs contain valid sample IDs "
+                "that match those in the reference file."
+                "Found sample IDs: "
+                f"{list(self._sample_level_qa_pairs.keys())}"
+            )
 
         # log info
         assert len(reference) == len(answers), (
@@ -174,6 +188,7 @@ class DueEvalMetricConfig(MetricConfig):
             raise ValueError(
                 f"DueEvalMetricConfig can only be built for validation or test stages. Found: {stage}"
             )
+        print("Setting up due eval metric...")
         return DueEvalMetric(
             dataset=self.dataset_name,
             split=split,

@@ -52,9 +52,6 @@ class QuestionAnsweringHead(nn.Module):
 
         loss = None
         if start_positions is not None and end_positions is not None:
-            loss = self._get_loss(start_logits, start_positions)
-
-        if start_positions is not None and end_positions is not None:
             loss = self._get_loss(
                 start_positions, start_logits, end_positions, end_logits
             )

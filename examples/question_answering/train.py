@@ -21,16 +21,16 @@ from atria_transforms.tfs._image_transforms import StandardImageTransform
 
 def main(
     project_name: str = "my_atria_project",
-    dataset_name: str = "funsd",
+    dataset_name: str = "due_benchmark/DocVQA",
     model_name: str = "bert-base-uncased",
     builder_type: ModelBuilderType = ModelBuilderType.atria,
-    exp_name: str = "train_token_cls_03",
+    exp_name: str = "train_qa_03",
     output_dir: str = "./outputs",
     stats: Literal["imagenet", "standard", "openai_clip", "custom"] = "standard",
     image_size: int = 224,
     max_epochs: int = 100,
-    train_batch_size: int = 16,
-    eval_batch_size: int = 16,
+    train_batch_size: int = 4,
+    eval_batch_size: int = 4,
     num_workers: int = 8,
     seed: int = 42,
     optim: str = "adamw",
@@ -52,14 +52,14 @@ def main(
             overwrite_output_dir=overwrite_output_dir,
         ),
         model_pipeline=load_model_pipeline_config(
-            "token_classification",
+            "question_answering",
             model=ModelConfig(
                 model_name_or_path=model_name,
                 builder_type=builder_type,
-                model_type="token_classification",
+                model_type="question_answering",
             ),
             train_transform=load_transform(
-                "token_classification_document_processor",
+                "question_answering_document_processor",
                 hf_processor={
                     "tokenizer_name": "bert-base-uncased",
                 },
@@ -67,9 +67,10 @@ def main(
                     stats=stats, resize_width=image_size, resize_height=image_size
                 ),
                 overflow_strategy="return_random",
+                is_training=True,
             ),
             eval_transform=load_transform(
-                "token_classification_document_processor",
+                "question_answering_document_processor",
                 hf_processor={
                     "tokenizer_name": "bert-base-uncased",
                 },
@@ -77,6 +78,7 @@ def main(
                     stats=stats, resize_width=image_size, resize_height=image_size
                 ),
                 overflow_strategy="return_all",
+                is_training=False,
             ),
         ),
         data=DataConfig(
@@ -86,6 +88,12 @@ def main(
             eval_batch_size=eval_batch_size,
             splitting_enabled=splitting_enabled,
             split_ratio=split_ratio,
+            preprocess_train_transform=load_transform(
+                "unroll_qa_pairs_transform", remove_no_answer_samples=True
+            ),
+            preprocess_eval_transform=load_transform(
+                "unroll_qa_pairs_transform", remove_no_answer_samples=False
+            ),
         ),
         trainer=TrainerConfig(
             max_epochs=max_epochs,

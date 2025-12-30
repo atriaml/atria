@@ -51,7 +51,6 @@ from atria_models.core.types.model_outputs import (
     LayoutTokenClassificationModelOutput,
     ModelOutput,
     QAModelOutput,
-    QAPair,
     TokenClassificationModelOutput,
 )
 from atria_models.registry.registry_groups import MODEL_PIPELINES
@@ -563,9 +562,6 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
             assert "layout_ids_or_embeddings" in inputs, (
                 f"{self.__class__.__name__} requires 'layout_ids_or_embeddings' in the model inputs"
             )
-            assert "layout_ids" in inputs, (
-                f"{self.__class__.__name__} requires 'layout_ids' in the model inputs"
-            )
         else:
             assert "bbox" in self._model_args_list, (
                 f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
@@ -651,8 +647,7 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
     __config__ = QuestionAnsweringPipelineConfig
 
     def _model_build_kwargs(self) -> dict[str, object]:
-        assert self._labels.ser is not None, "Labels must be provided for ser tasks."
-        return {"num_labels": len(self._labels.ser)}
+        return {}
 
     def _prepare_labels(
         self, batch: DocumentTensorDataModel
@@ -675,8 +670,10 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
         model_output: Any,
         batch: DocumentTensorDataModel,
     ) -> QAModelOutput:
-        star_logits, end_logits = self._get_logits(model_output=model_output)
-        assert isinstance(star_logits, torch.Tensor), (
+        import torch
+
+        start_logits, end_logits = self._get_logits(model_output=model_output)
+        assert isinstance(start_logits, torch.Tensor), (
             "Start logits must be a torch.Tensor"
         )
         assert isinstance(end_logits, torch.Tensor), "End logits must be a torch.Tensor"
@@ -685,25 +682,48 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
             word_ids=batch.word_ids.detach().cpu(),
             sequence_ids=batch.sequence_ids.detach().cpu(),
             question_ids=batch.metadata.sample_id,  # each sample has a single question index for uniqueness
-            start_logits=model_output.start_logits.detach().cpu(),
-            end_logits=model_output.end_logits.detach().cpu(),
+            start_logits=start_logits.detach().cpu(),
+            end_logits=end_logits.detach().cpu(),
         )
 
-        qa_outputs = []
-        for (qid, preds), question in zip(
-            pred_answers_per_question_id.items(),
-            batch.metadata.qa_question,
-            strict=True,
+        # get question ids per repeated sample indices
+        question_per_sample_idx = {}
+        for sample_id, qa_question in zip(
+            batch.metadata.sample_id, batch.metadata.qa_question, strict=True
         ):
-            if "_page_" in qid:
-                sample_id = qid.split("_page_")[0]  # get the original sample id
+            question_per_sample_idx[sample_id] = qa_question
+
+        qa_outputs = {"sample_id": [], "question": [], "answer": []}
+        for qid, preds in pred_answers_per_question_id.items():
+            if "_qa_" in qid:
+                sample_id = qid.split("_qa_")[0]  # get the original sample id
             else:
-                sample_id = qid.split("_subsample_")[0]  # get the original sample id
+                sample_id = qid
+
+            # hack for due benchmark for now due return samples ids as sample_id-{4 random chars} so we need to map back
+            sample_id = sample_id.split("-")[0]
+
             answer = preds[0]["text"]  # taking the top prediction
+            # original sample id, in case of unroling questions when multiple per sample
+            # we map sample ids -> sample_id + _qa_ + question_idx
+            # but for eval metrics we usually need the original sample id along with the question and answer pairs
+            qa_outputs["sample_id"].append(sample_id)
+            qa_outputs["question"].append(question_per_sample_idx[qid])
+            qa_outputs["answer"].append(answer)
+        return QAModelOutput(loss=loss, **qa_outputs)
 
-            # we ignore samples with no answer during evaluation
-            qa_outputs.append(
-                QAPair(sample_id=sample_id, question=question, answer=answer)
-            )
-
-        return QAModelOutput(loss=loss, qa_pairs=qa_outputs)
+    def build_metrics(
+        self,
+        stage: Literal["train", "validation", "test"],
+        device: torch.device | str = "cpu",
+    ) -> dict[str, Metric]:
+        if stage == "train":
+            return {}
+        if self.config.metrics is None:
+            return {}
+        metrics = {}
+        for metric_config in self.config.metrics:
+            logger.info(f"Building metric: {metric_config}")
+            metric = metric_config.build(device=device, stage=stage)
+            metrics[metric_config.name] = metric
+        return metrics

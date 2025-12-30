@@ -37,15 +37,10 @@ class LayoutTokenClassificationModelOutput(ModelOutput):
 
 
 @dataclass(frozen=True)
-class QAPair:
-    sample_id: str
-    question: str
-    answer: str
-
-
-@dataclass(frozen=True)
 class QAModelOutput(ModelOutput):
-    qa_pairs: list[QAPair] | None = None
+    sample_id: list[str] | None = None
+    question: list[str] | None = None
+    answer: list[str] | None = None
 
 
 @dataclass(frozen=True)

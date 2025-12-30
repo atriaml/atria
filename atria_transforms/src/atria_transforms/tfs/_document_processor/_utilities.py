@@ -16,6 +16,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _convert_text_to_list(text: Any) -> list[str]:
+    if isinstance(text, str):
+        return text.split()
+    elif isinstance(text, list):
+        return text
+    else:
+        raise ValueError("Input text must be a string or a list of strings.")
+
+
 def _document_instance_to_hf_processor_inputs(
     document_instance: DocumentInstance,
     use_segment_level_bboxes: bool = False,
@@ -29,8 +38,8 @@ def _document_instance_to_hf_processor_inputs(
 
     inputs = {}
     if context is not None:
-        inputs["text"] = context
-        inputs["text_pair"] = document_instance.content.text_list
+        inputs["text"] = _convert_text_to_list(context)
+        inputs["text_pair"] = _convert_text_to_list(document_instance.content.text_list)
     else:
         if document_instance.content.text_list is not None:
             inputs["text"] = document_instance.content.text_list

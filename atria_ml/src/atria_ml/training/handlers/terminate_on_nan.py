@@ -5,6 +5,7 @@ from atria_transforms.core._data_types._base import TensorDataModel
 from ignite.engine import Engine
 from ignite.handlers import TerminateOnNan as IgniteTerminateOnNan
 from ignite.utils import apply_to_type
+from pydantic import BaseModel
 
 
 class TerminateOnNan(IgniteTerminateOnNan):
@@ -22,9 +23,7 @@ class TerminateOnNan(IgniteTerminateOnNan):
                 raise RuntimeError("Infinite or NaN tensor found.")
 
         try:
-            output = (
-                output.model_dump() if isinstance(output, TensorDataModel) else output
-            )
+            output = output.model_dump() if isinstance(output, BaseModel) else output
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)
         except RuntimeError:
             self.logger.warning(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
 
@@ -121,33 +121,9 @@ class HuggingfaceProcessor(DataTransform):
         self._call_kwargs = self._prepare_call_kwargs(processor)
         return processor
 
-    def _convert_text_to_list(self, text: Any) -> list[str]:
-        if isinstance(text, str):
-            return text.split()
-        elif isinstance(text, list):
-            return text
-        else:
-            raise ValueError("Input text must be a string or a list of strings.")
-
     def __call__(self, input: dict) -> BatchEncoding:
-        from transformers import BertTokenizerFast, RobertaTokenizerFast
-
         if not self._hf_processor:
             self._hf_processor = self._initialize_transform()
 
         filtered_inputs = {k: v for k, v in input.items() if k in self._possible_args}
-        if isinstance(self.tokenizer, (BertTokenizerFast, RobertaTokenizerFast)):
-            text = input.get("text", None)
-            text_pair = input.get("text_pair", None)
-
-            if text is not None and text_pair is not None:
-                filtered_inputs["text"] = self._convert_text_to_list(text)
-                filtered_inputs["text_pair"] = self._convert_text_to_list(text_pair)
-
-                assert isinstance(filtered_inputs["text"], list), (
-                    "Input 'text' must be a list of strings."
-                )
-                assert isinstance(input["text_pair"], list), (
-                    "Input 'text_pair' must be a list of strings."
-                )
         return self._hf_processor(**filtered_inputs, **self._call_kwargs)
