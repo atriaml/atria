@@ -20,9 +20,6 @@ class PreTokenizedDocumentInstance(DocumentInstance):
     token_labels: torch.Tensor | None = None
     attention_mask: torch.Tensor | None = None
     overflow_to_sample_mapping: torch.Tensor | None = None
-    token_answer_start: torch.Tensor | None = None
-    token_answer_end: torch.Tensor | None = None
-    label: torch.Tensor | None = None
 
     @field_serializer(
         "token_ids",
@@ -33,9 +30,6 @@ class PreTokenizedDocumentInstance(DocumentInstance):
         "token_labels",
         "attention_mask",
         "overflow_to_sample_mapping",
-        "token_answer_start",
-        "token_answer_end",
-        "label",
         mode="plain",
     )
     @classmethod
@@ -51,9 +45,6 @@ class PreTokenizedDocumentInstance(DocumentInstance):
         "token_labels",
         "attention_mask",
         "overflow_to_sample_mapping",
-        "token_answer_start",
-        "token_answer_end",
-        "label",
         mode="before",
     )
     @classmethod
