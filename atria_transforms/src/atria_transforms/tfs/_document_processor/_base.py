@@ -8,10 +8,13 @@ from pydantic import Field
 
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import DocumentTensorDataModel
+from atria_transforms.data_types._tokenized_document_instance import (
+    TokenizedDocumentInstance,
+)
 from atria_transforms.registry import DATA_TRANSFORMS
 from atria_transforms.tfs import HuggingfaceProcessor, StandardImageTransform
 
-from ._utilities import (
+from .._utilities import (
     _document_instance_to_hf_processor_inputs,
     _post_process_tokenizer_outputs,
 )
@@ -44,31 +47,42 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
     max_segment_num: int = 150
 
     def __call__(
-        self, document_instance: DocumentInstance
+        self, document_instance: DocumentInstance | TokenizedDocumentInstance
     ) -> DocumentTensorDataModel | list[DocumentTensorDataModel]:
-        assert isinstance(document_instance, DocumentInstance), (
+        assert isinstance(
+            document_instance, DocumentInstance | TokenizedDocumentInstance
+        ), (
             f"{self.__class__.__name__} only supports DocumentInstance inputs, "
             f"but received input of type {type(document_instance)}"
         )
 
-        # convert DocumentInstance to Huggingface processor inputs
-        hf_processor_inputs = _document_instance_to_hf_processor_inputs(
-            document_instance,
-            use_segment_level_bboxes=self.use_segment_level_bboxes,
-            image_transform=self.image_transform,
-            load_bboxes=self.load_bboxes,
-            load_image=self.load_image,
-        )
+        if isinstance(document_instance, DocumentInstance):
+            # convert DocumentInstance to Huggingface processor inputs
+            hf_processor_inputs = _document_instance_to_hf_processor_inputs(
+                document_instance,
+                use_segment_level_bboxes=self.use_segment_level_bboxes,
+                image_transform=self.image_transform,
+                load_bboxes=self.load_bboxes,
+                load_image=self.load_image,
+            )
 
-        # perform tokenization using the hf_processor
-        tokenization_data = self.hf_processor(hf_processor_inputs)
+            # perform tokenization using the hf_processor
+            tokenization_data = self.hf_processor(hf_processor_inputs)
 
-        # post-process tokenizer outputs to generate segment-level info and align word ids and labels
-        processed_outputs = self._post_process_tokenizer_outputs(
-            document_instance=document_instance,
-            hf_processor_inputs=hf_processor_inputs,
-            tokenization_data=tokenization_data,
-        )
+            # post-process tokenizer outputs to generate segment-level info and align word ids and labels
+            processed_outputs = self._post_process_tokenizer_outputs(
+                document_instance=document_instance,
+                hf_processor_inputs=hf_processor_inputs,
+                tokenization_data=tokenization_data,
+            )
+        elif isinstance(document_instance, TokenizedDocumentInstance):
+            processed_outputs = self._processed_outputs_from_tokenized(
+                document_instance=document_instance
+            )
+        else:
+            raise ValueError(
+                f"Unsupported document instance type: {type(document_instance)}"
+            )
 
         # for each token processed_outputs, create DocumentTensorDataModel
         bs = processed_outputs["token_ids"].shape[0]
@@ -92,6 +106,31 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             elif self.overflow_strategy == "return_all":
                 return processed
         return processed
+
+    def _processed_outputs_from_tokenized(
+        self, document_instance: TokenizedDocumentInstance
+    ) -> dict[str, Any]:
+        image = None
+        if self.load_image and document_instance.image is not None:
+            if self.image_transform is not None:
+                image = self.image_transform(document_instance.image.content)
+            else:
+                if document_instance.image.content is not None:
+                    image = document_instance.image.content.convert("RGB")
+        processed_outputs = {
+            "index": document_instance.index,
+            "sample_id": document_instance.sample_id,
+            "words": document_instance.words,
+            "token_ids": document_instance.token_ids,
+            "attention_mask": document_instance.attention_mask,
+            "token_bboxes": document_instance.token_bboxes,
+            "token_type_ids": document_instance.token_type_ids,
+            "token_labels": document_instance.token_labels,
+            "sequence_ids": document_instance.sequence_ids,
+            "word_ids": document_instance.word_ids,
+            "image": image,
+        }
+        return processed_outputs
 
     def _post_process_tokenizer_outputs(
         self,

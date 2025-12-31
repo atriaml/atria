@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import torch
 from atria_logger import get_logger
 from atria_types import DocumentInstance
 from atria_types._generic._annotations import (
@@ -14,11 +15,11 @@ from atria_transforms.core._tfs._base import DataTransform
 from atria_transforms.data_types._document import DocumentTensorDataModel
 
 from ...registry import DATA_TRANSFORMS
-from ._base import DocumentProcessor
-from ._utilities import (
+from .._utilities import (
     _document_instance_to_hf_processor_inputs,
     _generate_qa_token_ids,
 )
+from ._base import DocumentProcessor
 
 if TYPE_CHECKING:
     from transformers.tokenization_utils_base import BatchEncoding
@@ -41,6 +42,16 @@ class SequenceClassificationDocumentProcessor(DocumentProcessor):
             document_instance, hf_processor_inputs, tokenization_data
         )
 
+        label = document_instance.get_annotation_by_type(
+            AnnotationType.classification
+        ).label.value
+        processed_outputs["label"] = torch.tensor(label, dtype=torch.long)
+        return processed_outputs
+
+    def _processed_outputs_from_tokenized(
+        self, document_instance: PreTokenizedDocumentInstance
+    ) -> dict[str, Any]:
+        processed_outputs = super()._processed_outputs_from_tokenized(document_instance)
         label = document_instance.get_annotation_by_type(
             AnnotationType.classification
         ).label.value

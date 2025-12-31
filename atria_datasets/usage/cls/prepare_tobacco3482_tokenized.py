@@ -1,10 +1,10 @@
 import os
 
 from atria_logger import get_logger
-from atria_transforms.tfs._document_pretokenizer import DocumentPreTokenizer
 from atria_transforms.tfs._document_processor._task_tfs import (
     SequenceClassificationDocumentProcessor,
 )
+from atria_transforms.tfs._document_tokenizer import DocumentTokenizer
 
 from atria_datasets import load_dataset_config
 
@@ -26,8 +26,8 @@ def main():
 
     # process the dataset with a custom transform
     processed_dataset = dataset.process_dataset(
-        train_transform=DocumentPreTokenizer(image_size=(224, 224)),
-        eval_transform=DocumentPreTokenizer(image_size=(224, 224)),
+        train_transform=DocumentTokenizer(image_size=(224, 224)),
+        eval_transform=DocumentTokenizer(image_size=(224, 224)),
         num_processes=8,
     )
     logger.info(f"Processed dataset:\n{processed_dataset}")

@@ -54,11 +54,11 @@ def _document_instance_to_hf_processor_inputs(
         inputs["boxes"] = [bbox.value for bbox in inputs["boxes"]]
 
     if load_image and document_instance.image is not None:
-        inputs["images"] = (
-            image_transform(document_instance.image.content)
-            if image_transform is not None
-            else document_instance.image.content
-        )
+        if image_transform is not None:
+            inputs["images"] = image_transform(document_instance.image.content)
+        else:
+            if document_instance.image.content is not None:
+                inputs["images"] = document_instance.image.content.convert("RGB")
 
     # extract label for classification
     try:

@@ -41,6 +41,21 @@ class BaseDataInstance(BaseDataModel):
     def viz(self) -> Visualizer:
         return Visualizer(self)
 
+    def has_annotation_type(self, annotation_type: AnnotationType) -> bool:
+        """
+        Checks if the data instance has an annotation of the specified type.
+
+        Args:
+            annotation_type (AnnotationType): The type of annotation to check for.
+        Returns:
+            bool: True if the annotation type is present, False otherwise.
+        """
+        if self.annotations is not None:
+            for annotation in self.annotations:
+                if annotation.type == annotation_type.value:
+                    return True
+        return False
+
     @overload
     def get_annotation_by_type(
         self, annotation_type: Literal[AnnotationType.classification]
