@@ -7,7 +7,7 @@ from pathlib import Path
 
 from atria_logger import get_logger
 from atria_transforms.core import DataTransform
-from atria_types import BaseDataInstance, DatasetSplitType
+from atria_types import DatasetSplitType
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CACHE_DIR,
@@ -86,11 +86,6 @@ class DatasetProcessor:
         """Get the metadata of the dataset being built."""
         return self._dataset.metadata
 
-    @property
-    def data_model(self) -> type[BaseDataInstance]:
-        """Get the data model of the dataset being built."""
-        return self._dataset.data_model
-
     def _validate_data_dir(self, data_dir: str | Path) -> str:
         data_dir = Path(data_dir)
 
@@ -162,6 +157,9 @@ class DatasetProcessor:
             if split == DatasetSplitType.train
             else self._eval_transform
         )
+        data_model = None
+        if isinstance(transform, DataTransform):
+            data_model = transform.data_model
         assert transform is not None, (
             f"Transform for split {split.value} is not provided."
         )
@@ -188,9 +186,8 @@ class DatasetProcessor:
                 logger.info(
                     f"Loading cached split {split.value} from {storage_manager.split_dir(split)}"
                 )
-                return storage_manager.read_split(
-                    split=split, data_model=self.data_model
-                )
+
+                return storage_manager.read_split(split=split, data_model=data_model)
 
         split_iterator = self._prepare_split(
             split=split,
@@ -203,4 +200,4 @@ class DatasetProcessor:
             f"Caching split [{split.value}] to {self._storage_dir} with max_len={split_iterator._max_len}"
         )
         storage_manager.write_split(split_iterator=split_iterator)
-        return storage_manager.read_split(split=split, data_model=self.data_model)
+        return storage_manager.read_split(split=split, data_model=data_model)
