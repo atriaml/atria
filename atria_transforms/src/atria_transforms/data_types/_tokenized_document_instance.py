@@ -10,7 +10,7 @@ from pydantic import field_serializer, field_validator
 logger = get_logger(__name__)
 
 
-class PreTokenizedDocumentInstance(BaseDataInstance):
+class TokenizedDocumentInstance(BaseDataInstance):
     image: Image | None = None
     words: list[str]
     token_ids: torch.Tensor
