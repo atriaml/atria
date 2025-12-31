@@ -242,6 +242,10 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
         return engine
 
+    def _attach_metrics(self) -> None:
+        if self._config.eval_training:
+            super()._attach_metrics()
+
     def _attach_progress_bar(self) -> None:
         from ignite.engine import Events
         from ignite.handlers import ProgressBar

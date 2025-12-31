@@ -62,6 +62,9 @@ class Trainer:
         self._state: TrainerState = self._build(local_rank=local_rank)
 
     def _initialize_runtime(self, local_rank: int) -> None:
+        import ignite.distributed as idist
+        import torch
+
         # Log system information
         env_info = _get_env_info()
 
@@ -71,7 +74,10 @@ class Trainer:
         )
 
         # initialize torch device (cpu or gpu)
-        self._device = local_rank
+        if torch.cuda.is_available():
+            self._device = idist.device()
+        else:
+            self._device = 'cpu'
 
         # log env info and run configuration
         logger.info(
