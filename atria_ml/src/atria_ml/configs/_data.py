@@ -46,6 +46,7 @@ class DataConfig(RepresentationMixin, BaseModel):
     # preprocess transforms
     preprocess_train_transform: Callable | None = None
     preprocess_eval_transform: Callable | None = None
+    preprocess_max_cache_image_size: int | None = None
 
     def build_dataset(self) -> Dataset:
         dataset = self.dataset_config.build(

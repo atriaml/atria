@@ -72,6 +72,8 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         self._ema_handler: EMAHandler | None = None
 
         super().__init__(config, deps)
+        if not self._config.eval_training:
+            self._metrics = None
 
     @property
     def steps_per_epoch(self) -> int:
@@ -241,10 +243,6 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         self._print_configuration_info()
 
         return engine
-
-    def _attach_metrics(self) -> None:
-        if self._config.eval_training:
-            super()._attach_metrics()
 
     def _attach_progress_bar(self) -> None:
         from ignite.engine import Events

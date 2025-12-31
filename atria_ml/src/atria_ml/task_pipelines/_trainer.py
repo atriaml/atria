@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -77,14 +78,15 @@ class Trainer:
         if torch.cuda.is_available():
             self._device = idist.device()
         else:
-            self._device = 'cpu'
+            self._device = "cpu"
 
         # log env info and run configuration
         logger.info(
             f"Environment info:\n{yaml.dump(OmegaConf.to_container(OmegaConf.create(env_info)), indent=4)}"
         )
+        dumped = self._config.model_dump()
         logger.info(
-            f"Run configuration:\n{yaml.dump(OmegaConf.to_container(OmegaConf.create(self._config.model_dump())), indent=4)}"
+            f"Run configuration:\n{yaml.dump(OmegaConf.to_container(OmegaConf.create(dumped)), indent=4)}"
         )
         logger.info(f"Seed set to {self._config.env.seed} on device: {self._device}")
 
@@ -269,8 +271,9 @@ class Trainer:
             dataset = dataset.process_dataset(
                 train_transform=self._config.data.preprocess_train_transform,
                 eval_transform=self._config.data.preprocess_eval_transform,
-                max_cache_image_size=self._config.data.max_cache_image_size,
+                max_cache_image_size=self._config.data.preprocess_max_cache_image_size,
                 num_processes=self._config.data.num_processes,
+                processed_data_dir=self._config.data.data_dir,
             )
 
         # load labels
@@ -335,7 +338,7 @@ class Trainer:
                     checkpoint_type=checkpoint_type
                 )
                 if state is not None:
-                    metrics[checkpoint_type] = state.metrics
+                    metrics[checkpoint_type] = deepcopy(state.metrics)
             except NoCheckpointFoundError:
                 pass  # ignore if no checkpoint found
 

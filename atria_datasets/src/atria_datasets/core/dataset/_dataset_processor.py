@@ -132,7 +132,7 @@ class DatasetProcessor:
         if isinstance(transform, DataTransform):
             return transform.hash
         elif callable(transform):
-            return str(hash(transform))
+            return "default"
         else:
             raise TypeError(
                 f"Transform of type {type(transform)} is not supported for hashing."

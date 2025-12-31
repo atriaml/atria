@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Self
+from typing import Any, Self
 
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_logger import get_logger
@@ -31,6 +31,24 @@ class TaskConfigBase(RepresentationMixin, BaseModel):
     save_test_outputs_to_disk: bool = False
     use_ema_for_evaluation: bool = False
     with_amp: bool = True
+
+    def model_dump(self, *args, **kwargs) -> dict[str, Any]:
+        results = super().model_dump()
+        preprocess_train_transform = results["data"]["preprocess_train_transform"]
+        if preprocess_train_transform is not None and callable(
+            preprocess_train_transform
+        ):
+            results["data"]["preprocess_train_transform"] = (
+                preprocess_train_transform.__name__
+            )
+        preprocess_eval_transform = results["data"]["preprocess_eval_transform"]
+        if preprocess_eval_transform is not None and callable(
+            preprocess_eval_transform
+        ):
+            results["data"]["preprocess_eval_transform"] = (
+                preprocess_eval_transform.__name__
+            )
+        return results
 
     def build_dataset(self) -> Dataset:
         return self.data.build_dataset()
