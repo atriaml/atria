@@ -160,7 +160,6 @@ class TransformersEncoderModel(
                     if self.config.layers_config.classifier_dropout is not None
                     else self.config.layers_config.hidden_dropout_prob
                 ),
-                add_pooling_layer=self.config.head_config.add_pooling_layer,
             )
         elif isinstance(self.config.head_config, TokenClassificationHeadConfig):
             return TokenClassificationHead(

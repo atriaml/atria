@@ -25,7 +25,6 @@ class SequenceClassificationHead(nn.Module):
         subtask: ClassificationSubTask = ClassificationSubTask.single_label_classification,
         classifier_dropout: float = 0.1,
         hidden_size: int = 768,
-        add_pooling_layer: bool = True,
     ):
         super().__init__()
 
@@ -33,18 +32,16 @@ class SequenceClassificationHead(nn.Module):
         self.sub_task = subtask
         self.classifier_dropout = classifier_dropout
         self.hidden_size = hidden_size
-        self.add_pooling_layer = add_pooling_layer
 
         self._build_layers()
 
     def _build_layers(self):
-        self.pooler = (
-            DefaultPooler(self.hidden_size)
-            if self.add_pooling_layer and self.hidden_size is not None
-            else None
+        self.dense = nn.Linear(self.hidden_size, self.hidden_size)
+        classifier_dropout = (
+            self.classifier_dropout if self.classifier_dropout is not None else self.hidden_dropout_prob
         )
-        self.dropout = nn.Dropout(self.classifier_dropout)
-        self.classifier = nn.Linear(self.hidden_size, self.num_labels)
+        self.dropout = nn.Dropout(classifier_dropout)
+        self.out_proj = nn.Linear(self.hidden_size, self.num_labels)
 
     def _get_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         match self.sub_task:
@@ -65,12 +62,10 @@ class SequenceClassificationHead(nn.Module):
     def forward(
         self, last_hidden_state: torch.Tensor, labels: torch.Tensor | None = None
     ) -> SequenceClassificationHeadOutput:
-        last_hidden_state = (
-            self.pooler(last_hidden_state)
-            if self.pooler is not None
-            else last_hidden_state[:, 0]
-        )
+        last_hidden_state = self.dropout(last_hidden_state[: , 0, :])
+        last_hidden_state = self.dense(last_hidden_state)
+        last_hidden_state = torch.tanh(last_hidden_state)
         last_hidden_state = self.dropout(last_hidden_state)
-        logits = self.classifier(last_hidden_state)
+        logits = self.out_proj(last_hidden_state)
         loss = self._get_loss(logits, labels) if labels is not None else None
         return SequenceClassificationHeadOutput(loss=loss, logits=logits)
