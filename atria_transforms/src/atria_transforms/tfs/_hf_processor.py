@@ -31,11 +31,6 @@ class HuggingfaceProcessor(DataTransform):
     # ocr args only for multimodal processors
     apply_ocr: bool = False
 
-    # image args only for multimodal processors
-    do_normalize: bool = False
-    do_resize: bool = False
-    do_rescale: bool = False
-
     # text input processing args
     add_prefix_space: bool = True
     do_lower_case: bool = True
@@ -75,9 +70,9 @@ class HuggingfaceProcessor(DataTransform):
             "cache_dir": self.cache_dir or _DEFAULT_ATRIA_TFS_CACHE_DIR,
             "local_files_only": self.local_files_only,
             "apply_ocr": self.apply_ocr,
-            "do_normalize": self.do_normalize,
-            "do_resize": self.do_resize,
-            "do_rescale": self.do_rescale,
+            "do_normalize": False,
+            "do_resize": False,
+            "do_rescale": False,
             "add_prefix_space": self.add_prefix_space,
             "do_lower_case": self.do_lower_case,
         }
