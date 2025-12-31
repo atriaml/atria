@@ -188,7 +188,6 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                     inputs["pixel_values"] = batch.image
 
         if self.config.use_bbox:
-            assert batch.token_bboxes is not None, "Token bboxes cannot be None"
             token_bboxes = batch.token_bboxes
             if batch.metadata.bbox_normalized[0] and token_bboxes is not None:
                 token_bboxes = (

@@ -45,13 +45,14 @@ def _document_instance_to_hf_processor_inputs(
             inputs["text"] = document_instance.content.text_list
 
     if load_bboxes and document_instance.content.bbox_list is not None:
-        inputs["boxes"] = (
-            document_instance.content.segment_bbox_list
-            if use_segment_level_bboxes
+        if (
+            use_segment_level_bboxes
             and document_instance.content.segment_bbox_list is not None
-            else document_instance.content.bbox_list
-        )
-        inputs["boxes"] = [bbox.value for bbox in inputs["boxes"]]
+        ):
+            boxes = document_instance.content.segment_bbox_list
+        else:
+            boxes = document_instance.content.bbox_list
+        inputs["boxes"] = [bbox.value for bbox in boxes]
 
     if load_image and document_instance.image is not None:
         if image_transform is not None:

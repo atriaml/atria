@@ -15,15 +15,12 @@
             "import_path": "atria_transforms.tfs._image_transforms.StandardImageTransform"
         },
         "hf_processor": {
-            "hash": "fdb66e8f",
+            "hash": "41484eaf",
             "config": {
                 "tokenizer_name": "microsoft/layoutlmv3-base",
                 "cache_dir": null,
                 "local_files_only": false,
                 "apply_ocr": false,
-                "do_normalize": false,
-                "do_resize": false,
-                "do_rescale": false,
                 "add_prefix_space": true,
                 "do_lower_case": true,
                 "add_special_tokens": true,
@@ -105,6 +102,17 @@
                 "remove_no_answer_samples": false
             },
             "import_path": "atria_transforms.tfs._document_processor._task_tfs.UnrollQAPairsTransform"
+        },
+        "document_tokenizer": {
+            "hash": "45c06867",
+            "config": {
+                "use_segment_level_bboxes": false,
+                "remove_no_answer_samples": false,
+                "image_size": null,
+                "save_images": true,
+                "save_bboxes": true
+            },
+            "import_path": "atria_transforms.tfs._document_tokenizer.DocumentTokenizer"
         }
     }
 }
