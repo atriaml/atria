@@ -1,7 +1,10 @@
 import os
 
 from atria_logger import get_logger
-from atria_transforms.api.tfs import load_transform
+from atria_transforms.tfs._document_pretokenizer import DocumentPreTokenizer
+from atria_transforms.tfs._document_processor._task_tfs import (
+    SequenceClassificationDocumentProcessor,
+)
 
 from atria_datasets import load_dataset_config
 
@@ -21,31 +24,23 @@ def main():
 
     logger.info(f"First sample in train split:\n{sample}")
 
-    tf = load_transform(
-        "document_processor", image_transform=None, convert_to_tokenized_instance=True
-    )
-    print(tf(sample))
-    exit()
-
     # process the dataset with a custom transform
-    # processed_dataset = dataset.process_dataset(
-    #     train_transform=load_transform(
-    #         "document_processor",
-    #         image_transform=None,
-    #         convert_to_tokenized_instance=True,
-    #     ),
-    #     eval_transform=load_transform(
-    #         "document_processor",
-    #         image_transform=None,
-    #         convert_to_tokenized_instance=True,
-    #     ),
-    #     max_cache_image_size=224,
-    #     num_processes=8,
-    # )
-    # logger.info(f"Processed dataset:\n{processed_dataset}")
+    processed_dataset = dataset.process_dataset(
+        train_transform=DocumentPreTokenizer(image_size=(224, 224)),
+        eval_transform=DocumentPreTokenizer(image_size=(224, 224)),
+        num_processes=8,
+    )
+    logger.info(f"Processed dataset:\n{processed_dataset}")
 
     for sample in processed_dataset.train:
         logger.info(f"First processed sample in train split:\n{sample}")
+        break
+
+    tf = SequenceClassificationDocumentProcessor()
+
+    processed_dataset.train.output_transform = tf
+    for sample in processed_dataset.train:
+        logger.info(f"First tokenized sample in train split:\n{sample}")
         break
 
 
