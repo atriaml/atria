@@ -26,6 +26,10 @@ class DataTransform(PydanticConfigurableModule, Generic[T_TensorDataModel]):
         arbitrary_types_allowed=True, validate_assignment=True, extra="forbid"
     )
 
+    def data_model(self) -> type[T_TensorDataModel]:
+        """Returns the data model class that this transform outputs."""
+        raise NotImplementedError
+
     @abstractmethod
     def __call__(self, input: Any) -> T_TensorDataModel | list[T_TensorDataModel]:
         raise NotImplementedError
