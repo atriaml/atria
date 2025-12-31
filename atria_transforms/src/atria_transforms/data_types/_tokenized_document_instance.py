@@ -56,4 +56,4 @@ class TokenizedDocumentInstance(BaseDataInstance):
         if isinstance(value, torch.Tensor):
             return value
 
-        return torch.from_numpy(value)
+        return torch.from_numpy(value.copy())

@@ -23,7 +23,7 @@ from atria_transforms.tfs._utilities import (
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORMS.register("document_pre_tokenizer")
+@DATA_TRANSFORMS.register("document_tokenizer")
 class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
     hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
 
@@ -31,6 +31,8 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
     use_segment_level_bboxes: bool = False
     remove_no_answer_samples: bool = False
     image_size: tuple[int, int] | None = None
+    save_images: bool = True
+    save_bboxes: bool = True
 
     @property
     def data_model(self):
@@ -57,29 +59,30 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             input_word_labels=hf_processor_inputs.get("word_labels", None),
             input_image=hf_processor_inputs.get("images", None),
             all_special_ids=self.hf_processor.tokenizer.all_special_ids,
-            load_bboxes=True,
+            load_bboxes=self.save_bboxes,
             load_image=False,
         )
-
-        # remove image field if present
-        processed_outputs.pop("image", None)
-
-        # get imge and resize if needed
-        image = document_instance.image
-        if image is not None and self.image_size is not None:
-            image = image.ops.resize(
-                width=self.image_size[0], height=self.image_size[1]
-            )
 
         # attach more info
         processed_outputs = {
             "index": document_instance.index,
             "sample_id": document_instance.sample_id,
             "words": hf_processor_inputs.pop("text", []),
-            "image": image,
             "annotations": document_instance.annotations,
             **processed_outputs,
         }
+
+        if self.save_images:
+            # remove image field if present
+            processed_outputs.pop("image", None)
+
+            # get imge and resize if needed
+            image = document_instance.image
+            if image is not None and self.image_size is not None:
+                image = image.ops.resize(
+                    width=self.image_size[0], height=self.image_size[1]
+                )
+            processed_outputs["image"] = image
 
         # attach more info
         return TokenizedDocumentInstance(**processed_outputs)

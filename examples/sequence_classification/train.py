@@ -37,6 +37,9 @@ def main(
     lr: float = 1e-5,
     weight_decay: float = 0.01,
     warmup_steps: int = 1000,
+    save_images_in_preprocess: bool = True,
+    save_bboxes_in_preprocess: bool = True,
+    use_segment_level_bboxes: bool = False,
 ):
     config = TrainingTaskConfig(
         env=RuntimeEnvConfig(
@@ -80,6 +83,26 @@ def main(
             num_workers=num_workers,
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
+            preprocess_train_transform=load_transform(
+                "document_tokenizer",
+                hf_processor={
+                    "tokenizer_name": "bert-base-uncased",
+                },
+                use_segment_level_bboxes=use_segment_level_bboxes,
+                image_size=(image_size, image_size),
+                save_images=save_images_in_preprocess,
+                save_bboxes=save_bboxes_in_preprocess,
+            ),
+            preprocess_eval_transform=load_transform(
+                "document_tokenizer",
+                hf_processor={
+                    "tokenizer_name": "bert-base-uncased",
+                },
+                use_segment_level_bboxes=use_segment_level_bboxes,
+                image_size=(image_size, image_size),
+                save_images=save_images_in_preprocess,
+                save_bboxes=save_bboxes_in_preprocess,
+            ),
         ),
         trainer=TrainerConfig(
             max_epochs=max_epochs,
