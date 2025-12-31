@@ -78,7 +78,8 @@ class MsgpackStorageManager:
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         """Check if a specific split exists in storage."""
-        return len(self.split_files(split)) > 0
+        offsets = list(self.split_dir(split).glob("*.msgpack.offsets"))
+        return len(self.split_files(split)) > 0 and len(offsets) > 0
 
     def split_files(self, split: DatasetSplitType) -> list[Path]:
         """Get all msgpack files for a specific split."""
