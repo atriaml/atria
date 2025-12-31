@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import numpy as np
 import torch
 from atria_logger import get_logger
-from atria_types._data_instance._document_instance import DocumentInstance
+from atria_types._data_instance._base import BaseDataInstance
 from atria_types._generic._image import Image
 from pydantic import field_serializer, field_validator
 
 logger = get_logger(__name__)
 
 
-class PreTokenizedDocumentInstance(DocumentInstance):
+class PreTokenizedDocumentInstance(BaseDataInstance):
     image: Image | None = None
     words: list[str]
     token_ids: torch.Tensor
@@ -19,7 +20,6 @@ class PreTokenizedDocumentInstance(DocumentInstance):
     token_type_ids: torch.Tensor | None = None
     token_labels: torch.Tensor | None = None
     attention_mask: torch.Tensor | None = None
-    overflow_to_sample_mapping: torch.Tensor | None = None
 
     @field_serializer(
         "token_ids",
@@ -29,11 +29,12 @@ class PreTokenizedDocumentInstance(DocumentInstance):
         "token_type_ids",
         "token_labels",
         "attention_mask",
-        "overflow_to_sample_mapping",
         mode="plain",
     )
     @classmethod
-    def serialize_tensor(cls, tensor: torch.Tensor) -> dict[str, int] | str | list[int]:
+    def serialize_tensor(cls, tensor: torch.Tensor) -> np.ndarray | None:
+        if tensor is None:
+            return tensor
         return tensor.numpy()
 
     @field_validator(
@@ -44,7 +45,6 @@ class PreTokenizedDocumentInstance(DocumentInstance):
         "token_type_ids",
         "token_labels",
         "attention_mask",
-        "overflow_to_sample_mapping",
         mode="before",
     )
     @classmethod
