@@ -92,7 +92,9 @@ class TrainerChildEngine(
                 cond = cond | Events.STARTED
             self._deps.training_engine._engine.add_event_handler(cond, self.run)
 
-    def run(self) -> State | None:
+    def run(self) -> State | None:  # type: ignore[override]
+        from atria_ml.training.engines.utilities import FixedBatchIterator
+
         if self._config.use_ema:
             if self._deps.training_engine.ema_handler is None:
                 logger.warning(
@@ -101,7 +103,32 @@ class TrainerChildEngine(
                 )
             else:
                 self._deps.training_engine.ema_handler.swap_params()
-        state = super().run(checkpoint_path=None)
+
+        # run engine
+        if self._deps.output_dir is not None:
+            logger.info(
+                f"Running {self.__class__.__name__} engine with batch size [{self._deps.dataloader.batch_size}] and output_dir: {self._deps.output_dir}"
+            )
+        else:
+            logger.info(f"Running engine {self.__class__.__name__}.")
+
+        # move model pipeline to device
+        self._deps.model_pipeline.ops.to_device(self._deps.device)
+        state = self._engine.run(
+            (
+                FixedBatchIterator(
+                    self._deps.dataloader, self._deps.dataloader.batch_size
+                )
+                if self._config.use_fixed_batch_iterator
+                else self._deps.dataloader
+            ),
+            max_epochs=self._config.max_epochs,
+            epoch_length=1  #
+            if self._deps.training_engine._engine.state.epoch
+            == 0  # if this is running for the first time, its just for sanity check
+            else self._config.epoch_length,
+        )
         if self._config.use_ema and self._deps.training_engine.ema_handler is not None:
             self._deps.training_engine.ema_handler.swap_params()
+
         return state
