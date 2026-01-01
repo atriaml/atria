@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_logger import get_logger
+from atria_types._common import DatasetSplitType
 from atria_types._utilities._repr import RepresentationMixin
 
 from atria_ml.data_pipeline._utilities import auto_dataloader, default_collate
@@ -86,14 +87,9 @@ class DataPipeline(RepresentationMixin):
         import ignite.distributed as idist
         from torch.utils.data import RandomSampler, SequentialSampler
 
-        if self._dataset.train is None:
-            raise ValueError("No training dataset found.")
-
         dataset = self._dataset.train
         if subset_size is not None:
-            dataset = self.get_split_subset(
-                self._dataset.train, subset_size=subset_size
-            )
+            dataset = self.get_split_subset(dataset, subset_size=subset_size)
 
         return auto_dataloader(
             dataset=dataset,
@@ -114,17 +110,18 @@ class DataPipeline(RepresentationMixin):
         num_workers: int = 4,
         subset_size: int | None = None,
     ) -> DataLoader:
-        dataset = self._dataset.validation or self._dataset.test
-        if dataset is None:
-            raise ValueError("No validation or test dataset found.")
-
-        if self._dataset.validation is None:
+        if self._dataset.split_exists(DatasetSplitType.validation):
+            dataset = self._dataset.validation
+        elif self._dataset.split_exists(DatasetSplitType.test):
+            dataset = self._dataset.test
             logger.warning(
                 "No validation dataset found, using test dataset for validation."
             )
+        else:
+            raise ValueError("No test or validation dataset found.")
 
         if subset_size is not None:
-            dataset = self.get_split_subset(self._dataset.test, subset_size=subset_size)
+            dataset = self.get_split_subset(dataset, subset_size=subset_size)
 
         return self._build_evaluation_dataloader(
             dataset,
@@ -140,12 +137,18 @@ class DataPipeline(RepresentationMixin):
         num_workers: int = 4,
         subset_size: int | None = None,
     ) -> DataLoader:
-        if self._dataset.test is None:
-            raise ValueError("No test dataset found.")
+        if self._dataset.split_exists(DatasetSplitType.test):
+            dataset = self._dataset.test
+        elif self._dataset.split_exists(DatasetSplitType.validation):
+            dataset = self._dataset.validation
+            logger.warning(
+                "No test dataset found, using validation dataset for testing."
+            )
+        else:
+            raise ValueError("No test or validation dataset found.")
 
-        dataset = self._dataset.test
         if subset_size is not None:
-            dataset = self.get_split_subset(self._dataset.test, subset_size=subset_size)
+            dataset = self.get_split_subset(dataset, subset_size=subset_size)
 
         return self._build_evaluation_dataloader(
             dataset,

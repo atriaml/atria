@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
+from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger import enable_file_logging
 from atria_logger._api import get_logger
@@ -291,12 +292,15 @@ class Trainer:
         # get model transforms
         train_transform = model_pipeline.config.train_transform
         eval_transform = model_pipeline.config.eval_transform
-        if dataset.train is not None:
+
+        try:
             dataset.train.output_transform = train_transform
-        if dataset.validation is not None:
             dataset.validation.output_transform = eval_transform
-        if dataset.test is not None:
             dataset.test.output_transform = eval_transform
+        except SplitNotFoundError:
+            logger.warning(
+                "One or more dataset splits not found while setting output transforms."
+            )
 
         logger.info("Data transforms:")
         logger.info(f"Train transform:\n{train_transform}")
