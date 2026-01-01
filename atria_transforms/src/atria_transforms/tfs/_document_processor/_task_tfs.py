@@ -105,7 +105,6 @@ class UnrollQAPairsTransform(DataTransform[list[DocumentInstance]]):
 @DATA_TRANSFORMS.register("question_answering_document_processor")
 class QuestionAnsweringDocumentProcessor(DocumentProcessor):
     ignore_samples_with_no_answer: bool = False
-    is_training: bool = False
     truncation: str = "only_second"
 
     def _is_no_answer_sample(
@@ -227,7 +226,7 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
 
         # if all token_answer_start and token_answer_end are 0, it means we could not find the answer in the context
         # therefore using this sample as a training sample will not help the model learn anything
-        if self.is_training and self.ignore_samples_with_no_answer:
+        if self.ignore_samples_with_no_answer:
             total_answers = len(token_answer_start)
             for key, value in processed_outputs.items():
                 if value is None:
