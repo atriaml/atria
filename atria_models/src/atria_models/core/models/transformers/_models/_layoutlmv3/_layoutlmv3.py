@@ -6,6 +6,9 @@ import torch
 from atria_logger import get_logger
 from torch import nn
 
+from atria_models.core.models.transformers._heads._token_classification import (
+    TokenClassificationHead,
+)
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
@@ -425,7 +428,13 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
         last_hidden_state = encoder_outputs.last_hidden_state
         head_output = None
         if self.head is not None:
-            head_output = self._head_forward(last_hidden_state, **head_kwargs)
+            if isinstance(self.head, TokenClassificationHead):  # noqa: F821
+                assert seq_len > 0, "TokenClassificationHead requires token inputs."
+                head_output = self._head_forward(
+                    last_hidden_state[:, :seq_len, :], **head_kwargs
+                )
+            else:
+                head_output = self._head_forward(last_hidden_state, **head_kwargs)
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=encoder_outputs.hidden_states,
