@@ -543,37 +543,6 @@ class LayoutTokenClassificationPipelineConfig(SequenceModelPipelineConfig):
 class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
     __config__ = LayoutTokenClassificationPipelineConfig
 
-    def _input_transform(
-        self, batch: DocumentTensorDataModel, require_labels: bool = False
-    ) -> dict[str, torch.Tensor | None]:
-        inputs = super()._input_transform(batch, require_labels=require_labels)
-        assert self.config.use_bbox, (
-            f"{self.__class__.__name__} requires use_bbox to be True in the config."
-        )
-        if isinstance(self._model, TransformersEncoderModel):
-            assert "layout_ids_or_embeddings" in self._model_args_list, (
-                f"{self._model.__class__.__name__} does not support 'layout_ids_or_embeddings' as input argument and cannot be used "
-                f"with {self.__class__.__name__}."
-            )
-            assert batch.token_bboxes is not None, (
-                f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
-            )
-            assert "layout_ids_or_embeddings" in inputs, (
-                f"{self.__class__.__name__} requires 'layout_ids_or_embeddings' in the model inputs"
-            )
-        else:
-            assert "bbox" in self._model_args_list, (
-                f"{self._model.__class__.__name__} does not support 'bbox' as input argument and cannot be used "
-                f"with {self.__class__.__name__}."
-            )
-            assert batch.token_bboxes is not None, (
-                f"{self.__class__.__name__} requires token_bboxes in the batch. Found: {batch.token_bboxes=}"
-            )
-            assert "bbox" in inputs, (
-                f"{self.__class__.__name__} requires 'bbox' in the model inputs"
-            )
-        return inputs
-
     def _output_transform(
         self,
         loss: torch.Tensor | None,
@@ -582,17 +551,24 @@ class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
     ) -> ModelOutput:
         import torch
 
-        assert batch.token_labels is not None, "Token labels cannot be None"
+        assert batch.token_labels is not None, (
+            f"{self.__class__.__name__} requires token_labels in the batch."
+        )
         assert batch.token_bboxes is not None, (
-            "For layout token classification, token bboxes cannot be None"
+            f"{self.__class__.__name__} requires token_bboxes in the batch."
         )
         logits = self._get_logits(model_output=model_output)
+        if batch.token_bboxes.max() > 1.0:
+            # just a hack for now for docbank dataset
+            token_bboxes = batch.token_bboxes.float() / 1000.0
+        else:
+            token_bboxes = batch.token_bboxes.float()
         assert isinstance(logits, torch.Tensor), "Logits must be a torch.Tensor"
         return LayoutTokenClassificationModelOutput(
             loss=loss,
             layout_token_logits=logits,
             layout_token_targets=batch.token_labels,
-            layout_token_bboxes=batch.token_bboxes,
+            layout_token_bboxes=token_bboxes,
         )
 
 
