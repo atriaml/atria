@@ -144,7 +144,8 @@ class SplitIterator:
             DocumentContent(
                 text_elements=[
                     TextElement(
-                        text=word, bbox=BoundingBox(value=word_bbox, normalized=False)
+                        text=word,
+                        bbox=BoundingBox(value=word_bbox / 1000.0, normalized=True),
                     )
                     for word, word_bbox in zip(words, word_bboxes, strict=True)
                 ]
