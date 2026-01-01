@@ -9,10 +9,15 @@ from atria_types._base._data_model import _load_any
 from atria_types._base._ops._base_ops import StandardOps
 from atria_types._data_instance._base import BaseDataInstance
 from atria_types._data_instance._visualizers._document import DocumentVisualizer
+from atria_types._generic._annotations import (
+    AnnotationType,
+    QuestionAnsweringAnnotation,
+)
 from atria_types._generic._doc_content import DocumentContent
 from atria_types._generic._image import Image
 from atria_types._generic._ocr import OCR
 from atria_types._generic._pdf import PDF
+from atria_types._generic._qa_pair import QAPair
 from atria_types._ocr_engines import OCREngineConfigType
 from atria_types._ocr_engines._tesseract import TesseractOCREngineConfig
 from atria_types._utilities._ocr_processors._base import OCRProcessor
@@ -20,6 +25,13 @@ from atria_types._utilities._ocr_processors._base import OCRProcessor
 logger = get_logger(__name__)
 
 _DEFAULT_OCR_CONFIG = TesseractOCREngineConfig(lang="eng", psm=3, oem=3)
+
+
+def has_answer(qa_pair: QAPair):
+    for answer_span in qa_pair.answer_spans:
+        if answer_span.start != -1 and answer_span.end != -1:
+            return True
+    return False
 
 
 class DocumentInstance(BaseDataInstance):
@@ -114,3 +126,40 @@ class DocumentOps(StandardOps[DocumentInstance]):
                 "content": DocumentContent(text_elements=text_elements),
             }
         )
+
+    def get_instances_per_qa_pair(
+        self, ignore_no_answer_qa_pair: bool = False
+    ) -> list[DocumentInstance]:
+        assert self.model.has_annotation_type(
+            annotation_type=AnnotationType.question_answering
+        ), (
+            f"{self.model.__class__.__name__} {self.model.sample_id} does not have "
+            f"QuestionAnsweringAnnotation."
+        )
+        qa_annotation = self.model.get_annotation_by_type(
+            annotation_type=AnnotationType.question_answering
+        )
+        logger.debug(
+            f"Found `{len(qa_annotation.qa_pairs)}` qa pairs in sample `{self.model.sample_id}`"
+        )
+        document_instance_per_qa_pair = []
+        for qa_pair in qa_annotation.qa_pairs:
+            assert len(qa_pair.answer_spans) > 0, (
+                f"QA Pair {qa_pair.id} has no answer spans."
+            )
+            if ignore_no_answer_qa_pair:
+                if not has_answer(qa_pair):
+                    logger.debug(
+                        f"Skipping QA Pair with id {qa_pair.id} due to no answer spans."
+                    )
+                    continue
+
+            # create a new DocumentInstance for this QA pair
+            qa_document_instance = self.model.model_copy(
+                update={
+                    "sample_id": f"{self.model.sample_id}_qa_{qa_pair.id}",
+                    "annotations": [QuestionAnsweringAnnotation(qa_pairs=[qa_pair])],
+                }
+            )
+            document_instance_per_qa_pair.append(qa_document_instance)
+        return document_instance_per_qa_pair

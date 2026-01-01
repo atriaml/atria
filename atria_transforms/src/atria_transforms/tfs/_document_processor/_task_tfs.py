@@ -13,6 +13,9 @@ from atria_types._generic._qa_pair import QAPair
 
 from atria_transforms.core._tfs._base import DataTransform
 from atria_transforms.data_types._document import DocumentTensorDataModel
+from atria_transforms.data_types._tokenized_document_instance import (
+    TokenizedDocumentInstance,
+)
 
 from ...registry import DATA_TRANSFORMS
 from .._utilities import (
@@ -49,7 +52,7 @@ class SequenceClassificationDocumentProcessor(DocumentProcessor):
         return processed_outputs
 
     def _processed_outputs_from_tokenized(
-        self, document_instance: PreTokenizedDocumentInstance
+        self, document_instance: TokenizedDocumentInstance
     ) -> dict[str, Any]:
         processed_outputs = super()._processed_outputs_from_tokenized(document_instance)
         label = document_instance.get_annotation_by_type(
@@ -102,62 +105,22 @@ class UnrollQAPairsTransform(DataTransform[list[DocumentInstance]]):
         return document_instance_per_qa_pair
 
 
-@DATA_TRANSFORMS.register("question_answering_document_processor")
+@DATA_TRANSFORMS.register("document_processor/question_answering")
 class QuestionAnsweringDocumentProcessor(DocumentProcessor):
     ignore_samples_with_no_answer: bool = False
+    is_training: bool = False
     truncation: str = "only_second"
 
-    def _is_no_answer_sample(
-        self, token_answer_start, token_answer_end, tokenization_data
-    ):
-        import numpy as np
 
-        total_answers = len(token_answer_start)
-        for key, value in tokenization_data.items():
-            if value is None:
-                continue
-            if key == "image":
-                continue
-            assert len(value) == total_answers, (
-                f"Length mismatch in tokenization data for key {key}. "
-                f"Expected length: {total_answers}, Actual length: {len(value)}"
-            )
-
-        valid_indices = []
-        for idx, (s, e) in enumerate(
-            zip(token_answer_start, token_answer_end, strict=True)
-        ):
-            if s != -1 and e != -1:
-                valid_indices.append(idx)
-
-        if len(valid_indices) == 0:
-            return True  # skip this sample entirely
-
-        if len(valid_indices) < total_answers:
-            tokenization_data = {
-                k: v[valid_indices] if v is not None and k not in ["image"] else v
-                for k, v in tokenization_data.items()
-            }
-            token_answer_start = token_answer_start[valid_indices]
-            token_answer_end = token_answer_end[valid_indices]
-
-        assert (np.array(token_answer_end) != -1).all(), (
-            f"Some end answer indices are -1 in document {token_answer_end}"
+    def _initialize_tokenizer(self):
+        from atria_transforms.tfs._document_tokenizer import QuestionAnsweringDocumentTokenizer
+        self._tokenizer = QuestionAnsweringDocumentTokenizer(
+            hf_processor=self.hf_processor,
+            use_segment_level_bboxes=self.use_segment_level_bboxes,
+            ignore_no_answer_qa_pair=self.ignore_no_answer_qa_pair,
+            load_images=self.load_images,
+            load_bboxes=self.load_bboxes,
         )
-        assert (np.array(token_answer_start) != -1).all(), (
-            f"Some start answer indices are -1 in document {token_answer_start}"
-        )
-        total_answers = len(token_answer_start)
-        for key, value in tokenization_data.items():
-            if value is None:
-                continue
-            if key == "image":
-                continue
-            assert len(value) == total_answers, (
-                f"Length mismatch in tokenization data for key {key}. "
-                f"Expected length: {total_answers}, Actual length: {len(value)}"
-            )
-        return False
 
     def __call__(
         self, document_instance: DocumentInstance
@@ -170,24 +133,33 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
 
         transformed_instances = []
         for qa_pair_index in range(len(qa_pairs)):
-            # convert DocumentInstance to Huggingface processor inputs
-            hf_processor_inputs = _document_instance_to_hf_processor_inputs(
-                document_instance,
-                use_segment_level_bboxes=self.use_segment_level_bboxes,
-                image_transform=self.image_transform,
-                context=qa_pairs[qa_pair_index].question_text,
-            )
+            if isinstance(document_instance, DocumentInstance):
+                # convert DocumentInstance to Huggingface processor inputs
+                hf_processor_inputs = _document_instance_to_hf_processor_inputs(
+                    document_instance,
+                    use_segment_level_bboxes=self.use_segment_level_bboxes,
+                    image_transform=self.image_transform,
+                    context=qa_pairs[qa_pair_index].question_text,
+                )
 
-            # perform tokenization using the hf_processor
-            tokenization_data = self.hf_processor(hf_processor_inputs)
+                # perform tokenization using the hf_processor
+                tokenization_data = self.hf_processor(hf_processor_inputs)
 
-            # post-process tokenizer outputs to generate segment-level info and align word ids and labels
-            processed_outputs = self._post_process_qa_tokenizer_outputs(
-                document_instance=document_instance,
-                hf_processor_inputs=hf_processor_inputs,
-                tokenization_data=tokenization_data,
-                qa_pair=qa_pairs[qa_pair_index],
-            )
+                # post-process tokenizer outputs to generate segment-level info and align word ids and labels
+                processed_outputs = self._post_process_qa_tokenizer_outputs(
+                    document_instance=document_instance,
+                    hf_processor_inputs=hf_processor_inputs,
+                    tokenization_data=tokenization_data,
+                    qa_pair=qa_pairs[qa_pair_index],
+                )
+            elif isinstance(document_instance, TokenizedDocumentInstance):
+                processed_outputs = self._processed_outputs_qa_from_tokenized(
+                    document_instance=document_instance, qa_pair=qa_pairs[qa_pair_index]
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported document instance type: {type(document_instance)}"
+                )
 
             # for each token processed_outputs, create DocumentTensorDataModel
             bs = processed_outputs["token_ids"].shape[0]
@@ -203,6 +175,27 @@ class QuestionAnsweringDocumentProcessor(DocumentProcessor):
             return processed
 
         return transformed_instances
+
+    def _processed_outputs_qa_from_tokenized(
+        self, document_instance: TokenizedDocumentInstance, qa_pair: QAPair
+    ) -> dict[str, Any]:
+        processed_outputs = super()._processed_outputs_from_tokenized(
+            document_instance=document_instance
+        )
+        assert document_instance.token_answer_start is not None, (
+            f"{self.__class__.__name__} expected token_answer_start to be present in TokenizedDocumentInstance"
+        )
+        assert document_instance.token_answer_end is not None, (
+            f"{self.__class__.__name__} expected token_answer_end to be present in TokenizedDocumentInstance"
+        )
+        return {
+            **processed_outputs,
+            "token_answer_start": document_instance.token_answer_start,
+            "token_answer_end": document_instance.token_answer_end,
+            "question_id": qa_pair.id,
+            "qa_question": qa_pair.question_text,
+            "qa_answer": qa_pair.answers,
+        }
 
     def _post_process_qa_tokenizer_outputs(
         self,

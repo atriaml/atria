@@ -20,6 +20,8 @@ class TokenizedDocumentInstance(BaseDataInstance):
     token_type_ids: torch.Tensor | None = None
     token_labels: torch.Tensor | None = None
     attention_mask: torch.Tensor | None = None
+    token_answer_start: torch.Tensor | None = None
+    token_answer_end: torch.Tensor | None = None
 
     @field_serializer(
         "token_ids",
@@ -29,6 +31,8 @@ class TokenizedDocumentInstance(BaseDataInstance):
         "token_type_ids",
         "token_labels",
         "attention_mask",
+        "token_answer_start",
+        "token_answer_end",
         mode="plain",
     )
     @classmethod
@@ -45,6 +49,8 @@ class TokenizedDocumentInstance(BaseDataInstance):
         "token_type_ids",
         "token_labels",
         "attention_mask",
+        "token_answer_start",
+        "token_answer_end",
         mode="before",
     )
     @classmethod
