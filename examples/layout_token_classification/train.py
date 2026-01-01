@@ -66,7 +66,7 @@ def main(
                 image_transform=StandardImageTransform(
                     stats=stats, resize_width=image_size, resize_height=image_size
                 ),
-                overflow_strategy="return_random",
+                overflow_strategy="return_first",
             ),
             eval_transform=load_transform(
                 "token_classification_document_processor",
