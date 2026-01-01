@@ -210,6 +210,10 @@ class Dataset(
         self._split_iterators.update(split_iterators)
         return self
 
+    def split_exists(self, split: DatasetSplitType) -> bool:
+        """Check if a specific dataset split exists."""
+        return split in self._split_iterators
+
     @property
     def data_model(self) -> type[T_BaseDataInstance]:
         """The data model class used for type validation and instantiation."""
