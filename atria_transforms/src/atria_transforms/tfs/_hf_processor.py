@@ -1,22 +1,83 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Self
 
+import torch
 from atria_logger import get_logger
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from atria_transforms.tfs._utilities import (
+    _extract_sequence_and_word_ids,
+    _extract_token_bboxes_from_word_bboxes,
+    _extract_token_labels_from_word_labels,
+)
 
 if TYPE_CHECKING:
     from transformers import AutoProcessor
-    from transformers.tokenization_utils_base import (
-        BatchEncoding,
-        PreTrainedTokenizerBase,
-    )
 
 from atria_transforms.constants import _DEFAULT_ATRIA_TFS_CACHE_DIR
 from atria_transforms.core import DataTransform
 from atria_transforms.registry import DATA_TRANSFORMS
 
 logger = get_logger(__name__)
+
+
+class HuggingfaceProcessorInput(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    text: str | list[str]
+    text_pair: list[str] | None = None
+    boxes: list[list[float]] | None = None
+    label: int | None = None
+    word_labels: list[int] | None = None
+
+
+class HuggingfaceProcessorOutput(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    token_ids: torch.Tensor
+    attention_mask: torch.Tensor
+    token_type_ids: torch.Tensor | None = None
+    special_tokens_mask: torch.Tensor | None = None
+    offsets_mapping: torch.Tensor | None = None
+    sequence_ids: torch.Tensor
+    word_ids: torch.Tensor
+    token_bboxes: torch.Tensor | None = None
+    token_labels: torch.Tensor | None = None
+    label: torch.Tensor | None = None
+
+    @model_validator(mode="after")
+    def validate_lengths(self) -> Self:
+        for field_name in self.__class__.model_fields.keys():
+            field_value = getattr(self, field_name)
+            if field_value is not None:
+                assert field_value.shape[0] == self.batch_size, (
+                    f"Batch size mismatch for field '{field_name}': "
+                    f"expected {self.batch_size}, got {field_value.shape[0]}"
+                )
+                if field_name != "label":
+                    assert field_value.shape[1] == self.sequence_length, (
+                        f"Batch size mismatch for field '{field_name}': "
+                        f"expected {self.batch_size}, got {field_value.shape[0]}"
+                    )
+
+        return self
+
+    @property
+    def batch_size(self) -> int:
+        return self.token_ids.shape[0]
+
+    @property
+    def sequence_length(self) -> int:
+        return self.token_ids.shape[1]
+
+    def take(self, indices: list[int]) -> HuggingfaceProcessorOutput:
+        taken_data = {}
+        for field_name, field_value in self.model_dump().items():
+            if field_value is not None:
+                taken_data[field_name] = field_value[indices]
+            else:
+                taken_data[field_name] = None
+        return HuggingfaceProcessorOutput.model_validate(taken_data)
 
 
 @DATA_TRANSFORMS.register("hf_processor")
@@ -51,7 +112,7 @@ class HuggingfaceProcessor(DataTransform):
     verbose: bool = True
 
     @property
-    def tokenizer(self) -> PreTrainedTokenizerBase:
+    def tokenizer(self) -> Any:
         return (
             self._hf_processor.tokenizer
             if hasattr(self._hf_processor, "tokenizer")
@@ -108,17 +169,66 @@ class HuggingfaceProcessor(DataTransform):
         return call_kwargs
 
     def _initialize_transform(self):
-        from transformers import AutoProcessor
+        from transformers import AutoTokenizer
 
-        processor = AutoProcessor.from_pretrained(
+        processor = AutoTokenizer.from_pretrained(
             self.tokenizer_name, **self._prepare_init_kwargs()
         )
         self._call_kwargs = self._prepare_call_kwargs(processor)
         return processor
 
-    def __call__(self, input: dict) -> BatchEncoding:
+    def __call__(self, input: HuggingfaceProcessorInput) -> HuggingfaceProcessorOutput:
+        from transformers import BertTokenizerFast, RobertaTokenizerFast
+
         if not self._hf_processor:
             self._hf_processor = self._initialize_transform()
 
-        filtered_inputs = {k: v for k, v in input.items() if k in self._possible_args}
-        return self._hf_processor(**filtered_inputs, **self._call_kwargs)
+        filtered_inputs = {
+            k: v for k, v in input.model_dump().items() if k in self._possible_args
+        }
+
+        if isinstance(self.tokenizer, (BertTokenizerFast, RobertaTokenizerFast)):
+            # for some reason Bert and Roberta tokenizers require text to be a list of strings
+            # when a pair is passed, but layoutlm does its own logic, what a freakshow of a library
+            # every single tokenizer has its own ghost quirks happening under the hood
+            text = filtered_inputs.get("text", None)
+            text_pair = filtered_inputs.get("text_pair", None)
+
+            if text is not None and text_pair is not None:
+                filtered_inputs["text"] = [text]
+
+        tokenization_data = self._hf_processor(**filtered_inputs, **self._call_kwargs)
+
+        # extract sequence_ids and word_ids
+        sequence_ids, word_ids = _extract_sequence_and_word_ids(tokenization_data)  # noqa: F821
+
+        # extract token_bboxes if needed, we always reextract to ensure alignment with word_ids
+        token_bboxes = tokenization_data.get("bbox", None)
+        if token_bboxes is None and input.boxes is not None:
+            token_bboxes = _extract_token_bboxes_from_word_bboxes(input.boxes, word_ids)
+
+        # extract token_labels if needed, we always reextract to ensure alignment with word_ids
+        token_labels = tokenization_data.get("labels", None)
+        if token_labels is None and input.word_labels is not None:
+            token_labels = _extract_token_labels_from_word_labels(
+                input.word_labels, word_ids
+            )
+
+        # extract label if needed
+        label = None
+        if input.label is not None:
+            batch_size = tokenization_data["input_ids"].shape[0]
+            label = torch.tensor([input.label] * batch_size, dtype=torch.long)
+
+        return HuggingfaceProcessorOutput(
+            token_ids=tokenization_data["input_ids"],
+            attention_mask=tokenization_data["attention_mask"],
+            token_type_ids=tokenization_data.get("token_type_ids"),
+            special_tokens_mask=tokenization_data.get("special_tokens_mask"),
+            offsets_mapping=tokenization_data.get("offset_mapping"),
+            sequence_ids=sequence_ids,
+            word_ids=word_ids,
+            token_bboxes=token_bboxes if input.boxes is not None else None,
+            token_labels=token_labels,
+            label=label,
+        )

@@ -189,7 +189,7 @@ class Dataset(
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
         overwrite_existing_cached: bool = False,
         store_artifact_content: bool = True,
-        max_cache_image_size: int | None = None,
+        max_cache_image_size: int | tuple[int, int] | None = None,
         num_processes: int = 8,
     ) -> Self:
         """Process the entire dataset and return a new Dataset instance."""

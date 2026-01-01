@@ -1,50 +1,46 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Any, Literal
 
 from atria_logger import get_logger
 from atria_types import DocumentInstance
-from pydantic import Field
 
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types import DocumentTensorDataModel
 from atria_transforms.data_types._tokenized_document_instance import (
     TokenizedDocumentInstance,
 )
-from atria_transforms.registry import DATA_TRANSFORMS
-from atria_transforms.tfs import HuggingfaceProcessor, StandardImageTransform
-
-from .._utilities import (
-    _document_instance_to_hf_processor_inputs,
-    _post_process_tokenizer_outputs,
+from atria_transforms.registry.registry_groups import DATA_TRANSFORMS
+from atria_transforms.tfs import StandardImageTransform
+from atria_transforms.tfs._document_tokenizer import (
+    DocumentTokenizer,
+    QuestionAnsweringDocumentTokenizer,
+    SequenceClassificationDocumentTokenizer,
+    TokenClassificationDocumentTokenizer,
 )
+from atria_transforms.tfs._hf_processor import HuggingfaceProcessor
 
 if TYPE_CHECKING:
-    from transformers.tokenization_utils_base import BatchEncoding
+    pass
 
 logger = get_logger(__name__)
 
 
-@DATA_TRANSFORMS.register("document_processor")
 class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
-    hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
-    image_transform: StandardImageTransform = Field(
-        default_factory=StandardImageTransform
-    )
+    image_transform: StandardImageTransform = StandardImageTransform()
 
     # overflow sampling
     overflow_strategy: Literal["return_first", "return_random", "return_all"] = (
         "return_all"
     )
 
-    # image args
-    load_bboxes: bool = True
-    load_image: bool = True
+    def model_post_init(self, context: Any) -> None:
+        self._document_tokenizer = self._initialize_document_tokenizer()
 
-    # segment-level-rank info args
-    add_segment_level_info: bool = False
-    use_segment_level_bboxes: bool = False
-    max_segment_num: int = 150
+    @abstractmethod
+    def _initialize_document_tokenizer(self) -> DocumentTokenizer:
+        raise NotImplementedError
 
     def __call__(
         self, document_instance: DocumentInstance | TokenizedDocumentInstance
@@ -57,143 +53,109 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
         )
 
         if isinstance(document_instance, DocumentInstance):
-            # convert DocumentInstance to Huggingface processor inputs
-            hf_processor_inputs = _document_instance_to_hf_processor_inputs(
-                document_instance,
-                use_segment_level_bboxes=self.use_segment_level_bboxes,
-                image_transform=self.image_transform,
-                load_bboxes=self.load_bboxes,
-                load_image=self.load_image,
-            )
+            tokenized_instance = self._document_tokenizer(document_instance)
+        else:
+            tokenized_instance = document_instance
 
-            # perform tokenization using the hf_processor
-            tokenization_data = self.hf_processor(hf_processor_inputs)
-
-            # post-process tokenizer outputs to generate segment-level info and align word ids and labels
-            processed_outputs = self._post_process_tokenizer_outputs(
-                document_instance=document_instance,
-                hf_processor_inputs=hf_processor_inputs,
-                tokenization_data=tokenization_data,
+        if isinstance(tokenized_instance, TokenizedDocumentInstance):
+            overflowed_instances = self._resolve_overflow_for_instance(
+                tokenized_instance
             )
-        elif isinstance(document_instance, TokenizedDocumentInstance):
-            processed_outputs = self._processed_outputs_from_tokenized(
-                document_instance=document_instance
-            )
+        elif isinstance(tokenized_instance, list):
+            overflowed_instances = []
+            for instance in tokenized_instance:
+                overflowed_instances.extend(
+                    self._resolve_overflow_for_instance(instance)
+                )
         else:
             raise ValueError(
-                f"Unsupported document instance type: {type(document_instance)}"
+                "Tokenizer output must be a TokenizedDocumentInstance or a list of them."
             )
 
-        # for each token processed_outputs, create DocumentTensorDataModel
-        bs = processed_outputs["token_ids"].shape[0]
-        processed = [
-            self._resolve_overflow(
-                processed_outputs=processed_outputs,
-                overflow_sample_idx=overflow_sample_idx,
+        return [
+            DocumentTensorDataModel.from_tokenized_instance(
+                tokenized_instance=instance, image_transform=self.image_transform
             )
-            for overflow_sample_idx in range(bs)
+            for instance in overflowed_instances
         ]
-        if bs == 1:
-            return processed[0]
+
+    def _resolve_overflow_for_instance(
+        self, tokenized_instance: TokenizedDocumentInstance
+    ) -> list[TokenizedDocumentInstance]:
+        # tokenizer may return a list of tokenized instances in case of question answering
+        if self.overflow_strategy == "return_first":
+            return [tokenized_instance.resolve_overflow(0)]
+        elif self.overflow_strategy == "return_random":
+            import random
+
+            random_idx = random.randint(0, tokenized_instance.batch_size)
+            return [tokenized_instance.resolve_overflow(random_idx)]
+        elif self.overflow_strategy == "return_all":
+            return [
+                tokenized_instance.resolve_overflow(i)
+                for i in range(tokenized_instance.batch_size)
+            ]
         else:
-            if self.overflow_strategy == "return_first":
-                return processed[0]
-            elif self.overflow_strategy == "return_random":
-                import random
+            raise ValueError(f"Unknown overflow strategy: {self.overflow_strategy}")
 
-                random_idx = random.randint(0, bs - 1)
-                return processed[random_idx]
-            elif self.overflow_strategy == "return_all":
-                return processed
-        return processed
 
-    def _processed_outputs_from_tokenized(
-        self, document_instance: TokenizedDocumentInstance
-    ) -> dict[str, Any]:
-        image = None
-        if self.load_image and document_instance.image is not None:
-            if self.image_transform is not None:
-                image = self.image_transform(document_instance.image.content)
-            else:
-                if document_instance.image.content is not None:
-                    image = document_instance.image.content.convert("RGB")
-        processed_outputs = {
-            "index": document_instance.index,
-            "sample_id": document_instance.sample_id,
-            "words": document_instance.words,
-            "token_ids": document_instance.token_ids,
-            "attention_mask": document_instance.attention_mask,
-            "token_bboxes": document_instance.token_bboxes,
-            "token_type_ids": document_instance.token_type_ids,
-            "token_labels": document_instance.token_labels,
-            "sequence_ids": document_instance.sequence_ids,
-            "word_ids": document_instance.word_ids,
-            "image": image,
-        }
-        return processed_outputs
+@DATA_TRANSFORMS.register("document_processor/sequence_classification")
+class SequenceClassificationDocumentProcessor(DocumentProcessor):
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor()
 
-    def _post_process_tokenizer_outputs(
-        self,
-        document_instance: DocumentInstance,
-        hf_processor_inputs: dict[str, Any],
-        tokenization_data: BatchEncoding,
-    ) -> dict[str, Any]:
-        # post-process tokenizer outputs to generate segment-level info and align word ids and labels
-        processed_outputs = _post_process_tokenizer_outputs(
-            tokenization_data=tokenization_data,
-            input_word_boxes=hf_processor_inputs.get("boxes", None),
-            input_word_labels=hf_processor_inputs.get("word_labels", None),
-            input_image=hf_processor_inputs.get("images", None),
-            add_segment_level_info=self.add_segment_level_info,
-            all_special_ids=self.hf_processor.tokenizer.all_special_ids,
-            max_segment_num=self.max_segment_num,
-            load_bboxes=self.load_bboxes,
+    # segment-level-rank info args
+    use_segment_level_bboxes: bool = False
+    resize_image: tuple[int, int] | None = None
+    load_image: bool = True
+    load_bboxes: bool = True
+
+    def _initialize_document_tokenizer(self) -> DocumentTokenizer:
+        return SequenceClassificationDocumentTokenizer(
+            hf_processor=self.hf_processor,
+            use_segment_level_bboxes=self.use_segment_level_bboxes,
+            resize_image=self.resize_image,
             load_image=self.load_image,
+            load_bboxes=self.load_bboxes,
         )
 
-        # attach more info
-        processed_outputs = {
-            "index": document_instance.index,
-            "sample_id": document_instance.sample_id,
-            "words": hf_processor_inputs.pop("text", []),
-            **processed_outputs,
-        }
 
-        return processed_outputs
+@DATA_TRANSFORMS.register("document_processor/token_classification")
+class TokenClassificationDocumentProcessor(DocumentProcessor):
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor()
 
-    def _resolve_overflow(
-        self, processed_outputs: dict[str, Any], overflow_sample_idx: int
-    ) -> DocumentTensorDataModel:
-        data = {
-            key: value[overflow_sample_idx] if value is not None else None
-            for key, value in processed_outputs.items()
-            if key
-            in [
-                "token_ids",
-                "attention_mask",
-                "token_bboxes",
-                "token_type_ids",
-                "token_labels",
-                "sequence_ids",
-                "word_ids",
-            ]
-        }
+    # segment-level-rank info args
+    use_segment_level_bboxes: bool = False
+    resize_image: tuple[int, int] | None = None
+    load_image: bool = True
+    load_bboxes: bool = True
 
-        # image is the same for all overflowing segments of the same document
-        if "image":
-            data["image"] = processed_outputs["image"]
+    def _initialize_document_tokenizer(self) -> DocumentTokenizer:
+        return TokenClassificationDocumentTokenizer(
+            hf_processor=self.hf_processor,
+            use_segment_level_bboxes=self.use_segment_level_bboxes,
+            resize_image=self.resize_image,
+            load_image=self.load_image,
+            load_bboxes=self.load_bboxes,
+        )
 
-        # if label is present at sample level, add it
-        if "label" in processed_outputs:
-            data["label"] = processed_outputs["label"]
 
-        # by default, we return for eery overflowing segment a separate DocumentTensorDataModel
-        index = processed_outputs.get("index", None)
-        assert index is not None, "index must be present in processed outputs"
-        sample_id = processed_outputs.get("sample_id", None)
-        assert sample_id is not None, "sample_id must be present in processed outputs"
-        words = processed_outputs.get("words", None)
-        assert words is not None, "words must be present in processed outputs"
-        return DocumentTensorDataModel(
-            index=index, sample_id=sample_id, words=words, **data
+@DATA_TRANSFORMS.register("document_processor/question_answering")
+class QuestionAnsweringDocumentProcessor(DocumentProcessor):
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor()
+
+    # segment-level-rank info args
+    use_segment_level_bboxes: bool = False
+    resize_image: tuple[int, int] | None = None
+    load_image: bool = True
+    load_bboxes: bool = True
+    ignore_no_answer_qa_pair: bool = False
+
+    def _initialize_document_tokenizer(self) -> DocumentTokenizer:
+        return QuestionAnsweringDocumentTokenizer(
+            hf_processor=self.hf_processor,
+            use_segment_level_bboxes=self.use_segment_level_bboxes,
+            resize_image=self.resize_image,
+            load_image=self.load_image,
+            load_bboxes=self.load_bboxes,
+            ignore_no_answer_qa_pair=self.ignore_no_answer_qa_pair,
         )

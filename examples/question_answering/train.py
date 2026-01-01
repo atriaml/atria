@@ -59,7 +59,7 @@ def main(
                 model_type="question_answering",
             ),
             train_transform=load_transform(
-                "question_answering_document_processor",
+                "document_processor/question_answering",
                 hf_processor={
                     "tokenizer_name": "bert-base-uncased",
                 },
@@ -70,7 +70,7 @@ def main(
                 is_training=True,
             ),
             eval_transform=load_transform(
-                "question_answering_document_processor",
+                "document_processor/question_answering",
                 hf_processor={
                     "tokenizer_name": "bert-base-uncased",
                 },

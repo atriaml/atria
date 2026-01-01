@@ -43,7 +43,7 @@ class DatasetProcessor:
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
         overwrite_existing_cached: bool = False,
         store_artifact_content: bool = True,
-        max_cache_image_size: int | None = None,
+        max_cache_image_size: int | tuple[int, int] | None = None,
         num_processes: int = 8,
     ):
         self._dataset = dataset
@@ -107,7 +107,7 @@ class DatasetProcessor:
         transform: Callable | DataTransform,
         store_artifact_content: bool = True,
         resize_images: bool = False,
-        image_max_size: int | None = None,
+        image_max_size: int | tuple[int, int] | None = None,
     ) -> SplitIterator:
         if split not in self.dataset._available_splits():
             raise ValueError(f"Split {split} is not available in the dataset.")

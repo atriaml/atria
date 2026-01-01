@@ -163,3 +163,15 @@ class DocumentOps(StandardOps[DocumentInstance]):
             )
             document_instance_per_qa_pair.append(qa_document_instance)
         return document_instance_per_qa_pair
+
+    def get_qa_pairs(self) -> list[QAPair]:
+        assert self.model.has_annotation_type(
+            annotation_type=AnnotationType.question_answering
+        ), (
+            f"{self.model.__class__.__name__} {self.model.sample_id} does not have "
+            f"QuestionAnsweringAnnotation."
+        )
+        qa_annotation = self.model.get_annotation_by_type(
+            annotation_type=AnnotationType.question_answering
+        )
+        return qa_annotation.qa_pairs

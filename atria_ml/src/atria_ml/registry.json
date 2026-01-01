@@ -1,9 +1,10 @@
 {
     "optimizers": {
         "adam": {
-            "hash": "e7262849",
+            "hash": "8cf147da",
             "config": {
                 "module_path": "torch.optim.Adam",
+                "type": "adam",
                 "lr": 0.01,
                 "betas": [
                     0.9,
@@ -16,9 +17,10 @@
             "import_path": "atria_ml.optimizers._configs.AdamOptimizerConfig"
         },
         "adamw": {
-            "hash": "efafd682",
+            "hash": "fc330245",
             "config": {
                 "module_path": "torch.optim.AdamW",
+                "type": "adamw",
                 "lr": 0.01,
                 "betas": [
                     0.9,
@@ -31,9 +33,10 @@
             "import_path": "atria_ml.optimizers._configs.AdamWOptimizerConfig"
         },
         "adagrad": {
-            "hash": "206ab93f",
+            "hash": "7a790f20",
             "config": {
                 "module_path": "torch.optim.Adagrad",
+                "type": "adagrad",
                 "lr": 0.01,
                 "lr_decay": 0.0,
                 "weight_decay": 0.0,
@@ -43,9 +46,10 @@
             "import_path": "atria_ml.optimizers._configs.AdagradOptimizerConfig"
         },
         "rmsprop": {
-            "hash": "d678b01b",
+            "hash": "d859660c",
             "config": {
                 "module_path": "torch.optim.RMSprop",
+                "type": "rmsprop",
                 "lr": 0.01,
                 "alpha": 0.99,
                 "eps": 1e-08,
@@ -56,9 +60,10 @@
             "import_path": "atria_ml.optimizers._configs.RMSpropOptimizerConfig"
         },
         "adadelta": {
-            "hash": "be2e734f",
+            "hash": "38cf8603",
             "config": {
                 "module_path": "torch.optim.Adadelta",
+                "type": "adadelta",
                 "lr": 0.01,
                 "rho": 0.9,
                 "eps": 1e-06,
@@ -67,9 +72,10 @@
             "import_path": "atria_ml.optimizers._configs.AdadeltaOptimizerConfig"
         },
         "sgd": {
-            "hash": "aa441893",
+            "hash": "4c41712b",
             "config": {
                 "module_path": "torch.optim.SGD",
+                "type": "sgd",
                 "lr": 0.01,
                 "momentum": 0.0,
                 "weight_decay": 0.0,
@@ -79,9 +85,10 @@
             "import_path": "atria_ml.optimizers._configs.SGDOptimizerConfig"
         },
         "lars": {
-            "hash": "c0a498d7",
+            "hash": "12e27d56",
             "config": {
                 "module_path": "atria_ml.optimizers._lars.LARS",
+                "type": "lars",
                 "lr": 0.01,
                 "momentum": 0.0,
                 "weight_decay": 0.0,

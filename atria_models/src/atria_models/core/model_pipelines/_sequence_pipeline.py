@@ -22,7 +22,7 @@ from atria_metrics.registry.entity_labeling import (
 )
 from atria_metrics.registry.question_answering.due_eval import DocVQAEvalConfig
 from atria_transforms.data_types._document import DocumentTensorDataModel
-from atria_transforms.tfs._document_processor._task_tfs import (
+from atria_transforms.tfs._document_processor._base import (
     QuestionAnsweringDocumentProcessor,
     SequenceClassificationDocumentProcessor,
     TokenClassificationDocumentProcessor,

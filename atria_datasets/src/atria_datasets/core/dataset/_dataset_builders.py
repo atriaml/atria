@@ -37,7 +37,7 @@ class DefaultOutputTransformer:
         data_dir: str,
         store_artifact_content: bool = True,
         resize_images: bool = False,
-        image_max_size: int | None = None,
+        image_max_size: int | tuple[int, int] | None = None,
     ):
         self._data_dir = data_dir
         self._store_artifact_content = store_artifact_content
@@ -55,9 +55,14 @@ class DefaultOutputTransformer:
             assert self._image_max_size is not None, (
                 "`image_max_size` must be provided when `resize_images` is True."
             )
-            image = sample.image.ops.resize_with_aspect_ratio(
-                max_size=self._image_max_size
-            )
+            if isinstance(self._image_max_size, tuple):
+                image = sample.image.ops.resize(
+                    width=self._image_max_size[0], height=self._image_max_size[1]
+                )
+            else:
+                image = sample.image.ops.resize_with_aspect_ratio(
+                    max_size=self._image_max_size
+                )
             sample = sample.update(image=image)
         return sample.ops.convert_file_paths_to_relative(parent_dir=self._data_dir)
 
