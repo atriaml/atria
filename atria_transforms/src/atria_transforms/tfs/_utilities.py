@@ -44,10 +44,10 @@ def _document_instance_to_hf_processor_inputs(
         if document_instance.content.text_list is not None:
             inputs["text"] = document_instance.content.text_list
 
-    if load_bboxes and document_instance.content.bbox_list is not None:
+    if load_bboxes and len(document_instance.content.bbox_list) > 0:
         if (
             use_segment_level_bboxes
-            and document_instance.content.segment_bbox_list is not None
+            and len(document_instance.content.segment_bbox_list) > 0
         ):
             boxes = document_instance.content.segment_bbox_list
         else:
