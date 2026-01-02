@@ -519,7 +519,8 @@
                     "seed": 42,
                     "segment_levels": [
                         "tokens",
-                        "pages"
+                        "pages",
+                        "lines"
                     ],
                     "ocr_engine": "microsoft_cv",
                     "answers_extraction_method": "v1",

@@ -2,6 +2,7 @@ import uuid
 from collections.abc import Iterable
 from pathlib import Path
 
+import numpy as np
 import PIL
 from atria_logger import get_logger
 from atria_types import (
@@ -22,26 +23,19 @@ from pdf2image import convert_from_path
 from PIL.Image import Image as PILImage
 
 from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
+from atria_datasets.registry.vqa.utilities import _get_line_bboxes
 
 logger = get_logger(__name__)
 
 _CITATION = """\
-@article{Kumar2014StructuralSF,
-    title={Structural similarity for document image classification and retrieval},
-    author={Jayant Kumar and Peng Ye and David S. Doermann},
-    journal={Pattern Recognit. Lett.},
-    year={2014},
-    volume={43},
-    pages={119-126}
-}
 """
 
 _DESCRIPTION = """\
-The Tobacco3482 dataset consists of 3842 grayscale images in 10 classes. In this version, the dataset is plit into 2782 training images, and 700 test images.
+The Document Understanding Benchmark
 """
 
-_HOMEPAGE = "https://www.kaggle.com/datasets/patrickaudriaz/tobacco3482jpg"
-_LICENSE = "https://www.industrydocuments.ucsf.edu/help/copyright/"
+_HOMEPAGE = "https://duebenchmark.com/leaderboard"
+_LICENSE = ""
 _DATA_URLS = {
     "datasets": "https://applica-public.s3.eu-west-1.amazonaws.com/due/datasets/{config_name}.tar.gz",
     "pdfs": "https://applica-public.s3.eu-west-1.amazonaws.com/due/pdfs/{config_name}.tar.gz",
@@ -56,7 +50,7 @@ class DueBenchmarkConfig(DatasetConfig):
 
     # corpus args
     dataset_name: str = "due_benchmark"
-    segment_levels: tuple = ("tokens", "pages")
+    segment_levels: tuple = ("tokens", "lines", "pages")
     ocr_engine: str = "microsoft_cv"
     answers_extraction_method: str = "v1"  # v1, v2, v1_v2, v2_v1, v3
     image_dpi: int = 72
@@ -147,6 +141,7 @@ class SplitIterator:
             answer_start_indices, answer_end_indices, gold_answers = (
                 self._extract_answers(values, document.document_2d.tokens)
             )
+            line_ranges = document.document_2d.seg_data["lines"]["ranges"]
             page_ranges = document.document_2d.seg_data["pages"]["ranges"]
             page_bboxes = document.document_2d.seg_data["pages"]["org_bboxes"]
             page_idx = 0
@@ -162,12 +157,23 @@ class SplitIterator:
 
             sample["page_idx"] = page_idx
             sample["page_size"] = (page_bbox[2], page_bbox[3])
+            token_bboxes = document.document_2d.seg_data["tokens"]["org_bboxes"]
+            segment_level_token_bboxes = np.zeros_like(token_bboxes)
+            for line_range in line_ranges:
+                start = line_range[0]
+                end = line_range[1]
+                segment_level_token_bboxes[start:end] = _get_line_bboxes(
+                    token_bboxes[start:end]
+                )
             sample["tokens_in_page"] = document.document_2d.tokens[
-                page_range[0] : page_range[1] + 1
+                page_range[0] : page_range[1]
             ]
-            sample["token_bboxes_in_page"] = document.document_2d.seg_data["tokens"][
-                "org_bboxes"
-            ][page_range[0] : page_range[1] + 1].tolist()
+            sample["token_bboxes_in_page"] = token_bboxes[
+                page_range[0] : page_range[1]
+            ].tolist()
+            sample["segment_level_token_bboxes_in_page"] = segment_level_token_bboxes[
+                page_range[0] : page_range[1]
+            ].tolist()
             # normalize page bboxes
             page_width, page_height = page_bbox[2], page_bbox[3]
             sample["token_bboxes_in_page"] = [
@@ -179,9 +185,26 @@ class SplitIterator:
                 ]
                 for bbox in sample["token_bboxes_in_page"]
             ]
+            sample["segment_level_token_bboxes_in_page"] = [
+                [
+                    bbox[0] / page_width,
+                    bbox[1] / page_height,
+                    bbox[2] / page_width,
+                    bbox[3] / page_height,
+                ]
+                for bbox in sample["segment_level_token_bboxes_in_page"]
+            ]
 
             # if any box coord is out of bound, raise a warning
             for bbox in sample["token_bboxes_in_page"]:
+                for coord in bbox:
+                    if coord < 0.0 or coord > 1.0:
+                        logger.warning(
+                            f"Bounding box coordinate {coord} out of bounds [0,1] in sample {sample['sample_id']}, page {page_idx}"
+                        )
+
+            # if any box coord is out of bound, raise a warning
+            for bbox in sample["segment_level_token_bboxes_in_page"]:
                 for coord in bbox:
                     if coord < 0.0 or coord > 1.0:
                         logger.warning(
@@ -194,6 +217,14 @@ class SplitIterator:
                 bbox[1] = max(0.0, min(1.0, bbox[1]))
                 bbox[2] = max(0.0, min(1.0, bbox[2]))
                 bbox[3] = max(0.0, min(1.0, bbox[3]))
+
+            # clip bboxes to be within [0,1]
+            for bbox in sample["segment_level_token_bboxes_in_page"]:
+                bbox[0] = max(0.0, min(1.0, bbox[0]))
+                bbox[1] = max(0.0, min(1.0, bbox[1]))
+                bbox[2] = max(0.0, min(1.0, bbox[2]))
+                bbox[3] = max(0.0, min(1.0, bbox[3]))
+
             sample["annotations"] = {
                 "question": question,
                 "answers": gold_answers,
@@ -219,6 +250,9 @@ class SplitIterator:
                 "page_size": grouped[0]["page_size"],
                 "tokens_in_page": grouped[0]["tokens_in_page"],
                 "token_bboxes_in_page": grouped[0]["token_bboxes_in_page"],
+                "segment_level_token_bboxes_in_page": grouped[0][
+                    "segment_level_token_bboxes_in_page"
+                ],
                 "sample_id": grouped[0]["sample_id"],
                 "document_2d": grouped[0]["document_2d"],
                 "annotations": [g["annotations"] for g in grouped],
@@ -355,10 +389,12 @@ class DueBenchmark(DocumentDataset):
                     TextElement(
                         text=token,  # type: ignore
                         bbox=BoundingBox(value=bbox, normalized=True),
+                        segment_bbox=BoundingBox(value=segment_bbox, normalized=True),
                     )
-                    for token, bbox in zip(  # type: ignore
+                    for token, bbox, segment_bbox in zip(  # type: ignore
                         sample["tokens_in_page"],
                         sample["token_bboxes_in_page"],
+                        sample["segment_level_token_bboxes_in_page"],
                         strict=True,
                     )
                 ]
