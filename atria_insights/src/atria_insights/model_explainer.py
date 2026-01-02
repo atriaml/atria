@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -10,6 +12,12 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
+from atria_ml.training.engines._test_engine import (
+    TestEngine,
+    TestEngineConfig,
+    TestEngineDependencies,
+)
+from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
 
 from atria_insights.configs.explainer_config import ExplanationTaskConfig
@@ -82,7 +90,10 @@ class ModelExplainer:
         return tb_logger
 
     def _build_explanation_engine(
-        self, total_samples: int | None = None, compute_metrics: bool = True
+        self,
+        checkpoint_hash: str,
+        total_samples: int | None = None,
+        compute_metrics: bool = True,
     ) -> ExplanationEngine:
         import torch
 
@@ -105,12 +116,14 @@ class ModelExplainer:
                 x_model_pipeline=self._state.x_model_pipeline,
                 dataloader=test_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.run_dir,
+                output_dir=self._config.env.run_dir / checkpoint_hash,
                 tb_logger=self._state.tb_logger,
             ),
         )
 
-    def _build_training_baseline_features_generation_engine(self):
+    def _build_features_generation_engine(
+        self, checkpoint_hash: str
+    ) -> FeatureGenerationEngine:
         import torch
 
         train_dataloader = self._state.data_pipeline.train_dataloader(
@@ -129,7 +142,7 @@ class ModelExplainer:
                 x_model_pipeline=self._state.x_model_pipeline,
                 dataloader=train_dataloader,
                 device=torch.device(self._device),
-                output_dir=self._config.env.run_dataset_dir,
+                output_dir=self._config.env.run_dir / checkpoint_hash,
                 feature_file_name="features.hdf5",
             ),
         )
@@ -183,21 +196,88 @@ class ModelExplainer:
             tb_logger=tb_logger,
         )
 
+    def _build_test_engine(self, checkpoint_hash: str) -> TestEngine:
+        import torch
+
+        test_dataloader = self._state.data_pipeline.test_dataloader(
+            batch_size=self._config.data.eval_batch_size,
+            num_workers=self._config.data.num_workers,
+            pin_memory=self._config.data.pin_memory,
+        )
+        return TestEngine(
+            config=TestEngineConfig(
+                logging=self._config.logging,
+                test_run=self._config.test_run,
+                use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
+                with_amp=self._config.with_amp,
+                save_model_outputs_to_disk=self._config.save_test_outputs_to_disk,
+            ),
+            deps=TestEngineDependencies(
+                model_pipeline=self._state.x_model_pipeline._model_pipeline,
+                dataloader=test_dataloader,
+                device=torch.device(self._device),
+                output_dir=self._config.env.run_dir / checkpoint_hash,
+                tb_logger=self._state.tb_logger,
+            ),
+        )
+
+    def test(
+        self, checkpoint_hash: str, checkpoint_path: str | Path | None = None
+    ) -> None:
+        output_file_path = (
+            self._config.env.run_dir / checkpoint_hash / "test_metrics.json"
+        )
+        if output_file_path.exists():
+            logger.info(
+                f"Test metrics already exist at {output_file_path}, skipping test."
+            )
+            return
+
+        # first we generate baseline features on training data if needed
+        test_engine = self._build_test_engine(checkpoint_hash=checkpoint_hash)
+
+        # run test engine
+        state = test_engine.run(checkpoint_path=checkpoint_path)
+
+        metrics = _format_metrics_for_logging(state.metrics)
+        logger.info("Test metrics:")
+        logger.info(json.dumps(metrics, indent=4))
+
+        # serialize test metrics
+        if not output_file_path.parent.exists():
+            output_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file_path, "w") as f:
+            json.dump(
+                {"config": self._config.model_dump(), "metrics": metrics}, f, indent=4
+            )
+
     def run(
         self,
         checkpoint_path: str | Path | None = None,
         total_samples: int | None = None,
     ) -> State:
+        # generate hash from checkpoint path
+        checkpoint_hash = hashlib.sha256(
+            str(checkpoint_path).encode("utf-8")
+        ).hexdigest()[:8]
+
+        # run test
+        self.test(checkpoint_hash=checkpoint_hash, checkpoint_path=checkpoint_path)
+
         # first we generate baseline features on training data if needed
         training_baseline_features_generation_engine = (
-            self._build_training_baseline_features_generation_engine()
+            self._build_features_generation_engine(checkpoint_hash=checkpoint_hash)
         )
 
         # generate baseline features
-        training_baseline_features_generation_engine.run()
+        training_baseline_features_generation_engine.run(
+            checkpoint_path=checkpoint_path
+        )
 
         # then we build the explanation engine first to compute the explanations
-        explanation_engine = self._build_explanation_engine(total_samples=total_samples)
+        explanation_engine = self._build_explanation_engine(
+            total_samples=total_samples, checkpoint_hash=checkpoint_hash
+        )
 
         # run explanation engine
         return explanation_engine.run(checkpoint_path=checkpoint_path)

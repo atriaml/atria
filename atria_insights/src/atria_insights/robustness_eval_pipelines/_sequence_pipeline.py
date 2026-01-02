@@ -12,11 +12,9 @@ from atria_models.core.model_pipelines._sequence_pipeline import (
     SequenceModelPipeline,
     TokenClassificationPipelineConfig,
 )
-from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
-from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
 from pydantic import model_validator
@@ -26,9 +24,8 @@ from torchxai.data_types import (
     SingleTargetPerSample,
 )
 
-from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
-from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.feature_segmentors._sequence import (
+    FeatureSegmentorConfigType,
     SequenceFeatureMaskSegmentorConfig,
 )
 from atria_insights.model_pipelines._common import (
@@ -37,17 +34,19 @@ from atria_insights.model_pipelines._common import (
 )
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
+from atria_insights.model_pipelines.baseline_generators import (
+    BaselineGeneratorConfigType,
+)
+from atria_insights.model_pipelines.baseline_generators._sequence import (
+    SequenceBaselineGeneratorConfig,
+)
 
 logger = get_logger(__name__)
 
 
 class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
-    feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
-        SequenceFeatureMaskSegmentorConfig()
-    )
-    baseline_generator: SequenceBaselineGeneratorConfig = (
-        SequenceBaselineGeneratorConfig()
-    )
+    feature_segmentor: FeatureSegmentorConfigType = SequenceFeatureMaskSegmentorConfig()
+    baseline_generator: BaselineGeneratorConfigType = SequenceBaselineGeneratorConfig()
 
     @model_validator(mode="after")
     def validate_configs(self) -> ExplainableSequenceModelPipelineConfig:
@@ -77,18 +76,9 @@ class ExplainableSequenceModelPipeline(
     __config__ = ExplainableSequenceModelPipelineConfig
 
     def __init__(
-        self,
-        config: ExplainableSequenceModelPipelineConfig,
-        labels: DatasetLabels,
-        persist_to_disk: bool = True,
-        cache_dir: str | None = None,
+        self, config: ExplainableSequenceModelPipelineConfig, labels: DatasetLabels
     ) -> None:
-        super().__init__(
-            config=config,
-            labels=labels,
-            persist_to_disk=persist_to_disk,
-            cache_dir=cache_dir,
-        )
+        super().__init__(config=config, labels=labels)
         assert isinstance(self._model_pipeline, SequenceModelPipeline), (
             f"{self.__class__.__name__} can only be used with SequenceModelPipeline. Found {self._model_pipeline=}"
         )
@@ -101,19 +91,8 @@ class ExplainableSequenceModelPipeline(
             if param.name != "self":
                 self._input_ids_list.append(param.name)
 
-    def _build_feature_segmentor(self):
-        assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
-        self._feature_segmentor = self.config.feature_segmentor.build(
-            special_token_ids=self._model_pipeline._model.config.embeddings_config.special_token_ids
-        )
-
-    def _build_baseline_generator(self):
-        self._baseline_generator = self.config.baseline_generator.build(
-            model=self._model_pipeline._model
-        )
-
     def _explained_inputs(
-        self, batch: DocumentTensorDataModel, return_embeddings: bool = True
+        self, batch: DocumentTensorDataModel
     ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
 
@@ -128,7 +107,7 @@ class ExplainableSequenceModelPipeline(
             inputs["image"] = batch.image
 
         if (
-            "layout_ids" in self._input_ids_list
+            "token_bboxes" in self._input_ids_list
             and self._model_pipeline.config.use_bbox
         ):
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
@@ -139,17 +118,12 @@ class ExplainableSequenceModelPipeline(
                     if token_bboxes is not None
                     else None
                 )
-            inputs["layout_ids"] = token_bboxes
+            inputs["token_bboxes"] = token_bboxes
 
         # generate input embeddings
-        if return_embeddings:
-            return self._model_pipeline._model.ids_to_embeddings(
-                **inputs
-            ).to_ordered_dict()
-        else:
-            return OrderedDict(inputs)  # type: ignore
+        return self._model_pipeline._model.ids_to_embeddings(**inputs).to_ordered_dict()
 
-    def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):
+    def _additional_forward_args(self, batch: DocumentTensorDataModel):
         return {"attention_mask": batch.attention_mask, "is_embedding": True}
 
     def _target(
@@ -176,94 +150,6 @@ class ExplainableSequenceModelPipeline(
                 SingleTargetAcrossBatch(index=label_index)
                 for label_index in range(total_labels)
             ]
-
-    def _baselines(
-        self, explained_inputs: OrderedDict[str, torch.Tensor], **kwargs
-    ) -> OrderedDict[str, torch.Tensor]:
-        """Generate baselines for the explainer."""
-        logger.debug(
-            "Generating baselines using baseline generator with config: %s",
-            self.config.baseline_generator,
-        )
-        baselines = self._baseline_generator(explained_inputs, **kwargs)
-        log_tensor_info(baselines, name="baselines")
-        return baselines
-
-    def _feature_mask(
-        self, explained_inputs: OrderedDict[str, torch.Tensor], **kwargs
-    ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
-        """Generate feature mask using the feature segmentor."""
-        logger.debug(
-            "Generating feature mask using feature segmentor with config: %s",
-            self.config.feature_segmentor,
-        )
-        feature_masks, frozen_features = self._feature_segmentor(
-            inputs=explained_inputs, **kwargs
-        )
-        log_tensor_info(feature_masks, name="feature_masks")
-        return feature_masks, frozen_features
-
-    def prepare_explanation_inputs(
-        self, batch: T_TensorDataModel
-    ) -> tuple[Any, BatchExplanationInputs]:
-        """Prepare the inputs for the explainer step."""
-        with torch.no_grad():
-            # prepare explained inputs
-            # we need input ids here for baseline generation
-            inputs = self._explained_inputs(batch, return_embeddings=False)
-
-            # prepare additional forward args
-            additional_forward_kwargs = (
-                self._additional_forward_kwargs(batch) or OrderedDict()
-            )
-
-            # prepare baselines
-            baselines = self._baselines(explained_inputs=inputs)
-
-            # prepare feature mask
-            feature_mask, frozen_features = self._feature_mask(
-                explained_inputs=inputs, word_ids=batch.word_ids
-            )
-
-            print(inputs.keys())
-            print(additional_forward_kwargs)
-            print(baselines.keys())
-            print(feature_mask.keys())
-
-            # map the inputs and forwad args to model signautre
-            input_feature_keys = tuple(inputs.keys())
-            inputs, additional_forward_args, baselines, feature_mask = (
-                self._validated_inputs(
-                    inputs=inputs,
-                    additional_forward_kwargs=additional_forward_kwargs,
-                    baselines=baselines,
-                    feature_mask=feature_mask,
-                )
-            )
-            assert len(inputs) == len(input_feature_keys), (
-                "Input feature keys length does not match inputs length."
-                f" {len(input_feature_keys)=}, {len(inputs)=}"
-            )
-
-            # forward pass
-            model_outputs = self._wrapped_model(*(*inputs, *additional_forward_args))
-
-            # prepare target
-            target = self._target(batch=batch, model_outputs=model_outputs)
-
-            # prepare explanation inputs
-            return model_outputs, BatchExplanationInputs(
-                sample_id=batch.metadata.sample_id,
-                inputs=inputs,
-                additional_forward_args=additional_forward_args,
-                baselines=baselines if "baselines" in self._explainer_args else None,
-                feature_mask=feature_mask
-                if "feature_mask" in self._explainer_args
-                else None,
-                target=target,
-                frozen_features=None,
-                feature_keys=input_feature_keys,
-            )
 
 
 class ExplainableSequenceClassificationPipelineConfig(

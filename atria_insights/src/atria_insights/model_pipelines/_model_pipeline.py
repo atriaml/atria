@@ -16,7 +16,6 @@ from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
 from tqdm import tqdm
 
-from atria_insights.baseline_generators import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import (
     BatchExplanation,
@@ -24,7 +23,6 @@ from atria_insights.data_types._explanation_state import (
 )
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
-from atria_insights.feature_segmentors import SequenceFeatureMaskSegmentor
 from atria_insights.model_pipelines._common import (
     ExplanationTargetStrategy,
     T_ExplainableModelPipelineConfig,
@@ -53,13 +51,35 @@ class ExplainableModelPipeline(
         cache_dir: str | None = None,
     ) -> None:
         super().__init__(config=config)
+        self._labels = labels
         self._persist_to_disk = persist_to_disk
         self._cache_dir = cache_dir
+        self._build()
         if self._persist_to_disk and not self._cache_dir:
             raise ValueError("cache_dir must be specified if persist_to_disk is True.")
 
-        self._model_pipeline = self.config.model_pipeline.build(labels=labels)
+    @property
+    def ops(self) -> Any:
+        return ModelPipelineOps(self._model_pipeline)
 
+    def summarize(self):
+        logger.info("XAI Model Pipeline Summary:")
+        logger.info(self._model_pipeline.ops.summarize())
+        logger.info("Explainer Summary:")
+        logger.info("Explainer: %s", self._explainer)
+        logger.info("Feature Segmentor Config: %s", self.config.feature_segmentor)
+        logger.info("Baseline Generator Config: %s", self.config.baseline_generator)
+
+    def _dump_config(self, config_dir: Path) -> dict:
+        config_dir.mkdir(parents=True, exist_ok=True)
+        with open(config_dir / "config.yaml", "w") as f:
+            f.write(self._config.to_yaml())
+            return self._config.model_dump()
+
+    def _build_model_pipeline(self):
+        self._model_pipeline = self.config.model_pipeline.build(labels=self._labels)
+
+    def _build_explainer(self):
         # build explainer
         multi_target = (
             self.config.explanation_target_strategy == ExplanationTargetStrategy.all
@@ -77,19 +97,6 @@ class ExplainableModelPipeline(
             grad_batch_size=self.config.grad_batch_size,
         )
 
-        # build feature segmentor
-        self._feature_segmentor = self.config.feature_segmentor.build()
-
-        # build baselines generator
-        if isinstance(self.config.baseline_generator, SequenceBaselineGeneratorConfig):
-            raise ValueError(
-                "SequenceBaselineGeneratorConfig is not supported here. "
-                "Please use FeatureBasedBaselineGeneratorConfig or SimpleBaselineGeneratorConfig."
-            )
-        self._baseline_generator = self.config.baseline_generator.build(
-            model=self._model_pipeline._model
-        )
-
         # get possible explainer args
         # filster args here so there is no error on fowrard
         # verify that impossible args are not set
@@ -97,13 +104,22 @@ class ExplainableModelPipeline(
             self._explainer.explain
         ).parameters.keys()
 
+    def _build_feature_segmentor(self):
+        self._feature_segmentor = self.config.feature_segmentor.build()
+
+    def _build_baseline_generator(self):
+        self._baseline_generator = self.config.baseline_generator.build(
+            model=self._model_pipeline._model
+        )
+
+    def _build_cacher(self):
         self._explainer_dir = None
         if self._persist_to_disk:
             assert self._cache_dir is not None, (
                 "cache_dir must be specified if persist_to_disk is True."
             )
             self._explainer_dir = (
-                Path(self._cache_dir) / config.explainer.type.split("/")[-1]
+                Path(self._cache_dir) / self._config.explainer.type.split("/")[-1]
             )
             self._dump_config(config_dir=self._explainer_dir)
             self._cacher = ExplanationStateCacher(
@@ -113,23 +129,21 @@ class ExplainableModelPipeline(
             logger.info("Explanation caching enabled.")
             logger.info(f"Storing outputs to file = {self._cacher.file_path}")
 
-    @property
-    def ops(self) -> Any:
-        return ModelPipelineOps(self._model_pipeline)
+    def _build(self):
+        # build model pipeline
+        self._build_model_pipeline()
 
-    def _dump_config(self, config_dir: Path) -> dict:
-        config_dir.mkdir(parents=True, exist_ok=True)
-        with open(config_dir / "config.yaml", "w") as f:
-            f.write(self._config.to_yaml())
-            return self._config.model_dump()
+        # build explainer
+        self._build_explainer()
 
-    def summarize(self):
-        logger.info("XAI Model Pipeline Summary:")
-        logger.info(self._model_pipeline.ops.summarize())
-        logger.info("Explainer Summary:")
-        logger.info("Explainer: %s", self._explainer)
-        logger.info("Feature Segmentor Config: %s", self.config.feature_segmentor)
-        logger.info("Baseline Generator Config: %s", self.config.baseline_generator)
+        # build feature segmentor
+        self._build_feature_segmentor()
+
+        # build baselines generator
+        self._build_baseline_generator()
+
+        # build cacher
+        self._build_cacher()
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
         class WrappedModel(torch.nn.Module):
@@ -175,30 +189,26 @@ class ExplainableModelPipeline(
         return None
 
     def _baselines(
-        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
+        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor], **kwargs
     ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
         """Generate baselines for the explainer."""
         logger.debug(
             "Generating baselines using baseline generator with config: %s",
             self.config.baseline_generator,
         )
-        baselines = self._baseline_generator(explained_inputs)
+        baselines = self._baseline_generator(explained_inputs, **kwargs)
         log_tensor_info(baselines, name="baselines")
         return baselines
 
     def _feature_mask(
-        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
+        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor], **kwargs
     ) -> Any:
         """Generate feature mask using the feature segmentor."""
         logger.debug(
             "Generating feature mask using feature segmentor with config: %s",
             self.config.feature_segmentor,
         )
-        assert not isinstance(self._feature_segmentor, SequenceFeatureMaskSegmentor), (
-            "SequenceFeatureMaskSegmentor is not supported here. "
-            "Please use a different feature segmentor."
-        )
-        feature_masks = self._feature_segmentor(explained_inputs)
+        feature_masks = self._feature_segmentor(explained_inputs, **kwargs)
         log_tensor_info(feature_masks, name="feature_masks")
         return feature_masks
 

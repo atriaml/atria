@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable
 from dataclasses import field
 from functools import partial
-import os
 from pathlib import Path
 from typing import Any, Generic, TypeVar
 
@@ -130,7 +130,9 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         # initialize the progress bar
         progress_bar = ProgressBar(
             # we want all pbar outputs to be logged through our logger so we redirect to null file
-            desc=f"Stage [{self._engine_step.name}]", persist=True, file=open(os.devnull, 'w')
+            desc=f"Stage [{self._engine_step.name}]",
+            persist=True,
+            file=open(os.devnull, "w"),
         )
 
         if idist.get_rank() == 0:
@@ -142,7 +144,9 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                 metric_names="all",
             )
 
-            @self._engine.on(Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate))
+            @self._engine.on(
+                Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate)
+            )
             def print_pbar(engine: Engine) -> None:
                 # log the progress bar through our logger
                 logger.info(str(progress_bar.pbar))
@@ -301,6 +305,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         import torch
         from ignite.handlers.checkpoint import Checkpoint
 
+        logger.info(f"Loading checkpoint from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location="cpu")
         Checkpoint.load_objects(
             to_load=self._to_load_state_dict(), checkpoint=checkpoint, strict=True

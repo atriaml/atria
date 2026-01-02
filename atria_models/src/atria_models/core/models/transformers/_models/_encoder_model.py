@@ -67,6 +67,10 @@ class TransformersEncoderModel(
         )
 
     @property
+    def config(self) -> TransformersEncoderModelConfig:
+        return self._config
+
+    @property
     def dtype(self):
         return torch.float32
 
@@ -218,7 +222,6 @@ class TransformersEncoderModel(
         token_ids: torch.Tensor,
         position_ids: torch.Tensor | None = None,
         token_type_ids: torch.Tensor | None = None,
-        **kwargs,
     ) -> TokenEmbeddingOutputs:
         return self.embeddings(
             token_ids=token_ids,

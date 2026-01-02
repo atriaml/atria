@@ -12,9 +12,7 @@ from atria_insights.baseline_generators._sequence import SequenceBaselineGenerat
 from ._simple import SimpleBaselineGeneratorConfig
 
 BaselineGeneratorConfigType = Annotated[
-    SimpleBaselineGeneratorConfig
-    | SequenceBaselineGeneratorConfig
-    | FeatureBasedBaselineGeneratorConfig,
+    SimpleBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig,
     Field(discriminator="type"),
 ]
 

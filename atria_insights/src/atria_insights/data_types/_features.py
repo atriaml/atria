@@ -17,6 +17,8 @@ class BatchFeatures(BaseModel):
     features: tuple[torch.Tensor, ...]
 
     def tolist(self) -> list[SampleFeatures]:
+        for feature_key, feature in zip(self.feature_keys, self.features, strict=True):
+            print(f"{feature_key}: {feature.shape}")
         return [
             SampleFeatures(
                 sample_id=sid,

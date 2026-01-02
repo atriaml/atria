@@ -82,6 +82,10 @@ class FeatureGenerationEngine(
         # move model pipeline to device
         self._deps.model_pipeline.ops.to_device(self._deps.device)
 
+        # load checkpoint if provided
+        if checkpoint_path is not None:
+            self._load_checkpoint(checkpoint_path=checkpoint_path)
+
         return self._engine.run(
             (
                 FixedBatchIterator(

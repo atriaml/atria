@@ -22,11 +22,13 @@ class SequenceBaselineGeneratorConfig(ModuleConfig):
         "atria_insights.baseline_generators._sequence.SequenceBaselineGenerator"
     )
     type: Literal["sequence"] = "sequence"
-    text: Literal["zero", "mask_token_id", "pad_token_id"] = "zero"
-    token_type: Literal["zero", "pad_token_id"] = "zero"
-    position: Literal["zero", "pad_token_id"] = "zero"
-    spatial_position: Literal["zero"] = "zero"
+    token_ids: Literal["zero", "mask_token_id", "pad_token_id"] = "zero"
+    token_type_ids: Literal["zero", "pad_token_id"] = "zero"
+    position_ids: Literal["zero", "pad_token_id"] = "zero"
+    layout_ids: Literal["zero", "pad_token_id"] = "zero"
     image: Literal["white", "black", "random", "mean"] = "black"
+    image_mean: list[float] | None = None
+    image_std: list[float] | None = None
 
 
 class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfig]):
@@ -37,18 +39,21 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
         model: TransformersEncoderModel,
         config: SequenceBaselineGeneratorConfig | None = None,
     ) -> None:
-        super().__init__(config=config)
-        assert isinstance(model, TransformersEncoderModel), (
+        from atria_models.core.models.transformers._models._encoder_model import (
+            TransformersEncoderModel,
+        )
+
+        super().__init__(model=model, config=config)
+        assert isinstance(self._model, TransformersEncoderModel), (
             "SequenceBaselineGenerator only supports TransformersEncoderModel"
         )
-        self._model = model
 
     @property
     def special_token_ids(self) -> dict[str, int]:
-        return self._model.config.embeddings.special_token_ids
+        return self._model.config.embeddings_config.special_token_ids
 
     def __call__(  # type: ignore[override]
-        self, inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
+        self, inputs: OrderedDict[str, torch.Tensor]
     ) -> OrderedDict[str, torch.Tensor] | torch.Tensor:
         assert isinstance(inputs, OrderedDict), (
             "SequenceBaselineGenerator only supports inputs as OrderedDict"
@@ -56,21 +61,36 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
         logger.debug(
             f"Generating sequence baselines using feature-based generator for inputs: {inputs.keys()}"
         )
-        input_embeddings = self._model.ids_to_embeddings(**inputs).to_ordered_dict()
+
+        image = inputs.pop("image", None)
         baseline_embeddings = OrderedDict()
-        for key in input_embeddings.keys():
-            if input_embeddings[key] is None:
+        ids_to_embeddings = self._model.ids_to_embeddings(**inputs).id_map()
+        for key in inputs.keys():
+            if ids_to_embeddings[key] is None:
                 raise ValueError(f"{key} embeddings cannot be None")
 
-            baseline_type = getattr(self.config, key)
-            baseline_embeddings[key] = self._replace_embeddings(
-                embeddings=input_embeddings[key],
-                baseline_embeddings=self._create_baseline_from_input(
-                    baseline_type, input_embeddings[key]
-                ),
-                special_tokens_mask=self._get_special_tokens_mask(inputs["token_ids"]),
-            )
+            if key in ["token_ids", "token_type_ids", "position_ids", "layout_ids"]:
+                baseline_type = getattr(self.config, key)
+                baseline_embeddings[key] = self._replace_embeddings(
+                    embeddings=ids_to_embeddings[key],
+                    baseline_embeddings=self._create_baseline_from_input(
+                        baseline_type, ids_to_embeddings[key], key=key
+                    ),
+                    special_tokens_mask=self._get_special_tokens_mask(
+                        inputs["token_ids"]
+                    ),
+                )
 
+        if image is not None:
+            assert (
+                self.config.image_mean is not None and self.config.image_std is not None
+            ), "image_mean and image_std must be provided for image baseline generation"
+            baseline_embeddings["image"] = self._create_image_baseline(
+                image=image,
+                baseline_type=self.config.image,
+                mean=self.config.image_mean,
+                std=self.config.image_std,
+            )
         return baseline_embeddings
 
     def _get_special_tokens_mask(self, input_ids: torch.Tensor) -> torch.Tensor:
@@ -102,37 +122,56 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
         # expand the mask to the same size as the embeddings
         return embeddings * ~replace_mask + replace_mask * baseline_embeddings
 
-    def _create_embedding_from_special_token(
-        self,
-        input_tensor: torch.Tensor,
-        token_id: int,
-        target_embedding: str = "token_embedding",
-    ) -> torch.Tensor:
-        import torch
-
-        embeddings = self._model.ids_to_embeddings(
-            torch.full_like(input_tensor, token_id)
-        ).to_ordered_dict()
-        assert embeddings[target_embedding] is not None, (
-            "Token embeddings should not be None"
-        )
-        return embeddings[target_embedding]
-
     # get special tokens mask
     def _create_baseline_from_input(
         self,
         baseline_type: Literal["zero", "mask_token_id", "pad_token_id"],
         input_embeddings: torch.Tensor,
+        key: str,
     ):
         import torch
 
         if baseline_type == "zero":
             return torch.zeros_like(input_embeddings)
         elif baseline_type in ["mask_token_id", "pad_token_id"]:
-            return self._create_embedding_from_special_token(
-                input_embeddings, self.special_token_ids[baseline_type]
+            token_id = self.special_token_ids[baseline_type]
+            if key == "layout_ids":
+                # for spatial position embeddings, pad token id is usually 0
+                # Note: this is 0 padding
+                token_id = 0
+            baseline_embeddings = self._model.ids_to_embeddings(
+                torch.full_like(input_embeddings, token_id)
+            ).to_ordered_dict()
+            embedding_key = key.replace("_id", "_embeddings")
+            assert baseline_embeddings[embedding_key] is not None, (
+                "Token embeddings should not be None"
             )
+            return baseline_embeddings[embedding_key]
         else:
             raise ValueError(
                 f"Invalid masking type: {baseline_type} for word embeddings. Supported types are 'zero', 'mask_token', and 'pad_token'"
+            )
+
+    def _create_image_baseline(
+        self,
+        image: torch.Tensor,
+        baseline_type: Literal["white", "black", "random", "mean"],
+        mean: list[float],
+        std: list[float],
+    ) -> torch.Tensor:
+        import torch
+        from torchvision.transforms.functional import normalize
+
+        if baseline_type == "white":
+            return normalize(torch.ones_like(image), mean=mean, std=std)
+        elif baseline_type == "black":
+            return normalize(torch.zeros_like(image), mean=mean, std=std)
+        elif baseline_type == "random":
+            return torch.rand_like(image)
+        elif baseline_type == "mean":
+            # mean lies at 0 after normalization
+            return torch.zeros_like(image)
+        else:
+            raise ValueError(
+                f"Invalid image baseline type: {baseline_type}. Supported types are 'white', 'black', 'random', and 'mean'"
             )

@@ -30,7 +30,7 @@ class SequenceFeatureMaskSegmentorConfig(ModuleConfig):
         assert "special_token_ids" in kwargs, (
             "special_token_ids must be provided to build SequenceFeatureMaskSegmentor"
         )
-        return super().build(config=self, **kwargs)
+        return super().build(**kwargs)
 
 
 class SequenceFeatureMaskSegmentor(
@@ -50,6 +50,8 @@ class SequenceFeatureMaskSegmentor(
     def _segment_tokens(
         self, token_ids: torch.Tensor, word_ids: list[list[int]]
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
+        import torch
+
         feature_masks = []
         special_token_ids_batch = []
         if self.config.group_tokens_to_words:
@@ -121,10 +123,12 @@ class SequenceFeatureMaskSegmentor(
         return torch.stack(feature_masks), special_token_ids_batch
 
     def _create_token_level_feature_mask(
-        self, input_ids: torch.Tensor, word_ids: list[list[int]]
+        self, token_ids: torch.Tensor, word_ids: list[list[int]]
     ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
+        import torch
+
         token_feature_mask, special_token_ids_batch = self._segment_tokens(
-            input_ids, word_ids
+            token_ids, word_ids
         )
 
         # create feature masks for each type of embedding
@@ -174,20 +178,22 @@ class SequenceFeatureMaskSegmentor(
         self,
         inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
         word_ids: list[list[int]],
-    ) -> OrderedDict[str, torch.Tensor]:
+    ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
         assert isinstance(inputs, OrderedDict), (
             "SequenceFeatureMaskSegmentor expects inputs to be an OrderedDict with keys: "
-            "'input_ids', 'word_ids', and optionally 'pixel_values'"
+            "'token_ids', 'word_ids', and optionally 'image'"
         )
-        input_ids = inputs["input_ids"]
-        pixel_values = inputs.get("pixel_values", None)
+        token_ids = inputs["token_ids"]
+        image = inputs.get("pixel_values", None)
 
         token_feature_masks, frozen_features_per_sample = (
-            self._create_token_level_feature_mask(input_ids, word_ids)
+            self._create_token_level_feature_mask(token_ids, word_ids)
         )
 
-        if pixel_values is not None:
-            image_feature_mask = self._create_image_level_feature_mask(pixel_values)
+        if image is not None:
+            image_feature_mask = self._create_image_level_feature_mask(image)
             # add image feature mask to all types of embeddings
-            return OrderedDict(**token_feature_masks, image=image_feature_mask)
-        return OrderedDict(**token_feature_masks)
+            return OrderedDict(
+                **token_feature_masks, image=image_feature_mask
+            ), frozen_features_per_sample
+        return OrderedDict(**token_feature_masks), frozen_features_per_sample

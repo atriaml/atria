@@ -18,8 +18,7 @@ from atria_insights.feature_segmentors._sequence import (
 )
 
 FeatureSegmentorConfigType = Annotated[
-    ImageSegmentorConfigType | SequenceFeatureMaskSegmentorConfig,
-    Field(discriminator="type"),
+    ImageSegmentorConfigType, Field(discriminator="type")
 ]
 __all__ = [
     "NoOpSegmenterConfig",

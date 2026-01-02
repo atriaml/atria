@@ -28,6 +28,13 @@ class TokenEmbeddingOutputs:
             token_type_embeddings=self.token_type_embeddings,
         )
 
+    def id_map(self) -> dict[str, torch.Tensor]:
+        return {
+            "token_ids": self.token_embeddings,
+            "position_ids": self.position_embeddings,
+            "token_type_ids": self.token_type_embeddings,
+        }
+
 
 class TokenEmbeddings(nn.Module):
     def __init__(self, config: EmbeddingsConfig):
@@ -65,10 +72,12 @@ class TokenEmbeddings(nn.Module):
         )
 
     def _default_position_ids(
-        self, seq_length: int, past_kv_length: int
+        self, batch_size: int, seq_length: int, past_kv_length: int
     ) -> torch.LongTensor:
         # load from buffer and slice
-        return self.position_ids[:, past_kv_length : past_kv_length + seq_length]
+        return self.position_ids[
+            :, past_kv_length : past_kv_length + seq_length
+        ].expand(batch_size, seq_length)
 
     def _default_token_type_ids(
         self, batch_size: int, seq_length: int
@@ -89,7 +98,9 @@ class TokenEmbeddings(nn.Module):
 
         # resolve ids
         if position_ids is None:
-            position_ids = self._default_position_ids(seq_length, past_kv_length)
+            position_ids = self._default_position_ids(
+                batch_size, seq_length, past_kv_length
+            )
         if token_type_ids is None:
             token_type_ids = self._default_token_type_ids(batch_size, seq_length)
 
