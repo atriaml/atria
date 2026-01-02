@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 import math
+import os
 from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -250,8 +251,17 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
 
         # initialize the progress bar
         progress_bar = ProgressBar(
-            desc=f"Stage [{self._engine_step.name}]", persist=True
+            desc=f"Stage [{self._engine_step.name}]",
+            persist=True,
+            file=open(os.devnull, "w"),
         )
+
+        @self._engine.on(
+            Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate)
+        )
+        def print_pbar(engine: Engine) -> None:
+            # log the progress bar through our logger
+            logger.info(str(progress_bar.pbar))
 
         progress_bar.attach(
             self._engine,
