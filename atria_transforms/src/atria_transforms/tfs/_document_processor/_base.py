@@ -51,7 +51,6 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             f"{self.__class__.__name__} only supports DocumentInstance inputs, "
             f"but received input of type {type(document_instance)}"
         )
-
         if isinstance(document_instance, DocumentInstance):
             tokenized_instance = self._document_tokenizer(document_instance)
         else:
@@ -71,13 +70,13 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             raise ValueError(
                 "Tokenizer output must be a TokenizedDocumentInstance or a list of them."
             )
-
-        return [
+        tensor_models = [
             DocumentTensorDataModel.from_tokenized_instance(
                 tokenized_instance=instance, image_transform=self.image_transform
             )
             for instance in overflowed_instances
         ]
+        return tensor_models
 
     def _resolve_overflow_for_instance(
         self, tokenized_instance: TokenizedDocumentInstance
@@ -88,7 +87,7 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
         elif self.overflow_strategy == "return_random":
             import random
 
-            random_idx = random.randint(0, tokenized_instance.batch_size)
+            random_idx = random.randint(0, tokenized_instance.batch_size - 1)
             return [tokenized_instance.resolve_overflow(random_idx)]
         elif self.overflow_strategy == "return_all":
             return [

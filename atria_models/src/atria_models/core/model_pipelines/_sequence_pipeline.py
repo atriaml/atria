@@ -639,6 +639,16 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
     ) -> Tensor:
         return model_output.loss
 
+    def training_step(  # type: ignore[override]
+        self, batch: DocumentTensorDataModel, **kwargs
+    ) -> ModelOutput:
+        inputs = self._input_transform(batch, require_labels=True)
+        log_tensors_debug_info(inputs, title="train_inputs")
+        model_output = self._model(**inputs)
+        log_tensors_debug_info(model_output, title="train_model_output")
+        loss = self._get_loss(model_output=model_output)
+        return QAModelOutput(loss=loss)
+
     def _output_transform(
         self,
         loss: torch.Tensor | None,

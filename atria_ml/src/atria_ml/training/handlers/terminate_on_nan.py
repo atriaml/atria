@@ -24,6 +24,8 @@ class TerminateOnNan(IgniteTerminateOnNan):
 
         try:
             output = output.model_dump() if isinstance(output, BaseModel) else output
+            if isinstance(output, dict):
+                output = {k: v for k, v in output.items() if v is not None}
             apply_to_type(output, (numbers.Number, torch.Tensor), raise_error)
         except RuntimeError:
             self.logger.warning(
