@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import torch
+from atria_types._generic._annotations import AnnotationType
 from pydantic import BaseModel
 
 from atria_transforms.core import TensorDataModel
@@ -47,6 +48,21 @@ class DocumentTensorDataModel(TensorDataModel):
             else None
         )
 
+        qa_metadata = {}
+        if tokenized_instance.has_annotation_type(
+            annotation_type=AnnotationType.question_answering
+        ):
+            annotation = tokenized_instance.get_annotation_by_type(
+                annotation_type=AnnotationType.question_answering
+            )
+            qa_pairs = annotation.qa_pairs
+            assert len(qa_pairs) == 1, (
+                "Conversion from TokenizedDocumentInstance to DocumentTensorDataModel "
+                "for question answering is only supported with a single qa_pair per tokenized_instance"
+            )
+            qa_metadata["question_id"] = qa_pairs[0].id
+            qa_metadata["qa_question"] = qa_pairs[0].question_text
+            qa_metadata["qa_answers"] = qa_pairs[0].answers
         return cls(
             index=tokenized_instance.index,
             sample_id=tokenized_instance.sample_id,
@@ -62,4 +78,5 @@ class DocumentTensorDataModel(TensorDataModel):
             label=tokenized_instance.label,
             token_answer_start=tokenized_instance.token_answer_start,
             token_answer_end=tokenized_instance.token_answer_end,
+            **qa_metadata,
         )
