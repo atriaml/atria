@@ -23,7 +23,7 @@ class DataTransform(PydanticConfigurableModule, Generic[T_TensorDataModel]):
     """
 
     model_config = ConfigDict(
-        arbitrary_types_allowed=True, validate_assignment=True, extra="forbid"
+        arbitrary_types_allowed=True, validate_assignment=True, extra="ignore"
     )
 
     @property
