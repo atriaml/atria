@@ -251,6 +251,28 @@ class ModelExplainer:
                 {"config": self._config.model_dump(), "metrics": metrics}, f, indent=4
             )
 
+    def prepare_features(self, checkpoint_hash: str) -> None:
+        # first we generate baseline features on training data if needed
+        training_baseline_features_generation_engine = (
+            self._build_features_generation_engine(checkpoint_hash=checkpoint_hash)
+        )
+
+        # generate baseline features
+        training_baseline_features_generation_engine.run()
+
+    def prepare_explanations(
+        self, checkpoint_hash: str, total_samples: int | None = None
+    ) -> State:
+        # then we build the explanation engine first to compute the explanations
+        explanation_engine = self._build_explanation_engine(
+            total_samples=total_samples,
+            checkpoint_hash=checkpoint_hash,
+            compute_metrics=False,
+        )
+
+        # run explanation engine
+        return explanation_engine.run()
+
     def run(
         self,
         checkpoint_path: str | Path | None = None,
@@ -264,20 +286,10 @@ class ModelExplainer:
         # run test
         self.test(checkpoint_hash=checkpoint_hash, checkpoint_path=checkpoint_path)
 
-        # first we generate baseline features on training data if needed
-        training_baseline_features_generation_engine = (
-            self._build_features_generation_engine(checkpoint_hash=checkpoint_hash)
-        )
+        # prepare features
+        self.prepare_features(checkpoint_hash=checkpoint_hash)
 
-        # generate baseline features
-        training_baseline_features_generation_engine.run(
-            checkpoint_path=checkpoint_path
+        # prepare explanations
+        return self.prepare_explanations(
+            checkpoint_hash=checkpoint_hash, total_samples=total_samples
         )
-
-        # then we build the explanation engine first to compute the explanations
-        explanation_engine = self._build_explanation_engine(
-            total_samples=total_samples, checkpoint_hash=checkpoint_hash
-        )
-
-        # run explanation engine
-        return explanation_engine.run(checkpoint_path=checkpoint_path)

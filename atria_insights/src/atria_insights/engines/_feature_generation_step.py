@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from pathlib import Path
 
 import torch
@@ -51,7 +50,7 @@ class FeatureGenerationStep(EngineStep):
         with torch.no_grad():
             # prepare explained inputs
             inputs = self._x_model_pipeline._explained_inputs(batch=collated_batch)
-            if isinstance(inputs, OrderedDict):
+            if isinstance(inputs, dict):
                 input_feature_keys = tuple(inputs.keys())
                 assert len(inputs) == len(input_feature_keys), (
                     "Input feature keys length does not match inputs length."

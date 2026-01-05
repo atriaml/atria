@@ -3,10 +3,9 @@ from pathlib import Path
 from typing import Generic, TypeVar
 
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_logger import get_logger
-
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.data_cachers._hdf5 import HDF5DataCacher
+from atria_logger import get_logger
 
 logger = get_logger(__name__)
 

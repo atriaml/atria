@@ -6,10 +6,9 @@ import h5py
 import numpy as np
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_logger import get_logger
-
 from atria_insights.storage.data_cachers._base import DataCacher
 from atria_insights.storage.data_cachers._common import SerializableSampleData
+from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -27,7 +26,7 @@ class HDF5DataCacher(DataCacher):
         self, hf: h5py.Group, data_key: str, data: np.ndarray
     ) -> None:
         if isinstance(data, torch.Tensor):
-            data = data.cpu().numpy()
+            data = data.detach().cpu().numpy()
 
         if data_key not in hf:
             if isinstance(data, np.ndarray) and len(data.shape) > 1:

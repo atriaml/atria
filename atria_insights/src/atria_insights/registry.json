@@ -648,20 +648,10 @@
                 "import_path": "atria_insights.explainers._torchxai.LimeExplainerConfig"
             },
             "occlusion": {
-                "hash": "cefed31c",
+                "hash": "a1b6e60d",
                 "config": {
                     "module_path": "torchxai.explainers.OcclusionExplainer",
-                    "type": "perturbation/occlusion",
-                    "sliding_window_shapes": [
-                        3,
-                        16,
-                        16
-                    ],
-                    "strides": [
-                        3,
-                        4,
-                        4
-                    ]
+                    "type": "perturbation/occlusion"
                 },
                 "import_path": "atria_insights.explainers._torchxai.OcclusionExplainerConfig"
             }
@@ -810,7 +800,7 @@
                 "import_path": "atria_insights.explainability_metrics._torchxai._complexity.SparsenessConfig"
             },
             "effective_complexity": {
-                "hash": "b329f2cd",
+                "hash": "4390ef2b",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.EffectiveComplexity",
                     "type": "complexity/effective_complexity",
@@ -826,7 +816,7 @@
                         "cell_size": 16
                     },
                     "n_perturbations_per_feature": 10,
-                    "max_features_processed_per_batch": null,
+                    "max_features_processed_per_batch": 10,
                     "percentage_feature_removal_per_step": 0,
                     "zero_variance_threshold": 0.01,
                     "use_percentage_attribution_threshold": false,
@@ -840,7 +830,7 @@
         },
         "faithfulness": {
             "aopc": {
-                "hash": "54df632b",
+                "hash": "e5c6651b",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.AOPC",
                     "type": "faithfulness/aopc",
@@ -855,6 +845,7 @@
                         "type": "grid",
                         "cell_size": 16
                     },
+                    "max_features_processed_per_batch": 10,
                     "total_feature_bins": 100,
                     "n_random_perms": 10,
                     "seed": null,
@@ -864,7 +855,7 @@
                 "import_path": "atria_insights.explainability_metrics._torchxai._faithfulness.AOPCConfig"
             },
             "faithfulness_correlation": {
-                "hash": "3ef5e51b",
+                "hash": "44304d3b",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.FaithfulnessCorrelation",
                     "type": "faithfulness/faithfulness_correlation",
@@ -881,7 +872,7 @@
                     },
                     "perturb_func": "fixed",
                     "n_perturb_samples": 10,
-                    "max_examples_per_batch": null,
+                    "max_examples_per_batch": 10,
                     "percent_features_perturbed": 0.1,
                     "show_progress": false,
                     "return_intermediate_results": false
@@ -889,7 +880,7 @@
                 "import_path": "atria_insights.explainability_metrics._torchxai._faithfulness.FaithfulnessCorrelationConfig"
             },
             "faithfulness_estimate": {
-                "hash": "72bf6118",
+                "hash": "788d2db0",
                 "config": {
                     "module_path": "atria_insights.explainability_metrics.FaithfulnessEstimate",
                     "type": "faithfulness/faithfulness_estimate",
@@ -904,7 +895,7 @@
                         "type": "grid",
                         "cell_size": 16
                     },
-                    "max_features_processed_per_batch": null,
+                    "max_features_processed_per_batch": 10,
                     "percentage_feature_removal_per_step": 0.0,
                     "show_progress": false,
                     "return_intermediate_results": false

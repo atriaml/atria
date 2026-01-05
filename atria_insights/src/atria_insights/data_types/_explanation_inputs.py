@@ -4,11 +4,10 @@ from typing import Any, Self
 
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_logger import get_logger
-from pydantic import BaseModel, ConfigDict, model_validator
-
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.utilities._common import _to_device
+from atria_logger import get_logger
+from pydantic import BaseModel, ConfigDict, model_validator
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -28,6 +27,8 @@ class BatchExplanationInputs(BaseModel):
     additional_forward_args: tuple[Any, ...] | None = None
     baselines: tuple[torch.Tensor, ...] | None = None
     feature_mask: tuple[torch.Tensor, ...] | None = None
+    sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
+    strides: tuple[tuple[int, ...], ...] | None = None
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
     frozen_features: list[torch.Tensor] | None = None
     feature_keys: tuple[str, ...]
@@ -105,6 +106,8 @@ class BatchExplanationInputs(BaseModel):
             "feature_mask": self.feature_mask,
             "additional_forward_args": self.additional_forward_args,
             "target": target,
+            "sliding_window_shapes": self.sliding_window_shapes,
+            "strides": self.strides,
             "frozen_features": self.frozen_features,
         }
         return explainer_kwargs

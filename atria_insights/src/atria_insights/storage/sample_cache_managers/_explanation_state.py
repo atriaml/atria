@@ -48,6 +48,8 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             target = None
 
         # we store explaantions list for multi-target scenario as stacked tensors
+        tensors = {}
+        tensors["model_outputs"] = data.model_outputs
         if isinstance(data.explanations, MultiTargetSampleExplanation):
             assert data.explanations.n_features == len(data.feature_keys), (
                 "Number of explanation tensors must match number of feature keys."
@@ -70,6 +72,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 )
                 for key in data.feature_keys
             }
+            tensors["explanations"] = explanations
         else:
             assert data.explanations.n_features == len(data.feature_keys), (
                 "Number of explanation tensors must match number of feature keys."
@@ -77,6 +80,16 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             explanations = _map_tensor_tuples_to_keys(
                 data.explanations.value, data.feature_keys
             )
+            tensors["explanations"] = explanations
+
+        # we store feature masks as is
+        if data.feature_mask is not None:
+            feature_mask = _map_tensor_tuples_to_keys(
+                data.feature_mask, data.feature_keys
+            )
+            tensors["feature_mask"] = feature_mask
+        else:
+            feature_mask = None
 
         return SerializableSampleData(
             sample_id=data.sample_id,
@@ -87,10 +100,12 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "frozen_features": data.frozen_features.tolist()
                 if data.frozen_features is not None
                 else None,
+                "sliding_window_shapes": json.dumps(data.sliding_window_shapes),
+                "strides": json.dumps(data.strides),
                 "config_hash": self._config.hash,
                 "is_multitarget": data.is_multitarget,
             },
-            tensors={"model_outputs": data.model_outputs, "explanations": explanations},
+            tensors=tensors,
         )
 
     def _deserialize_type(self, data: SerializableSampleData) -> SampleExplanationState:
@@ -159,6 +174,27 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 else None
             )
         model_outputs = data.tensors["model_outputs"]
+
+        # collect feature mask if available
+        feature_mask = data.tensors.get("feature_mask", None)
+        if feature_mask is not None:
+            assert isinstance(feature_mask, dict), (
+                "feature_mask must be a dict if provided."
+            )
+            feature_mask = _map_tensor_dicts_to_tuples(
+                feature_mask, tuple(feature_keys)
+            )
+
+        # get sliding window shapes and strides
+        sliding_window_shapes = data.attrs.get("sliding_window_shapes")
+        assert isinstance(sliding_window_shapes, str), (
+            "sliding_window_shapes must be a string."
+        )
+        sliding_window_shapes = json.loads(sliding_window_shapes)
+        strides = data.attrs.get("strides")
+        assert isinstance(strides, str), "strides must be a string."
+        strides = json.loads(strides)
+
         assert isinstance(model_outputs, torch.Tensor), (
             "model_outputs must be a torch.Tensor."
         )
@@ -167,6 +203,9 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             target=target,
             feature_keys=tuple(feature_keys),
             frozen_features=frozen_features,
+            sliding_window_shapes=sliding_window_shapes,
+            strides=strides,
+            feature_mask=feature_mask,
             model_outputs=model_outputs,
             explanations=explanations,
         )

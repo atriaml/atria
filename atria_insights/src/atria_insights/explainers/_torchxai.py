@@ -102,12 +102,6 @@ class LimeExplainerConfig(ExplainerConfig):
 class OcclusionExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/occlusion"] = "perturbation/occlusion"
     module_path: str | None = "torchxai.explainers.OcclusionExplainer"
-    sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...] = (3, 16, 16)
-    strides: None | int | tuple[int, ...] | tuple[int | tuple[int, ...], ...] = (
-        3,
-        4,
-        4,
-    )
 
 
 @EXPLAINERS.register("random")

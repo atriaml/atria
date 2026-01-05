@@ -4,15 +4,14 @@ from typing import Self
 
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_logger import get_logger
-from atria_types._utilities._repr import RepresentationMixin
-from pydantic import BaseModel, ConfigDict, model_validator
-
 from atria_insights.data_types._targets import (
     BatchExplanationTarget,
     SampleExplanationTarget,
 )
 from atria_insights.utilities._common import _to_device
+from atria_logger import get_logger
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict, model_validator
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -222,6 +221,9 @@ class SampleExplanationState(RepresentationMixin, BaseModel):
     target: SampleExplanationTarget | list[SampleExplanationTarget] | None = None
     feature_keys: tuple[str, ...]
     frozen_features: torch.Tensor | None = None
+    sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
+    strides: tuple[tuple[int, ...], ...] | None = None
+    feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: SampleExplanation | MultiTargetSampleExplanation
     model_outputs: torch.Tensor
 
@@ -245,6 +247,9 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
     feature_keys: tuple[str, ...]
     frozen_features: list[torch.Tensor] | None = None
+    sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
+    strides: tuple[tuple[int, ...], ...] | None = None
+    feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: BatchExplanation | MultiTargetBatchExplanation
     model_outputs: torch.Tensor
 
@@ -307,6 +312,13 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
                 sample_id=self.sample_id[sample_idx],
                 target=targets[sample_idx],
                 feature_keys=self.feature_keys,
+                sliding_window_shapes=self.sliding_window_shapes,
+                strides=self.strides,
+                feature_mask=(
+                    tuple(fm[sample_idx].unsqueeze(0) for fm in self.feature_mask)
+                    if self.feature_mask is not None
+                    else None
+                ),
                 frozen_features=(
                     self.frozen_features[sample_idx]
                     if self.frozen_features is not None
@@ -398,11 +410,29 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
                 "Length of batched target must match number of samples."
             )
 
+        # collect feature masks
+        if data[0].feature_mask is not None:
+            feature_masks = []
+            for d in data:
+                assert d.feature_mask is not None, (
+                    "Either all or none of the SampleExplanationState instances must have feature_mask."
+                )
+                feature_masks.append(d.feature_mask)
+            feature_mask = tuple(
+                torch.cat([fm[i] for fm in feature_masks], dim=0)
+                for i in range(len(data[0].feature_mask))
+            )
+        else:
+            feature_mask = None
+
         # collect targets
         return cls(
             sample_id=sample_id,
             target=target,
             feature_keys=feature_keys,
+            sliding_window_shapes=data[0].sliding_window_shapes,
+            strides=data[0].strides,
+            feature_mask=feature_mask,
             frozen_features=frozen_features,
             explanations=explanations,
             model_outputs=model_outputs,

@@ -123,7 +123,10 @@ class SequenceFeatureMaskSegmentor(
         return torch.stack(feature_masks), special_token_ids_batch
 
     def _create_token_level_feature_mask(
-        self, token_ids: torch.Tensor, word_ids: list[list[int]]
+        self,
+        token_ids: torch.Tensor,
+        word_ids: list[list[int]],
+        sequence_feature_keys: list[str],
     ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
         import torch
 
@@ -131,13 +134,21 @@ class SequenceFeatureMaskSegmentor(
             token_ids, word_ids
         )
 
-        # create feature masks for each type of embedding
-        feature_masks = OrderedDict()
-        mask_max = token_feature_mask.clone().max(dim=1, keepdim=True).values
-        for idx, key in enumerate(
-            ["input", "position", "token_type", "spatial_position"]
-        ):
-            feature_masks[key] = token_feature_mask.clone() + idx * mask_max + 1
+        # accumulate feature mask indices over the features
+        feature_masks = {
+            key: token_feature_mask.clone() for key in sequence_feature_keys
+        }
+        last_mask = None
+        for key in feature_masks.keys():
+            if last_mask is None:
+                last_mask = feature_masks[key]
+                continue
+            feature_masks[key] = (
+                feature_masks[key] + last_mask.max(dim=1, keepdim=True).values + 1
+            )
+            assert feature_masks[key].shape[0] == len(special_token_ids_batch)
+
+            last_mask = feature_masks[key]
 
         # remove frozen features
         frozen_features_per_type = {}
@@ -176,24 +187,26 @@ class SequenceFeatureMaskSegmentor(
 
     def __call__(  # type: ignore[override]
         self,
-        inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
+        token_ids: torch.Tensor,
+        sequence_feature_keys: list[str],
         word_ids: list[list[int]],
-    ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
-        assert isinstance(inputs, OrderedDict), (
-            "SequenceFeatureMaskSegmentor expects inputs to be an OrderedDict with keys: "
-            "'token_ids', 'word_ids', and optionally 'image'"
-        )
-        token_ids = inputs["token_ids"]
-        image = inputs.get("pixel_values", None)
-
+        image: torch.Tensor | None,
+    ) -> tuple[dict[str, torch.Tensor], list[torch.Tensor]]:
         token_feature_masks, frozen_features_per_sample = (
-            self._create_token_level_feature_mask(token_ids, word_ids)
+            self._create_token_level_feature_mask(
+                token_ids, word_ids, sequence_feature_keys=sequence_feature_keys
+            )
         )
 
         if image is not None:
             image_feature_mask = self._create_image_level_feature_mask(image)
-            # add image feature mask to all types of embeddings
-            return OrderedDict(
+
+            # get per batch max feature id to offset image feature ids
+            last_features = list(token_feature_masks.values())[-1]
+            offset = last_features.max(dim=1, keepdim=True).values + 1
+            image_feature_mask += offset.unsqueeze(-1).unsqueeze(-1)
+
+            return dict(
                 **token_feature_masks, image=image_feature_mask
             ), frozen_features_per_sample
-        return OrderedDict(**token_feature_masks), frozen_features_per_sample
+        return dict(**token_feature_masks), frozen_features_per_sample

@@ -15,25 +15,26 @@ from atria_models.core.model_pipelines._sequence_pipeline import (
 from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
+    TransformersEncoderModelOutput,
 )
-from atria_transforms.core._data_types._base import T_TensorDataModel
+from atria_models.core.models.transformers._outputs import TokenClassificationHeadOutput
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
-from pydantic import model_validator
-from torchxai.data_types import (
-    ExplanationTargetType,
-    SingleTargetAcrossBatch,
-    SingleTargetPerSample,
-)
+from pydantic import Field, model_validator
+from torchxai.data_types import ExplanationTargetType, SingleTargetAcrossBatch
 
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
+from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
 from atria_insights.model_pipelines._common import (
     ExplainableModelPipelineConfig,
     ExplanationTargetStrategy,
+)
+from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
+    ExplainableSequenceModelForwardWrapper,
 )
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
@@ -49,6 +50,28 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
         SequenceBaselineGeneratorConfig()
     )
 
+    # only for occlusion explainer
+    sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
+        default_factory=lambda: {
+            "token_ids": (8,),
+            "position_ids": (8,),
+            "token_type_ids": (8,),
+            "layout_ids": (8,),
+            "image": (3, 16, 16),
+        }
+    )
+    strides_map: dict[str, tuple[int, ...]] | None = Field(
+        default_factory=lambda: {
+            "token_ids": (4,),
+            "position_ids": (4,),
+            "token_type_ids": (4,),
+            "layout_ids": (4,),
+            "image": (3, 8, 8),
+        }
+    )
+
+    ignored_feature_ids: list[str] = Field(default_factory=lambda: ["token_type_ids"])
+
     @model_validator(mode="after")
     def validate_configs(self) -> ExplainableSequenceModelPipelineConfig:
         if not isinstance(self.feature_segmentor, SequenceFeatureMaskSegmentorConfig):
@@ -59,6 +82,7 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
             raise ValueError(
                 "baseline_generator must be an instance of SequenceBaselineGeneratorConfig"
             )
+
         return self
 
 
@@ -94,12 +118,133 @@ class ExplainableSequenceModelPipeline(
         )
 
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
-        self._input_ids_list = []
+        self._model_id_to_embeddings_inputs_list = []
         for param in inspect.signature(
             self._model_pipeline._model.ids_to_embeddings
         ).parameters.values():
             if param.name != "self":
-                self._input_ids_list.append(param.name)
+                self._model_id_to_embeddings_inputs_list.append(param.name)
+
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        return ExplainableSequenceModelForwardWrapper(model=model)
+
+    def _validated_inputs(  # type: ignore[override]
+        self,
+        inputs: dict[str, torch.Tensor],
+        additional_forward_kwargs: dict[str, Any] | None = None,
+        baselines: dict[str, torch.Tensor] | None = None,
+        feature_mask: dict[str, torch.Tensor] | None = None,
+        sliding_window_shapes: dict[str, tuple] | None = None,
+        strides: dict[str, tuple] | None = None,
+    ) -> tuple:
+        """
+        Validate and map inputs to the model forward signature.
+
+        Returns:
+            model_inputs: tuple of positional arguments for model forward
+            expected_params: list of expected parameter names (excluding self)
+        """
+        additional_forward_kwargs = additional_forward_kwargs or {}
+
+        # ---- inputs ----
+        baselines_tuple = None
+        feature_mask_tuple = None
+        feature_keys = tuple(inputs.keys())
+        feature_values = tuple(inputs.values())
+        if baselines is not None:
+            assert isinstance(baselines, dict), (
+                "If inputs is an dict, baselines must also be an dict."
+            )
+            baselines_tuple = ()
+            for input_key, input_value in inputs.items():
+                baseline = baselines[input_key]
+
+                # assert shape matches
+                assert baseline.shape == input_value.shape, (
+                    f"Baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
+                )
+
+                baselines_tuple += (baseline,)
+
+            baselines_tuple = tuple(baselines[key] for key in feature_keys)
+        if feature_mask is not None:
+            assert isinstance(feature_mask, dict), (
+                "If inputs is an dict, feature_mask must also be an dict."
+            )
+
+            # expand feature masks to match input shapes
+            feature_mask_tuple = ()
+            for input_key, input_value in inputs.items():
+                mask = feature_mask[input_key]
+
+                # unsqueeze dims to match input shape
+                while len(mask.shape) < len(inputs[input_key].shape):
+                    mask = mask.unsqueeze(-1)
+
+                # expand to match input shape
+                mask = mask.expand_as(input_value)
+
+                # assert the shapes match
+                assert mask.shape == input_value.shape, (
+                    f"Feature mask shape {mask.shape} does not match input shape {input_value.shape} for key {input_key}"
+                )
+
+                feature_mask_tuple += (mask,)
+
+        sliding_window_shapes_tuple = None
+        if sliding_window_shapes is not None:
+            sliding_window_shapes = {
+                key: sliding_window_shapes[key] for key in feature_keys
+            }
+
+            # make sure the shape matches the input shape
+            sliding_window_shapes_tuple = tuple()
+            for input_key, input_value in inputs.items():
+                # we take the shape of the a single sample
+                single_input_shape = input_value.shape[1:]
+
+                # expand the shape of the sliding window to match the input shape
+                strides_shape = sliding_window_shapes[input_key]
+                for dim in single_input_shape[len(strides_shape) :]:
+                    strides_shape += (dim,)
+                sliding_window_shapes_tuple += (strides_shape,)
+
+        strides_tuple = None
+        if strides is not None:
+            strides = {key: strides[key] for key in feature_keys}
+            strides_tuple = tuple()
+            for input_key, input_value in inputs.items():
+                # we take the shape of the a single sample
+                single_input_shape = input_value.shape[1:]
+
+                # expand the shape of the sliding window to match the input shape
+                strides_shape = strides[input_key]
+                for dim in single_input_shape[len(strides_shape) :]:
+                    strides_shape += (dim,)
+                strides_tuple += (strides_shape,)
+
+        args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
+        additional_forward_args = tuple(additional_forward_kwargs.values()) + (
+            args_mapping,
+        )
+        assert len(inputs) == len(inputs.keys()), (
+            "Input feature keys length does not match inputs length."
+            f" {len(inputs.keys())=}, {len(inputs)=}"
+        )
+        assert len(additional_forward_args) + len(inputs) == len(args_mapping) + 1, (
+            "Args map length does not match inputs and additional forward args length."
+            f" {len(args_mapping)=}, {len(inputs)=}, {len(additional_forward_args)=}"
+        )
+        return (
+            feature_values,
+            additional_forward_args,
+            baselines_tuple,
+            feature_mask_tuple,
+            sliding_window_shapes_tuple,
+            strides_tuple,
+            feature_keys,
+            args_mapping,
+        )
 
     def _build_feature_segmentor(self):
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
@@ -112,23 +257,38 @@ class ExplainableSequenceModelPipeline(
             model=self._model_pipeline._model
         )
 
-    def _explained_inputs(
-        self, batch: DocumentTensorDataModel, return_embeddings: bool = True
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
-        assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
+    def _generate_sequence_ids_to_embeddings(
+        self, batch: DocumentTensorDataModel
+    ) -> dict[str, torch.Tensor]:
+        # get default ids
+        default_ids = self._model_pipeline._model.get_default_ids_from_token_ids(
+            batch.token_ids
+        )
+        token_type_ids = (
+            batch.token_type_ids
+            if batch.token_type_ids is not None
+            else default_ids.get("token_type_ids")
+        )
+        position_ids = default_ids.get("position_ids")
+        assert token_type_ids is not None, "Token type ids cannot be None"
+        assert position_ids is not None, "Position ids cannot be None"
 
+        # first we generate the embeddings
         inputs = {
             "token_ids": batch.token_ids,
-            "token_type_ids": batch.token_type_ids,
-            "position_ids": None,
+            "token_type_ids": token_type_ids,
+            "position_ids": position_ids,
         }
 
-        if "image" in self._input_ids_list and self._model_pipeline.config.use_image:
+        if (
+            self._model_pipeline.config.use_image
+            and "image" in self._model_signature.parameters.keys()
+        ):
             assert batch.image is not None, "Image cannot be None"
             inputs["image"] = batch.image
 
         if (
-            "layout_ids" in self._input_ids_list
+            "layout_ids" in self._model_signature.parameters.keys()
             and self._model_pipeline.config.use_bbox
         ):
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
@@ -139,22 +299,54 @@ class ExplainableSequenceModelPipeline(
                     if token_bboxes is not None
                     else None
                 )
+
             inputs["layout_ids"] = token_bboxes
 
-        # generate input embeddings
-        if return_embeddings:
-            return self._model_pipeline._model.ids_to_embeddings(
-                **inputs
-            ).to_ordered_dict()
-        else:
-            return OrderedDict(inputs)  # type: ignore
+        return inputs
 
-    def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):
-        return {"attention_mask": batch.attention_mask, "is_embedding": True}
+    def _explained_inputs(  # type: ignore[override]
+        self, batch: DocumentTensorDataModel
+    ) -> dict[str, torch.Tensor]:
+        assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
 
-    def _target(
+        explained_inputs = self._generate_sequence_ids_to_embeddings(batch)
+        if (
+            self._model_pipeline.config.use_image
+            and "image" not in explained_inputs
+            and "image" in self._model_signature.parameters.keys()
+        ):
+            assert batch.image is not None, "Image cannot be None"
+            explained_inputs["image"] = batch.image
+
+        return explained_inputs
+
+    def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):  # type: ignore[override]
+        additional_forward_kwargs = {"attention_mask": batch.attention_mask}
+        # for models where the additional wrapped args are not used, we still need to pass them as 'additional_forward_args'
+        # and we later filter them out in the wrapped model forward
+        if (
+            "layout_ids" in self._model_signature.parameters.keys()
+            and self._model_pipeline.config.use_bbox
+        ):
+            assert batch.token_bboxes is not None, "Token bboxes cannot be None"
+            token_bboxes = batch.token_bboxes
+            if batch.metadata.bbox_normalized[0] and token_bboxes is not None:
+                token_bboxes = (
+                    (token_bboxes * 1000.0).clip(0, 1000).long()
+                    if token_bboxes is not None
+                    else None
+                )
+
+            additional_forward_kwargs["layout_ids"] = token_bboxes
+        return additional_forward_kwargs
+
+    def _target(  # type: ignore[override]
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-    ) -> ExplanationTargetType | list[ExplanationTargetType]:
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        assert self._model_pipeline._labels.classification is not None, (
+            "Labels are required for explanation target strategies other than 'predicted'."
+        )
+        label_names = self._model_pipeline._labels.classification
         if (
             self.config.explanation_target_strategy
             == ExplanationTargetStrategy.ground_truth
@@ -162,55 +354,111 @@ class ExplainableSequenceModelPipeline(
             assert batch.label is not None, (
                 "Ground truth labels are required for explanation target strategies other than 'predicted'."
             )
-            return SingleTargetPerSample(indices=batch.label.tolist())
+            return BatchExplanationTarget(
+                value=batch.label.tolist(),
+                name=[label_names[idx] for idx in batch.label.tolist()],
+            )
         elif (
             self.config.explanation_target_strategy
             == ExplanationTargetStrategy.predicted
         ):
             predictions = model_outputs.argmax(dim=-1)
-            return SingleTargetPerSample(indices=predictions.tolist())
+            prediction_label_names = [label_names[idx] for idx in predictions]
+            return BatchExplanationTarget(
+                value=predictions.tolist(), name=prediction_label_names
+            )
         else:
             # in case of 'all' we compute the explanations for all classes
             total_labels = model_outputs.shape[1]
+            batch_size = model_outputs.shape[0]
             return [
-                SingleTargetAcrossBatch(index=label_index)
+                BatchExplanationTarget(
+                    value=[label_index for _ in range(batch_size)],
+                    name=[label_names[label_index] for _ in range(batch_size)],
+                )
                 for label_index in range(total_labels)
             ]
 
-    def _baselines(
-        self, explained_inputs: OrderedDict[str, torch.Tensor], **kwargs
-    ) -> OrderedDict[str, torch.Tensor]:
+    def _baselines(  # type: ignore[override]
+        self, explained_inputs: dict[str, torch.Tensor], **kwargs
+    ) -> dict[str, torch.Tensor]:
         """Generate baselines for the explainer."""
         logger.debug(
             "Generating baselines using baseline generator with config: %s",
             self.config.baseline_generator,
         )
         baselines = self._baseline_generator(explained_inputs, **kwargs)
-        log_tensor_info(baselines, name="baselines")
+        baselines = {
+            k: v
+            for k, v in baselines.items()
+            if k not in self.config.ignored_feature_ids
+        }
         return baselines
 
-    def _feature_mask(
-        self, explained_inputs: OrderedDict[str, torch.Tensor], **kwargs
-    ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
+    def _feature_mask(  # type: ignore[override]
+        self,
+        explained_inputs: dict[str, torch.Tensor],
+        word_ids: torch.Tensor,
+        sequence_feature_keys: list[str],
+    ) -> tuple[dict[str, torch.Tensor], list[torch.Tensor]]:
         """Generate feature mask using the feature segmentor."""
         logger.debug(
             "Generating feature mask using feature segmentor with config: %s",
             self.config.feature_segmentor,
         )
         feature_masks, frozen_features = self._feature_segmentor(
-            inputs=explained_inputs, **kwargs
+            token_ids=explained_inputs["token_ids"],
+            image=explained_inputs.get("image", None),
+            word_ids=word_ids,
+            sequence_feature_keys=sequence_feature_keys,
         )
-        log_tensor_info(feature_masks, name="feature_masks")
         return feature_masks, frozen_features
 
+    def _sliding_window_shapes_and_strides(
+        self, input_feature_keys: list[str]
+    ) -> tuple[dict[str, tuple] | None, dict[str, tuple] | None]:
+        if "sliding_window_shapes" not in self._explainer_args:
+            return None, None
+        if (
+            self.config.sliding_window_shapes_map is None
+            or self.config.strides_map is None
+        ):
+            raise ValueError(
+                f"sliding_window_shapes_map and strides_map must be defined in the config for {self._explainer.__class__.__name__}."
+            )
+        sliding_window_shapes_map = {}
+        strides = {}
+        for key in input_feature_keys:
+            if key in self.config.ignored_feature_ids:
+                continue
+            sliding_window_shapes_map[key] = self.config.sliding_window_shapes_map[key]
+            strides[key] = self.config.strides_map[key]
+
+        return sliding_window_shapes_map, strides
+
+    def _prepare_sequence_feature_keys(
+        self, explained_inputs: dict[str, torch.Tensor]
+    ) -> list[str]:
+        possible_feature_keys = []
+        for key in ["token_ids", "position_ids", "layout_ids", "token_type_ids"]:
+            if key in explained_inputs and key not in self.config.ignored_feature_ids:
+                possible_feature_keys.append(key)
+        return possible_feature_keys
+
     def prepare_explanation_inputs(
-        self, batch: T_TensorDataModel
+        self, batch: DocumentTensorDataModel
     ) -> tuple[Any, BatchExplanationInputs]:
         """Prepare the inputs for the explainer step."""
         with torch.no_grad():
             # prepare explained inputs
             # we need input ids here for baseline generation
-            inputs = self._explained_inputs(batch, return_embeddings=False)
+            logger.debug(
+                "Preparing explanation inputs for sample_id: %s",
+                batch.metadata.sample_id,
+            )
+
+            # explained inputs
+            inputs = self._explained_inputs(batch)
 
             # prepare additional forward args
             additional_forward_kwargs = (
@@ -218,31 +466,68 @@ class ExplainableSequenceModelPipeline(
             )
 
             # prepare baselines
-            baselines = self._baselines(explained_inputs=inputs)
+            baselines = self._baselines(inputs)
 
             # prepare feature mask
             feature_mask, frozen_features = self._feature_mask(
-                explained_inputs=inputs, word_ids=batch.word_ids
+                inputs,
+                word_ids=batch.word_ids,
+                sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
             )
 
-            print(inputs.keys())
-            print(additional_forward_kwargs)
-            print(baselines.keys())
-            print(feature_mask.keys())
-
-            # map the inputs and forwad args to model signautre
-            input_feature_keys = tuple(inputs.keys())
-            inputs, additional_forward_args, baselines, feature_mask = (
-                self._validated_inputs(
-                    inputs=inputs,
-                    additional_forward_kwargs=additional_forward_kwargs,
-                    baselines=baselines,
-                    feature_mask=feature_mask,
-                )
+            # prepare sliding window shapes map and strides map for occlusion explainer
+            sliding_window_shapes, strides = self._sliding_window_shapes_and_strides(
+                input_feature_keys=list(inputs.keys())
             )
-            assert len(inputs) == len(input_feature_keys), (
-                "Input feature keys length does not match inputs length."
-                f" {len(input_feature_keys)=}, {len(inputs)=}"
+
+            # map inputs to embeddings
+            input_embeddings = self._model_pipeline._model.ids_to_embeddings(
+                **{key: inputs[key] for key in self._model_id_to_embeddings_inputs_list}
+            ).to_id_map()
+
+            # filter out ignored feature ids from input embeddings and add them to additional forward kwargs
+            for key in self.config.ignored_feature_ids:
+                embeddings = input_embeddings.pop(key)
+                additional_forward_kwargs = {
+                    key: embeddings,
+                    **additional_forward_kwargs,
+                }
+
+            # nowe remake inputs by replacing ids with embeddings
+            finalized_inputs = {}
+            for key in inputs.keys():
+                if key in self.config.ignored_feature_ids:
+                    continue
+                if key in input_embeddings:
+                    finalized_inputs[key] = input_embeddings[key]
+                else:
+                    finalized_inputs[key] = inputs[key]
+            inputs = finalized_inputs
+
+            # now log info
+            log_tensor_info(finalized_inputs, name="inputs")
+            log_tensor_info(additional_forward_kwargs, name="additional_forward_kwargs")
+            log_tensor_info(baselines, name="baselines")
+            log_tensor_info(feature_mask, name="feature_mask")
+            log_tensor_info(sliding_window_shapes, name="sliding_window_shapes")
+            log_tensor_info(strides, name="strides")
+
+            (
+                inputs,
+                additional_forward_args,
+                baselines,
+                feature_mask,
+                sliding_window_shapes,
+                strides,
+                feature_keys,
+                _,
+            ) = self._validated_inputs(
+                inputs=inputs,
+                additional_forward_kwargs=additional_forward_kwargs,
+                baselines=baselines,
+                feature_mask=feature_mask,
+                sliding_window_shapes=sliding_window_shapes,
+                strides=strides,
             )
 
             # forward pass
@@ -261,8 +546,10 @@ class ExplainableSequenceModelPipeline(
                 if "feature_mask" in self._explainer_args
                 else None,
                 target=target,
-                frozen_features=None,
-                feature_keys=input_feature_keys,
+                sliding_window_shapes=sliding_window_shapes,
+                strides=strides,
+                frozen_features=frozen_features,
+                feature_keys=feature_keys,
             )
 
 
@@ -322,51 +609,63 @@ class ExplainableTokenClassificationPipeline(ExplainableSequenceModelPipeline):
                 "Only 'predicted' explanation target strategy is supported for token classification tasks."
             )
 
-    def _model_forward(
-        self,
-        explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-        additional_forward_args: dict[str, Any] | None,
-    ) -> torch.Tensor:
-        from torch.nn.functional import softmax
-
-        model_outputs = self._model_pipeline._model(
-            explained_inputs, **(additional_forward_args or {})
-        )
-        if isinstance(model_outputs, dict):
-            logits = model_outputs["logits"]
-        elif hasattr(model_outputs, "logits"):
-            logits = model_outputs.logits
-        else:
-            logits = model_outputs
-        return softmax(logits, dim=-1)
-
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
         class WrappedModel(torch.nn.Module):
-            def __init__(self, model: torch.nn.Module) -> None:
+            def __init__(self, model: torch.nn.Module):
                 super().__init__()
-                self._model = model
+                self.model = model
+                self.model_signature = inspect.signature(model.forward)
 
-            def forward(
-                self,
-                explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-                additional_forward_args: dict[str, Any] | None = None,
-            ) -> torch.Tensor:
-                model_outputs = self._model(
-                    explained_inputs, **(additional_forward_args or {})
+            def forward(self, *args) -> torch.Tensor:
+                args_mapping = args[-1]  # the last arg is the args mapping
+                assert isinstance(args_mapping, list), (
+                    f"Expected args_mapping to be a list of keys, got {type(args_mapping)}"
                 )
-                logits = (
-                    model_outputs.logits
-                    if hasattr(model_outputs, "logits")
-                    else model_outputs
+                args = args[:-1]  # all but last are the actual model args
+                logger.debug(
+                    f"WrappedModel.forward called with {len(args)} args and args_mapping: {args_mapping}"
                 )
-                probs = self.softmax(logits)
-                if len(probs.shape) == 3:
-                    probs = torch.gather(
-                        probs, 2, probs.argmax(dim=-1).unsqueeze(-1)
-                    ).squeeze(-1)
+
+                if len(args) != len(args_mapping):
+                    raise ValueError(
+                        f"Expected {len(args_mapping)} inputs, but got {len(args)} inputs."
+                    )
+
+                model_kwargs = {
+                    args_mapping[i]: args[i] for i in range(len(args_mapping))
+                }
+
+                # we remap embedding args to id_or_embedding args
+                # inside the model, we need to remap ids -> embeddings
+                for key in [
+                    "token_ids",
+                    "position_ids",
+                    "layout_ids",
+                    "token_type_ids",
+                ]:
+                    if key in model_kwargs:
+                        model_kwargs[key.replace("_ids", "_ids_or_embeddings")] = (
+                            model_kwargs.pop(key)
+                        )
+
+                # filter unsupported args (important for heterogeneous models)
+                model_kwargs = {
+                    k: v
+                    for k, v in model_kwargs.items()
+                    if k in self.model_signature.parameters
+                }
+                outputs = self.model(**model_kwargs, is_embedding=True)
+
+                assert isinstance(outputs, TransformersEncoderModelOutput)
+                assert isinstance(outputs.head_output, TokenClassificationHeadOutput)
+                assert outputs.head_output.logits is not None
+                probs = self.softmax(outputs.head_output.logits)
+                probs = torch.gather(
+                    probs, 2, probs.argmax(dim=-1).unsqueeze(-1)
+                ).squeeze(-1)
                 return probs
 
-        return WrappedModel(model)
+        return WrappedModel(model=model)
 
 
 class ExplainableQuestionAnsweringPipelineConfig(

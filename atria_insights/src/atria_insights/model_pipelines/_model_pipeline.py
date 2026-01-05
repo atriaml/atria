@@ -20,6 +20,7 @@ from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import (
     BatchExplanation,
     BatchExplanationState,
+    MultiTargetBatchExplanation,
 )
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
@@ -177,7 +178,7 @@ class ExplainableModelPipeline(
 
     @abstractmethod
     def _explained_inputs(
-        self, batch: T_TensorDataModel
+        self, batch: T_TensorDataModel, **kwargs
     ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
         """Prepare the input features for the explainer."""
         pass
@@ -354,20 +355,6 @@ class ExplainableModelPipeline(
         for arg in self._explainer_args:
             kwargs[arg] = getattr(explanation_inputs, arg)
 
-        logger.debug("Explainer forward with args:")
-        for k, v in kwargs.items():
-            if isinstance(v, torch.Tensor):
-                logger.debug(
-                    f"  {k}: Tensor shape {v.shape}, dtype {v.dtype}, device {v.device}"
-                )
-            elif isinstance(v, tuple):
-                for item in v:
-                    logger.debug(
-                        f"  {k}: Tensor shape {item.shape}, dtype {item.dtype}, device {item.device}"
-                    )
-            else:
-                logger.debug(f"  {k}: {type(v)}")
-
         def _map_target(
             target: BatchExplanationTarget | list[BatchExplanationTarget] | None,
         ) -> ExplanationTarget | list[ExplanationTarget]:
@@ -383,8 +370,26 @@ class ExplainableModelPipeline(
                 )
 
         # map targets
-        target = _map_target(kwargs.pop("target", None))
+        kwargs["target"] = _map_target(kwargs.pop("target", None))
 
+        logger.debug(f"Running explainer {self._explainer} forward with inputs:")
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                logger.debug(
+                    f"  {k}: Tensor shape {v.shape}, dtype {v.dtype}, device {v.device}"
+                )
+            elif isinstance(v, tuple):
+                for idx, item in enumerate(v):
+                    if isinstance(item, torch.Tensor):
+                        logger.debug(
+                            f"  {k}.{idx}: Tensor shape {item.shape}, dtype {item.dtype}, device {item.device}"
+                        )
+                    else:
+                        logger.debug(f"  {k}.{idx}: {type(item)}")
+            else:
+                logger.debug(f"  {k}: {type(v)}")
+
+        target = kwargs.pop("target", None)
         if self.config.iterative_computation and isinstance(target, list):
             # disable multi-target for iterative computation
             self._explainer.multi_target = False
@@ -445,10 +450,27 @@ class ExplainableModelPipeline(
             "Feature keys do not match between loaded explanation states and explanation inputs."
         )
         assert (
-            explanation_state.frozen_features == explanation_inputs.frozen_features
+            explanation_state.sliding_window_shapes
+            == explanation_inputs.sliding_window_shapes
         ), (
-            "Frozen features do not match between loaded explanation states and explanation inputs."
+            "Sliding window shapes do not match between loaded explanation states and explanation inputs."
         )
+        assert explanation_state.strides == explanation_inputs.strides, (
+            "Strides do not match between loaded explanation states and explanation inputs."
+        )
+        assert explanation_state.feature_mask == explanation_inputs.feature_mask, (
+            "Feature masks do not match between loaded explanation states and explanation inputs."
+        )
+        if (
+            explanation_state.frozen_features is not None
+            and explanation_inputs.frozen_features is not None
+        ):
+            f1 = [x.detach().cpu() for x in explanation_state.frozen_features]
+            f2 = [x.detach().cpu() for x in explanation_inputs.frozen_features]
+            assert all(torch.equal(a, b) for a, b in zip(f1, f2, strict=True)), (
+                "Frozen features do not match between loaded explanation states and explanation inputs."
+                f" Found {f1} =/= {f2}"
+            )
         assert (
             torch.mean(
                 torch.abs(
@@ -495,6 +517,7 @@ class ExplainableModelPipeline(
                     logger.warning(
                         f"Failed to validate loaded explanations due to error: {e}. Recomputing explanations."
                     )
+                    logger.exception(e)
 
         explanations = self.explainer_forward(explanation_inputs=explanation_inputs)
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."
@@ -505,8 +528,15 @@ class ExplainableModelPipeline(
             target=explanation_inputs.target,
             feature_keys=explanation_inputs.feature_keys,
             frozen_features=explanation_inputs.frozen_features,
+            sliding_window_shapes=explanation_inputs.sliding_window_shapes,
+            strides=explanation_inputs.strides,
+            feature_mask=explanation_inputs.feature_mask,
             model_outputs=model_outputs,
-            explanations=BatchExplanation(value=explanations),
+            explanations=MultiTargetBatchExplanation(
+                value=[BatchExplanation(value=exp) for exp in explanations]
+            )
+            if isinstance(explanations, list)
+            else BatchExplanation(value=explanations),
         )
 
         # save to disk
