@@ -17,6 +17,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
     words: list[str]
     token_ids: torch.Tensor
     word_ids: torch.Tensor
+    special_tokens_mask: torch.Tensor | None = None
     sequence_ids: torch.Tensor
     token_bboxes: torch.Tensor | None = None
     token_type_ids: torch.Tensor | None = None
@@ -33,6 +34,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
     @field_serializer(
         "token_ids",
         "word_ids",
+        "special_tokens_mask",
         "sequence_ids",
         "token_bboxes",
         "token_type_ids",
@@ -52,6 +54,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
     @field_validator(
         "token_ids",
         "word_ids",
+        "special_tokens_mask",
         "sequence_ids",
         "token_bboxes",
         "token_type_ids",
@@ -89,6 +92,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
             update={
                 "token_ids": _get_at_idx(self.token_ids),
                 "word_ids": _get_at_idx(self.word_ids),
+                "special_tokens_mask": _get_at_idx(self.special_tokens_mask),
                 "sequence_ids": _get_at_idx(self.sequence_ids),
                 "token_bboxes": _get_at_idx(self.token_bboxes),
                 "token_type_ids": _get_at_idx(self.token_type_ids),

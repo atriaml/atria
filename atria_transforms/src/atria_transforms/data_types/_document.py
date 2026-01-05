@@ -24,6 +24,7 @@ class DocumentTensorDataModel(TensorDataModel):
 
     token_ids: torch.Tensor
     word_ids: torch.Tensor
+    special_tokens_mask: torch.Tensor | None = None
     sequence_ids: torch.Tensor
     token_bboxes: torch.Tensor | None = None
     token_type_ids: torch.Tensor | None = None
@@ -69,6 +70,7 @@ class DocumentTensorDataModel(TensorDataModel):
             words=tokenized_instance.words,
             token_ids=tokenized_instance.token_ids,
             word_ids=tokenized_instance.word_ids,
+            special_tokens_mask=tokenized_instance.special_tokens_mask,
             sequence_ids=tokenized_instance.sequence_ids,
             token_bboxes=tokenized_instance.token_bboxes,
             token_type_ids=tokenized_instance.token_type_ids,
