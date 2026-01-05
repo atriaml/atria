@@ -92,7 +92,9 @@ class ExplainabilityMetric(
         inputs = _map_tensor_tuples_to_keys(
             explanation_inputs.inputs, explanation_inputs.feature_keys
         )
+        print("self._baselines_generator", self._baselines_generator)
         baselines = self._baselines_generator(inputs)
+        print("baselines", baselines)
         return _map_tensor_dicts_to_tuples(
             baselines, keys=explanation_inputs.feature_keys
         )

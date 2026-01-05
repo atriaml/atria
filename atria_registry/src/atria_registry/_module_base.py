@@ -34,7 +34,8 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     @property
     def hash(self) -> str:
-        return _get_config_hash(self.model_dump(exclude=self.__hash_exclude__))
+        config = self.model_dump(exclude=self.__hash_exclude__)
+        return _get_config_hash(config)
 
     @property
     def kwargs(self) -> dict[str, Any]:

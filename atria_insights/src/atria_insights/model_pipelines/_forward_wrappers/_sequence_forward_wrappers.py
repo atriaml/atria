@@ -42,9 +42,14 @@ class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
 
         # we remap embedding args to id_or_embedding args
         # inside the model, we need to remap ids -> embeddings
-        for key in ["token_ids", "position_ids", "layout_ids", "token_type_ids"]:
+        for key in [
+            "token_embeddings",
+            "position_embeddings",
+            "layout_embeddings",
+            "token_type_embeddings",
+        ]:
             if key in model_kwargs:
-                model_kwargs[key.replace("_ids", "_ids_or_embeddings")] = (
+                model_kwargs[key.replace("_embeddings", "_ids_or_embeddings")] = (
                     model_kwargs.pop(key)
                 )
 
@@ -59,6 +64,10 @@ class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
 
     def forward(self, *args) -> torch.Tensor:
         model_kwargs = self._sanitize_inputs(*args)
+        for key, value in model_kwargs.items():
+            logger.debug(
+                f"Model input - {key}: {value.shape if hasattr(value, 'shape') else value}"
+            )
         outputs = self._model(**model_kwargs, is_embedding=True)
         assert isinstance(outputs, TransformersEncoderModelOutput)
         assert isinstance(outputs.head_output, SequenceClassificationHeadOutput)

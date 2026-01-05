@@ -448,6 +448,7 @@ class ExplainableModelPipeline(
         )
         assert explanation_state.feature_keys == explanation_inputs.feature_keys, (
             "Feature keys do not match between loaded explanation states and explanation inputs."
+            f" Found {explanation_state.feature_keys} =/= {explanation_inputs.feature_keys}"
         )
         assert (
             explanation_state.sliding_window_shapes
@@ -458,9 +459,16 @@ class ExplainableModelPipeline(
         assert explanation_state.strides == explanation_inputs.strides, (
             "Strides do not match between loaded explanation states and explanation inputs."
         )
-        assert explanation_state.feature_mask == explanation_inputs.feature_mask, (
-            "Feature masks do not match between loaded explanation states and explanation inputs."
-        )
+        if (
+            explanation_state.feature_mask is not None
+            and explanation_inputs.feature_mask is not None
+        ):
+            fm1 = (fm.detach().cpu() for fm in explanation_state.feature_mask)
+            fm2 = (fm.detach().cpu() for fm in explanation_inputs.feature_mask)
+            assert all(torch.equal(a, b) for a, b in zip(fm1, fm2, strict=True)), (
+                "Feature masks do not match between loaded explanation states and explanation inputs."
+                f" Found {fm1} =/= {fm2}"
+            )
         if (
             explanation_state.frozen_features is not None
             and explanation_inputs.frozen_features is not None
@@ -555,7 +563,7 @@ class ExplainableModelPipeline(
         # build explainer
         x_metrics = {}
         for key, value in self.config.explainability_metrics.items():
-            logger.debug(
+            logger.info(
                 "Building explainability metric '%s' with config: %s", key, value
             )
             x_metrics[key] = value.build(

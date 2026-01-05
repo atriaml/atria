@@ -26,6 +26,13 @@ class LiLTEmbeddingOutputs:
     def to_dict(self) -> dict[str, torch.Tensor]:
         return {field.name: getattr(self, field.name) for field in fields(self)}
 
+    def to_id_map(self) -> dict[str, torch.Tensor]:
+        return {
+            key.replace("_embeddings", "_ids"): value
+            for key, value in self.to_dict().items()
+            if value is not None
+        }
+
 
 class LayoutEmbeddings(nn.Module):
     def __init__(

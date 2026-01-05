@@ -23,6 +23,10 @@ from atria_types._datasets import DatasetLabels
 from pydantic import Field, model_validator
 from torchxai.data_types import ExplanationTargetType, SingleTargetAcrossBatch
 
+from atria_insights.baseline_generators._feature_based import (
+    FeatureBasedBaselineGenerator,
+    FeatureBasedBaselineGeneratorConfig,
+)
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._targets import BatchExplanationTarget
@@ -46,9 +50,9 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
     feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
         SequenceFeatureMaskSegmentorConfig()
     )
-    baseline_generator: SequenceBaselineGeneratorConfig = (
-        SequenceBaselineGeneratorConfig()
-    )
+    baseline_generator: (
+        SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
+    ) = SequenceBaselineGeneratorConfig()
 
     # only for occlusion explainer
     sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
@@ -78,9 +82,12 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
             raise ValueError(
                 "feature_segmentor must be an instance of SequenceFeatureMaskSegmentorConfig"
             )
-        if not isinstance(self.baseline_generator, SequenceBaselineGeneratorConfig):
+        if not isinstance(
+            self.baseline_generator,
+            SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig,
+        ):
             raise ValueError(
-                "baseline_generator must be an instance of SequenceBaselineGeneratorConfig"
+                "baseline_generator must be an instance of SequenceBaselineGeneratorConfig or FeatureBasedBaselineGeneratorConfig"
             )
 
         return self
@@ -160,7 +167,8 @@ class ExplainableSequenceModelPipeline(
                 baseline = baselines[input_key]
 
                 # assert shape matches
-                assert baseline.shape == input_value.shape, (
+                # Note: baseline batch size can be different due to multiple baselines
+                assert baseline.shape[1:] == input_value.shape[1:], (
                     f"Baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
                 )
 
@@ -223,6 +231,13 @@ class ExplainableSequenceModelPipeline(
                     strides_shape += (dim,)
                 strides_tuple += (strides_shape,)
 
+        # finally we remap the feature keys from ids to embeddings
+        feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
+        if "token_type_ids" in additional_forward_kwargs:
+            additional_forward_kwargs["token_type_embeddings"] = (
+                additional_forward_kwargs.pop("token_type_ids")
+            )
+
         args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
         additional_forward_args = tuple(additional_forward_kwargs.values()) + (
             args_mapping,
@@ -253,9 +268,12 @@ class ExplainableSequenceModelPipeline(
         )
 
     def _build_baseline_generator(self):
-        self._baseline_generator = self.config.baseline_generator.build(
-            model=self._model_pipeline._model
-        )
+        if isinstance(self.config.baseline_generator, SequenceBaselineGeneratorConfig):
+            self._baseline_generator = self.config.baseline_generator.build(
+                model=self._model_pipeline._model
+            )
+        else:
+            self._baseline_generator = self.config.baseline_generator.build()
 
     def _generate_sequence_ids_to_embeddings(
         self, batch: DocumentTensorDataModel
@@ -280,16 +298,16 @@ class ExplainableSequenceModelPipeline(
             "position_ids": position_ids,
         }
 
-        if (
-            self._model_pipeline.config.use_image
-            and "image" in self._model_signature.parameters.keys()
+        if self._model_pipeline.config.use_image and (
+            "image" in self._model_signature.parameters.keys()
+            or "image" in self._model_id_to_embeddings_inputs_list
         ):
             assert batch.image is not None, "Image cannot be None"
             inputs["image"] = batch.image
 
-        if (
+        if self._model_pipeline.config.use_bbox and (
             "layout_ids" in self._model_signature.parameters.keys()
-            and self._model_pipeline.config.use_bbox
+            or "layout_ids" in self._model_id_to_embeddings_inputs_list
         ):
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
             token_bboxes = batch.token_bboxes
@@ -301,7 +319,6 @@ class ExplainableSequenceModelPipeline(
                 )
 
             inputs["layout_ids"] = token_bboxes
-
         return inputs
 
     def _explained_inputs(  # type: ignore[override]
@@ -317,7 +334,6 @@ class ExplainableSequenceModelPipeline(
         ):
             assert batch.image is not None, "Image cannot be None"
             explained_inputs["image"] = batch.image
-
         return explained_inputs
 
     def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):  # type: ignore[override]
@@ -388,11 +404,24 @@ class ExplainableSequenceModelPipeline(
             self.config.baseline_generator,
         )
         baselines = self._baseline_generator(explained_inputs, **kwargs)
+
+        # if the baseline generator is feature based
+        if isinstance(self._baseline_generator, FeatureBasedBaselineGenerator):
+            # make sure we only return baselines for the input keys
+            sequence_baselines = self._model_pipeline._model.ids_to_embeddings(
+                **{k: v for k, v in baselines.items() if k != "image"}
+            ).to_id_map()
+            for key in baselines.keys():
+                if key in sequence_baselines:
+                    baselines[key] = sequence_baselines[key]
+
+        # filter out ignored feature ids from baselines
         baselines = {
             k: v
             for k, v in baselines.items()
             if k not in self.config.ignored_feature_ids
         }
+
         return baselines
 
     def _feature_mask(  # type: ignore[override]
@@ -505,7 +534,7 @@ class ExplainableSequenceModelPipeline(
             inputs = finalized_inputs
 
             # now log info
-            log_tensor_info(finalized_inputs, name="inputs")
+            log_tensor_info(inputs, name="inputs")
             log_tensor_info(additional_forward_kwargs, name="additional_forward_kwargs")
             log_tensor_info(baselines, name="baselines")
             log_tensor_info(feature_mask, name="feature_mask")

@@ -63,13 +63,13 @@ class FeatureBasedBaselineGenerator(
         return batch_features.as_ordered_dict()
 
     def __call__(  # type: ignore[override]
-        self, inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
-    ) -> OrderedDict[str, torch.Tensor] | torch.Tensor:
+        self, inputs: torch.Tensor | dict[str, torch.Tensor]
+    ) -> dict[str, torch.Tensor] | torch.Tensor:
         if self._features is None:
             self._features = self._load_features()
 
-        if isinstance(inputs, OrderedDict):
-            baselines = OrderedDict()
+        if isinstance(inputs, dict):
+            baselines = {}
             for input_key in inputs.keys():
                 baselines[input_key] = self._features[input_key].to(
                     inputs[input_key].device

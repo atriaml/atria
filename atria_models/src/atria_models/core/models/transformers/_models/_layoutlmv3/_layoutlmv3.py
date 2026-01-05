@@ -4,8 +4,6 @@ import math
 
 import torch
 from atria_logger import get_logger
-from torch import nn
-
 from atria_models.core.models.transformers._heads._token_classification import (
     TokenClassificationHead,
 )
@@ -25,6 +23,7 @@ from atria_models.core.models.transformers._outputs import (
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
 from atria_models.registry.registry_groups import MODELS
+from torch import nn
 
 logger = get_logger(__name__)
 
@@ -300,6 +299,10 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
                 token_type_embeddings=token_type_ids_or_embeddings,
                 layout_embeddings=layout_ids_or_embeddings,
             )
+        print("token_embeddings", token_ids_or_embeddings.shape)
+        print("position_embeddings", position_ids_or_embeddings.shape)
+        print("token_type_embeddings", token_type_ids_or_embeddings.shape)
+        print("layout_embeddings", layout_ids_or_embeddings.shape)
         return self.embeddings_postprocessor(embeddings=embeddings)
 
     def ids_to_embeddings(  # type: ignore[override]

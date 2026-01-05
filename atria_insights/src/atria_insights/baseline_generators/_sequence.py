@@ -124,6 +124,7 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
 
         baseline_input_ids = {}
         zero_baselines = {}
+        print("inputs", inputs.keys())
         for input_key, input_ids in inputs.items():
             baseline_type = getattr(self.config, input_key)
             if baseline_type == "zero":
@@ -165,9 +166,11 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
             f"Generating sequence baselines using feature-based generator for inputs: {inputs.keys()}"
         )
         assert "token_ids" in inputs, "token_ids must be provided in the inputs"
-        image = inputs.pop("image", None)
-        input_ids_to_embeddings = self._model.ids_to_embeddings(**inputs).to_id_map()
-        baseline_embeddings = self._get_sequence_baselines(inputs)
+        sequence_inputs = {k: v for k, v in inputs.items() if k != "image"}
+        input_ids_to_embeddings = self._model.ids_to_embeddings(
+            **sequence_inputs
+        ).to_id_map()
+        baseline_embeddings = self._get_sequence_baselines(sequence_inputs)
         input_keys = list(input_ids_to_embeddings.keys())
 
         # now go over each embedding type and create baselines by replacing input embeddings
@@ -176,16 +179,19 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
             baseline_embeddings[input_key] = self._replace_embedding(
                 embedding=input_ids_to_embeddings[input_key],
                 baseline_embedding=baseline_embeddings[input_key],
-                special_tokens_mask=self._get_special_tokens_mask(inputs["token_ids"]),
+                special_tokens_mask=self._get_special_tokens_mask(
+                    sequence_inputs["token_ids"]
+                ),
             )
 
+        image = inputs.get("image", None)
         if image is not None:
             assert (
                 self.config.image_mean is not None and self.config.image_std is not None
             ), "image_mean and image_std must be provided for image baseline generation"
             # validate shape of image
             assert image.ndim == 4, (
-                f"Image input should be 4-dimensional (B, C, H, W), but got {inputs['image'].ndim} dimensions"
+                f"Image input should be 4-dimensional (B, C, H, W), but got {sequence_inputs['image'].ndim} dimensions"
             )
             baseline_embeddings["image"] = self._create_image_baseline(
                 image=image,

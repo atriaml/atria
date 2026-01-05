@@ -9,6 +9,8 @@ from atria_insights.explainers._torchxai import (
     GuidedBackpropExplainerConfig,
     InputXGradientExplainerConfig,
     IntegratedGradientsExplainerConfig,
+    KernelShapExplainerConfig,
+    LimeExplainerConfig,
     OcclusionExplainerConfig,
     SaliencyExplainerConfig,
 )
@@ -26,4 +28,6 @@ __all__ = [
     "InputXGradientExplainerConfig",
     "FeatureAblationExplainerConfig",
     "OcclusionExplainerConfig",
+    "LimeExplainerConfig",
+    "KernelShapExplainerConfig",
 ]
