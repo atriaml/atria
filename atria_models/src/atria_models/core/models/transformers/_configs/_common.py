@@ -12,6 +12,8 @@ class EmbeddingsConfig(BaseModel):
     max_position_embeddings: int = 512
     type_vocab_size: int = 2
     pad_token_id: int = 0
+    bos_token_id: int | None = None
+    eos_token_id: int | None = None
     unk_token_id: int = 100
     cls_token_id: int = 101
     sep_token_id: int = 102
@@ -19,9 +21,11 @@ class EmbeddingsConfig(BaseModel):
     position_embedding_type: str = "absolute"
 
     @property
-    def special_token_ids(self) -> dict[str, int]:
+    def special_token_ids(self) -> dict[str, int | None]:
         return {
             "pad_token_id": self.pad_token_id,
+            "bos_token_id": self.bos_token_id,
+            "eos_token_id": self.eos_token_id,
             "unk_token_id": self.unk_token_id,
             "cls_token_id": self.cls_token_id,
             "sep_token_id": self.sep_token_id,

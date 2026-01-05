@@ -43,7 +43,16 @@ class RoBertaEncoderModelConfig(TransformersEncoderModelConfig):
         ],
     )
     embeddings_config: EmbeddingsConfig = EmbeddingsConfig(
-        vocab_size=50265, pad_token_id=1, type_vocab_size=1, max_position_embeddings=514
+        vocab_size=50265,
+        type_vocab_size=1,
+        max_position_embeddings=514,
+        bos_token_id=0,
+        mask_token_id=50264,
+        unk_token_id=3,
+        eos_token_id=2,
+        cls_token_id=0,
+        sep_token_id=2,
+        pad_token_id=1,
     )
     layers_config: LayersConfig = LayersConfig(layer_norm_eps=1.0e-5)
 
@@ -96,6 +105,16 @@ class RoBertaTokenEmbeddings(TokenEmbeddings):
                 device=self.position_ids.device,
             )
         return token_type_ids
+
+    def get_default_ids_from_token_ids(
+        self, token_ids: torch.LongTensor, past_kv_length: int = 0
+    ) -> dict[str, torch.Tensor]:
+        batch_size, seq_length = token_ids.size()
+        position_ids = self._default_position_ids(token_ids, past_kv_length)
+        token_type_ids = self._default_token_type_ids(
+            position_ids, batch_size, seq_length
+        )
+        return {"position_ids": position_ids, "token_type_ids": token_type_ids}
 
     def forward(
         self,

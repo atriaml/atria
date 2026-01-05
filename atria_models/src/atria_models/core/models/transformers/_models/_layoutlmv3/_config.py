@@ -67,7 +67,16 @@ class LayoutLMv3EncoderModelConfig(TransformersEncoderModelConfig):
         ],
     )
     embeddings_config: LayoutLMv3EmbeddingsConfig = LayoutLMv3EmbeddingsConfig(  # type: ignore
-        vocab_size=50265, pad_token_id=1, type_vocab_size=1, max_position_embeddings=514
+        vocab_size=50265,
+        bos_token_id=0,
+        mask_token_id=50264,
+        unk_token_id=3,
+        eos_token_id=2,
+        cls_token_id=0,
+        sep_token_id=2,
+        pad_token_id=1,
+        type_vocab_size=1,
+        max_position_embeddings=514,
     )
     attention_config: LayoutLMv3AttentionConfig = LayoutLMv3AttentionConfig()  # type: ignore
     image_embeddings_config: ImageEmbeddingsConfig = ImageEmbeddingsConfig()

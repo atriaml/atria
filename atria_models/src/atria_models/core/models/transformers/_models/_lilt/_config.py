@@ -69,6 +69,15 @@ class LiLTEncoderModelConfig(TransformersEncoderModelConfig):
         ],
     )
     embeddings_config: LiLTEmbeddingsConfig = LiLTEmbeddingsConfig(  # type: ignore
-        vocab_size=50265, pad_token_id=1, type_vocab_size=1, max_position_embeddings=514
+        vocab_size=50265,
+        bos_token_id=0,
+        mask_token_id=50264,
+        unk_token_id=3,
+        eos_token_id=2,
+        cls_token_id=0,
+        sep_token_id=2,
+        pad_token_id=1,
+        type_vocab_size=1,
+        max_position_embeddings=514,
     )
     layers_config: LayersConfig = LayersConfig(layer_norm_eps=1.0e-5)
