@@ -1,5 +1,4 @@
-from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import torch
 from torch import nn
@@ -24,12 +23,8 @@ class LiLTEmbeddingOutputs:
     token_type_embeddings: torch.Tensor | None = None
     layout_embeddings: torch.Tensor | None = None
 
-    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor | None]:
-        return OrderedDict(
-            token_embeddings=self.token_embeddings,
-            position_embeddings=self.position_embeddings,
-            token_type_embeddings=self.token_type_embeddings,
-        )
+    def to_dict(self) -> dict[str, torch.Tensor]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
 class LayoutEmbeddings(nn.Module):

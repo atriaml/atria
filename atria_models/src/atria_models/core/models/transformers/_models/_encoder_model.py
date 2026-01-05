@@ -217,6 +217,11 @@ class TransformersEncoderModel(
             )
         return self.embeddings_postprocessor(embeddings=embeddings)
 
+    def get_default_ids_from_token_ids(
+        self, token_ids: torch.LongTensor
+    ) -> torch.LongTensor:
+        return self.embeddings.get_default_ids_from_token_ids(token_ids)
+
     def ids_to_embeddings(
         self,
         token_ids: torch.Tensor,

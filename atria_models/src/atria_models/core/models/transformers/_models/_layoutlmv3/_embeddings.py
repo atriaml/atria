@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from dataclasses import dataclass
 
 import torch
@@ -33,13 +32,6 @@ class LayoutLMv3EmbeddingOutputs(TokenEmbeddingOutputs):
         if self.layout_embeddings is not None:
             total = total + self.layout_embeddings
         return total
-
-    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor | None]:
-        return OrderedDict(
-            token_embeddings=self.token_embeddings,
-            position_embeddings=self.position_embeddings,
-            token_type_embeddings=self.token_type_embeddings,
-        )
 
 
 class LayoutLMv3Embeddings(RoBertaTokenEmbeddings):

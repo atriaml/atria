@@ -73,7 +73,7 @@
             "import_path": "atria_models.core.model_pipelines._image_pipeline.ImageClassificationPipelineConfig"
         },
         "sequence_classification": {
-            "hash": "d8577c26",
+            "hash": "d53d042c",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceClassificationPipeline",
                 "name": "sequence_classification",
@@ -87,6 +87,17 @@
                     "model_kwargs": {}
                 },
                 "train_transform": {
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_first",
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -103,30 +114,29 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
-                    "image_transform": {
-                        "to_rgb": true,
-                        "do_normalize": true,
-                        "do_resize": true,
-                        "stats": "imagenet",
-                        "resize_height": 224,
-                        "resize_width": 224,
-                        "image_mean": null,
-                        "image_std": null
-                    },
-                    "overflow_strategy": "return_first",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
                 },
                 "eval_transform": {
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_first",
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -143,28 +153,16 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
-                    "image_transform": {
-                        "to_rgb": true,
-                        "do_normalize": true,
-                        "do_resize": true,
-                        "stats": "imagenet",
-                        "resize_height": 224,
-                        "resize_width": 224,
-                        "image_mean": null,
-                        "image_std": null
-                    },
-                    "overflow_strategy": "return_first",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
                 },
                 "metrics": [
                     {
@@ -204,7 +202,7 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.SequenceClassificationPipelineConfig"
         },
         "token_classification": {
-            "hash": "28b30a4c",
+            "hash": "f14088ca",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.TokenClassificationPipeline",
                 "name": "token_classification",
@@ -218,28 +216,6 @@
                     "model_kwargs": {}
                 },
                 "train_transform": {
-                    "hf_processor": {
-                        "tokenizer_name": "bert-base-uncased",
-                        "cache_dir": null,
-                        "local_files_only": false,
-                        "apply_ocr": false,
-                        "add_prefix_space": true,
-                        "do_lower_case": true,
-                        "add_special_tokens": true,
-                        "padding": "max_length",
-                        "truncation": true,
-                        "max_length": 512,
-                        "stride": 0,
-                        "pad_to_multiple_of": 8,
-                        "is_split_into_words": true,
-                        "return_token_type_ids": null,
-                        "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
-                        "return_offsets_mapping": false,
-                        "return_length": false,
-                        "return_tensors": "pt",
-                        "verbose": true
-                    },
                     "image_transform": {
                         "to_rgb": true,
                         "do_normalize": true,
@@ -251,13 +227,6 @@
                         "image_std": null
                     },
                     "overflow_strategy": "return_random",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
-                    "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
-                },
-                "eval_transform": {
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -274,12 +243,18 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
+                    "use_segment_level_bboxes": false,
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
+                },
+                "eval_transform": {
                     "image_transform": {
                         "to_rgb": true,
                         "do_normalize": true,
@@ -291,11 +266,32 @@
                         "image_std": null
                     },
                     "overflow_strategy": "return_all",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
+                    "hf_processor": {
+                        "tokenizer_name": "bert-base-uncased",
+                        "cache_dir": null,
+                        "local_files_only": false,
+                        "apply_ocr": false,
+                        "add_prefix_space": true,
+                        "do_lower_case": true,
+                        "add_special_tokens": true,
+                        "padding": "max_length",
+                        "truncation": true,
+                        "max_length": 512,
+                        "stride": 0,
+                        "pad_to_multiple_of": 8,
+                        "is_split_into_words": true,
+                        "return_token_type_ids": null,
+                        "return_attention_mask": true,
+                        "return_special_tokens_mask": true,
+                        "return_offsets_mapping": false,
+                        "return_length": false,
+                        "return_tensors": "pt",
+                        "verbose": true
+                    },
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
                 },
                 "metrics": [
                     {
@@ -312,7 +308,7 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.TokenClassificationPipelineConfig"
         },
         "layout_token_classification": {
-            "hash": "a03cfd44",
+            "hash": "9de45aa1",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.LayoutTokenClassificationPipeline",
                 "name": "layout_token_classification",
@@ -326,28 +322,6 @@
                     "model_kwargs": {}
                 },
                 "train_transform": {
-                    "hf_processor": {
-                        "tokenizer_name": "bert-base-uncased",
-                        "cache_dir": null,
-                        "local_files_only": false,
-                        "apply_ocr": false,
-                        "add_prefix_space": true,
-                        "do_lower_case": true,
-                        "add_special_tokens": true,
-                        "padding": "max_length",
-                        "truncation": true,
-                        "max_length": 512,
-                        "stride": 0,
-                        "pad_to_multiple_of": 8,
-                        "is_split_into_words": true,
-                        "return_token_type_ids": null,
-                        "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
-                        "return_offsets_mapping": false,
-                        "return_length": false,
-                        "return_tensors": "pt",
-                        "verbose": true
-                    },
                     "image_transform": {
                         "to_rgb": true,
                         "do_normalize": true,
@@ -359,13 +333,6 @@
                         "image_std": null
                     },
                     "overflow_strategy": "return_random",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
-                    "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
-                },
-                "eval_transform": {
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -382,12 +349,18 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
+                    "use_segment_level_bboxes": false,
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
+                },
+                "eval_transform": {
                     "image_transform": {
                         "to_rgb": true,
                         "do_normalize": true,
@@ -399,11 +372,32 @@
                         "image_std": null
                     },
                     "overflow_strategy": "return_all",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
+                    "hf_processor": {
+                        "tokenizer_name": "bert-base-uncased",
+                        "cache_dir": null,
+                        "local_files_only": false,
+                        "apply_ocr": false,
+                        "add_prefix_space": true,
+                        "do_lower_case": true,
+                        "add_special_tokens": true,
+                        "padding": "max_length",
+                        "truncation": true,
+                        "max_length": 512,
+                        "stride": 0,
+                        "pad_to_multiple_of": 8,
+                        "is_split_into_words": true,
+                        "return_token_type_ids": null,
+                        "return_attention_mask": true,
+                        "return_special_tokens_mask": true,
+                        "return_offsets_mapping": false,
+                        "return_length": false,
+                        "return_tensors": "pt",
+                        "verbose": true
+                    },
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true
                 },
                 "metrics": [
                     {
@@ -445,7 +439,7 @@
             "import_path": "atria_models.core.model_pipelines._sequence_pipeline.LayoutTokenClassificationPipelineConfig"
         },
         "question_answering": {
-            "hash": "d1b79674",
+            "hash": "653380d3",
             "config": {
                 "module_path": "atria_models.core.model_pipelines._sequence_pipeline.QuestionAnsweringPipeline",
                 "name": "question_answering",
@@ -459,6 +453,17 @@
                     "model_kwargs": {}
                 },
                 "train_transform": {
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_all",
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -475,33 +480,30 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
-                    "image_transform": {
-                        "to_rgb": true,
-                        "do_normalize": true,
-                        "do_resize": true,
-                        "stats": "imagenet",
-                        "resize_height": 224,
-                        "resize_width": 224,
-                        "image_mean": null,
-                        "image_std": null
-                    },
-                    "overflow_strategy": "return_all",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150,
-                    "ignore_no_answer_qa_pair": false,
-                    "is_training": false,
-                    "truncation": "only_second"
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true,
+                    "ignore_no_answer_qa_pair": false
                 },
                 "eval_transform": {
+                    "image_transform": {
+                        "to_rgb": true,
+                        "do_normalize": true,
+                        "do_resize": true,
+                        "stats": "imagenet",
+                        "resize_height": 224,
+                        "resize_width": 224,
+                        "image_mean": null,
+                        "image_std": null
+                    },
+                    "overflow_strategy": "return_all",
                     "hf_processor": {
                         "tokenizer_name": "bert-base-uncased",
                         "cache_dir": null,
@@ -518,31 +520,17 @@
                         "is_split_into_words": true,
                         "return_token_type_ids": null,
                         "return_attention_mask": true,
-                        "return_special_tokens_mask": false,
+                        "return_special_tokens_mask": true,
                         "return_offsets_mapping": false,
                         "return_length": false,
                         "return_tensors": "pt",
                         "verbose": true
                     },
-                    "image_transform": {
-                        "to_rgb": true,
-                        "do_normalize": true,
-                        "do_resize": true,
-                        "stats": "imagenet",
-                        "resize_height": 224,
-                        "resize_width": 224,
-                        "image_mean": null,
-                        "image_std": null
-                    },
-                    "overflow_strategy": "return_all",
-                    "load_bboxes": true,
-                    "load_image": true,
-                    "add_segment_level_info": false,
                     "use_segment_level_bboxes": false,
-                    "max_segment_num": 150,
-                    "ignore_no_answer_qa_pair": false,
-                    "is_training": false,
-                    "truncation": "only_second"
+                    "resize_image": null,
+                    "load_image": true,
+                    "load_bboxes": true,
+                    "ignore_no_answer_qa_pair": false
                 },
                 "metrics": [
                     {
@@ -563,7 +551,7 @@
     },
     "models": {
         "bert-base-uncased": {
-            "hash": "80ea2d5c",
+            "hash": "3d977ae8",
             "config": {
                 "module_path": "atria_models.core.models.transformers._models._bert.BertEncoderModel",
                 "type": "transformers_encoder",
@@ -573,6 +561,8 @@
                     "max_position_embeddings": 512,
                     "type_vocab_size": 2,
                     "pad_token_id": 0,
+                    "bos_token_id": null,
+                    "eos_token_id": null,
                     "unk_token_id": 100,
                     "cls_token_id": 101,
                     "sep_token_id": 102,
@@ -728,7 +718,7 @@
             "import_path": "atria_models.core.models.transformers._models._roberta.RoBertEncoderModelConfig"
         },
         "roberta-base": {
-            "hash": "3e262e65",
+            "hash": "bea1aa37",
             "config": {
                 "module_path": "atria_models.core.models.transformers._models._roberta.RoBertaEncoderModel",
                 "type": "transformers_encoder",
@@ -738,10 +728,12 @@
                     "max_position_embeddings": 514,
                     "type_vocab_size": 1,
                     "pad_token_id": 1,
-                    "unk_token_id": 100,
-                    "cls_token_id": 101,
-                    "sep_token_id": 102,
-                    "mask_token_id": 103,
+                    "bos_token_id": 0,
+                    "eos_token_id": 2,
+                    "unk_token_id": 3,
+                    "cls_token_id": 0,
+                    "sep_token_id": 2,
+                    "mask_token_id": 50264,
                     "position_embedding_type": "absolute"
                 },
                 "attention_config": {
@@ -812,7 +804,7 @@
             "import_path": "atria_models.core.models.transformers._models._roberta.RoBertaEncoderModelConfig"
         },
         "layoutlmv3-base": {
-            "hash": "21cce1e6",
+            "hash": "2ee4b9aa",
             "config": {
                 "module_path": "atria_models.core.models.transformers._models._layoutlmv3._layoutlmv3.LayoutLMv3EncoderModel",
                 "type": "transformers_encoder",
@@ -822,10 +814,12 @@
                     "max_position_embeddings": 514,
                     "type_vocab_size": 1,
                     "pad_token_id": 1,
-                    "unk_token_id": 100,
-                    "cls_token_id": 101,
-                    "sep_token_id": 102,
-                    "mask_token_id": 103,
+                    "bos_token_id": 0,
+                    "eos_token_id": 2,
+                    "unk_token_id": 3,
+                    "cls_token_id": 0,
+                    "sep_token_id": 2,
+                    "mask_token_id": 50264,
                     "position_embedding_type": "absolute",
                     "max_2d_position_embeddings": 1024,
                     "coordinate_size": 128,
@@ -921,6 +915,7 @@
                 "output_attentions": false,
                 "output_hidden_states": false,
                 "pretrained": true,
+                "hf_config_name": "microsoft/layoutlmv3-base",
                 "image_embeddings_config": {
                     "input_size": 224,
                     "num_channels": 3,
@@ -932,7 +927,7 @@
             "import_path": "atria_models.core.models.transformers._models._layoutlmv3._config.LayoutLMv3EncoderModelConfig"
         },
         "lilt-roberta-base": {
-            "hash": "bba55891",
+            "hash": "1b2f96e0",
             "config": {
                 "module_path": "atria_models.core.models.transformers._models._lilt._lilt.LiLTEncoderModel",
                 "type": "transformers_encoder",
@@ -942,10 +937,12 @@
                     "max_position_embeddings": 514,
                     "type_vocab_size": 1,
                     "pad_token_id": 1,
-                    "unk_token_id": 100,
-                    "cls_token_id": 101,
-                    "sep_token_id": 102,
-                    "mask_token_id": 103,
+                    "bos_token_id": 0,
+                    "eos_token_id": 2,
+                    "unk_token_id": 3,
+                    "cls_token_id": 0,
+                    "sep_token_id": 2,
+                    "mask_token_id": 50264,
                     "position_embedding_type": "absolute",
                     "max_2d_position_embeddings": 1024,
                     "channel_shrink_ratio": 4

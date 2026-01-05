@@ -1,5 +1,4 @@
-from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import torch
 from torch import nn
@@ -12,8 +11,8 @@ from atria_models.core.models.transformers._configs._encoder_model import (
 @dataclass(frozen=True)
 class TokenEmbeddingOutputs:
     token_embeddings: torch.Tensor
-    position_embeddings: torch.Tensor | None = None
-    token_type_embeddings: torch.Tensor | None = None
+    position_embeddings: torch.Tensor
+    token_type_embeddings: torch.Tensor
 
     def sum(self) -> torch.Tensor:
         total = self.token_embeddings + self.position_embeddings
@@ -21,19 +20,14 @@ class TokenEmbeddingOutputs:
             total = total + self.token_type_embeddings
         return total
 
-    def to_ordered_dict(self) -> OrderedDict[str, torch.Tensor | None]:
-        return OrderedDict(
-            token_embeddings=self.token_embeddings,
-            position_embeddings=self.position_embeddings,
-            token_type_embeddings=self.token_type_embeddings,
-        )
-
-    def id_map(self) -> dict[str, torch.Tensor]:
+    def to_id_map(self) -> dict[str, torch.Tensor]:
         return {
-            "token_ids": self.token_embeddings,
-            "position_ids": self.position_embeddings,
-            "token_type_ids": self.token_type_embeddings,
+            field.name.replace("embeddings", "ids"): getattr(self, field.name)
+            for field in fields(self)
         }
+
+    def to_dict(self) -> dict[str, torch.Tensor]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
 
 
 class TokenEmbeddings(nn.Module):
@@ -85,6 +79,16 @@ class TokenEmbeddings(nn.Module):
         # load from buffer, slice and expand
         token_type_ids = self.token_type_ids[:, :seq_length]
         return token_type_ids.expand(batch_size, seq_length)
+
+    def get_default_ids_from_token_ids(
+        self, token_ids: torch.LongTensor, past_kv_length: int = 0
+    ) -> dict[str, torch.Tensor]:
+        batch_size, seq_length = token_ids.size()
+        position_ids = self._default_position_ids(
+            batch_size, seq_length, past_kv_length
+        )
+        token_type_ids = self._default_token_type_ids(batch_size, seq_length)
+        return {"position_ids": position_ids, "token_type_ids": token_type_ids}
 
     def forward(
         self,
