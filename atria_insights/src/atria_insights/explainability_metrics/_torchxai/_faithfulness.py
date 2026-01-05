@@ -45,8 +45,8 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             max_features_processed_per_batch=self.config.max_features_processed_per_batch,  # type: ignore
@@ -105,8 +105,8 @@ class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             perturb_func=perturb_func,
@@ -153,8 +153,8 @@ class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             max_features_processed_per_batch=self.config.max_features_processed_per_batch,  # type: ignore
@@ -202,8 +202,8 @@ class Infidelity(ExplainabilityMetric[InfidelityConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             perturb_func=default_infidelity_perturb_fn(
@@ -248,8 +248,8 @@ class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             max_features_processed_per_batch=self.config.max_features_processed_per_batch,  # type: ignore
@@ -269,7 +269,7 @@ class SensitivityNConfig(ExplainabilityMetricConfig):
         "faithfulness/sensitivity_n"
     )
     module_path: str | None = "atria_insights.explainability_metrics.SensitivityN"
-    n_features_perturbed: int = 10
+    n_features_perturbed: int | float = 10
     n_perturb_samples: int = 10
     max_examples_per_batch: int | None = None
     normalize: bool = False
@@ -293,8 +293,8 @@ class SensitivityN(ExplainabilityMetric[SensitivityNConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             n_perturb_samples=self.config.n_perturb_samples,

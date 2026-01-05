@@ -40,7 +40,7 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
             target=self._map_target(explanation_inputs.target),
             additional_forward_args=explanation_inputs.additional_forward_args,
             baselines=explanation_inputs.baselines,  # notice explainer baselines, this is different from metric baselines
-            feature_mask=explanation_inputs.feature_mask,  # notice explainer feature mask, this is different from metric feature mask
+            feature_mask=explanation_inputs.metric_feature_mask,  # notice explainer feature mask, this is different from metric feature mask
             perturb_radius=self.config.perturb_radius,
             n_perturb_samples=self.config.n_perturb_samples,
             norm_ord=self.config.norm_ord,

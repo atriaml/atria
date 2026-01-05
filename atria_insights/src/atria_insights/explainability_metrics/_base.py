@@ -5,11 +5,6 @@ from typing import TYPE_CHECKING, TypeVar
 
 from atria_registry import ModuleConfig
 
-from atria_insights.baseline_generators import BaselineGeneratorConfigType
-from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
-from atria_insights.feature_segmentors import FeatureSegmentorConfigType
-from atria_insights.feature_segmentors._image import GridSegmenterConfig
-
 if TYPE_CHECKING:
     import torch
     from torchxai.explainers import Explainer
@@ -17,8 +12,6 @@ if TYPE_CHECKING:
 
 class ExplainabilityMetricConfig(ModuleConfig):
     type: str
-    baselines_generator: BaselineGeneratorConfigType = SimpleBaselineGeneratorConfig()
-    feature_segmentor: FeatureSegmentorConfigType = GridSegmenterConfig()
 
     def build(  # type: ignore
         self,

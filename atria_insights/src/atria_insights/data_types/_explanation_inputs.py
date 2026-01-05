@@ -4,10 +4,11 @@ from typing import Any, Self
 
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_insights.data_types._targets import BatchExplanationTarget
-from atria_insights.utilities._common import _to_device
 from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
+
+from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.utilities._common import _to_device
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -26,6 +27,8 @@ class BatchExplanationInputs(BaseModel):
     inputs: tuple[torch.Tensor, ...]
     additional_forward_args: tuple[Any, ...] | None = None
     baselines: tuple[torch.Tensor, ...] | None = None
+    metric_baselines: tuple[torch.Tensor, ...] | None = None
+    metric_feature_mask: tuple[torch.Tensor, ...] | None = None
     feature_mask: tuple[torch.Tensor, ...] | None = None
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
     strides: tuple[tuple[int, ...], ...] | None = None
@@ -71,6 +74,8 @@ class BatchExplanationInputs(BaseModel):
         for elem in [
             self.inputs,
             self.feature_mask,
+            self.metric_baselines,
+            self.metric_feature_mask,
         ]:  # baselines can be of different batch size so we don't validate it here
             _validate_batch_size_in_tuple(elem)
             _validate_feature_size_in_tuple(elem, self.feature_keys)
@@ -82,6 +87,8 @@ class BatchExplanationInputs(BaseModel):
             update={
                 "baselines": _to_device(self.baselines, device),
                 "feature_mask": _to_device(self.feature_mask, device),
+                "metric_baselines": _to_device(self.metric_baselines, device),
+                "metric_feature_mask": _to_device(self.metric_feature_mask, device),
                 "inputs": _to_device(self.inputs, device),
                 "additional_forward_args": _to_device(
                     self.additional_forward_args, device

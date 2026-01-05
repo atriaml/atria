@@ -1,5 +1,6 @@
 from typing import Any, Literal
 
+import h5py
 import torch
 from torchxai.metrics import attribution_localization
 
@@ -15,6 +16,7 @@ class AttrLocalizationConfig(ExplainabilityMetricConfig):
     module_path: str | None = "atria_insights.explainability_metrics.AttrLocalization"
     positive_attributions: bool = True
     weighted: bool = False
+    mask_h5_file_path: str | None = None
 
 
 class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):
@@ -25,10 +27,22 @@ class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
     ) -> dict[str, Any]:
-        featre_mask = self._prepare_feature_mask(explanation_inputs)
+        with h5py.File(self.config.mask_h5_file_path, "r") as f:
+            feature_mask = {
+                feature_key: [] for feature_key in explanation_inputs.feature_keys
+            }
+            for feature_key in explanation_inputs.feature_keys:
+                for sample_id in explanation_inputs.sample_id:
+                    feature_mask[feature_key].append(
+                        torch.from_numpy(f[sample_id][feature_key][:])
+                    )
+                feature_mask[feature_key] = torch.cat(feature_mask[feature_key]).to(
+                    explanations[0][0].device
+                )
         outputs = attribution_localization(
             attributions=explanations,  # type: ignore
-            feature_mask=featre_mask,
+            # this is actually wrong, but we don't use this metric. If needed, we need to load feature localization masks from a file
+            feature_mask=feature_mask,
             multi_target=explanation_inputs.is_multi_target,
             positive_attributions=self.config.positive_attributions,
             weighted=self.config.weighted,

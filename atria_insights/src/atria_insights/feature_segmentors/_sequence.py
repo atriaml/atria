@@ -48,7 +48,7 @@ class SequenceFeatureMaskSegmentor(
         self._special_token_ids = special_token_ids
 
     def _segment_tokens(
-        self, token_ids: torch.Tensor, word_ids: list[list[int]]
+        self, token_ids: torch.Tensor, word_ids: torch.Tensor
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         import torch
 
@@ -65,10 +65,7 @@ class SequenceFeatureMaskSegmentor(
                 # which are then later replaced with 0, 1, 2...
                 # each word is assigned a unique id starting from 0 and therefore total features become
                 # (number of words + 3)
-                feature_mask = torch.tensor(
-                    [-100 if x is None else x for x in word_ids_per_sample],
-                    device=token_ids.device,
-                )
+                feature_mask = word_ids_per_sample
                 if feature_mask[feature_mask != -100].numel() > 0:
                     min_word_id = feature_mask[feature_mask != -100].min().item()
                 else:
@@ -79,7 +76,7 @@ class SequenceFeatureMaskSegmentor(
 
                 # add a unique id for cls, cls_end, and ref tokens 0, 1, 2... from start for each token
                 n_special_tokens = 0
-                for token_id in list(self._special_token_ids.values()):
+                for token_id in set(self._special_token_ids.values()):
                     if token_id is not None and token_id in input_ids_per_sample:
                         feature_mask += 1
                         feature_mask[input_ids_per_sample == token_id] = 0

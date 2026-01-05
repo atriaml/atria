@@ -39,7 +39,7 @@ class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
         if self.config.group_features:
             outputs = complexity_entropy_feature_grouped(
                 attributions=explanations,
-                feature_mask=self._prepare_feature_mask(explanation_inputs),
+                feature_mask=explanation_inputs.metric_feature_mask,
                 multi_target=explanation_inputs.is_multi_target,
                 return_dict=True,
             )
@@ -73,7 +73,7 @@ class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
         if self.config.group_features:
             outputs = complexity_sundararajan_feature_grouped(
                 attributions=explanations,
-                feature_mask=self._prepare_feature_mask(explanation_inputs),
+                feature_mask=explanation_inputs.metric_feature_mask,
                 eps=self.config.eps,
                 normalize_attribution=self.config.normalize_attribution,
                 multi_target=explanation_inputs.is_multi_target,
@@ -109,7 +109,7 @@ class Sparseness(ExplainabilityMetric[SparsenessConfig]):
         if self.config.group_features:
             outputs = sparseness_feature_grouped(
                 attributions=explanations,
-                feature_mask=self._prepare_feature_mask(explanation_inputs),
+                feature_mask=explanation_inputs.metric_feature_mask,
                 multi_target=explanation_inputs.is_multi_target,
                 return_dict=True,
             )
@@ -161,7 +161,6 @@ class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"
             )
-
         return effective_complexity(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
@@ -171,8 +170,8 @@ class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             perturb_func=perturb_func,

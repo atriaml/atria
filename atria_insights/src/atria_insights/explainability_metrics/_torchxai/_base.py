@@ -26,10 +26,6 @@ from atria_insights.explainability_metrics._base import T_ExplainabilityMetricCo
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
     MetricDataCacher,
 )
-from atria_insights.utilities._common import (
-    _map_tensor_dicts_to_tuples,
-    _map_tensor_tuples_to_keys,
-)
 
 logger = get_logger(__name__)
 
@@ -50,6 +46,7 @@ class ExplainabilityMetric(
         persist_to_disk: bool = True,
         cache_dir: str | Path | None = None,
     ):
+        Metric.__init__(self, output_transform=lambda x: x, device=device)
         ConfigurableModule.__init__(self, config=config)
 
         self._model = model
@@ -59,8 +56,6 @@ class ExplainabilityMetric(
 
         # baseline generator
         self._explainer = explainer
-        self._baselines_generator = self.config.baselines_generator.build(model=model)
-        self._feature_segmentor = self.config.feature_segmentor.build()
 
         # cache to disk
         self._persist_to_disk = persist_to_disk
@@ -77,41 +72,11 @@ class ExplainabilityMetric(
         assert self._explainer._model == self._model, (
             "Explainer model does not match the metric model."
         )
-        assert self._baselines_generator._model == self._model, (
-            "Baseline generator model does not match the metric model."
-        )
 
-        Metric.__init__(self, output_transform=lambda x: x, device=device)
-
-    def _prepare_baselines(
-        self, explanation_inputs: BatchExplanationInputs
-    ) -> torch.Tensor | tuple[torch.Tensor, ...]:
-        assert explanation_inputs.feature_keys is not None, (
-            "Feature keys must be provided when inputs are given as tuple"
-        )
-        inputs = _map_tensor_tuples_to_keys(
-            explanation_inputs.inputs, explanation_inputs.feature_keys
-        )
-        print("self._baselines_generator", self._baselines_generator)
-        baselines = self._baselines_generator(inputs)
-        print("baselines", baselines)
-        return _map_tensor_dicts_to_tuples(
-            baselines, keys=explanation_inputs.feature_keys
-        )
-
-    def _prepare_feature_mask(
-        self, explanation_inputs: BatchExplanationInputs
-    ) -> tuple[torch.Tensor, ...]:
-        assert explanation_inputs.feature_keys is not None, (
-            "Feature keys must be provided when inputs are given as tuple"
-        )
-        inputs = _map_tensor_tuples_to_keys(
-            explanation_inputs.inputs, explanation_inputs.feature_keys
-        )
-        feature_mask = self._feature_segmentor(inputs)
-        return _map_tensor_dicts_to_tuples(
-            feature_mask, keys=explanation_inputs.feature_keys
-        )
+    @property
+    def config(self) -> T_ExplainabilityMetricConfig:
+        """Return the configuration of the metric."""
+        return super().config
 
     def _map_target(
         self, target: BatchExplanationTarget | list[BatchExplanationTarget] | None

@@ -34,7 +34,7 @@ class Completeness(ExplainabilityMetric[CompletenessConfig]):
             additional_forward_args=explanation_inputs.additional_forward_args,
             target=self._map_target(explanation_inputs.target),
             attributions=explanations,  # type: ignore
-            baselines=self._prepare_baselines(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
             multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )
@@ -99,7 +99,7 @@ class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
             target=self._map_target(explanation_inputs.target),
             additional_forward_args=explanation_inputs.additional_forward_args,
             baselines=explanation_inputs.baselines,  # notice explainer baselines, this is different from metric baselines
-            feature_mask=explanation_inputs.feature_mask,  # notice explainer feature mask, this is different from metric feature mask
+            feature_mask=explanation_inputs.metric_feature_mask,  # notice explainer feature mask, this is different from metric feature mask
             constant_shifts=self._input_shifts(explanation_inputs.inputs),
             input_layer_names=input_layer_names,
             multi_target=explanation_inputs.is_multi_target,
@@ -127,8 +127,8 @@ class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
     use_percentage_attribution_threshold: bool = False
     perturb_func: str = "fixed"
     return_intermediate_results: bool = True
-    show_progress: bool = False
-    return_ratio: bool = False
+    show_progress: bool = True
+    return_ratio: bool = True
 
 
 class MonotonicityCorrAndNonSens(
@@ -151,7 +151,6 @@ class MonotonicityCorrAndNonSens(
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"
             )
-
         return monotonicity_corr_and_non_sens(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
@@ -161,8 +160,8 @@ class MonotonicityCorrAndNonSens(
             # notice metric baselines, explainer baselines must not be passed here
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
-            baselines=self._prepare_baselines(explanation_inputs),
-            feature_mask=self._prepare_feature_mask(explanation_inputs),
+            baselines=explanation_inputs.metric_baselines,
+            feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
             frozen_features=explanation_inputs.frozen_features,
             perturb_func=perturb_func,

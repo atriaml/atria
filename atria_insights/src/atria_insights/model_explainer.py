@@ -20,7 +20,7 @@ from atria_ml.training.engines._test_engine import (
 from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
 
-from atria_insights.configs.explainer_config import ExplanationTaskConfig
+from atria_insights.configs.explanation_task_config import ExplanationTaskConfig
 from atria_insights.engines._explanation_engine import (
     ExplanationEngine,
     ExplanationEngineConfig,

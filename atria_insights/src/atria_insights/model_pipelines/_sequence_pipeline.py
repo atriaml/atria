@@ -53,6 +53,9 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
     baseline_generator: (
         SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
     ) = SequenceBaselineGeneratorConfig()
+    metric_baseline_generator: (
+        SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
+    ) = SequenceBaselineGeneratorConfig()
 
     # only for occlusion explainer
     sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
@@ -73,7 +76,6 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
             "image": (3, 8, 8),
         }
     )
-
     ignored_feature_ids: list[str] = Field(default_factory=lambda: ["token_type_ids"])
 
     @model_validator(mode="after")
@@ -140,6 +142,7 @@ class ExplainableSequenceModelPipeline(
         inputs: dict[str, torch.Tensor],
         additional_forward_kwargs: dict[str, Any] | None = None,
         baselines: dict[str, torch.Tensor] | None = None,
+        metric_baselines: dict[str, torch.Tensor] | None = None,
         feature_mask: dict[str, torch.Tensor] | None = None,
         sliding_window_shapes: dict[str, tuple] | None = None,
         strides: dict[str, tuple] | None = None,
@@ -156,12 +159,14 @@ class ExplainableSequenceModelPipeline(
         # ---- inputs ----
         baselines_tuple = None
         feature_mask_tuple = None
+        metric_baselines_tuple = None
         feature_keys = tuple(inputs.keys())
         feature_values = tuple(inputs.values())
         if baselines is not None:
             assert isinstance(baselines, dict), (
                 "If inputs is an dict, baselines must also be an dict."
             )
+
             baselines_tuple = ()
             for input_key, input_value in inputs.items():
                 baseline = baselines[input_key]
@@ -172,9 +177,24 @@ class ExplainableSequenceModelPipeline(
                     f"Baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
                 )
 
-                baselines_tuple += (baseline,)
+                baselines_tuple += (baseline,)  # type: ignore
 
-            baselines_tuple = tuple(baselines[key] for key in feature_keys)
+        if metric_baselines is not None:
+            assert isinstance(metric_baselines, dict), (
+                "If inputs is an dict, metric_baselines must also be an dict."
+            )
+            metric_baselines_tuple = ()
+            for input_key, input_value in inputs.items():
+                baseline = metric_baselines[input_key]
+
+                # assert shape matches
+                # Note: baseline batch size can be different due to multiple baselines
+                assert baseline.shape[1:] == input_value.shape[1:], (
+                    f"Metric baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
+                )
+
+                metric_baselines_tuple += (baseline,)  # type: ignore
+
         if feature_mask is not None:
             assert isinstance(feature_mask, dict), (
                 "If inputs is an dict, feature_mask must also be an dict."
@@ -197,7 +217,7 @@ class ExplainableSequenceModelPipeline(
                     f"Feature mask shape {mask.shape} does not match input shape {input_value.shape} for key {input_key}"
                 )
 
-                feature_mask_tuple += (mask,)
+                feature_mask_tuple += (mask,)  # type: ignore
 
         sliding_window_shapes_tuple = None
         if sliding_window_shapes is not None:
@@ -206,21 +226,21 @@ class ExplainableSequenceModelPipeline(
             }
 
             # make sure the shape matches the input shape
-            sliding_window_shapes_tuple = tuple()
+            sliding_window_shapes_tuple = ()
             for input_key, input_value in inputs.items():
                 # we take the shape of the a single sample
                 single_input_shape = input_value.shape[1:]
 
                 # expand the shape of the sliding window to match the input shape
-                strides_shape = sliding_window_shapes[input_key]
-                for dim in single_input_shape[len(strides_shape) :]:
-                    strides_shape += (dim,)
-                sliding_window_shapes_tuple += (strides_shape,)
+                sliding_window_shape = sliding_window_shapes[input_key]
+                for dim in single_input_shape[len(sliding_window_shape) :]:
+                    sliding_window_shape += (dim,)  # type: ignore
+                sliding_window_shapes_tuple += (sliding_window_shape,)  # type: ignore
 
         strides_tuple = None
         if strides is not None:
             strides = {key: strides[key] for key in feature_keys}
-            strides_tuple = tuple()
+            strides_tuple = ()
             for input_key, input_value in inputs.items():
                 # we take the shape of the a single sample
                 single_input_shape = input_value.shape[1:]
@@ -229,7 +249,7 @@ class ExplainableSequenceModelPipeline(
                 strides_shape = strides[input_key]
                 for dim in single_input_shape[len(strides_shape) :]:
                     strides_shape += (dim,)
-                strides_tuple += (strides_shape,)
+                strides_tuple += (strides_shape,)  # type: ignore
 
         # finally we remap the feature keys from ids to embeddings
         feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
@@ -254,6 +274,7 @@ class ExplainableSequenceModelPipeline(
             feature_values,
             additional_forward_args,
             baselines_tuple,
+            metric_baselines_tuple,
             feature_mask_tuple,
             sliding_window_shapes_tuple,
             strides_tuple,
@@ -497,6 +518,11 @@ class ExplainableSequenceModelPipeline(
             # prepare baselines
             baselines = self._baselines(inputs)
 
+            # prepare baselines for metrics if needed
+            metric_baselines = None
+            if self.config.explainability_metrics is not None:
+                metric_baselines = self._baselines(inputs)
+
             # prepare feature mask
             feature_mask, frozen_features = self._feature_mask(
                 inputs,
@@ -537,30 +563,36 @@ class ExplainableSequenceModelPipeline(
             log_tensor_info(inputs, name="inputs")
             log_tensor_info(additional_forward_kwargs, name="additional_forward_kwargs")
             log_tensor_info(baselines, name="baselines")
+            if metric_baselines is not None:
+                log_tensor_info(metric_baselines, name="metric_baselines")
             log_tensor_info(feature_mask, name="feature_mask")
             log_tensor_info(sliding_window_shapes, name="sliding_window_shapes")
             log_tensor_info(strides, name="strides")
 
             (
-                inputs,
+                inputs_tuple,
                 additional_forward_args,
-                baselines,
-                feature_mask,
-                sliding_window_shapes,
-                strides,
+                baselines_tuple,
+                metric_baselines_tuple,
+                feature_mask_tuple,
+                sliding_window_shapes_tuple,
+                strides_tuple,
                 feature_keys,
                 _,
             ) = self._validated_inputs(
                 inputs=inputs,
                 additional_forward_kwargs=additional_forward_kwargs,
                 baselines=baselines,
+                metric_baselines=metric_baselines,
                 feature_mask=feature_mask,
                 sliding_window_shapes=sliding_window_shapes,
                 strides=strides,
             )
 
             # forward pass
-            model_outputs = self._wrapped_model(*(*inputs, *additional_forward_args))
+            model_outputs = self._wrapped_model(
+                *(*inputs_tuple, *additional_forward_args)
+            )
 
             # prepare target
             target = self._target(batch=batch, model_outputs=model_outputs)
@@ -568,15 +600,19 @@ class ExplainableSequenceModelPipeline(
             # prepare explanation inputs
             return model_outputs, BatchExplanationInputs(
                 sample_id=batch.metadata.sample_id,
-                inputs=inputs,
+                inputs=inputs_tuple,
                 additional_forward_args=additional_forward_args,
-                baselines=baselines if "baselines" in self._explainer_args else None,
-                feature_mask=feature_mask
+                baselines=baselines_tuple
+                if "baselines" in self._explainer_args
+                else None,
+                metric_baselines=metric_baselines_tuple,
+                feature_mask=feature_mask_tuple
                 if "feature_mask" in self._explainer_args
                 else None,
+                metric_feature_mask=feature_mask_tuple,
                 target=target,
-                sliding_window_shapes=sliding_window_shapes,
-                strides=strides,
+                sliding_window_shapes=sliding_window_shapes_tuple,
+                strides=strides_tuple,
                 frozen_features=frozen_features,
                 feature_keys=feature_keys,
             )
