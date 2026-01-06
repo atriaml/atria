@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -11,7 +11,7 @@ import tqdm
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
-from atria_logger._api import get_logger
+from atria_logger._api import enable_file_logging, get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import (
     _get_env_info,
@@ -106,6 +106,8 @@ class PerturbationRobustnessEvaluator:
             log_dir = Path(self._config.env.run_dir) / "tensorboard"
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
+
+            enable_file_logging(str(Path(self._config.env.run_dir) / "run.log"))
         else:
             tb_logger = None
         return tb_logger
@@ -151,7 +153,7 @@ class PerturbationRobustnessEvaluator:
         )
 
     def _build_test_engine(
-        self, perturbation_transform: Callable
+        self, perturbation_transform: DataTransform
     ) -> PerturbationRobustnessEvaluatorEngine:
         import torch
 
@@ -186,6 +188,7 @@ class PerturbationRobustnessEvaluator:
             with open(output_file_path, "w") as f:
                 json.dump({}, f)
 
+        self._test_engine = None
         all_transforms = list(self._perturbation_transform_generator)
         for perturbation_transform in tqdm.tqdm(
             all_transforms, desc="Evaluating perturbation transforms", unit="transform"
@@ -217,7 +220,7 @@ class PerturbationRobustnessEvaluator:
 
                 _reset_random_seeds(run_idx)
 
-                logger.debug(
+                logger.info(
                     f"Starting run {run_idx + 1}/{self._config.n_runs_per_perturbation} for baseline generator "
                     f"{perturbation_transform}."
                 )
@@ -226,23 +229,36 @@ class PerturbationRobustnessEvaluator:
                 perturbation_transform.build(model=self._state.model_pipeline._model)
 
                 # first we generate baseline features on training data if needed
-                test_engine = self._build_test_engine(
-                    perturbation_transform=perturbation_transform
-                )
+                if self._test_engine is None:
+                    self._test_engine = self._build_test_engine(
+                        perturbation_transform=perturbation_transform
+                    )
 
                 # run test engine
-                state = test_engine.run(self._checkpoint_path)
+                state = self._test_engine.run(
+                    checkpoint_path=self._checkpoint_path,
+                    perturbation_transform=perturbation_transform,
+                )
 
                 # get formatted metrics
                 metrics = _format_metrics_for_logging(state.metrics)
 
+                # remove large confusion matrix from metrics before saving
+                metrics = {
+                    k: v
+                    for k, v in metrics.items()
+                    if "confusion_matrix" not in k and "classification_report" not in k
+                }
+
                 # append metrics to output file
-                with open(output_file_path, "r+") as f:
+                with open(output_file_path) as f:
                     all_metrics = json.load(f)
-                    all_metrics[config_hash] = {
-                        "perturbation_transform": perturbation_transform.model_dump(),
-                        "run_idx": run_idx,
-                        "metrics": metrics,
-                    }
-                    f.seek(0)
+
+                all_metrics[config_hash] = {
+                    "perturbation_transform": perturbation_transform.model_dump(),
+                    "run_idx": run_idx,
+                    "metrics": metrics,
+                }
+
+                with open(output_file_path, "w") as f:
                     json.dump(all_metrics, f, indent=4)
