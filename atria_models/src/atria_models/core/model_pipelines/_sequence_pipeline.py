@@ -193,24 +193,29 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
 
         if self.config.use_bbox:
             token_bboxes = batch.token_bboxes
-            if (
-                batch.metadata.bbox_normalized[0]
-                and token_bboxes is not None
-                and not batch.metadata.is_embedding
-            ):
+            if batch.metadata.bbox_normalized[0] and token_bboxes is not None:
                 token_bboxes = (
                     (token_bboxes * 1000.0).clip(0, 1000).long()
                     if token_bboxes is not None
                     else None
                 )
             if isinstance(self._model, TransformersEncoderModel):
-                if "layout_ids_or_embeddings" in self._model_args_list:
-                    assert token_bboxes is not None, "Token bboxes cannot be None"
-                    inputs["layout_ids_or_embeddings"] = token_bboxes
+                if batch.metadata.is_embedding[0]:
+                    if "layout_ids_or_embeddings" in self._model_args_list:
+                        assert token_bboxes is not None, "Token bboxes cannot be None"
+                        inputs["layout_ids_or_embeddings"] = batch.layout_embeddings
 
-                if "layout_ids" in self._model_args_list:
-                    assert token_bboxes is not None, "Token bboxes cannot be None"
-                    inputs["layout_ids"] = token_bboxes
+                    if "layout_ids" in self._model_args_list:
+                        assert token_bboxes is not None, "Token bboxes cannot be None"
+                        inputs["layout_ids"] = token_bboxes
+                else:
+                    if "layout_ids_or_embeddings" in self._model_args_list:
+                        assert token_bboxes is not None, "Token bboxes cannot be None"
+                        inputs["layout_ids_or_embeddings"] = token_bboxes
+
+                    if "layout_ids" in self._model_args_list:
+                        assert token_bboxes is not None, "Token bboxes cannot be None"
+                        inputs["layout_ids"] = token_bboxes
             else:
                 if "bbox" in self._model_args_list:
                     assert token_bboxes is not None, "Token bboxes cannot be None"

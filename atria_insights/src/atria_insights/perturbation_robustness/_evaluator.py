@@ -58,7 +58,6 @@ class PerturbationRobustnessEvaluator:
         checkpoint_path: str | Path | None = None,
     ) -> None:
         self._config = config
-        self._checkpoint_path = None
         if checkpoint_path is not None:
             self._checkpoint_path = checkpoint_path
             self._checkpoint_hash = hashlib.sha256(
@@ -67,14 +66,12 @@ class PerturbationRobustnessEvaluator:
             assert Path(self._checkpoint_path).exists(), (
                 f"Checkpoint path {checkpoint_path} does not exist."
             )
-            self._run_dir = (
-                Path(self._config.env.run_dir) / f"checkpoint-{self._checkpoint_hash}"
-            )
+            self._run_dir = Path(self._config.env.run_dir)
         else:
             logger.warning(
                 "No checkpoint path provided. Using pre-initialized checkpoint for model explainer."
             )
-            self._run_dir = Path(self._config.env.run_dir) / "default_checkpoint"
+            self._run_dir = Path(self._config.env.run_dir)
         self._state: PerturbationRobustnessEvaluatorState = self._build(
             local_rank=local_rank
         )
@@ -162,6 +159,7 @@ class PerturbationRobustnessEvaluator:
             batch_size=self._config.data.eval_batch_size,
             num_workers=self._config.data.num_workers,
             pin_memory=self._config.data.pin_memory,
+            subset_size=self._config.max_eval_samples,
         )
         return PerturbationRobustnessEvaluatorEngine(
             config=PerturbationRobustnessEvaluatorEngineConfig(
@@ -192,7 +190,12 @@ class PerturbationRobustnessEvaluator:
         for perturbation_transform in tqdm.tqdm(
             all_transforms, desc="Evaluating perturbation transforms", unit="transform"
         ):
-            for run_idx in range(self._config.n_runs_per_perturbation):
+            runs = (
+                1
+                if perturbation_transform.percent_features_perturbed == 0.0
+                else self._config.n_runs_per_perturbation
+            )
+            for run_idx in range(runs):
                 # get config hash for this run
                 config_hash = hashlib.sha256(
                     json.dumps(
@@ -204,8 +207,13 @@ class PerturbationRobustnessEvaluator:
                     ).encode("utf-8")
                 ).hexdigest()[:8]
 
-                if config_hash in json.load(open(output_file_path)):
-                    continue
+                with open(output_file_path) as f:
+                    data = json.load(f)
+                    if config_hash in data:
+                        logger.info("Metrics for this run already exist. Skipping...")
+                        metrics = data[config_hash]["metrics"]
+                        logger.info(f"Metrics: {metrics}")
+                        continue
 
                 _reset_random_seeds(run_idx)
 

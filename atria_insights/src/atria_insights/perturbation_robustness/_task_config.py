@@ -14,3 +14,4 @@ class PerturbationRobustnessEvaluatorTaskConfig(TaskConfigBase):
     )
     model_pipeline: ModelPipelineConfig
     n_runs_per_perturbation: int = 5
+    max_eval_samples: int | None = None

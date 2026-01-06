@@ -122,9 +122,7 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
             for feature_mask_tensor in feature_masks_per_feature:
                 feature_indices = torch.unique(feature_mask_tensor)
                 rand_indices = torch.randperm(len(feature_indices), device=device)[
-                    : max(
-                        1, int(self.percent_features_perturbed * len(feature_indices))
-                    )
+                    : int(self.percent_features_perturbed * len(feature_indices))
                 ]
                 rand_perturbation_mask = torch.isin(
                     feature_mask_tensor, feature_indices[rand_indices]
@@ -135,6 +133,7 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
                 inputs_per_feature * (~rand_perturbation_mask)
                 + baselines_per_feature * rand_perturbation_mask
             )
+
         return perturbed_inputs
 
     def _expand_feature_mask(
@@ -235,7 +234,9 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
             )
 
             if "layout_ids" in perturbed_inputs:
-                perturbed_inputs["token_bboxes"] = perturbed_inputs.pop("layout_ids")
+                perturbed_inputs["layout_embeddings"] = perturbed_inputs.pop(
+                    "layout_ids"
+                )
 
             batch_size = len(input.metadata.sample_id)
             return DocumentTensorDataModel(

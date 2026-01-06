@@ -29,6 +29,7 @@ class DocumentTensorDataModel(TensorDataModel):
     special_tokens_mask: torch.Tensor | None = None
     sequence_ids: torch.Tensor
     token_bboxes: torch.Tensor | None = None
+    layout_embeddings: torch.Tensor | None = None
     token_type_ids: torch.Tensor | None = None
     token_labels: torch.Tensor | None = None
     attention_mask: torch.Tensor | None = None
