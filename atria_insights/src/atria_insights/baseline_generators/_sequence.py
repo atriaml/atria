@@ -29,6 +29,16 @@ class SequenceBaselineGeneratorConfig(ModuleConfig):
     image_mean: list[float] | None = None
     image_std: list[float] | None = None
 
+    @classmethod
+    def baseline_types_per_modality(cls) -> dict[str, list[str]]:
+        return {
+            "token_ids": ["zero", "mask_token_id", "pad_token_id", "none"],
+            "token_type_ids": ["zero", "pad_token_id", "none"],
+            "position_ids": ["zero", "pad_token_id", "none"],
+            "layout_ids": ["zero", "pad_token_id", "none"],
+            "image": ["white", "black", "random", "mean", "none"],
+        }
+
 
 class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfig]):
     __config__ = SequenceBaselineGeneratorConfig

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections import dict
 from pathlib import Path
 from typing import Any, Generic
 
@@ -15,23 +14,24 @@ from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
 
-from atria_insights.feature_perturbation.pipelines._config import (
-    T_FeaturePerturbationPipelineConfig,
+from atria_insights.baseline_generators import BaselineGeneratorConfigType
+from atria_insights.perturbation_robustness.pipelines._config import (
+    T_PerturbationRobustnessPipelineConfig,
 )
 
 logger = get_logger(__name__)
 
 
-class FeaturePerturbationPipeline(
-    ConfigurableModule[T_FeaturePerturbationPipelineConfig],
-    Generic[T_FeaturePerturbationPipelineConfig, T_TensorDataModel],
+class PerturbationRobustnessPipeline(
+    ConfigurableModule[T_PerturbationRobustnessPipelineConfig],
+    Generic[T_PerturbationRobustnessPipelineConfig, T_TensorDataModel],
 ):
     __abstract__ = True
-    __config__: type[T_FeaturePerturbationPipelineConfig]
+    __config__: type[T_PerturbationRobustnessPipelineConfig]
 
     def __init__(
         self,
-        config: T_FeaturePerturbationPipelineConfig,
+        config: T_PerturbationRobustnessPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
@@ -53,6 +53,19 @@ class FeaturePerturbationPipeline(
         logger.info(self._model_pipeline.ops.summarize())
         logger.info("Feature Segmentor Config: %s", self.config.feature_segmentor)
         logger.info("Baseline Generator Config: %s", self.config.baseline_generator)
+
+    def reconfigure_pipeline(
+        self,
+        baseline_generator: BaselineGeneratorConfigType,
+        percent_features_perturbed: float,
+    ):
+        updated_config = self.config.model_copy(
+            update={
+                "baseline_generator": baseline_generator,
+                "percent_features_perturbed": percent_features_perturbed,
+            }
+        )
+        self._config = self.config.model_validate(updated_config)
 
     def _dump_config(self, config_dir: Path) -> dict:
         config_dir.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +23,7 @@ class TestEngineConfig(EngineConfig):
 
 
 class TestEngineDependencies(EngineDependencies):
-    pass
+    batch_preprocess: Callable | None = None
 
 
 class TestEngine(EngineBase[TestEngineConfig, TestEngineDependencies]):

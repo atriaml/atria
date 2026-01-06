@@ -81,11 +81,11 @@ class TokenEmbeddings(nn.Module):
         return token_type_ids.expand(batch_size, seq_length)
 
     def get_default_ids_from_token_ids(
-        self, token_ids: torch.LongTensor, past_kv_length: int = 0
+        self, token_ids: torch.Tensor
     ) -> dict[str, torch.Tensor]:
         batch_size, seq_length = token_ids.size()
         position_ids = self._default_position_ids(
-            batch_size, seq_length, past_kv_length
+            batch_size, seq_length, past_kv_length=0
         )
         token_type_ids = self._default_token_type_ids(batch_size, seq_length)
         return {"position_ids": position_ids, "token_type_ids": token_type_ids}

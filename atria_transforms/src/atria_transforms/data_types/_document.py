@@ -21,8 +21,10 @@ class DocumentTensorDataModel(TensorDataModel):
         qa_question: str | None = None
         qa_answers: list[str] | None = None
         bbox_normalized: bool = True
+        is_embedding: bool = False
 
     token_ids: torch.Tensor
+    position_ids: torch.Tensor | None = None
     word_ids: torch.Tensor
     special_tokens_mask: torch.Tensor | None = None
     sequence_ids: torch.Tensor

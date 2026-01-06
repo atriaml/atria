@@ -170,6 +170,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                 "token_type_ids_or_embeddings": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
             }
+            if batch.metadata.is_embedding:
+                inputs["is_embedding"] = True
+                assert batch.position_ids is not None, "Position ids cannot be None"
+                inputs["position_ids_or_embeddings"] = batch.position_ids
         else:
             inputs = {
                 "input_ids": batch.token_ids,
@@ -189,7 +193,11 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
 
         if self.config.use_bbox:
             token_bboxes = batch.token_bboxes
-            if batch.metadata.bbox_normalized[0] and token_bboxes is not None:
+            if (
+                batch.metadata.bbox_normalized[0]
+                and token_bboxes is not None
+                and not batch.metadata.is_embedding
+            ):
                 token_bboxes = (
                     (token_bboxes * 1000.0).clip(0, 1000).long()
                     if token_bboxes is not None

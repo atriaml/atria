@@ -3,6 +3,15 @@ from __future__ import annotations
 from typing import Any, TypeVar
 
 import torch
+from atria_insights.feature_perturbation._registry_groups import (
+    FEATURE_PERTURBATION_PIPELINES,
+)
+from atria_insights.feature_perturbation.pipelines._base import (
+    PerturbationRobustnessPipeline,
+)
+from atria_insights.feature_perturbation.pipelines._config import (
+    PerturbationRobustnessPipelineConfig,
+)
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._image_pipeline import (
     ImageClassificationPipeline,
@@ -16,30 +25,24 @@ from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_types._datasets import DatasetLabels
 
 from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
-from atria_insights.feature_perturbation.pipelines._base import (
-    FeaturePerturbationPipeline,
-)
-from atria_insights.feature_perturbation.pipelines._config import (
-    FeaturePerturbationPipelineConfig,
-)
 
 logger = get_logger(__name__)
 
 
-class ImageFeaturePerturbationPipelineConfig(FeaturePerturbationPipelineConfig):
+class ImagePerturbationRobustnessPipelineConfig(PerturbationRobustnessPipelineConfig):
     model_pipeline: ImageModelPipelineConfig
     baseline_generator: SimpleBaselineGeneratorConfig = SimpleBaselineGeneratorConfig()
 
 
-T_ImageFeaturePerturbationPipelineConfig = TypeVar(
-    "T_ImageFeaturePerturbationPipelineConfig",
-    bound="ImageFeaturePerturbationPipelineConfig",
+T_ImagePerturbationRobustnessPipelineConfig = TypeVar(
+    "T_ImagePerturbationRobustnessPipelineConfig",
+    bound="ImagePerturbationRobustnessPipelineConfig",
 )
 
 
-class ImageFeaturePerturbationPipeline(
-    FeaturePerturbationPipeline[
-        T_ImageFeaturePerturbationPipelineConfig,
+class ImagePerturbationRobustnessPipeline(
+    PerturbationRobustnessPipeline[
+        T_ImagePerturbationRobustnessPipelineConfig,
         ImageTensorDataModel | DocumentTensorDataModel,
     ]
 ):
@@ -47,7 +50,7 @@ class ImageFeaturePerturbationPipeline(
 
     def __init__(
         self,
-        config: T_ImageFeaturePerturbationPipelineConfig,
+        config: T_ImagePerturbationRobustnessPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
@@ -94,8 +97,8 @@ class ImageFeaturePerturbationPipeline(
         return perturbed_inputs
 
 
-class ImageClassificationFeaturePerturbationPipelineConfig(
-    ImageFeaturePerturbationPipelineConfig
+class ImageClassificationPerturbationRobustnessPipelineConfig(
+    ImagePerturbationRobustnessPipelineConfig
 ):
     model_pipeline: ImageClassificationPipelineConfig = (
         ImageClassificationPipelineConfig()
@@ -106,8 +109,11 @@ class ImageClassificationFeaturePerturbationPipelineConfig(
         return "image_classification"
 
 
-class ImageClassificationFeaturePerturbationPipeline(ImageFeaturePerturbationPipeline):
-    __config__ = ImageClassificationFeaturePerturbationPipelineConfig
+@FEATURE_PERTURBATION_PIPELINES.register("image_classification")
+class ImageClassificationPerturbationRobustnessPipeline(
+    ImagePerturbationRobustnessPipeline
+):
+    __config__ = ImageClassificationPerturbationRobustnessPipelineConfig
 
     def evaluation_step(
         self,

@@ -137,7 +137,7 @@ class TransformersEncoderModel(
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def _build_text_layout_embeddings(self) -> nn.Module:
+    def _build_text_layout_embeddings(self) -> TokenEmbeddings:
         return TokenEmbeddings(config=self.config.embeddings_config)
 
     def _build_embeddings_postprocessor(self) -> nn.Module:
@@ -218,8 +218,8 @@ class TransformersEncoderModel(
         return self.embeddings_postprocessor(embeddings=embeddings)
 
     def get_default_ids_from_token_ids(
-        self, token_ids: torch.LongTensor
-    ) -> torch.LongTensor:
+        self, token_ids: torch.Tensor
+    ) -> dict[str, torch.Tensor]:
         return self.embeddings.get_default_ids_from_token_ids(token_ids)
 
     def ids_to_embeddings(

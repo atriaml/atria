@@ -4,6 +4,9 @@ from collections import OrderedDict
 from typing import Any, TypeVar
 
 import torch
+from atria_insights.feature_perturbation._registry_groups import (
+    FEATURE_PERTURBATION_EVALUATOR_PIPELINES,
+)
 from atria_insights.feature_perturbation.evaluator_pipelines._config import (
     FeaturePerturbationEvaluatorPipelineConfig,
 )
@@ -32,9 +35,6 @@ from pydantic import model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
-from atria_insights.feature_perturbation._registry_groups import (
-    FEATURE_PERTURBATION_EVALUATOR_PIPELINES,
-)
 from atria_insights.feature_segmentors import FeatureSegmentorConfigType
 from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,

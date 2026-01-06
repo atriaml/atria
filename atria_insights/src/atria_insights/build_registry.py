@@ -5,14 +5,18 @@ from atria_insights.model_pipelines._registry_groups import (
     EXPLAINABLE_MODEL_PIPELINES,
     # noqa
 )
-
-# from atria_insights.model_pipelines._sequence_pipeline import *  # noqa
+from atria_insights.perturbation_robustness._registry_groups import (
+    PERTURBATION_ROBUSTNESS_PIPELINES,  # noqa
+)
+from atria_insights.perturbation_robustness.pipelines._image_pipeline import *  # noqa
+from atria_insights.perturbation_robustness.pipelines._sequence_pipeline import *  # noqa
 
 
 def main():
     EXPLAINABLE_MODEL_PIPELINES.dump(refresh=True)
     EXPLAINERS.dump()
     EXPLAINABILITY_METRICS.dump()
+    PERTURBATION_ROBUSTNESS_PIPELINES.dump()
 
 
 if __name__ == "__main__":
