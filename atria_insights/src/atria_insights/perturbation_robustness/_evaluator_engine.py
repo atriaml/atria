@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 
 from atria_logger import get_logger
 from atria_ml.training.engine_steps._base import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
-from ignite.engine import State
+from ignite.engine import Engine, State
 
 from atria_insights.perturbation_robustness._evaluator_step import (
     PerturbationRobustnessEvaluatorStep,
@@ -51,6 +52,39 @@ class PerturbationRobustnessEvaluatorEngine(
         # initialize the Ignite engine
         self._engine = self._initialize_ignite_engine(engine_step=self._engine_step)
         self._attach_handlers()
+
+    def _attach_progress_bar(self) -> None:
+        import ignite.distributed as idist
+        from ignite.engine import Events
+        from ignite.handlers import ProgressBar
+
+        # initialize the progress bar
+        progress_bar = ProgressBar(
+            # we want all pbar outputs to be logged through our logger so we redirect to null file
+            desc=f"Stage [{self._engine_step.name}]",
+            persist=True,
+            file=open(os.devnull, "w"),
+        )
+
+        if idist.get_rank() == 0:
+            progress_bar.attach(
+                self._engine,
+                event_name=Events.ITERATION_COMPLETED(
+                    every=self._config.logging.refresh_rate
+                ),
+                metric_names="all",
+            )
+
+            @self._engine.on(
+                Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate)
+            )
+            def print_pbar(engine: Engine) -> None:
+                # log the progress bar through our logger
+                logger.info(str(progress_bar.pbar))
+
+            @self._engine.on(Events.TERMINATE | Events.INTERRUPT)
+            def on_terminate(engine: Engine) -> None:
+                progress_bar.close()
 
     def run(
         self,

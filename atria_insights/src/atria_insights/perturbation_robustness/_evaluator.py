@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import tqdm
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
+from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import enable_file_logging, get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
@@ -121,6 +122,20 @@ class PerturbationRobustnessEvaluator:
         # build dataset
         dataset = self._config.data.build_dataset()
 
+        # preprocess dataset splits
+        if (
+            self._config.data.preprocess_train_transform is not None
+            and self._config.data.preprocess_eval_transform is not None
+        ):
+            # process the dataset with a custom transform
+            dataset = dataset.process_dataset(
+                train_transform=self._config.data.preprocess_train_transform,
+                eval_transform=self._config.data.preprocess_eval_transform,
+                max_cache_image_size=self._config.data.preprocess_max_cache_image_size,
+                num_processes=self._config.data.num_processes,
+                processed_data_dir=self._config.data.data_dir,
+            )
+
         # load labels
         labels = dataset.metadata.dataset_labels
 
@@ -136,12 +151,18 @@ class PerturbationRobustnessEvaluator:
         # get model transforms
         train_transform = model_pipeline.config.train_transform
         eval_transform = model_pipeline.config.eval_transform
-        if dataset.train is not None:
+        try:
             dataset.train.output_transform = train_transform
-        if dataset.validation is not None:
             dataset.validation.output_transform = eval_transform
-        if dataset.test is not None:
             dataset.test.output_transform = eval_transform
+        except SplitNotFoundError:
+            logger.warning(
+                "One or more dataset splits not found while setting output transforms."
+            )
+
+        logger.info("Data transforms:")
+        logger.info(f"Train transform:\n{train_transform}")
+        logger.info(f"Eval transform:\n{eval_transform}")
 
         # build data pipeline
         data_pipeline = DataPipeline(dataset=dataset)
@@ -222,7 +243,7 @@ class PerturbationRobustnessEvaluator:
 
                 logger.info(
                     f"Starting run {run_idx + 1}/{self._config.n_runs_per_perturbation} for baseline generator "
-                    f"{perturbation_transform}."
+                    f"{perturbation_transform.hash}."
                 )
 
                 # build the transform if it's a partial

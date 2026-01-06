@@ -59,14 +59,14 @@ class DataPipeline(RepresentationMixin):
 
     def get_split_subset(self, dataset: SplitIterator, subset_size: int | None):
         if subset_size is not None:
-            original_size = len(self._dataset.test)
+            original_size = len(dataset)
             if subset_size > original_size:
                 logger.warning(
                     f"Requested eval subset size {subset_size} is larger than "
                     f"the dataset size {original_size}. Using full dataset instead."
                 )
                 subset_size = original_size
-            dataset = self._dataset.test.get_random_subset(subset_size=subset_size)
+            dataset = dataset.get_random_subset(subset_size=subset_size)
             assert len(dataset) == subset_size, (
                 "Something went wrong when creating the subset."
             )
@@ -186,4 +186,5 @@ class DataPipeline(RepresentationMixin):
             batch_size=batch_size * idist.get_world_size(),
             pin_memory=pin_memory,
             num_workers=num_workers,
+            persistent_workers=True,
         )
