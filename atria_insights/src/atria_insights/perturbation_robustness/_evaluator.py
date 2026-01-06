@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import tqdm
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
@@ -187,8 +188,25 @@ class PerturbationRobustnessEvaluator:
             with open(output_file_path, "w") as f:
                 json.dump({}, f)
 
-        for perturbation_transform in self._perturbation_transform_generator:
+        all_transforms = list(self._perturbation_transform_generator)
+        for perturbation_transform in tqdm.tqdm(
+            all_transforms, desc="Evaluating perturbation transforms", unit="transform"
+        ):
             for run_idx in range(self._config.n_runs_per_perturbation):
+                # get config hash for this run
+                config_hash = hashlib.sha256(
+                    json.dumps(
+                        {
+                            "baseline_generator": perturbation_transform.model_dump(),
+                            "run_idx": run_idx,
+                        },
+                        sort_keys=True,
+                    ).encode("utf-8")
+                ).hexdigest()[:8]
+
+                if config_hash in json.load(open(output_file_path)):
+                    continue
+
                 _reset_random_seeds(run_idx)
 
                 logger.debug(
@@ -209,17 +227,6 @@ class PerturbationRobustnessEvaluator:
 
                 # get formatted metrics
                 metrics = _format_metrics_for_logging(state.metrics)
-
-                # get config hash for this run
-                config_hash = hashlib.sha256(
-                    json.dumps(
-                        {
-                            "baseline_generator": perturbation_transform.model_dump(),
-                            "run_idx": run_idx,
-                        },
-                        sort_keys=True,
-                    ).encode("utf-8")
-                ).hexdigest()[:8]
 
                 # append metrics to output file
                 with open(output_file_path, "r+") as f:

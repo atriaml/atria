@@ -21,11 +21,11 @@ class SequenceBaselineGeneratorConfig(ModuleConfig):
         "atria_insights.baseline_generators._sequence.SequenceBaselineGenerator"
     )
     type: Literal["sequence"] = "sequence"
-    token_ids: Literal["zero", "mask_token_id", "pad_token_id"] = "zero"
-    token_type_ids: Literal["zero", "pad_token_id"] = "zero"
-    position_ids: Literal["zero", "pad_token_id"] = "zero"
-    layout_ids: Literal["zero", "pad_token_id"] = "zero"
-    image: Literal["white", "black", "random", "mean"] = "black"
+    token_ids: Literal["zero", "mask_token_id", "pad_token_id", "none"] = "zero"
+    token_type_ids: Literal["zero", "pad_token_id", "none"] = "zero"
+    position_ids: Literal["zero", "pad_token_id", "none"] = "zero"
+    layout_ids: Literal["zero", "pad_token_id", "none"] = "zero"
+    image: Literal["white", "black", "random", "mean", "none"] = "black"
     image_mean: list[float] | None = None
     image_std: list[float] | None = None
 
@@ -134,10 +134,13 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
 
         baseline_input_ids = {}
         zero_baselines = {}
-        print("inputs", inputs.keys())
         for input_key, input_ids in inputs.items():
             baseline_type = getattr(self.config, input_key)
-            if baseline_type == "zero":
+            if baseline_type == "none":
+                baseline_input_ids[input_key] = input_ids
+                zero_baselines[input_key] = False
+                continue
+            elif baseline_type == "zero":
                 baseline_input_ids[input_key] = input_ids
                 zero_baselines[input_key] = True
             elif baseline_type in ["mask_token_id", "pad_token_id"]:
@@ -196,17 +199,23 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
 
         image = inputs.get("image", None)
         if image is not None:
-            assert (
-                self.config.image_mean is not None and self.config.image_std is not None
-            ), "image_mean and image_std must be provided for image baseline generation"
-            # validate shape of image
-            assert image.ndim == 4, (
-                f"Image input should be 4-dimensional (B, C, H, W), but got {sequence_inputs['image'].ndim} dimensions"
-            )
-            baseline_embeddings["image"] = self._create_image_baseline(
-                image=image,
-                baseline_type=self.config.image,
-                mean=self.config.image_mean,
-                std=self.config.image_std,
-            )
+            if self.config.image == "none":
+                baseline_embeddings["image"] = image
+            else:
+                assert (
+                    self.config.image_mean is not None
+                    and self.config.image_std is not None
+                ), (
+                    "image_mean and image_std must be provided for image baseline generation"
+                )
+                # validate shape of image
+                assert image.ndim == 4, (
+                    f"Image input should be 4-dimensional (B, C, H, W), but got {sequence_inputs['image'].ndim} dimensions"
+                )
+                baseline_embeddings["image"] = self._create_image_baseline(
+                    image=image,
+                    baseline_type=self.config.image,
+                    mean=self.config.image_mean,
+                    std=self.config.image_std,
+                )
         return baseline_embeddings

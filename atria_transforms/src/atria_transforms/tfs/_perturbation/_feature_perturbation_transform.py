@@ -118,32 +118,22 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
             baselines_per_feature = baselines[feature_key]
             feature_masks_per_feature = feature_masks[feature_key]
 
-            perturbed_inputs_per_feature = []
-            for input_tensor, baseline_tensor, feature_mask_tensor in zip(
-                inputs_per_feature,
-                baselines_per_feature,
-                feature_masks_per_feature,
-                strict=True,
-            ):
-                assert (
-                    input_tensor.shape
-                    == baseline_tensor.shape
-                    == feature_mask_tensor.shape
-                ), (
-                    f"Input shape {input_tensor.shape}, baseline shape {baseline_tensor.shape}, "
-                    f"feature mask shape {feature_mask_tensor.shape} do not match for key {feature_key}"
-                )
+            perturbation_masks = []
+            for feature_mask_tensor in feature_masks_per_feature:
                 feature_indices = torch.unique(feature_mask_tensor)
                 rand_indices = torch.randperm(len(feature_indices), device=device)[
                     : max(
                         1, int(self.percent_features_perturbed * len(feature_indices))
                     )
                 ]
-                mask = torch.isin(feature_mask_tensor, feature_indices[rand_indices])
-                perturbed_input = input_tensor * (~mask) + baseline_tensor * mask
-                perturbed_inputs_per_feature.append(perturbed_input)
-            perturbed_inputs[feature_key] = torch.stack(
-                perturbed_inputs_per_feature, dim=0
+                rand_perturbation_mask = torch.isin(
+                    feature_mask_tensor, feature_indices[rand_indices]
+                )
+                perturbation_masks.append(rand_perturbation_mask)
+            rand_perturbation_mask = torch.stack(perturbation_masks, dim=0)
+            perturbed_inputs[feature_key] = (
+                inputs_per_feature * (~rand_perturbation_mask)
+                + baselines_per_feature * rand_perturbation_mask
             )
         return perturbed_inputs
 
@@ -185,64 +175,75 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
         return validated_baselines
 
     def __call__(self, input: DocumentTensorDataModel) -> DocumentTensorDataModel:
+        import torch
+
         if not isinstance(input, DocumentTensorDataModel):
             raise TypeError(
                 f"FeaturePertubationTransform only supports DocumentTensorDataModel, got {type(input)}"
             )
 
-        # inputs to embeddings
-        inputs = self._prepare_inputs(input)
+        with torch.no_grad():
+            # inputs to embeddings
+            inputs = self._prepare_inputs(input)
 
-        # log debug info
-        log_tensors_debug_info(inputs, title="inputs")
+            # log debug info
+            log_tensors_debug_info(inputs, title="inputs")
 
-        # prepare baselines
-        baselines = self._baseline_generator(inputs)
+            # prepare baselines
+            baselines = self._baseline_generator(inputs)
 
-        log_tensors_debug_info(baselines, title="baselines")
+            log_tensors_debug_info(baselines, title="baselines")
 
-        # prepare feature mask
-        feature_mask, _ = self._feature_segmentor(
-            token_ids=inputs["token_ids"],
-            image=inputs.get("image", None),
-            word_ids=input.word_ids,
-            sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
-        )
+            # prepare feature mask
+            feature_mask, _ = self._feature_segmentor(
+                token_ids=inputs["token_ids"],
+                image=inputs.get("image", None),
+                word_ids=input.word_ids,
+                sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
+            )
 
-        # map inputs to embeddings
-        input_embeddings = self._model.ids_to_embeddings(
-            **{
-                key: inputs[key]
-                for key in self._model_id_to_embeddings_args
-                if key in inputs
-            }
-        ).to_id_map()
+            # map inputs to embeddings
+            input_embeddings = self._model.ids_to_embeddings(
+                **{
+                    key: inputs[key]
+                    for key in self._model_id_to_embeddings_args
+                    if key in inputs
+                }
+            ).to_id_map()
 
-        # filter out ignored feature ids from input embeddings and add them to additional forward kwargs
-        ignored_inputs = {}
-        for key in self.ignored_feature_ids:
-            if key in input_embeddings:
-                ignored_inputs[key] = input_embeddings.pop(key)
-                inputs.pop(key)
+            # filter out ignored feature ids from input embeddings and add them to additional forward kwargs
+            ignored_inputs = {}
+            for key in self.ignored_feature_ids:
+                if key in input_embeddings:
+                    ignored_inputs[key] = input_embeddings.pop(key)
+                    inputs.pop(key)
 
-        # update inputs
-        inputs.update(input_embeddings)
+            # update inputs
+            inputs.update(input_embeddings)
 
-        # validate input shapes
-        baselines = self._validate_baselines(inputs=inputs, baselines=baselines)
+            # validate input shapes
+            baselines = self._validate_baselines(inputs=inputs, baselines=baselines)
 
-        # expand feature mask to match input shapes
-        feature_mask = self._expand_feature_mask(
-            feature_mask=feature_mask, inputs=inputs
-        )
+            # expand feature mask to match input shapes
+            feature_mask = self._expand_feature_mask(
+                feature_mask=feature_mask, inputs=inputs
+            )
 
-        # perturb the inputs
-        perturbed_inputs = self._perturb_inputs(
-            inputs=inputs, baselines=baselines, feature_masks=feature_mask
-        )
+            # perturb the inputs
+            perturbed_inputs = self._perturb_inputs(
+                inputs=inputs, baselines=baselines, feature_masks=feature_mask
+            )
 
-        if "layout_ids" in perturbed_inputs:
-            perturbed_inputs["token_bboxes"] = perturbed_inputs.pop("layout_ids")
-        return input.model_copy(
-            update={**perturbed_inputs, **ignored_inputs, "is_embedding": True}
-        )
+            if "layout_ids" in perturbed_inputs:
+                perturbed_inputs["token_bboxes"] = perturbed_inputs.pop("layout_ids")
+
+            batch_size = len(input.metadata.sample_id)
+            return DocumentTensorDataModel(
+                **{
+                    **input.model_dump(),
+                    **perturbed_inputs,
+                    **ignored_inputs,
+                    "is_embedding": [True] * batch_size,
+                    "is_batched": True,
+                }
+            )

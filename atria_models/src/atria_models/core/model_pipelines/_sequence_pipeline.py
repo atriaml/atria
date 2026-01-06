@@ -170,7 +170,7 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                 "token_type_ids_or_embeddings": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
             }
-            if batch.metadata.is_embedding:
+            if batch.metadata.is_embedding[0]:
                 inputs["is_embedding"] = True
                 assert batch.position_ids is not None, "Position ids cannot be None"
                 inputs["position_ids_or_embeddings"] = batch.position_ids

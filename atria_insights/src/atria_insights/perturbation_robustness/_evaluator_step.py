@@ -34,10 +34,11 @@ class PerturbationRobustnessEvaluatorStep(EngineStep):
     ) -> ModelOutput:
         """Process batch with optional caching."""
         # set model to eval mode
-        self._model_pipeline.ops.eval()
-        batch = batch_list[0].batch(batch_list)
-        batch = batch.ops.to(self._device)
-        batch = self._perturbation_transform(batch)
-        return self._model_pipeline.evaluation_step(
-            evaluation_engine=engine, batch=batch, stage="test"
-        )
+        with torch.no_grad():
+            self._model_pipeline.ops.eval()
+            batch = batch_list[0].batch(batch_list)
+            batch = batch.ops.to(self._device)
+            batch = self._perturbation_transform(batch)
+            return self._model_pipeline.evaluation_step(
+                evaluation_engine=engine, batch=batch, stage="test"
+            )
