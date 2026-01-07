@@ -264,7 +264,7 @@ class ModelExplainer:
                 {"config": self._config.model_dump(), "metrics": metrics}, f, indent=4
             )
 
-    def prepare_features(self) -> None:
+    def compute_training_baseline_features(self) -> None:
         # first we generate baseline features on training data if needed
         training_baseline_features_generation_engine = (
             self._build_features_generation_engine()
@@ -273,21 +273,27 @@ class ModelExplainer:
         # generate baseline features
         training_baseline_features_generation_engine.run(self._checkpoint_path)
 
-    def prepare_explanations(self, total_samples: int | None = None) -> State:
+    def compute_explanations(
+        self, total_samples: int | None = None, compute_metrics: bool = False
+    ) -> State:
         # then we build the explanation engine first to compute the explanations
         explanation_engine = self._build_explanation_engine(
-            total_samples=total_samples, compute_metrics=True
+            total_samples=total_samples, compute_metrics=compute_metrics
         )
 
         # run explanation engine
         return explanation_engine.run()
 
-    def run(self, total_samples: int | None = None) -> State:
+    def run(
+        self, total_samples: int | None = None, compute_metrics: bool = False
+    ) -> State:
         # run test
         self.test()
 
         # prepare features
-        self.prepare_features()
+        self.compute_training_baseline_features()
 
         # prepare explanations
-        return self.prepare_explanations(total_samples=total_samples)
+        return self.compute_explanations(
+            total_samples=total_samples, compute_metrics=compute_metrics
+        )
