@@ -53,9 +53,9 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
     baseline_generator: (
         SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
     ) = SequenceBaselineGeneratorConfig()
-    metric_baseline_generator: (
-        SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
-    ) = SequenceBaselineGeneratorConfig()
+    metric_baseline_generator: SequenceBaselineGeneratorConfig = (
+        SequenceBaselineGeneratorConfig()
+    )
 
     # only for occlusion explainer
     sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
@@ -289,12 +289,18 @@ class ExplainableSequenceModelPipeline(
         )
 
     def _build_baseline_generator(self):
+        # build baselines generator
         if isinstance(self.config.baseline_generator, SequenceBaselineGeneratorConfig):
             self._baseline_generator = self.config.baseline_generator.build(
                 model=self._model_pipeline._model
             )
         else:
             self._baseline_generator = self.config.baseline_generator.build()
+
+        # build metric baselines generator
+        self._metric_baselines_generator = self.config.metric_baseline_generator.build(
+            model=self._model_pipeline._model
+        )
 
     def _generate_sequence_ids_to_embeddings(
         self, batch: DocumentTensorDataModel
@@ -445,6 +451,23 @@ class ExplainableSequenceModelPipeline(
 
         return baselines
 
+    def _metric_baselines(self, explained_inputs: dict[str, torch.Tensor], **kwargs):
+        """Generate baselines for the explainer."""
+        logger.debug(
+            "Generating baselines using baseline generator with config: %s",
+            self.config.metric_baseline_generator,
+        )
+        baselines = self._metric_baselines_generator(explained_inputs, **kwargs)
+
+        # filter out ignored feature ids from baselines
+        baselines = {
+            k: v
+            for k, v in baselines.items()
+            if k not in self.config.ignored_feature_ids
+        }
+
+        return baselines
+
     def _feature_mask(  # type: ignore[override]
         self,
         explained_inputs: dict[str, torch.Tensor],
@@ -523,7 +546,7 @@ class ExplainableSequenceModelPipeline(
             # prepare baselines for metrics if needed
             metric_baselines = None
             if self.config.explainability_metrics is not None:
-                metric_baselines = self._baselines(inputs)
+                metric_baselines = self._metric_baselines(inputs)
 
             # prepare feature mask
             feature_mask, frozen_features = self._feature_mask(
