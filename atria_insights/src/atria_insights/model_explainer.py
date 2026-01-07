@@ -282,7 +282,7 @@ class ModelExplainer:
         )
 
         # run explanation engine
-        return explanation_engine.run()
+        return explanation_engine.run(self._checkpoint_path)
 
     def run(
         self, total_samples: int | None = None, compute_metrics: bool = False
