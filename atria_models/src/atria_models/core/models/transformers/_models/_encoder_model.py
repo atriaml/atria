@@ -177,7 +177,12 @@ class TransformersEncoderModel(
             )
         elif isinstance(self.config.head_config, QuestionAnsweringHeadConfig):
             return QuestionAnsweringHead(
-                hidden_size=self.config.layers_config.hidden_size
+                hidden_size=self.config.layers_config.hidden_size,
+                classifier_dropout=(
+                    self.config.layers_config.classifier_dropout
+                    if self.config.layers_config.classifier_dropout is not None
+                    else self.config.layers_config.hidden_dropout_prob
+                ),
             )
         else:
             raise ValueError(

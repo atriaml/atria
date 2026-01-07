@@ -29,6 +29,10 @@ class PerturbationRobustnessEvaluatorStep(EngineStep):
         )
         self._perturbation_transform = perturbation_transform
 
+    @property
+    def name(self) -> str:
+        return "test"
+
     def __call__(
         self, engine: Engine, batch_list: list[TensorDataModel]
     ) -> ModelOutput:

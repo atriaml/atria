@@ -8,15 +8,35 @@ from atria_models.core.models.transformers._outputs import QuestionAnsweringHead
 logger = get_logger(__name__)
 
 
+class QAHead(nn.Module):
+    def __init__(self, classifier_dropout: float = 0.1, hidden_size: int = 768):
+        super().__init__()
+        self.dense = nn.Linear(hidden_size, hidden_size)
+        classifier_dropout = classifier_dropout
+        self.dropout = nn.Dropout(classifier_dropout)
+        self.out_proj = nn.Linear(hidden_size, 2)
+
+    def forward(self, x):
+        x = self.dropout(x)
+        x = self.dense(x)
+        x = torch.tanh(x)
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
+
+
 class QuestionAnsweringHead(nn.Module):
-    def __init__(self, hidden_size: int | None = None):
+    def __init__(self, hidden_size: int = 768, classifier_dropout: float = 0.1):
         super().__init__()
 
         self.hidden_size = hidden_size
+        self.classifier_dropout = classifier_dropout
         self._build_layers()
 
     def _build_layers(self):
-        self.qa_outputs = nn.Linear(self.hidden_size, 2)
+        self.qa_outputs = QAHead(
+            hidden_size=self.hidden_size, classifier_dropout=self.classifier_dropout
+        )
 
     def _get_loss(
         self,
