@@ -72,13 +72,14 @@ class SequenceFeatureMaskSegmentor(
                 # which are then later replaced with 0, 1, 2...
                 # each word is assigned a unique id starting from 0 and therefore total features become
                 # (number of words + 3)
-                feature_mask = word_ids_per_sample
+                feature_mask = word_ids_per_sample.clone()
 
                 if sequence_ids_per_sample.max() > 0:
                     first_sequence_max = feature_mask[
                         sequence_ids_per_sample == 0
                     ].max()
                     feature_mask[sequence_ids_per_sample == 1] += first_sequence_max + 1
+
                 if feature_mask[feature_mask != -100].numel() > 0:
                     min_word_id = feature_mask[feature_mask != -100].min().item()
                 else:
@@ -104,10 +105,13 @@ class SequenceFeatureMaskSegmentor(
             for word_ids_per_sample, input_ids_per_sample in zip(
                 word_ids, token_ids, strict=True
             ):  # iterate over batch of inputs and word ids
-                feature_mask = torch.tensor(
-                    [-100 if x is None else x for x in word_ids_per_sample],
-                    device=token_ids.device,
-                )
+                feature_mask = word_ids_per_sample.clone()
+
+                if sequence_ids_per_sample.max() > 0:
+                    first_sequence_max = feature_mask[
+                        sequence_ids_per_sample == 0
+                    ].max()
+                    feature_mask[sequence_ids_per_sample == 1] += first_sequence_max + 1
 
                 # assign 1 - n to each non-cls/pad/sep token
                 feature_mask[feature_mask != -100] = torch.arange(
