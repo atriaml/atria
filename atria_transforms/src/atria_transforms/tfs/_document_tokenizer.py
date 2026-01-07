@@ -9,7 +9,7 @@ from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._doc_content import DocumentContent
 from atria_types._generic._image import Image
 from atria_types._generic._qa_pair import QAPair
-from pydantic import Field, model_validator
+from pydantic import model_validator
 
 from atria_transforms.core import DataTransform
 from atria_transforms.data_types._tokenized_document_instance import (
@@ -49,7 +49,7 @@ class QAHuggingfaceProcessorOutput(HuggingfaceProcessorOutput):
 
 
 class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
-    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor(truncation="only_second")
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor()
 
     # segment-level-rank info args
     use_segment_level_bboxes: bool = False
@@ -191,7 +191,7 @@ class TokenClassificationDocumentTokenizer(DocumentTokenizer):
 
 @DATA_TRANSFORMS.register("document_tokenizer/question_answering")
 class QuestionAnsweringDocumentTokenizer(DocumentTokenizer):
-    hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor(truncation="only_second")
     ignore_no_answer_qa_pair: bool = False
 
     @property

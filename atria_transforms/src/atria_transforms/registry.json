@@ -111,8 +111,30 @@
                 "import_path": "atria_transforms.tfs._document_tokenizer.TokenClassificationDocumentTokenizer"
             },
             "question_answering": {
-                "hash": "8e673be7",
+                "hash": "e982c0bc",
                 "config": {
+                    "hf_processor": {
+                        "tokenizer_name": "microsoft/layoutlmv3-base",
+                        "cache_dir": null,
+                        "local_files_only": false,
+                        "apply_ocr": false,
+                        "add_prefix_space": true,
+                        "do_lower_case": true,
+                        "add_special_tokens": true,
+                        "padding": "max_length",
+                        "truncation": true,
+                        "max_length": 512,
+                        "stride": 0,
+                        "pad_to_multiple_of": 8,
+                        "is_split_into_words": true,
+                        "return_token_type_ids": null,
+                        "return_attention_mask": true,
+                        "return_special_tokens_mask": false,
+                        "return_offsets_mapping": false,
+                        "return_length": false,
+                        "return_tensors": "pt",
+                        "verbose": true
+                    },
                     "use_segment_level_bboxes": false,
                     "resize_image": null,
                     "load_image": true,
