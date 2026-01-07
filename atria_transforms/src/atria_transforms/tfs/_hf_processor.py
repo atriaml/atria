@@ -195,7 +195,7 @@ class HuggingfaceProcessor(DataTransform):
             text_pair = filtered_inputs.get("text_pair", None)
 
             if text is not None and text_pair is not None:
-                filtered_inputs["text"] = [text]
+                filtered_inputs["text"] = text.split()
 
         tokenization_data = self._hf_processor(**filtered_inputs, **self._call_kwargs)
 

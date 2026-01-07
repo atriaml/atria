@@ -48,7 +48,10 @@ class SequenceFeatureMaskSegmentor(
         self._special_token_ids = special_token_ids
 
     def _segment_tokens(
-        self, token_ids: torch.Tensor, word_ids: torch.Tensor
+        self,
+        token_ids: torch.Tensor,
+        word_ids: torch.Tensor,
+        sequence_ids: torch.Tensor,
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         import torch
 
@@ -56,8 +59,12 @@ class SequenceFeatureMaskSegmentor(
         special_token_ids_batch = []
         if self.config.group_tokens_to_words:
             # here we group all the tokens to their respective words and keep each feature, words, 2d positions, and 1d positions separate
-            for word_ids_per_sample, input_ids_per_sample in zip(
-                word_ids, token_ids, strict=True
+            for (
+                word_ids_per_sample,
+                input_ids_per_sample,
+                sequence_ids_per_sample,
+            ) in zip(
+                word_ids, token_ids, sequence_ids, strict=True
             ):  # iterate over batch of inputs and word ids
                 # all tokens belonging to the same word have the same id [None, 0, 0, 1, 1, 1, 2, ...]
                 # None represents CLS/SEP/PAD tokens that are not part of any word
@@ -66,6 +73,12 @@ class SequenceFeatureMaskSegmentor(
                 # each word is assigned a unique id starting from 0 and therefore total features become
                 # (number of words + 3)
                 feature_mask = word_ids_per_sample
+
+                if sequence_ids_per_sample.max() > 0:
+                    first_sequence_max = feature_mask[
+                        sequence_ids_per_sample == 0
+                    ].max()
+                    feature_mask[sequence_ids_per_sample == 1] += first_sequence_max + 1
                 if feature_mask[feature_mask != -100].numel() > 0:
                     min_word_id = feature_mask[feature_mask != -100].min().item()
                 else:
@@ -122,13 +135,14 @@ class SequenceFeatureMaskSegmentor(
     def _create_token_level_feature_mask(
         self,
         token_ids: torch.Tensor,
-        word_ids: list[list[int]],
+        word_ids: torch.Tensor,
+        sequence_ids: torch.Tensor,
         sequence_feature_keys: list[str],
     ) -> tuple[OrderedDict[str, torch.Tensor], list[torch.Tensor]]:
         import torch
 
         token_feature_mask, special_token_ids_batch = self._segment_tokens(
-            token_ids, word_ids
+            token_ids, word_ids, sequence_ids
         )
 
         # accumulate feature mask indices over the features
@@ -186,12 +200,16 @@ class SequenceFeatureMaskSegmentor(
         self,
         token_ids: torch.Tensor,
         sequence_feature_keys: list[str],
-        word_ids: list[list[int]],
+        word_ids: torch.Tensor,
+        sequence_ids: torch.Tensor,
         image: torch.Tensor | None,
     ) -> tuple[dict[str, torch.Tensor], list[torch.Tensor]]:
         token_feature_masks, frozen_features_per_sample = (
             self._create_token_level_feature_mask(
-                token_ids, word_ids, sequence_feature_keys=sequence_feature_keys
+                token_ids=token_ids,
+                word_ids=word_ids,
+                sequence_ids=sequence_ids,
+                sequence_feature_keys=sequence_feature_keys,
             )
         )
 

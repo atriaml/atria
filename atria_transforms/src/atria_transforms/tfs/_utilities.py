@@ -111,13 +111,6 @@ def _extract_sequence_and_word_ids(
         word_ids_per_overflow = [
             -100 if x is None else x for x in word_ids_per_overflow
         ]
-        if max(sequence_ids_per_overflow) > 0:
-            word_ids_per_overflow = [
-                -100 if sequence_id == 0 else word_id
-                for word_id, sequence_id in zip(
-                    word_ids_per_overflow, sequence_ids_per_overflow, strict=True
-                )
-            ]
         sequence_ids.append(sequence_ids_per_overflow)
         word_ids.append(word_ids_per_overflow)
 

@@ -198,6 +198,7 @@ class SequenceFeaturePertubationTransform(DataTransform[DocumentTensorDataModel]
                 token_ids=inputs["token_ids"],
                 image=inputs.get("image", None),
                 word_ids=input.word_ids,
+                sequence_ids=input.sequence_ids,
                 sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
             )
 
