@@ -234,7 +234,9 @@ class PerturbationRobustnessEvaluator:
                 with open(output_file_path) as f:
                     data = json.load(f)
                     if config_hash in data:
-                        logger.info("Metrics for this run already exist. Skipping...")
+                        logger.info(
+                            f"Metrics for this run [{config_hash}] already exist. Skipping..."
+                        )
                         metrics = data[config_hash]["metrics"]
                         logger.info(f"Metrics: {metrics}")
                         continue
@@ -243,7 +245,7 @@ class PerturbationRobustnessEvaluator:
 
                 logger.info(
                     f"Starting run {run_idx + 1}/{self._config.n_runs_per_perturbation} for baseline generator "
-                    f"{perturbation_transform.hash}."
+                    f"{config_hash}."
                 )
 
                 # build the transform if it's a partial
