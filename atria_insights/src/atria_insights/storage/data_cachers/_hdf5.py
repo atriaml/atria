@@ -6,9 +6,10 @@ import h5py
 import numpy as np
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
+from atria_logger import get_logger
+
 from atria_insights.storage.data_cachers._base import DataCacher
 from atria_insights.storage.data_cachers._common import SerializableSampleData
-from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -136,6 +137,9 @@ class HDF5DataCacher(DataCacher):
             return list(hf.keys())
 
     def save_sample(self, data: SerializableSampleData) -> None:
+        if not self._file_path.parent.exists():
+            self._file_path.parent.mkdir(parents=True, exist_ok=True)
+
         with h5py.File(self._file_path, "a") as hf:
             # sample_key
             sample_key = data.sample_id
