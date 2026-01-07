@@ -7,6 +7,7 @@ from typing import Any, TypeVar
 import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._sequence_pipeline import (
+    LayoutTokenClassificationPipelineConfig,
     QuestionAnsweringPipelineConfig,
     SequenceClassificationPipelineConfig,
     SequenceModelPipeline,
@@ -15,13 +16,10 @@ from atria_models.core.model_pipelines._sequence_pipeline import (
 from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
-    TransformersEncoderModelOutput,
 )
-from atria_models.core.models.transformers._outputs import TokenClassificationHeadOutput
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
 from pydantic import Field, model_validator
-from torchxai.data_types import ExplanationTargetType, SingleTargetAcrossBatch
 
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGenerator,
@@ -38,10 +36,13 @@ from atria_insights.model_pipelines._common import (
     ExplanationTargetStrategy,
 )
 from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
+    ExplainableQuestionAnsweringModelForwardWrapper,
     ExplainableSequenceModelForwardWrapper,
+    ExplainableTokenClassificationModelForwardWrapper,
 )
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
+from atria_insights.model_pipelines._utilities import _generate_word_level_targets
 
 logger = get_logger(__name__)
 
@@ -103,11 +104,10 @@ T_ExplainableSequenceModelPipelineConfig = TypeVar(
 
 class ExplainableSequenceModelPipeline(
     ExplainableModelPipeline[
-        ExplainableSequenceModelPipelineConfig, DocumentTensorDataModel
+        T_ExplainableSequenceModelPipelineConfig, DocumentTensorDataModel
     ]
 ):
     __abstract__ = True
-    __config__ = ExplainableSequenceModelPipelineConfig
 
     def __init__(
         self,
@@ -383,7 +383,7 @@ class ExplainableSequenceModelPipeline(
             additional_forward_kwargs["layout_ids"] = token_bboxes
         return additional_forward_kwargs
 
-    def _target(  # type: ignore[override]
+    def _target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
     ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
         assert self._model_pipeline._labels.classification is not None, (
@@ -657,7 +657,9 @@ class ExplainableSequenceClassificationPipelineConfig(
 
 
 @EXPLAINABLE_MODEL_PIPELINES.register("sequence_classification")
-class ExplainableSequenceClassificationPipeline(ExplainableSequenceModelPipeline):
+class ExplainableSequenceClassificationPipeline(
+    ExplainableSequenceModelPipeline[ExplainableSequenceClassificationPipelineConfig]
+):
     __config__ = ExplainableSequenceClassificationPipelineConfig
 
 
@@ -667,6 +669,7 @@ class ExplainableTokenClassificationPipelineConfig(
     model_pipeline: TokenClassificationPipelineConfig = (
         TokenClassificationPipelineConfig()
     )
+    use_word_level_targets: bool = True
 
     @property
     def name(self) -> str:
@@ -674,89 +677,120 @@ class ExplainableTokenClassificationPipelineConfig(
 
 
 @EXPLAINABLE_MODEL_PIPELINES.register("token_classification")
-class ExplainableTokenClassificationPipeline(ExplainableSequenceModelPipeline):
+class ExplainableTokenClassificationPipeline(
+    ExplainableSequenceModelPipeline[ExplainableTokenClassificationPipelineConfig]
+):
     __config__ = ExplainableTokenClassificationPipelineConfig
 
     def _target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-    ) -> ExplanationTargetType | list[ExplanationTargetType]:
-        if (
-            self.config.explanation_target_strategy
-            == ExplanationTargetStrategy.ground_truth
-        ):
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        if self.config.explanation_target_strategy in [
+            ExplanationTargetStrategy.ground_truth,
+            ExplanationTargetStrategy.all,
+        ]:
+            # for token level tasks we do not support ground truth explanation targets
+            # as the forward wrapper returns per token predicted logits
             raise ValueError(
-                "Ground truth explanation targets are not supported for token classification tasks."
+                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
             )
-        elif (
-            self.config.explanation_target_strategy
-            == ExplanationTargetStrategy.predicted
-        ):
-            # model_outputs is returned predictions of shape [batch_size, seq_len] tensor so a target for each token
+
+        # the token classification forward wrapper always returns the per token predicted label logits
+        # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
+        if self.config.use_word_level_targets:
+            # for word level targets per word instead of generating targets for each token,
+            # we get the word ids and generate targets per word since models are usually trained with only
+            # first token of each word having a label
+            batch_size = model_outputs.shape[0]
+            assert batch_size == 1, (
+                f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
+                f"This is because word ids are different for each sample in the batch and results in varying target shapes "
+                f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
+                f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
+                f"is introduced."
+            )
+            sample_word_ids = batch.word_ids[0]
             return [
-                SingleTargetAcrossBatch(index=i) for i in range(model_outputs.shape[1])
+                BatchExplanationTarget(value=[index], name=[str(index)])
+                for index in _generate_word_level_targets(sample_word_ids)
             ]
         else:
-            raise ValueError(
-                "Only 'predicted' explanation target strategy is supported for token classification tasks."
-            )
+            # otherwise we create explanation targets for each token
+            return [
+                BatchExplanationTarget(
+                    value=[i for _ in range(model_outputs.shape[0])],
+                    name=[str(i) for _ in range(model_outputs.shape[0])],
+                )
+                for i in range(model_outputs.shape[1])
+            ]
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        class WrappedModel(torch.nn.Module):
-            def __init__(self, model: torch.nn.Module):
-                super().__init__()
-                self.model = model
-                self.model_signature = inspect.signature(model.forward)
+        return ExplainableTokenClassificationModelForwardWrapper(model=model)
 
-            def forward(self, *args) -> torch.Tensor:
-                args_mapping = args[-1]  # the last arg is the args mapping
-                assert isinstance(args_mapping, list), (
-                    f"Expected args_mapping to be a list of keys, got {type(args_mapping)}"
+
+class ExplainableLayoutTokenClassificationPipelineConfig(
+    ExplainableSequenceModelPipelineConfig
+):
+    model_pipeline: LayoutTokenClassificationPipelineConfig = (
+        LayoutTokenClassificationPipelineConfig()
+    )
+    use_word_level_targets: bool = True
+
+    @property
+    def name(self) -> str:
+        return "layout_token_classification"
+
+
+@EXPLAINABLE_MODEL_PIPELINES.register("layout_token_classification")
+class ExplainableLayoutTokenClassificationPipeline(
+    ExplainableSequenceModelPipeline[ExplainableLayoutTokenClassificationPipelineConfig]
+):
+    __config__ = ExplainableLayoutTokenClassificationPipelineConfig
+
+    def _target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        if self.config.explanation_target_strategy in [
+            ExplanationTargetStrategy.ground_truth,
+            ExplanationTargetStrategy.all,
+        ]:
+            # for token level tasks we do not support ground truth explanation targets
+            # as the forward wrapper returns per token predicted logits
+            raise ValueError(
+                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
+            )
+
+        # the token classification forward wrapper always returns the per token predicted label logits
+        # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
+        if self.config.use_word_level_targets:
+            # for word level targets per word instead of generating targets for each token,
+            # we get the word ids and generate targets per word since models are usually trained with only
+            # first token of each word having a label
+            batch_size = model_outputs.shape[0]
+            assert batch_size == 1, (
+                f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
+                f"This is because word ids are different for each sample in the batch and results in varying target shapes "
+                f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
+                f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
+                f"is introduced."
+            )
+            sample_word_ids = batch.word_ids[0]
+            return [
+                BatchExplanationTarget(value=[index], name=[str(index)])
+                for index in _generate_word_level_targets(sample_word_ids)
+            ]
+        else:
+            # otherwise we create explanation targets for each token
+            return [
+                BatchExplanationTarget(
+                    value=[i for _ in range(model_outputs.shape[0])],
+                    name=[str(i) for _ in range(model_outputs.shape[0])],
                 )
-                args = args[:-1]  # all but last are the actual model args
-                logger.debug(
-                    f"WrappedModel.forward called with {len(args)} args and args_mapping: {args_mapping}"
-                )
+                for i in range(model_outputs.shape[1])
+            ]
 
-                if len(args) != len(args_mapping):
-                    raise ValueError(
-                        f"Expected {len(args_mapping)} inputs, but got {len(args)} inputs."
-                    )
-
-                model_kwargs = {
-                    args_mapping[i]: args[i] for i in range(len(args_mapping))
-                }
-
-                # we remap embedding args to id_or_embedding args
-                # inside the model, we need to remap ids -> embeddings
-                for key in [
-                    "token_ids",
-                    "position_ids",
-                    "layout_ids",
-                    "token_type_ids",
-                ]:
-                    if key in model_kwargs:
-                        model_kwargs[key.replace("_ids", "_ids_or_embeddings")] = (
-                            model_kwargs.pop(key)
-                        )
-
-                # filter unsupported args (important for heterogeneous models)
-                model_kwargs = {
-                    k: v
-                    for k, v in model_kwargs.items()
-                    if k in self.model_signature.parameters
-                }
-                outputs = self.model(**model_kwargs, is_embedding=True)
-
-                assert isinstance(outputs, TransformersEncoderModelOutput)
-                assert isinstance(outputs.head_output, TokenClassificationHeadOutput)
-                assert outputs.head_output.logits is not None
-                probs = self.softmax(outputs.head_output.logits)
-                probs = torch.gather(
-                    probs, 2, probs.argmax(dim=-1).unsqueeze(-1)
-                ).squeeze(-1)
-                return probs
-
-        return WrappedModel(model=model)
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        return ExplainableTokenClassificationModelForwardWrapper(model=model)
 
 
 class ExplainableQuestionAnsweringPipelineConfig(
@@ -775,63 +809,32 @@ class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
 
     def _target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-    ) -> ExplanationTargetType | list[ExplanationTargetType]:
-        if (
-            self.config.explanation_target_strategy
-            == ExplanationTargetStrategy.ground_truth
-        ):
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        if self.config.explanation_target_strategy in [
+            ExplanationTargetStrategy.ground_truth,
+            ExplanationTargetStrategy.all,
+        ]:
+            # for token level tasks we do not support ground truth explanation targets
+            # as the forward wrapper returns per token predicted logits
             raise ValueError(
-                "Ground truth explanation targets are not supported for token classification tasks."
-            )
-        elif (
-            self.config.explanation_target_strategy
-            == ExplanationTargetStrategy.predicted
-        ):
-            # model_outputs is returned predictions of shape [batch_size, seq_len] tensor so a target for each token
-            return [
-                SingleTargetAcrossBatch(index=i) for i in range(1)
-            ]  # for q/a we explain the start token only
-        else:
-            raise ValueError(
-                f"Explanation target strategy {self.config.explanation_target_strategy} is not supported for question answering tasks."
+                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
             )
 
-    def _model_forward(
-        self,
-        explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-        additional_forward_args: dict[str, Any] | None,
-    ) -> torch.Tensor:
-        from torch.nn.functional import softmax
-
-        model_outputs = self._model_pipeline._model(
-            explained_inputs, **(additional_forward_args or {})
-        )
-        if isinstance(model_outputs, dict):
-            logits = model_outputs["logits"]
-        elif hasattr(model_outputs, "logits"):
-            logits = model_outputs.logits
-        else:
-            logits = model_outputs
-        return softmax(logits, dim=-1)
+        # for question answering forward wrapper, model_outputs is of shape [batch_size, 2]
+        # where the last dimension contains start and end token probabilities
+        # therefore the first target for each sample is the logits of the start token and
+        # the second is the logits of the end token
+        batch_size = model_outputs.shape[0]
+        return [
+            BatchExplanationTarget(
+                value=[0 for _ in range(batch_size)],
+                name=["start" for _ in range(batch_size)],
+            ),
+            BatchExplanationTarget(
+                value=[1 for _ in range(batch_size)],
+                name=["end" for _ in range(batch_size)],
+            ),
+        ]
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        class WrappedModel(torch.nn.Module):
-            def __init__(self, model: torch.nn.Module) -> None:
-                super().__init__()
-                self._model = model
-
-            def forward(
-                self,
-                explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-                additional_forward_args: dict[str, Any] | None = None,
-            ) -> torch.Tensor:
-                from torch.nn.functional import softmax
-
-                model_outputs = self._model(
-                    explained_inputs, **(additional_forward_args or {})
-                )
-                start_pred = softmax(model_outputs.start_logits, dim=-1)
-                end_pred = softmax(model_outputs.end_logits, dim=-1)
-                return torch.cat([start_pred, end_pred])
-
-        return WrappedModel(model)
+        return ExplainableQuestionAnsweringModelForwardWrapper(model=model)

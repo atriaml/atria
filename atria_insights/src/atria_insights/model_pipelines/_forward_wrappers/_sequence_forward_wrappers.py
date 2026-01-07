@@ -7,7 +7,9 @@ from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
 from atria_models.core.models.transformers._outputs import (
+    QuestionAnsweringHeadOutput,
     SequenceClassificationHeadOutput,
+    TokenClassificationHeadOutput,
     TransformersEncoderModelOutput,
 )
 
@@ -73,3 +75,50 @@ class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
         assert isinstance(outputs.head_output, SequenceClassificationHeadOutput)
         assert outputs.head_output.logits is not None
         return torch.nn.functional.softmax(outputs.head_output.logits, dim=-1)
+
+
+class ExplainableTokenClassificationModelForwardWrapper(
+    ExplainableSequenceModelForwardWrapper
+):
+    def forward(self, *args) -> torch.Tensor:
+        model_kwargs = self._sanitize_inputs(*args)
+        for key, value in model_kwargs.items():
+            logger.debug(
+                f"Model input - {key}: {value.shape if hasattr(value, 'shape') else value}"
+            )
+        outputs = self._model(**model_kwargs, is_embedding=True)
+        assert isinstance(outputs, TransformersEncoderModelOutput)
+        assert isinstance(outputs.head_output, TokenClassificationHeadOutput)
+        assert outputs.head_output.logits is not None
+        probs = torch.nn.functional.softmax(outputs.head_output.logits)
+        probs = torch.gather(probs, 2, probs.argmax(dim=-1).unsqueeze(-1)).squeeze(-1)
+        return probs
+
+
+class ExplainableQuestionAnsweringModelForwardWrapper(
+    ExplainableSequenceModelForwardWrapper
+):
+    def forward(self, *args) -> torch.Tensor:
+        model_kwargs = self._sanitize_inputs(*args)
+        for key, value in model_kwargs.items():
+            logger.debug(
+                f"Model input - {key}: {value.shape if hasattr(value, 'shape') else value}"
+            )
+        outputs = self._model(**model_kwargs, is_embedding=True)
+        assert isinstance(outputs, TransformersEncoderModelOutput)
+        assert isinstance(outputs.head_output, QuestionAnsweringHeadOutput)
+        assert outputs.head_output.start_logits is not None
+        assert outputs.head_output.end_logits is not None
+        start_probs = torch.nn.functional.softmax(
+            outputs.head_output.start_logits, dim=-1
+        )
+        start_pred_prob = start_probs[
+            torch.arange(start_probs.size(0)), start_probs.argmax(dim=-1)
+        ]
+        end_probs = torch.nn.functional.softmax(outputs.head_output.end_logits, dim=-1)
+        end_pred_prob = end_probs[
+            torch.arange(end_probs.size(0)), end_probs.argmax(dim=-1)
+        ]
+        return torch.cat(
+            [start_pred_prob.unsqueeze(-1), end_pred_prob.unsqueeze(-1)], dim=-1
+        )

@@ -24,10 +24,7 @@ from atria_insights.data_types._explanation_state import (
 )
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
-from atria_insights.model_pipelines._common import (
-    ExplanationTargetStrategy,
-    T_ExplainableModelPipelineConfig,
-)
+from atria_insights.model_pipelines._common import T_ExplainableModelPipelineConfig
 from atria_insights.storage.sample_cache_managers._explanation_state import (
     ExplanationStateCacher,
 )
@@ -81,11 +78,6 @@ class ExplainableModelPipeline(
         self._model_pipeline = self.config.model_pipeline.build(labels=self._labels)
 
     def _build_explainer(self):
-        # build explainer
-        multi_target = (
-            self.config.explanation_target_strategy == ExplanationTargetStrategy.all
-        )
-
         # build model with wrapped forward
         self._model_signature = inspect.signature(self._model_pipeline._model.forward)
         self._wrapped_model = self._wrap_model_forward(self._model_pipeline._model)
@@ -93,7 +85,7 @@ class ExplainableModelPipeline(
         # build explainer
         self._explainer = self.config.explainer.build(
             model=self._wrapped_model,
-            multi_target=multi_target,
+            multi_target=False,
             internal_batch_size=self.config.internal_batch_size,
             grad_batch_size=self.config.grad_batch_size,
         )
@@ -544,6 +536,8 @@ class ExplainableModelPipeline(
             return per_target_explanations
         else:
             # we need to map the atria_insights target to torchxai target
+            if isinstance(target, list):
+                self._explainer.multi_target = True
             explanations = self._explainer.explain(**kwargs, target=target)
 
             # validated explanations

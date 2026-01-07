@@ -28,6 +28,12 @@ class FeatureGenerationEngineDependencies(EngineDependencies):
 class FeatureGenerationEngine(
     EngineBase[FeatureGenerationEngineConfig, FeatureGenerationEngineDependencies]
 ):
+    def __init__(self, config: T_EngineConfig, deps: T_EngineDependencies):
+        self._config = config
+        self._deps = deps
+        self._engine_step, self._engine = self._build_engine()
+        self._attach_handlers()
+
     def _build_engine_step(self) -> EngineStep:
         return FeatureGenerationStep(
             x_model_pipeline=self._deps.x_model_pipeline,
