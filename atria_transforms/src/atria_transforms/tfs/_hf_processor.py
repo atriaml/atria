@@ -98,14 +98,14 @@ class HuggingfaceProcessor(DataTransform):
 
     add_special_tokens: bool = True
     padding: str | bool = "max_length"
-    truncation: bool = True
+    truncation: bool | str = True
     max_length: int = 512
     stride: int = 0
     pad_to_multiple_of: int = 8
     is_split_into_words: bool = True
     return_token_type_ids: bool | None = None
     return_attention_mask: bool = True
-    return_special_tokens_mask: bool = True
+    return_special_tokens_mask: bool = False
     return_offsets_mapping: bool = False
     return_length: bool = False
     return_tensors: str = "pt"
@@ -219,6 +219,7 @@ class HuggingfaceProcessor(DataTransform):
         if input.label is not None:
             batch_size = tokenization_data["input_ids"].shape[0]
             label = torch.tensor([input.label] * batch_size, dtype=torch.long)
+
         return HuggingfaceProcessorOutput(
             token_ids=tokenization_data["input_ids"],
             attention_mask=tokenization_data["attention_mask"],

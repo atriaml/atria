@@ -49,7 +49,7 @@ class QAHuggingfaceProcessorOutput(HuggingfaceProcessorOutput):
 
 
 class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
-    hf_processor: HuggingfaceProcessor = Field(default_factory=HuggingfaceProcessor)
+    hf_processor: HuggingfaceProcessor = HuggingfaceProcessor(truncation="only_second")
 
     # segment-level-rank info args
     use_segment_level_bboxes: bool = False
@@ -151,7 +151,6 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             words=document_instance.content.text_list,
             token_ids=hf_processor_output.token_ids,
             word_ids=hf_processor_output.word_ids,
-            special_tokens_mask=hf_processor_output.special_tokens_mask,
             sequence_ids=hf_processor_output.sequence_ids,
             token_bboxes=hf_processor_output.token_bboxes,
             token_type_ids=hf_processor_output.token_type_ids,
@@ -310,7 +309,6 @@ class QuestionAnsweringDocumentTokenizer(DocumentTokenizer):
             words=document_instance.content.text_list,
             token_ids=hf_processor_output.token_ids,
             word_ids=hf_processor_output.word_ids,
-            special_tokens_mask=hf_processor_output.special_tokens_mask,
             sequence_ids=hf_processor_output.sequence_ids,
             token_bboxes=hf_processor_output.token_bboxes,
             token_type_ids=hf_processor_output.token_type_ids,

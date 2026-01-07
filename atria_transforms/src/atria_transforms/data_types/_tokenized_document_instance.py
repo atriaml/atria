@@ -72,7 +72,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
         if isinstance(value, torch.Tensor):
             return value
         elif isinstance(value, np.ndarray):
-            return torch.tensor(value, dtype=torch.long)
+            return torch.tensor(value)
         else:
             raise ValueError(f"Unsupported type for tensor field: {type(value)}")
 
