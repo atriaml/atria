@@ -186,5 +186,5 @@ class DataPipeline(RepresentationMixin):
             batch_size=batch_size * idist.get_world_size(),
             pin_memory=pin_memory,
             num_workers=num_workers,
-            persistent_workers=True,
+            # persistent_workers=True,
         )
