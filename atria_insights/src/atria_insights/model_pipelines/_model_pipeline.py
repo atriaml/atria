@@ -112,6 +112,9 @@ class ExplainableModelPipeline(
         self._baseline_generator = self.config.baseline_generator.build(
             model=self._model_pipeline._model
         )
+        self._metric_baseline_generator = self.config.metric_baseline_generator.build(
+            model=self._model_pipeline._model
+        )
 
     def _build_cacher(self):
         self._explainer_dir = None
@@ -179,19 +182,19 @@ class ExplainableModelPipeline(
     @abstractmethod
     def _explained_inputs(
         self, batch: T_TensorDataModel, **kwargs
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """Prepare the input features for the explainer."""
         pass
 
     def _additional_forward_kwargs(
         self, batch: T_TensorDataModel
-    ) -> OrderedDict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         """Prepare any additional forward arguments for the explainer."""
         return None
 
     def _baselines(
-        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor], **kwargs
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
+        self, explained_inputs: dict[str, torch.Tensor], **kwargs
+    ) -> dict[str, torch.Tensor]:
         """Generate baselines for the explainer."""
         logger.debug(
             "Generating baselines using baseline generator with config: %s",
@@ -201,9 +204,21 @@ class ExplainableModelPipeline(
         log_tensor_info(baselines, name="baselines")
         return baselines
 
+    def _metric_baselines(
+        self, explained_inputs: dict[str, torch.Tensor], **kwargs
+    ) -> dict[str, torch.Tensor]:
+        """Generate baselines for the explainer."""
+        logger.debug(
+            "Generating baselines using baseline generator with config: %s",
+            self.config.baseline_generator,
+        )
+        baselines = self._metric_baseline_generator(explained_inputs, **kwargs)
+        log_tensor_info(baselines, name="metric_baselines")
+        return baselines
+
     def _feature_mask(
-        self, explained_inputs: torch.Tensor | OrderedDict[str, torch.Tensor], **kwargs
-    ) -> Any:
+        self, explained_inputs: dict[str, torch.Tensor], **kwargs
+    ) -> tuple[dict[str, torch.Tensor], list[torch.Tensor] | None]:
         """Generate feature mask using the feature segmentor."""
         logger.debug(
             "Generating feature mask using feature segmentor with config: %s",
@@ -211,14 +226,37 @@ class ExplainableModelPipeline(
         )
         feature_masks = self._feature_segmentor(explained_inputs, **kwargs)
         log_tensor_info(feature_masks, name="feature_masks")
-        return feature_masks
+        return feature_masks, None
 
-    def _validated_inputs(
+    def _sliding_window_shapes_and_strides(
+        self, input_feature_keys: tuple[str, ...]
+    ) -> tuple[dict[str, tuple] | None, dict[str, tuple] | None]:
+        if "sliding_window_shapes" not in self._explainer_args:
+            return None, None
+        if (
+            self.config.sliding_window_shapes_map is None
+            or self.config.strides_map is None
+        ):
+            raise ValueError(
+                f"sliding_window_shapes_map and strides_map must be defined in the config for {self._explainer.__class__.__name__}."
+            )
+        sliding_window_shapes_map = {}
+        strides = {}
+        for key in input_feature_keys:
+            sliding_window_shapes_map[key] = self.config.sliding_window_shapes_map[key]
+            strides[key] = self.config.strides_map[key]
+
+        return sliding_window_shapes_map, strides
+
+    def _validated_inputs(  # type: ignore[override]
         self,
-        inputs: torch.Tensor | OrderedDict[str, torch.Tensor],
-        additional_forward_kwargs: OrderedDict[str, Any] | None = None,
-        baselines: torch.Tensor | OrderedDict[str, torch.Tensor] | None = None,
-        feature_mask: torch.Tensor | OrderedDict[str, torch.Tensor] | None = None,
+        inputs: dict[str, torch.Tensor],
+        additional_forward_kwargs: dict[str, Any] | None = None,
+        baselines: dict[str, torch.Tensor] | None = None,
+        metric_baselines: dict[str, torch.Tensor] | None = None,
+        feature_mask: dict[str, torch.Tensor] | None = None,
+        sliding_window_shapes: dict[str, tuple] | None = None,
+        strides: dict[str, tuple] | None = None,
     ) -> tuple:
         """
         Validate and map inputs to the model forward signature.
@@ -227,64 +265,133 @@ class ExplainableModelPipeline(
             model_inputs: tuple of positional arguments for model forward
             expected_params: list of expected parameter names (excluding self)
         """
-        additional_forward_kwargs = additional_forward_kwargs or OrderedDict()
-
-        # ---- model signature ----
-        expected_params = list(self._model_signature.parameters.keys())
+        additional_forward_kwargs = additional_forward_kwargs or {}
 
         # ---- inputs ----
         baselines_tuple = None
         feature_mask_tuple = None
-        if isinstance(inputs, OrderedDict):
-            input_names = list(inputs.keys())
-            input_values = tuple(inputs.values())
-            if baselines is not None:
-                assert isinstance(baselines, OrderedDict), (
-                    "If inputs is an OrderedDict, baselines must also be an OrderedDict."
-                )
-                baselines_tuple = tuple(baselines[key] for key in input_names)
-            if feature_mask is not None:
-                assert isinstance(feature_mask, OrderedDict), (
-                    "If inputs is an OrderedDict, feature_mask must also be an OrderedDict."
-                )
-                feature_mask_tuple = tuple(feature_mask[key] for key in input_names)
-        else:
-            input_names = [expected_params[0]]
-            input_values = (inputs,)
-            if baselines is not None:
-                assert isinstance(baselines, torch.Tensor), (
-                    "If inputs is a Tensor, baselines must also be a Tensor."
-                )
-                baselines_tuple = (baselines,)
-            if feature_mask is not None:
-                assert isinstance(feature_mask, torch.Tensor), (
-                    "If inputs is a Tensor, feature_mask must also be a Tensor."
-                )
-                feature_mask_tuple = (feature_mask,)
-
-        # ---- additional kwargs ----
-        additional_names = list(additional_forward_kwargs.keys())
-        additional_values = tuple(additional_forward_kwargs.values())
-
-        # ---- combined ----
-        all_names = input_names + additional_names
-
-        # ---- validation ----
-        if len(all_names) != len(expected_params):
-            raise ValueError(
-                f"Model expects {len(expected_params)} inputs {expected_params}, "
-                f"but got {len(all_names)} inputs {all_names}."
+        metric_baselines_tuple = None
+        feature_keys = tuple(inputs.keys())
+        feature_values = tuple(inputs.values())
+        if baselines is not None:
+            assert isinstance(baselines, dict), (
+                "If inputs is an dict, baselines must also be an dict."
             )
 
-        for given, expected in zip(all_names, expected_params, strict=True):
-            if given != expected:
-                raise ValueError(
-                    f"Input '{given}' does not match model parameter '{expected}'.\n"
-                    f"Given inputs: {all_names}\n"
-                    f"Expected signature: {expected_params}"
+            baselines_tuple = ()
+            for input_key, input_value in inputs.items():
+                baseline = baselines[input_key]
+
+                # assert shape matches
+                # Note: baseline batch size can be different due to multiple baselines
+                assert baseline.shape[1:] == input_value.shape[1:], (
+                    f"Baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
                 )
 
-        return input_values, additional_values, baselines_tuple, feature_mask_tuple
+                baselines_tuple += (baseline,)  # type: ignore
+
+        if metric_baselines is not None:
+            assert isinstance(metric_baselines, dict), (
+                "If inputs is an dict, metric_baselines must also be an dict."
+            )
+            metric_baselines_tuple = ()
+            for input_key, input_value in inputs.items():
+                baseline = metric_baselines[input_key]
+
+                # assert shape matches
+                # Note: baseline batch size can be different due to multiple baselines
+                assert baseline.shape[1:] == input_value.shape[1:], (
+                    f"Metric baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
+                )
+
+                metric_baselines_tuple += (baseline,)  # type: ignore
+
+        if feature_mask is not None:
+            assert isinstance(feature_mask, dict), (
+                "If inputs is an dict, feature_mask must also be an dict."
+            )
+
+            # expand feature masks to match input shapes
+            feature_mask_tuple = ()
+            for input_key, input_value in inputs.items():
+                mask = feature_mask[input_key]
+
+                # unsqueeze dims to match input shape
+                while len(mask.shape) < len(inputs[input_key].shape):
+                    mask = mask.unsqueeze(-1)
+
+                # expand to match input shape
+                mask = mask.expand_as(input_value)
+
+                # assert the shapes match
+                assert mask.shape == input_value.shape, (
+                    f"Feature mask shape {mask.shape} does not match input shape {input_value.shape} for key {input_key}"
+                )
+
+                feature_mask_tuple += (mask,)  # type: ignore
+
+        sliding_window_shapes_tuple = None
+        if sliding_window_shapes is not None:
+            sliding_window_shapes = {
+                key: sliding_window_shapes[key] for key in feature_keys
+            }
+
+            # make sure the shape matches the input shape
+            sliding_window_shapes_tuple = ()
+            for input_key, input_value in inputs.items():
+                # we take the shape of the a single sample
+                single_input_shape = input_value.shape[1:]
+
+                # expand the shape of the sliding window to match the input shape
+                sliding_window_shape = sliding_window_shapes[input_key]
+                for dim in single_input_shape[len(sliding_window_shape) :]:
+                    sliding_window_shape += (dim,)  # type: ignore
+                sliding_window_shapes_tuple += (sliding_window_shape,)  # type: ignore
+
+        strides_tuple = None
+        if strides is not None:
+            strides = {key: strides[key] for key in feature_keys}
+            strides_tuple = ()
+            for input_key, input_value in inputs.items():
+                # we take the shape of the a single sample
+                single_input_shape = input_value.shape[1:]
+
+                # expand the shape of the sliding window to match the input shape
+                strides_shape = strides[input_key]
+                for dim in single_input_shape[len(strides_shape) :]:
+                    strides_shape += (dim,)
+                strides_tuple += (strides_shape,)  # type: ignore
+
+        # finally we remap the feature keys from ids to embeddings
+        feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
+        if "token_type_ids" in additional_forward_kwargs:
+            additional_forward_kwargs["token_type_embeddings"] = (
+                additional_forward_kwargs.pop("token_type_ids")
+            )
+
+        args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
+        additional_forward_args = tuple(additional_forward_kwargs.values()) + (
+            args_mapping,
+        )
+        assert len(inputs) == len(inputs.keys()), (
+            "Input feature keys length does not match inputs length."
+            f" {len(inputs.keys())=}, {len(inputs)=}"
+        )
+        assert len(additional_forward_args) + len(inputs) == len(args_mapping) + 1, (
+            "Args map length does not match inputs and additional forward args length."
+            f" {len(args_mapping)=}, {len(inputs)=}, {len(additional_forward_args)=}"
+        )
+        return (
+            feature_values,
+            additional_forward_args,
+            baselines_tuple,
+            metric_baselines_tuple,
+            feature_mask_tuple,
+            sliding_window_shapes_tuple,
+            strides_tuple,
+            feature_keys,
+            args_mapping,
+        )
 
     def prepare_explanation_inputs(
         self, batch: T_TensorDataModel
@@ -302,30 +409,53 @@ class ExplainableModelPipeline(
             # prepare baselines
             baselines = self._baselines(explained_inputs=inputs)
 
-            # prepare feature mask
-            feature_mask = self._feature_mask(explained_inputs=inputs)
+            # prepare baselines for metrics if needed
+            metric_baselines = None
+            if self.config.explainability_metrics is not None:
+                metric_baselines = self._metric_baselines(inputs)
 
-            # map the inputs and forwad args to model signautre
-            input_feature_keys = (
-                tuple(inputs.keys())
-                if isinstance(inputs, OrderedDict)
-                else (_DEFAULT_FEATURE_INPUT_KEY,)  # make a dummy input
+            # prepare feature mask
+            feature_mask, frozen_features = self._feature_mask(explained_inputs=inputs)
+
+            # prepare sliding window shapes map and strides map for occlusion explainer
+            sliding_window_shapes, strides = self._sliding_window_shapes_and_strides(
+                input_feature_keys=tuple(inputs.keys())
             )
-            inputs, additional_forward_args, baselines, feature_mask = (
-                self._validated_inputs(
-                    inputs=inputs,
-                    additional_forward_kwargs=additional_forward_kwargs,
-                    baselines=baselines,
-                    feature_mask=feature_mask,
-                )
-            )
-            assert len(inputs) == len(input_feature_keys), (
-                "Input feature keys length does not match inputs length."
-                f" {len(input_feature_keys)=}, {len(inputs)=}"
+
+            # now log info
+            log_tensor_info(inputs, name="inputs")
+            log_tensor_info(additional_forward_kwargs, name="additional_forward_kwargs")
+            log_tensor_info(baselines, name="baselines")
+            if metric_baselines is not None:
+                log_tensor_info(metric_baselines, name="metric_baselines")
+            log_tensor_info(feature_mask, name="feature_mask")
+            log_tensor_info(sliding_window_shapes, name="sliding_window_shapes")
+            log_tensor_info(strides, name="strides")
+
+            (
+                inputs_tuple,
+                additional_forward_args,
+                baselines_tuple,
+                metric_baselines_tuple,
+                feature_mask_tuple,
+                sliding_window_shapes_tuple,
+                strides_tuple,
+                feature_keys,
+                _,
+            ) = self._validated_inputs(
+                inputs=inputs,
+                additional_forward_kwargs=additional_forward_kwargs,
+                baselines=baselines,
+                metric_baselines=metric_baselines,
+                feature_mask=feature_mask,
+                sliding_window_shapes=sliding_window_shapes,
+                strides=strides,
             )
 
             # forward pass
-            model_outputs = self._wrapped_model(*(*inputs, *additional_forward_args))
+            model_outputs = self._wrapped_model(
+                *(*inputs_tuple, *additional_forward_args)
+            )
 
             # prepare target
             target = self._target(batch=batch, model_outputs=model_outputs)
@@ -333,15 +463,21 @@ class ExplainableModelPipeline(
             # prepare explanation inputs
             return model_outputs, BatchExplanationInputs(
                 sample_id=batch.metadata.sample_id,
-                inputs=inputs,
+                inputs=inputs_tuple,
                 additional_forward_args=additional_forward_args,
-                baselines=baselines if "baselines" in self._explainer_args else None,
-                feature_mask=feature_mask
+                baselines=baselines_tuple
+                if "baselines" in self._explainer_args
+                else None,
+                metric_baselines=metric_baselines_tuple,
+                feature_mask=feature_mask_tuple
                 if "feature_mask" in self._explainer_args
                 else None,
+                metric_feature_mask=feature_mask_tuple,
                 target=target,
-                frozen_features=None,
-                feature_keys=input_feature_keys,
+                sliding_window_shapes=sliding_window_shapes_tuple,
+                strides=strides_tuple,
+                frozen_features=frozen_features,
+                feature_keys=feature_keys,
             )
 
     def explainer_forward(

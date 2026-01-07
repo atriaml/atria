@@ -490,7 +490,7 @@ class ExplainableSequenceModelPipeline(
         return feature_masks, frozen_features
 
     def _sliding_window_shapes_and_strides(
-        self, input_feature_keys: list[str]
+        self, input_feature_keys: tuple[str, ...]
     ) -> tuple[dict[str, tuple] | None, dict[str, tuple] | None]:
         if "sliding_window_shapes" not in self._explainer_args:
             return None, None
@@ -558,7 +558,7 @@ class ExplainableSequenceModelPipeline(
 
             # prepare sliding window shapes map and strides map for occlusion explainer
             sliding_window_shapes, strides = self._sliding_window_shapes_and_strides(
-                input_feature_keys=list(inputs.keys())
+                input_feature_keys=tuple(inputs.keys())
             )
 
             # map inputs to embeddings

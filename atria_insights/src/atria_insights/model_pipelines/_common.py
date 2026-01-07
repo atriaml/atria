@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
 from atria_models import ModelPipelineConfig
 from atria_registry import ModuleConfig
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._feature_based import (
@@ -42,6 +42,16 @@ class ExplainableModelPipelineConfig(ModuleConfig):
     model_pipeline: ModelPipelineConfig
     feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig()
     baseline_generator: BaselineGeneratorConfigType = SimpleBaselineGeneratorConfig()
+    metric_baseline_generator: BaselineGeneratorConfigType = (
+        SimpleBaselineGeneratorConfig()
+    )
+    # only for occlusion explainer
+    sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
+        default_factory=lambda: {"image": (3, 16, 16)}
+    )
+    strides_map: dict[str, tuple[int, ...]] | None = Field(
+        default_factory=lambda: {"image": (3, 8, 8)}
+    )
     explainer: ExplainerConfigType = SaliencyExplainerConfig()
     explainability_metrics: dict[str, ExplainabilityMetricConfig] | None = None  #
     explanation_target_strategy: ExplanationTargetStrategy = (

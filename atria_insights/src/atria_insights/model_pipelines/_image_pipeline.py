@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import TypeVar
 
 import torch
@@ -101,11 +100,11 @@ class ExplainableImageModelPipeline(
                 for label_index in range(total_labels)
             ]
 
-    def _explained_inputs(
+    def _explained_inputs(  # type: ignore[override]
         self, batch: ImageTensorDataModel | DocumentTensorDataModel
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         assert batch.image is not None, "Input images are required for explanation."
-        return batch.image
+        return {"image": batch.image}
 
 
 class ExplainableImageClassificationPipelineConfig(ExplainableImageModelPipelineConfig):
