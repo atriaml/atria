@@ -449,6 +449,7 @@ class ExplainableSequenceModelPipeline(
         self,
         explained_inputs: dict[str, torch.Tensor],
         word_ids: torch.Tensor,
+        sequence_ids: torch.Tensor,
         sequence_feature_keys: list[str],
     ) -> tuple[dict[str, torch.Tensor], list[torch.Tensor]]:
         """Generate feature mask using the feature segmentor."""
@@ -460,6 +461,7 @@ class ExplainableSequenceModelPipeline(
             token_ids=explained_inputs["token_ids"],
             image=explained_inputs.get("image", None),
             word_ids=word_ids,
+            sequence_ids=sequence_ids,
             sequence_feature_keys=sequence_feature_keys,
         )
         return feature_masks, frozen_features
@@ -527,6 +529,7 @@ class ExplainableSequenceModelPipeline(
             feature_mask, frozen_features = self._feature_mask(
                 inputs,
                 word_ids=batch.word_ids,
+                sequence_ids=batch.sequence_ids,
                 sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
             )
 
