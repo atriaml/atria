@@ -259,8 +259,9 @@ class ExplainableSequenceModelPipeline(
             )
 
         args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
+        bsz = feature_values[0].shape[0]
         additional_forward_args = tuple(additional_forward_kwargs.values()) + (
-            args_mapping,
+            [args_mapping for _ in range(bsz)],
         )
         assert len(inputs) == len(inputs.keys()), (
             "Input feature keys length does not match inputs length."

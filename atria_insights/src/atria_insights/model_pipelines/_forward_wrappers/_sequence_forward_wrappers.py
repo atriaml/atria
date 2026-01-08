@@ -26,7 +26,7 @@ class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
         )
 
     def _sanitize_inputs(self, *args) -> dict[str, Any]:
-        args_mapping = args[-1]  # the last arg is the args mapping
+        args_mapping = args[-1][0]  # the last arg is the args mapping
         assert isinstance(args_mapping, list), (
             f"Expected args_mapping to be a list of keys, got {type(args_mapping)}"
         )
