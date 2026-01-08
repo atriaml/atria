@@ -24,7 +24,7 @@ class AOPCConfig(ExplainabilityMetricConfig):
     total_feature_bins: int = 100
     n_random_perms: int = 10
     seed: int | None = None
-    show_progress: bool = False
+    show_progress: bool = True
     return_intermediate_results: bool = False
 
 
@@ -74,7 +74,7 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     n_perturb_samples: int = 10
     max_examples_per_batch: int | None = 10
     percent_features_perturbed: float = 0.1
-    show_progress: bool = False
+    show_progress: bool = True
     return_intermediate_results: bool = False
 
 
@@ -132,7 +132,7 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
     )
     max_features_processed_per_batch: int | None = 10
     percentage_feature_removal_per_step: float = 0.0
-    show_progress: bool = False
+    show_progress: bool = True
     return_intermediate_results: bool = False
 
 
@@ -227,7 +227,7 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
     module_path: str | None = "atria_insights.explainability_metrics.Monotonicity"
     max_features_processed_per_batch: int | None = None
     percentage_feature_removal_per_step: float = 0.01
-    show_progress: bool = False
+    show_progress: bool = True
     return_intermediate_results: bool = False
 
 

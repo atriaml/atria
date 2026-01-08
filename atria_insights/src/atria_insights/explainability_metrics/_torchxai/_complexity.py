@@ -139,7 +139,7 @@ class EffectiveComplexityConfig(ExplainabilityMetricConfig):
     use_percentage_attribution_threshold: bool = False
     perturb_func: str = "fixed"
     return_intermediate_results: bool = True
-    show_progress: bool = False
+    show_progress: bool = True
     return_ratio: bool = False
 
 
