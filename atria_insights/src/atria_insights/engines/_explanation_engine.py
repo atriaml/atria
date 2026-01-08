@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from atria_logger import get_logger
@@ -89,7 +90,8 @@ class ExplanationEngine(
 
         # initialize the progress bar
         progress_bar = ProgressBar(
-            desc=f"Stage [{self._engine_step.name}]", persist=True
+            desc=f"Stage [{self._engine_step.name}]", persist=True,
+            file=open(os.devnull, "w"),
         )
 
         if idist.get_rank() == 0:
@@ -99,6 +101,13 @@ class ExplanationEngine(
                     every=self._config.logging.refresh_rate
                 ),
             )
+
+            @self._engine.on(
+                Events.ITERATION_COMPLETED(every=self._config.logging.refresh_rate)
+            )
+            def print_pbar(engine: Engine) -> None:
+                # log the progress bar through our logger
+                logger.info(str(progress_bar.pbar))
 
             @self._engine.on(MetricUpdateEvents.X_METRIC_STARTED)
             def on_metric_update(engine: Engine) -> None:
