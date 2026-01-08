@@ -90,7 +90,7 @@ class ExplainableTokenClassificationModelForwardWrapper(
         assert isinstance(outputs, TransformersEncoderModelOutput)
         assert isinstance(outputs.head_output, TokenClassificationHeadOutput)
         assert outputs.head_output.logits is not None
-        probs = torch.nn.functional.softmax(outputs.head_output.logits)
+        probs = torch.nn.functional.softmax(outputs.head_output.logits, dim=-1)
         probs = torch.gather(probs, 2, probs.argmax(dim=-1).unsqueeze(-1)).squeeze(-1)
         return probs
 
