@@ -26,7 +26,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
     def __init__(self, cache_dir: str | Path, config: ExplainableModelPipelineConfig):
         # create a child cache dir for the given explainer
         super().__init__(
-            cache_dir=Path(cache_dir) / config.explainer.type,
+            cache_dir=Path(cache_dir),
             file_name=f"explanations-{config.hash}.hdf5",
         )
         self._config = config
