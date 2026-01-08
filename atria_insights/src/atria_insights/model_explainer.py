@@ -20,6 +20,7 @@ from atria_ml.training.engines._test_engine import (
 )
 from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
+from atria_logger._api import enable_file_logging, get_logger
 
 from atria_insights.configs.explanation_task_config import ExplanationTaskConfig
 from atria_insights.engines._explanation_engine import (
@@ -105,9 +106,16 @@ class ModelExplainer:
         from ignite.handlers import TensorboardLogger
 
         if idist.get_rank() == 0:
-            log_dir = Path(self._config.env.run_dir) / "tensorboard"
+            log_dir = Path(self._run_dir) / "tensorboard"
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
+
+            explainer_dir = (
+                Path(self._run_dir) / self._config.x_model_pipeline.explainer.type.split("/")[-1]
+            )
+            if not explainer_dir.exists():
+                explainer_dir.mkdir(parents=True, exist_ok=True)
+            enable_file_logging(str(Path(explainer_dir) / "run.log"))
         else:
             tb_logger = None
         return tb_logger
@@ -302,13 +310,17 @@ class ModelExplainer:
         return explanation_engine.run(self._checkpoint_path)
 
     def run(
-        self, total_samples: int | None = None, compute_metrics: bool = False
+        self, total_samples: int | None = None, compute_metrics: bool = False, compute_features_only: bool = False
     ) -> State:
         # run test
         self.test()
 
         # prepare features
         self.compute_training_baseline_features()
+
+        if compute_features_only:
+            logger.info("Feature generation only flag is set. Skipping explanations.")
+            return None
 
         # prepare explanations
         return self.compute_explanations(
