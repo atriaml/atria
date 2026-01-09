@@ -99,6 +99,13 @@ class SequenceFeatureMaskSegmentor(
                     list(range(n_special_tokens)), device=token_ids.device
                 )
 
+                # at the end we need to make sure that there are no jumps in the feature ids
+                # e.g. if we have features [0, 1, 2, 5, 6], we need to convert it to [0, 1, 2, 3, 4]
+                unique_feature_ids = torch.unique(feature_mask)
+                id_mapping = {old_id.item(): new_id for new_id, old_id in enumerate(unique_feature_ids)}
+                for old_id, new_id in id_mapping.items():
+                    feature_mask[feature_mask == old_id] = new_id
+
                 special_token_ids_batch.append(special_token_ids)
                 feature_masks.append(feature_mask)
         else:

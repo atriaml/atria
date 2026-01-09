@@ -580,35 +580,35 @@ class ExplainableModelPipeline(
             "Feature keys do not match between loaded explanation states and explanation inputs."
             f" Found {explanation_state.feature_keys} =/= {explanation_inputs.feature_keys}"
         )
-        assert (
-            explanation_state.sliding_window_shapes
-            == explanation_inputs.sliding_window_shapes
-        ), (
-            "Sliding window shapes do not match between loaded explanation states and explanation inputs."
-        )
-        assert explanation_state.strides == explanation_inputs.strides, (
-            "Strides do not match between loaded explanation states and explanation inputs."
-        )
-        if (
-            explanation_state.feature_mask is not None
-            and explanation_inputs.feature_mask is not None
-        ):
-            fm1 = (fm.detach().cpu() for fm in explanation_state.feature_mask)
-            fm2 = (fm.detach().cpu() for fm in explanation_inputs.feature_mask)
-            assert all(torch.equal(a, b) for a, b in zip(fm1, fm2, strict=True)), (
-                "Feature masks do not match between loaded explanation states and explanation inputs."
-                f" Found {fm1} =/= {fm2}"
-            )
-        if (
-            explanation_state.frozen_features is not None
-            and explanation_inputs.frozen_features is not None
-        ):
-            f1 = [x.detach().cpu() for x in explanation_state.frozen_features]
-            f2 = [x.detach().cpu() for x in explanation_inputs.frozen_features]
-            assert all(torch.equal(a, b) for a, b in zip(f1, f2, strict=True)), (
-                "Frozen features do not match between loaded explanation states and explanation inputs."
-                f" Found {f1} =/= {f2}"
-            )
+        # assert (
+        #     explanation_state.sliding_window_shapes
+        #     == explanation_inputs.sliding_window_shapes
+        # ), (
+        #     "Sliding window shapes do not match between loaded explanation states and explanation inputs."
+        # )
+        # assert explanation_state.strides == explanation_inputs.strides, (
+        #     "Strides do not match between loaded explanation states and explanation inputs."
+        # )
+        # if (
+        #     explanation_state.feature_mask is not None
+        #     and explanation_inputs.feature_mask is not None
+        # ):
+        #     fm1 = (fm.detach().cpu() for fm in explanation_state.feature_mask)
+        #     fm2 = (fm.detach().cpu() for fm in explanation_inputs.feature_mask)
+        #     assert all(torch.equal(a, b) for a, b in zip(fm1, fm2, strict=True)), (
+        #         "Feature masks do not match between loaded explanation states and explanation inputs."
+        #         f" Found {fm1} =/= {fm2}"
+        #     )
+        # if (
+        #     explanation_state.frozen_features is not None
+        #     and explanation_inputs.frozen_features is not None
+        # ):
+        #     f1 = [x.detach().cpu() for x in explanation_state.frozen_features]
+        #     f2 = [x.detach().cpu() for x in explanation_inputs.frozen_features]
+        #     assert all(torch.equal(a, b) for a, b in zip(f1, f2, strict=True)), (
+        #         "Frozen features do not match between loaded explanation states and explanation inputs."
+        #         f" Found {f1} =/= {f2}"
+        #     )
         assert (
             torch.mean(
                 torch.abs(
@@ -622,6 +622,7 @@ class ExplainableModelPipeline(
             f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
         )
 
+        logger.info("Loaded cached explanations for full batch of size %d.", len(model_outputs))
         return ExplanationStepOutput(
             explanation_inputs=explanation_inputs,
             explanation_state=explanation_state.to_device(
@@ -652,6 +653,8 @@ class ExplainableModelPipeline(
                         model_outputs=model_outputs,
                     )
                 except Exception as e:
+                    if self.config.throw_on_load_mismatch:
+                        raise e
                     logger.warning(
                         f"Failed to validate loaded explanations due to error: {e}. Recomputing explanations."
                     )

@@ -38,6 +38,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         "iterative_computation",
         "internal_batch_size",
         "grad_batch_size",
+        "throw_on_load_mismatch",
     }
     model_pipeline: ModelPipelineConfig
     feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig()
@@ -60,6 +61,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
     iterative_computation: bool = False
     internal_batch_size: int = 1
     grad_batch_size: int = 1
+    throw_on_load_mismatch: bool = False
 
     @model_validator(mode="after")
     def validate_explainer(self) -> Self:

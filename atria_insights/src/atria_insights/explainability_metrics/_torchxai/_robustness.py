@@ -41,6 +41,8 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
             additional_forward_args=explanation_inputs.additional_forward_args,
             baselines=explanation_inputs.baselines,  # notice explainer baselines, this is different from metric baselines
             feature_mask=explanation_inputs.metric_feature_mask,  # notice explainer feature mask, this is different from metric feature mask
+            sliding_window_shapes=explanation_inputs.sliding_window_shapes, # needed for occlusion
+            strides=explanation_inputs.strides, # needed for occlusion
             perturb_radius=self.config.perturb_radius,
             n_perturb_samples=self.config.n_perturb_samples,
             norm_ord=self.config.norm_ord,

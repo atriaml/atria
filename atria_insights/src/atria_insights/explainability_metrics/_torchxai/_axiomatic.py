@@ -38,7 +38,6 @@ class Completeness(ExplainabilityMetric[CompletenessConfig]):
             multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )
-        print("outputs", outputs)
         assert isinstance(outputs, dict)
         return outputs
 
