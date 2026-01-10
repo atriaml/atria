@@ -54,6 +54,32 @@ class MsgpackShardListDataset(Sequence[Any]):
         """
         return self._shard_files
 
+    def fetch_sample_by_id(self, sample_id: str) -> tuple[int, dict[str, Any]]:
+        """
+        Retrieves a sample from the dataset by its sample ID.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to retrieve.
+
+        Returns:
+            Dict[str, Any]: The sample corresponding to the specified sample ID.
+        """
+        for reader in self._shard_file_readers:
+            try:
+                sample_id = str(sample_id)
+                index = reader.find_index(sample_id.replace(".", "_"))
+                sample = reader[index]
+                sample.pop("key", None)
+                assert (
+                    sample["sample_id"] == sample_id
+                ), (  # this should never be triggered
+                    f"Sample ID mismatch: expected {sample_id}, found {sample['sample_id']}"
+                )
+                return index, sample
+            except KeyError:
+                continue
+        raise ValueError(f"Sample ID {sample_id} not found in any shard.")
+
     def __getitem__(self, index: int) -> dict[str, Any]:  # type: ignore[override]
         """
         Retrieves a sample from the dataset by index.

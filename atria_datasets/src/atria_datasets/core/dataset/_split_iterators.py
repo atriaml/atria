@@ -175,6 +175,25 @@ class SplitIterator(
                 "This dataset is not backed by a DataFrame or does not support dataframe representation."
             )
 
+    def fetch_sample_by_id(self, sample_id: str) -> T_BaseDataInstance:
+        """
+        Retrieves a sample from the dataset by its sample ID.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to retrieve.
+        Returns:
+            T_BaseDataInstance: The sample corresponding to the specified sample ID.
+        """
+        if hasattr(self._base_iterator, "fetch_sample_by_id"):
+            index, sample = self._base_iterator.fetch_sample_by_id(sample_id)  # type: ignore[call-arg]
+            if self._tf_enabled:
+                return self._tf(index, sample)  # type: ignore[arg-type]
+            return sample
+        else:
+            raise RuntimeError(
+                "The base iterator does not support retrieval by sample ID."
+            )
+
     def __iter__(
         self,
     ) -> Iterator[
