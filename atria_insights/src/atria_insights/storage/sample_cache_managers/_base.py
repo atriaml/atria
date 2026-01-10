@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_insights.storage.data_cachers._common import SerializableSampleData
@@ -26,6 +26,9 @@ class BaseSampleCacheManager(Generic[T]):
     @property
     def file_path(self) -> Path:
         return self._cacher._file_path
+
+    def save_file_attrs(self, attrs: dict[str, Any]) -> None:
+        self._cacher.save_file_attrs(attrs)
 
     def sample_exists(self, sample_key: str) -> bool:
         return self._cacher.sample_exists(sample_key)

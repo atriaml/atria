@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import torch
@@ -22,6 +23,14 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
             file_name=f"metrics/{config.type}-{config.hash}.hdf5",
         )
         self._config = config
+
+        # save config to attrs
+        self._dump_config()
+
+    def _dump_config(self) -> dict:
+        self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
+        with open(self.file_path.with_suffix(".yaml"), "w") as f:
+            f.write(self._config.to_yaml())
 
     def _serialize_type(self, data: SampleMetricData) -> SerializableSampleData:
         # find all tensors in data

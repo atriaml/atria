@@ -158,6 +158,7 @@ class ExplainabilityMetric(
                 data = self._load_from_disk(
                     sample_ids=explanation_step_output.explanation_inputs.sample_id
                 )
+                logger.info(f"Metric data loaded: {data}")
                 self._results.append(data)
                 self._num_examples += (
                     explanation_step_output.explanation_inputs.batch_size
@@ -205,6 +206,8 @@ class ExplainabilityMetric(
             sample_id=explanation_inputs.sample_id,
             data={**metric_output, "sample_exec_time": sample_exec_time},
         )
+
+        logger.info(f"Metric data computed: {metric_data}")
 
         # save to disk
         if self._persist_to_disk:

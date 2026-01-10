@@ -124,6 +124,13 @@ class HDF5DataCacher(DataCacher):
 
         return "\n".join(lines)
 
+    def save_file_attrs(self, attrs: dict[str, Any]) -> None:
+        if not self._file_path.parent.exists():
+            self._file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(self._file_path, "a") as hf:
+            self._save_attrs(hf, attrs)
+
     def sample_exists(self, sample_key: str) -> bool:
         if not Path(self._file_path).exists():
             return False

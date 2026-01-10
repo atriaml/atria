@@ -33,9 +33,9 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         self._dump_config()
 
     def _dump_config(self) -> dict:
+        self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
         with open(self.file_path.with_suffix(".yaml"), "w") as f:
             f.write(self._config.to_yaml())
-            return self._config.model_dump()
 
     def _serialize_type(self, data: SampleExplanationState) -> SerializableSampleData:
         if data.target is not None:

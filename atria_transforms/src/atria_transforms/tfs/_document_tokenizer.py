@@ -112,6 +112,12 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
         boxes = self._load_word_bboxes(document_instance.content)
         label = self._get_classification_annotation_label(document_instance)
         word_labels = self._get_token_classification_labels(document_instance)
+        if len(text) == 0:
+            text = ["empty"]
+        if boxes is not None and len(boxes) == 0:
+            boxes = [[0.0, 0.0, 0.0, 0.0]]
+        if word_labels is not None and len(word_labels) == 0:
+            word_labels = [0]
         return HuggingfaceProcessorInput(
             text=text, boxes=boxes, label=label, word_labels=word_labels
         )
@@ -221,6 +227,10 @@ class QuestionAnsweringDocumentTokenizer(DocumentTokenizer):
         boxes = self._load_word_bboxes(document_instance.content)
         label = self._get_classification_annotation_label(document_instance)
         word_labels = self._get_token_classification_labels(document_instance)
+        if len(text) == 0:
+            text = ["empty"]
+            boxes = [[0.0, 0.0, 0.0, 0.0]] if boxes is None else boxes
+            word_labels = [0] if word_labels is None else word_labels
         if boxes is not None:
             assert len(text_pair) == len(boxes), (
                 f"Length mismatch between text_pair and boxes for sample {document_instance.sample_id}. "
