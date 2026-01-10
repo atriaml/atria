@@ -5,7 +5,10 @@ import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 
-from atria_insights.data_types._metric_data import SampleMetricData
+from atria_insights.data_types._metric_data import (
+    MultiTargetSampleMetricData,
+    SampleMetricData,
+)
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
@@ -27,30 +30,66 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
         # save config to attrs
         self._dump_config()
 
-    def _dump_config(self) -> dict:
+    def _dump_config(self):
         self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
         with open(self.file_path.with_suffix(".yaml"), "w") as f:
             f.write(self._config.to_yaml())
 
-    def _serialize_type(self, data: SampleMetricData) -> SerializableSampleData:
+    def _serialize_type(
+        self, data: SampleMetricData | MultiTargetSampleMetricData
+    ) -> SerializableSampleData:
         # find all tensors in data
-        tensors = {}
-        attrs = {}
-        for key, value in data.data.items():
-            if isinstance(value, torch.Tensor):
-                tensors[key] = value
-            else:
-                attrs[key] = to_serializable(value)
+        if isinstance(data, MultiTargetSampleMetricData):
+            per_target_tensors = []
+            per_target_attrs = []
+            for per_target_data in data.value:
+                tensors = {}
+                attrs = {}
+                for key, value in per_target_data.data.items():
+                    if isinstance(value, torch.Tensor):
+                        tensors[key] = value
+                    else:
+                        attrs[key] = to_serializable(value)
+                per_target_tensors.append(tensors)
+                per_target_attrs.append(attrs)
 
-        return SerializableSampleData(
-            sample_id=data.sample_id,
-            attrs={
-                "sample_id": data.sample_id,
-                "config_hash": self._config.hash,
-                **attrs,
-            },
-            tensors=tensors,
-        )
+            # Convert list of dicts to dict of lists
+            per_target_tensors_dict = {
+                k: torch.stack([dic[k] for dic in per_target_tensors])
+                for k in per_target_tensors[0]
+            }
+            per_target_attrs_dict = {
+                k: [dic[k] for dic in per_target_attrs] for k in per_target_attrs[0]
+            }
+            print(per_target_tensors_dict)
+            print(per_target_tensors_dict)
+            return SerializableSampleData(
+                sample_id=data.sample_id,
+                attrs={
+                    "sample_id": data.sample_id,
+                    "config_hash": self._config.hash,
+                    **per_target_attrs_dict,
+                },
+                tensors=per_target_tensors_dict,
+            )
+        else:
+            tensors = {}
+            attrs = {}
+            for key, value in data.data.items():
+                if isinstance(value, torch.Tensor):
+                    tensors[key] = value
+                else:
+                    attrs[key] = to_serializable(value)
+
+            return SerializableSampleData(
+                sample_id=data.sample_id,
+                attrs={
+                    "sample_id": data.sample_id,
+                    "config_hash": self._config.hash,
+                    **attrs,
+                },
+                tensors=tensors,
+            )
 
     def _deserialize_type(self, data: SerializableSampleData) -> SampleMetricData:
         assert data.attrs is not None, "attrs must be provided in CacheData."

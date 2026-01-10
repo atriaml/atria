@@ -24,6 +24,7 @@ class SampleMetricData(BaseModel):
     sample_id: str
     data: dict[str, float | torch.Tensor | str]
 
+
 class MultiTargetSampleMetricData(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
@@ -33,8 +34,14 @@ class MultiTargetSampleMetricData(BaseModel):
         revalidate_instances="always",
     )
 
-    sample_id: str
     value: list[SampleMetricData]
+
+    @property
+    def sample_id(self):
+        assert all(self.value[0].sample_id == v.sample_id for v in self.value), (
+            "The metric data per target does not belong to the same sample."
+        )
+        return self.value[0].sample_id
 
 
 class BatchMetricData(BaseModel):
@@ -145,33 +152,43 @@ class MultiTargetBatchMetricData(BaseModel):
         revalidate_instances="always",
     )
 
-    sample_id: list[str]
     value: list[BatchMetricData]
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].batch_size
+
+    @property
+    def n_targets(self) -> int:
+        return len(self.value)
+
     @classmethod
     def fromlist(
         cls, data: list[MultiTargetSampleMetricData]
-    ) -> MultiTargetSampleMetricData:
-        per_target_batch_explanations = []
+    ) -> MultiTargetBatchMetricData:
+        per_target_batch_metrics = []
         for target_idx in range(len(data[0].value)):
-            batch_explanations = BatchMetricData.fromlist(
+            batch_metric_data = BatchMetricData.fromlist(
                 [d.value[target_idx] for d in data]
             )
-            per_target_batch_explanations.append(batch_explanations)
-        return cls(value=per_target_batch_explanations)
+            per_target_batch_metrics.append(batch_metric_data)
+        return cls(value=per_target_batch_metrics)
 
-    def tolist(self) -> list[MultiTargetSampleExplanation]:
-        per_target_sample_explanations = [
+    def tolist(self) -> list[MultiTargetSampleMetricData]:
+        per_target_sample_metrics = [
             target_batch_expl.tolist() for target_batch_expl in self.value
         ]
+
         # now we need to transpose per target list into per sample list
         n_samples = self.batch_size
-        multi_target_sample_explanations = []
+        multi_target_sample_metric_data = []
         for sample_idx in range(n_samples):
-            sample_explanations = [
-                per_target_sample_explanations[target_idx][sample_idx]
-                for target_idx in range(self.n_targets)
-            ]
-            multi_target_sample_explanations.append(
-                MultiTargetSampleExplanation(value=sample_explanations)
+            multi_target_sample_metric_data.append(
+                MultiTargetSampleMetricData(
+                    value=[
+                        per_target_sample_metrics[target_idx][sample_idx]
+                        for target_idx in range(self.n_targets)
+                    ]
+                )
             )
-        return multi_target_sample_explanations
+        return multi_target_sample_metric_data
