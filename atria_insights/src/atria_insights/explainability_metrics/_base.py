@@ -20,6 +20,7 @@ class ExplainabilityMetricConfig(ModuleConfig):
         device: torch.device | str = "cpu",
         persist_to_disk: bool = True,
         cache_dir: str | Path | None = None,
+        metric_name: str | None = None,
     ) -> Explainer:
         return super().build(
             model=model,
@@ -27,6 +28,7 @@ class ExplainabilityMetricConfig(ModuleConfig):
             device=device,
             persist_to_disk=persist_to_disk,
             cache_dir=cache_dir,
+            metric_name=metric_name,
         )
 
 

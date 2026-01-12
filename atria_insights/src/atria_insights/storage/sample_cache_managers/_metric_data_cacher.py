@@ -15,12 +15,13 @@ logger = get_logger(__name__)
 
 
 class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
-    def __init__(self, cache_dir: str | Path, config: ExplainabilityMetricConfig):
+    def __init__(self, cache_dir: str | Path, config: ExplainabilityMetricConfig, file_name: str | None = None):
         # create a child cache dir for the given explainer
 
+        file_name = f"metrics/{file_name}.hdf5" or f"metrics/{config.type}-{config.hash}.hdf5"
         super().__init__(
             cache_dir=Path(cache_dir),
-            file_name=f"metrics/{config.type}-{config.hash}.hdf5",
+            file_name=file_name,
         )
         self._config = config
 
