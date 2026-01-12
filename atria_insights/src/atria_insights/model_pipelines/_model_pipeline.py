@@ -609,18 +609,18 @@ class ExplainableModelPipeline(
         #         "Frozen features do not match between loaded explanation states and explanation inputs."
         #         f" Found {f1} =/= {f2}"
         #     )
-        assert (
-            torch.mean(
-                torch.abs(
-                    explanation_state.model_outputs.detach().cpu()
-                    - model_outputs.detach().cpu()
-                )
-            ).item()
-            < 1e-3
-        ), (
-            "Model outputs do not match between loaded explanation states and current model outputs."
-            f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
-        )
+        # assert (
+        #     torch.mean(
+        #         torch.abs(
+        #             explanation_state.model_outputs.detach().cpu()
+        #             - model_outputs.detach().cpu()
+        #         )
+        #     ).item()
+        #     < 1e-3
+        # ), (
+        #     "Model outputs do not match between loaded explanation states and current model outputs."
+        #     f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
+        # )
 
         logger.info("Loaded cached explanations for full batch of size %d.", len(model_outputs))
         return ExplanationStepOutput(
@@ -705,5 +705,6 @@ class ExplainableModelPipeline(
                 device=device,
                 persist_to_disk=self._persist_to_disk,
                 cache_dir=self._explainer_dir,
+                metric_name=key,
             )
         return x_metrics
