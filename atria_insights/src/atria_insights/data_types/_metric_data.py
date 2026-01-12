@@ -24,18 +24,6 @@ class SampleMetricData(BaseModel):
     sample_id: str
     data: dict[str, float | torch.Tensor | str]
 
-class MultiTargetSampleMetricData(BaseModel):
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        validate_assignment=True,
-        frozen=True,
-        extra="forbid",
-        revalidate_instances="always",
-    )
-
-    sample_id: str
-    value: list[SampleMetricData]
-
 
 class BatchMetricData(BaseModel):
     model_config = ConfigDict(
@@ -47,7 +35,7 @@ class BatchMetricData(BaseModel):
     )
 
     sample_id: list[str]
-    data: dict[str, torch.Tensor | list[float | str | torch.Tensor]]
+    data: dict[str, torch.Tensor | list[torch.Tensor] | list[float | str | torch.Tensor | list[torch.Tensor]]]
 
     def tolist(self) -> list[SampleMetricData]:
         metric_data_list = []
@@ -67,6 +55,14 @@ class BatchMetricData(BaseModel):
             {key: value[i] for key, value in metric_data.items()}
             for i in range(batch_size)
         ]
+
+        # if any value is a list of tensor convert it to tensro
+        for sample_dict in list_of_dicts:
+            for key, value in sample_dict.items():
+                if isinstance(value, list) and all(
+                    isinstance(v, torch.Tensor) for v in value
+                ):
+                    sample_dict[key] = torch.stack(value)
 
         # convert dict of lists to list of
         metric_data_list = [
@@ -134,44 +130,3 @@ class BatchMetricData(BaseModel):
     def batch_size(self) -> int:
         """Return the batch size of the metric data."""
         return len(self.sample_id)
-
-
-class MultiTargetBatchMetricData(BaseModel):
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        validate_assignment=True,
-        frozen=True,
-        extra="forbid",
-        revalidate_instances="always",
-    )
-
-    sample_id: list[str]
-    value: list[BatchMetricData]
-    @classmethod
-    def fromlist(
-        cls, data: list[MultiTargetSampleMetricData]
-    ) -> MultiTargetSampleMetricData:
-        per_target_batch_explanations = []
-        for target_idx in range(len(data[0].value)):
-            batch_explanations = BatchMetricData.fromlist(
-                [d.value[target_idx] for d in data]
-            )
-            per_target_batch_explanations.append(batch_explanations)
-        return cls(value=per_target_batch_explanations)
-
-    def tolist(self) -> list[MultiTargetSampleExplanation]:
-        per_target_sample_explanations = [
-            target_batch_expl.tolist() for target_batch_expl in self.value
-        ]
-        # now we need to transpose per target list into per sample list
-        n_samples = self.batch_size
-        multi_target_sample_explanations = []
-        for sample_idx in range(n_samples):
-            sample_explanations = [
-                per_target_sample_explanations[target_idx][sample_idx]
-                for target_idx in range(self.n_targets)
-            ]
-            multi_target_sample_explanations.append(
-                MultiTargetSampleExplanation(value=sample_explanations)
-            )
-        return multi_target_sample_explanations
