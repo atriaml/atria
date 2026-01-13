@@ -108,12 +108,6 @@ class BatchMetricData(BaseModel):
                     f"All values for key '{key}' must be of the same type. "
                     f"Found types: {[type(v) for v in value_list]}"
                 )
-            if isinstance(value_list[0], torch.Tensor):
-                if not all((v.shape == first_shape) for v in value_list):
-                    raise ValueError(
-                        f"All tensors/arrays for key '{key}' must have the same shape. "
-                        f"Expected shape {first_shape}, found shapes: {[v.shape for v in value_list]}"
-                    )
 
         # stack tensors where applicable
         for key, value_list in data_dict.items():
@@ -124,7 +118,10 @@ class BatchMetricData(BaseModel):
                     # special case for 1D tensors of shape (1,)
                     data_dict[key] = torch.cat(value_list)
                 else:
-                    data_dict[key] = torch.stack(value_list)
+                    if not all((v.shape == first_shape) for v in value_list):
+                        data_dict[key] = value_list
+                    else:
+                        data_dict[key] = torch.stack(value_list)
 
             assert len(data_dict[key]) == len(sample_ids), (
                 f"Data for key '{key}' has length {len(data_dict[key])}, expected {len(sample_ids)}."

@@ -234,6 +234,21 @@ class ExplainabilityMetric(
                     ), (
                         f"Expected inner length to be number of targets {n_targets}"
                     )
+
+                # recursively convert numpy arrays to tensors if any
+                def _convert_to_tensor(item):
+                    import numpy as np
+
+                    if isinstance(item, np.ndarray):
+                        return torch.tensor(item)
+                    elif isinstance(item, list):
+                        return [_convert_to_tensor(i) for i in item]
+                    elif isinstance(item, dict):
+                        return {k: _convert_to_tensor(v) for k, v in item.items()}
+                    else:
+                        return item
+                metric_output[key] = _convert_to_tensor(metric_output[key])
+
             logger.debug(f"Transposed metric output: {metric_output}")
 
         metric_data = BatchMetricData(
