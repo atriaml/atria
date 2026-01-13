@@ -29,6 +29,9 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
     ) -> dict[str, Any]:
+        if explanation_inputs.is_multi_target:
+            self._explainer.multi_target = True
+
         outputs = sensitivity_max_and_avg(
             explainer=self._explainer,
             # these are additionall explainer forward call args

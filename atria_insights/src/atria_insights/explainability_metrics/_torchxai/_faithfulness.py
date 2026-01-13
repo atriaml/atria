@@ -25,7 +25,7 @@ class AOPCConfig(ExplainabilityMetricConfig):
     n_random_perms: int = 10
     seed: int | None = None
     show_progress: bool = True
-    return_intermediate_results: bool = False
+    return_intermediate_results: bool = True
 
 
 class AOPC(ExplainabilityMetric[AOPCConfig]):
@@ -54,8 +54,8 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
             n_random_perms=self.config.n_random_perms,
             seed=self.config.seed,
             show_progress=self.config.show_progress,
-            return_intermediate_results=self.config.return_intermediate_results,
             multi_target=explanation_inputs.is_multi_target,
+            return_intermediate_results=True,
             return_dict=True,
         )
         assert isinstance(outputs, dict)
@@ -75,7 +75,7 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     max_examples_per_batch: int | None = 10
     percent_features_perturbed: float = 0.1
     show_progress: bool = True
-    return_intermediate_results: bool = False
+    return_intermediate_results: bool = True
 
 
 class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig]):
@@ -115,7 +115,7 @@ class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig
             percent_features_perturbed=self.config.percent_features_perturbed,
             show_progress=self.config.show_progress,
             multi_target=explanation_inputs.is_multi_target,
-            return_intermediate_results=self.config.return_intermediate_results,
+            return_intermediate_results=True,
             return_dict=True,
         )
         assert isinstance(outputs, dict)
@@ -133,7 +133,7 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
     max_features_processed_per_batch: int | None = 10
     percentage_feature_removal_per_step: float = 0.0
     show_progress: bool = True
-    return_intermediate_results: bool = False
+    return_intermediate_results: bool = True
 
 
 class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
@@ -161,7 +161,7 @@ class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
             percentage_feature_removal_per_step=self.config.percentage_feature_removal_per_step,
             multi_target=explanation_inputs.is_multi_target,
             show_progress=self.config.show_progress,
-            return_intermediate_results=self.config.return_intermediate_results,
+            return_intermediate_results=True,
             return_dict=True,
         )
         assert isinstance(outputs, dict)
@@ -228,7 +228,7 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
     max_features_processed_per_batch: int | None = None
     percentage_feature_removal_per_step: float = 0.01
     show_progress: bool = True
-    return_intermediate_results: bool = False
+    return_intermediate_results: bool = True
 
 
 class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
@@ -256,7 +256,7 @@ class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
             percentage_feature_removal_per_step=self.config.percentage_feature_removal_per_step,
             multi_target=explanation_inputs.is_multi_target,
             show_progress=self.config.show_progress,
-            return_intermediate_results=self.config.return_intermediate_results,
+            return_intermediate_results=True,
             return_dict=True,
         )
         assert isinstance(outputs, dict)

@@ -35,6 +35,19 @@ class SaliencyExplainerConfig(ExplainerConfig):
     type: Literal["grad/saliency"] = "grad/saliency"
     module_path: str | None = "torchxai.explainers.SaliencyExplainer"
 
+    def build(  # type: ignore
+        self,
+        model: torch.nn.Module,
+        internal_batch_size: int = 1,
+        multi_target: bool = False,
+        **kwargs,
+    ) -> Explainer:
+        return super().build(
+            model=model,
+            internal_batch_size=internal_batch_size,
+            multi_target=multi_target,
+            **kwargs,
+        )
 
 @EXPLAINERS.register("grad/integrated_gradients")
 class IntegratedGradientsExplainerConfig(ExplainerConfig):
@@ -42,17 +55,57 @@ class IntegratedGradientsExplainerConfig(ExplainerConfig):
     module_path: str | None = "torchxai.explainers.IntegratedGradientsExplainer"
     n_steps: int = 50
 
+    def build(  # type: ignore
+        self,
+        model: torch.nn.Module,
+        internal_batch_size: int = 1,
+        multi_target: bool = False,
+        **kwargs,
+    ) -> Explainer:
+        return super().build(
+            model=model,
+            internal_batch_size=internal_batch_size,
+            multi_target=multi_target,
+            **kwargs,
+        )
 
 @EXPLAINERS.register("grad/deeplift")
 class DeepLiftExplainerConfig(ExplainerConfig):
     type: Literal["grad/deeplift"] = "grad/deeplift"
     module_path: str | None = "torchxai.explainers.DeepLiftExplainer"
 
+    def build(  # type: ignore
+        self,
+        model: torch.nn.Module,
+        internal_batch_size: int = 1,
+        multi_target: bool = False,
+        **kwargs,
+    ) -> Explainer:
+        return super().build(
+            model=model,
+            internal_batch_size=internal_batch_size,
+            multi_target=multi_target,
+            **kwargs,
+        )
 
 @EXPLAINERS.register("grad/deeplift_shap")
 class DeepLiftShapExplainerConfig(ExplainerConfig):
     type: Literal["grad/deeplift_shap"] = "grad/deeplift_shap"
     module_path: str | None = "torchxai.explainers.DeepLiftShapExplainer"
+
+    def build(  # type: ignore
+        self,
+        model: torch.nn.Module,
+        internal_batch_size: int = 1,
+        multi_target: bool = False,
+        **kwargs,
+    ) -> Explainer:
+        return super().build(
+            model=model,
+            internal_batch_size=internal_batch_size,
+            multi_target=multi_target,
+            **kwargs,
+        )
 
 
 @EXPLAINERS.register("grad/gradient_shap")
@@ -61,6 +114,19 @@ class GradientShapExplainerConfig(ExplainerConfig):
     module_path: str | None = "torchxai.explainers.GradientShapExplainer"
     n_samples: int = 25
 
+    def build(  # type: ignore
+        self,
+        model: torch.nn.Module,
+        internal_batch_size: int = 1,
+        multi_target: bool = False,
+        **kwargs,
+    ) -> Explainer:
+        return super().build(
+            model=model,
+            internal_batch_size=internal_batch_size,
+            multi_target=multi_target,
+            **kwargs,
+        )
 
 @EXPLAINERS.register("grad/guided_backprop")
 class GuidedBackpropExplainerConfig(ExplainerConfig):
