@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections import OrderedDict
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import torch
 from atria_logger import get_logger
@@ -667,10 +667,20 @@ class ExplainableSequenceClassificationPipeline(
 class ExplainableTokenClassificationPipelineConfig(
     ExplainableSequenceModelPipelineConfig
 ):
+    __hash_exclude__: ClassVar[set[str]] = {
+        "explainability_metrics",
+        "iterative_computation",
+        "internal_batch_size",
+        "grad_batch_size",
+        "throw_on_load_mismatch",
+        "remove_other_labels",
+    }
+
     model_pipeline: TokenClassificationPipelineConfig = (
         TokenClassificationPipelineConfig()
     )
     use_word_level_targets: bool = True
+    remove_other_labels: bool = False
 
     @property
     def name(self) -> str:
@@ -711,10 +721,16 @@ class ExplainableTokenClassificationPipeline(
                 f"is introduced."
             )
             sample_word_ids = batch.word_ids[0]
-            return [
+            token_labels = batch.token_labels[0]
+            target = [
                 BatchExplanationTarget(value=[index], name=[str(index)])
-                for index in _generate_word_level_targets(sample_word_ids)
+                for index in _generate_word_level_targets(
+                    word_ids_per_sample=sample_word_ids,
+                    token_labels_per_sample=token_labels,
+                    remove_other_labels=self.config.remove_other_labels,
+                )
             ]
+            return target
         else:
             # otherwise we create explanation targets for each token
             return [
