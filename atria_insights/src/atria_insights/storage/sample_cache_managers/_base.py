@@ -3,9 +3,10 @@ from pathlib import Path
 from typing import Any, Generic, TypeVar
 
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
+from atria_logger import get_logger
+
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.data_cachers._hdf5 import HDF5DataCacher
-from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -37,9 +38,12 @@ class BaseSampleCacheManager(Generic[T]):
         cached_data = self._serialize_type(data)
         self._cacher.save_sample(cached_data)
 
-    def load_sample(self, sample_key: str) -> T:
-        cache_data = self._cacher.load_sample(sample_key)
+    def load_sample(self, sample_key: str, load_tensors: bool = True) -> T:
+        cache_data = self._cacher.load_sample(sample_key, load_tensors=load_tensors)
         return self._deserialize_type(cache_data)
+
+    def load_sample_attrs(self, sample_key: str) -> dict[str, Any]:
+        return self._cacher.load_sample_attrs(sample_key)
 
     def list_sample_keys(self) -> list[str]:
         return self._cacher.list_sample_keys()

@@ -26,8 +26,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
     def __init__(self, cache_dir: str | Path, config: ExplainableModelPipelineConfig):
         # create a child cache dir for the given explainer
         super().__init__(
-            cache_dir=Path(cache_dir),
-            file_name=f"explanations-{config.hash}.hdf5",
+            cache_dir=Path(cache_dir), file_name=f"explanations-{config.hash}.hdf5"
         )
         self._config = config
         self._dump_config()
@@ -110,7 +109,6 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
 
     def _deserialize_type(self, data: SerializableSampleData) -> SampleExplanationState:
         assert data.attrs is not None, "attrs must be provided in CacheData."
-        assert data.tensors is not None, "tensors must be provided in CacheData."
         sample_id = data.attrs.get("sample_id")
         assert isinstance(sample_id, str), "sample_id must be a string."
 
@@ -131,36 +129,40 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             )
             frozen_features = torch.Tensor(frozen_features)
 
-        if is_multitarget:
-            assert isinstance(data.tensors["explanations"], dict), (
-                "explanations must be a dict for single-target scenario."
-            )
-            explanations = _map_tensor_dicts_to_tuples(
-                data.tensors["explanations"], tuple(feature_keys)
-            )
-
-            # this will be tuple of (batch_size, T, ...) -> map back to list of tuples of (batch_size, ...)
-            explanations = [
-                tuple(explanations[tgt_idx][i] for tgt_idx in range(len(explanations)))
-                for i in range(explanations[0].shape[0])
-            ]
-
-            # map to MultiTargetSampleExplanation
-            explanations = MultiTargetSampleExplanation(
-                value=[
-                    SampleExplanation(value=explanations[i])
-                    for i in range(len(explanations))
-                ]
-            )
-        else:
-            assert isinstance(data.tensors["explanations"], dict), (
-                "explanations must be a dict for single-target scenario."
-            )
-            explanations = SampleExplanation(
-                value=_map_tensor_dicts_to_tuples(
+        explanations = None
+        if data.tensors is not None:
+            if is_multitarget:
+                assert isinstance(data.tensors["explanations"], dict), (
+                    "explanations must be a dict for single-target scenario."
+                )
+                explanations = _map_tensor_dicts_to_tuples(
                     data.tensors["explanations"], tuple(feature_keys)
                 )
-            )
+
+                # this will be tuple of (batch_size, T, ...) -> map back to list of tuples of (batch_size, ...)
+                explanations = [
+                    tuple(
+                        explanations[tgt_idx][i] for tgt_idx in range(len(explanations))
+                    )
+                    for i in range(explanations[0].shape[0])
+                ]
+
+                # map to MultiTargetSampleExplanation
+                explanations = MultiTargetSampleExplanation(
+                    value=[
+                        SampleExplanation(value=explanations[i])
+                        for i in range(len(explanations))
+                    ]
+                )
+            else:
+                assert isinstance(data.tensors["explanations"], dict), (
+                    "explanations must be a dict for single-target scenario."
+                )
+                explanations = SampleExplanation(
+                    value=_map_tensor_dicts_to_tuples(
+                        data.tensors["explanations"], tuple(feature_keys)
+                    )
+                )
 
         if is_multitarget:
             assert isinstance(target, list), (
@@ -173,17 +175,24 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 if target is not None
                 else None
             )
-        model_outputs = data.tensors["model_outputs"]
 
-        # collect feature mask if available
-        feature_mask = data.tensors.get("feature_mask", None)
-        if feature_mask is not None:
-            assert isinstance(feature_mask, dict), (
-                "feature_mask must be a dict if provided."
+        model_outputs = None
+        feature_mask = None
+        if data.tensors is not None:
+            model_outputs = data.tensors["model_outputs"]
+            assert isinstance(model_outputs, torch.Tensor), (
+                "model_outputs must be a torch.Tensor."
             )
-            feature_mask = _map_tensor_dicts_to_tuples(
-                feature_mask, tuple(feature_keys)
-            )
+
+            # collect feature mask if available
+            feature_mask = data.tensors.get("feature_mask", None)
+            if feature_mask is not None:
+                assert isinstance(feature_mask, dict), (
+                    "feature_mask must be a dict if provided."
+                )
+                feature_mask = _map_tensor_dicts_to_tuples(
+                    feature_mask, tuple(feature_keys)
+                )
 
         # get sliding window shapes and strides
         sliding_window_shapes = data.attrs.get("sliding_window_shapes")
@@ -195,9 +204,6 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         assert isinstance(strides, str), "strides must be a string."
         strides = json.loads(strides)
 
-        assert isinstance(model_outputs, torch.Tensor), (
-            "model_outputs must be a torch.Tensor."
-        )
         return SampleExplanationState(
             sample_id=sample_id,
             target=target,
