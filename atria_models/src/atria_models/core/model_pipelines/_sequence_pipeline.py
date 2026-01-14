@@ -686,12 +686,17 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
 
         # get question ids per repeated sample indices
         question_per_sample_idx = {}
-        for sample_id, qa_question in zip(
-            batch.metadata.sample_id, batch.metadata.qa_question, strict=True
+        answers_per_sample_idx = {}
+        for sample_id, qa_question, qa_answers in zip(
+            batch.metadata.sample_id,
+            batch.metadata.qa_question,
+            batch.metadata.qa_answers,
+            strict=True,
         ):
             question_per_sample_idx[sample_id] = qa_question
+            answers_per_sample_idx[sample_id] = qa_answers
 
-        qa_outputs = {"sample_id": [], "question": [], "answer": []}
+        qa_outputs = {"sample_id": [], "question": [], "answer": [], "gt_answers": []}
         for qid, preds in pred_answers_per_question_id.items():
             if "_qa_" in qid:
                 sample_id = qid.split("_qa_")[0]  # get the original sample id
@@ -702,9 +707,11 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
             sample_id = sample_id.split("-")[0]
 
             answer = preds[0]["text"]  # taking the top prediction
+            gt_answers = answers_per_sample_idx[qid]
             # original sample id, in case of unroling questions when multiple per sample
             # we map sample ids -> sample_id + _qa_ + question_idx
             # but for eval metrics we usually need the original sample id along with the question and answer pairs
+            qa_outputs["gt_answers"].append(gt_answers)
             qa_outputs["sample_id"].append(sample_id)
             qa_outputs["question"].append(question_per_sample_idx[qid])
             qa_outputs["answer"].append(answer)

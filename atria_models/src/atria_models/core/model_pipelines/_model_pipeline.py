@@ -126,3 +126,12 @@ class ModelPipeline(
             self.config.model_validate(state_dict["model_pipeline_config"])
         if "model" in state_dict:
             self._model.load_state_dict(state_dict["model"], strict=True)
+
+    def load_checkpoint(self, checkpoint_path: str) -> None:
+        import torch
+
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        assert "model_pipeline" in checkpoint, (
+            f"Checkpoint at {checkpoint_path} does not contain 'model_pipeline' key."
+        )
+        self.load_state_dict(checkpoint["model_pipeline"])

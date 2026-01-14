@@ -43,20 +43,6 @@ class ModelPipelineConfig(ModuleConfig):
     )
     metrics: list[MetricConfig] | None = None
 
-    # @field_validator("metrics", mode="before"):
-    # @classmethod
-    # def _validate_metrics(
-    #     cls, v: Any
-    # ) -> list[MetricConfig] | None:
-    #     if v is None:
-    #         return None
-    #     assert isinstance(v, list), "metrics must be a list"
-    #     for item in v:
-    #         assert isinstance(
-    #             item, (dict, MetricConfig)
-    #         ), "Each metric must be a dict or MetricConfig instance"
-    #     return [MetricConfig.model_validate(item) for item in v]
-
     def build(self, **kwargs: Any) -> ModelPipeline:
         labels = kwargs.pop("labels")
         assert labels is not None, (
