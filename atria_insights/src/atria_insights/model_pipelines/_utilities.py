@@ -1,12 +1,25 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import torch
 
-if TYPE_CHECKING:
-    pass
+# def _generate_word_level_targets(word_ids_per_sample):
+#     targets_per_sample = []
+#     last_word_id = None
+#     for idx in range(word_ids_per_sample.shape[0]):
+#         if (
+#             word_ids_per_sample[idx] != -100
+#             and word_ids_per_sample[idx] != last_word_id
+#         ):
+#             targets_per_sample.append(idx)
+#         last_word_id = word_ids_per_sample[idx]
+#     return targets_per_sample
 
 
-def _generate_word_level_targets(word_ids_per_sample):
+def _generate_word_level_targets(
+    word_ids_per_sample: torch.Tensor,
+    token_labels_per_sample: torch.Tensor,
+    remove_other_labels: bool = False,
+):
     targets_per_sample = []
     last_word_id = None
     for idx in range(word_ids_per_sample.shape[0]):
@@ -14,12 +27,16 @@ def _generate_word_level_targets(word_ids_per_sample):
             word_ids_per_sample[idx] != -100
             and word_ids_per_sample[idx] != last_word_id
         ):
-            targets_per_sample.append(idx)
+            if remove_other_labels:
+                if token_labels_per_sample[idx] != 0:
+                    targets_per_sample.append(idx)
+            else:
+                targets_per_sample.append(idx)
         last_word_id = word_ids_per_sample[idx]
     return targets_per_sample
 
 
-# def _generate_word_level_targets(
+# def _generate_word_level_targets_wo_other_labels(
 #     token_labels_per_sample: torch.Tensor,
 #     predicted_token_labels_per_sample: torch.Tensor,
 #     word_ids_per_sample: torch.Tensor,
