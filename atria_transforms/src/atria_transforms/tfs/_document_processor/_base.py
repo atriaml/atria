@@ -91,7 +91,7 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             return [tokenized_instance.resolve_overflow(random_idx)]
         elif self.overflow_strategy == "return_all":
             return [
-                tokenized_instance.resolve_overflow(i)
+                tokenized_instance.resolve_overflow(i, update_sample_id=True)
                 for i in range(tokenized_instance.batch_size)
             ]
         else:

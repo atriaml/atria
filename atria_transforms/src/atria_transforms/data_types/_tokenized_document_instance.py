@@ -76,7 +76,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
         else:
             raise ValueError(f"Unsupported type for tensor field: {type(value)}")
 
-    def resolve_overflow(self, overflow_idx: int):
+    def resolve_overflow(self, overflow_idx: int, update_sample_id: bool = False) -> TokenizedDocumentInstance:
         batch_size = self.token_ids.shape[0]
 
         def _get_at_idx(tensor: torch.Tensor | None) -> torch.Tensor | None:
@@ -88,8 +88,15 @@ class TokenizedDocumentInstance(BaseDataInstance):
             )
             return tensor[overflow_idx]
 
+        kwargs = {}
+        if update_sample_id:
+            kwargs ={
+                "sample_id": f"{self.sample_id}_overflow_{overflow_idx}"
+            }
+
         return self.model_copy(
             update={
+                **kwargs,
                 "token_ids": _get_at_idx(self.token_ids),
                 "word_ids": _get_at_idx(self.word_ids),
                 "special_tokens_mask": _get_at_idx(self.special_tokens_mask),
