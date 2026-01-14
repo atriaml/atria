@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 import torch
 from atria_types._generic._annotations import AnnotationType
+from atria_types._generic._bounding_box import BoundingBox
 from pydantic import BaseModel
 
 from atria_transforms.core import TensorDataModel
@@ -41,6 +42,27 @@ class DocumentTensorDataModel(TensorDataModel):
     # extractive QA specific fields
     token_answer_start: torch.Tensor | None = None
     token_answer_end: torch.Tensor | None = None
+
+    @property
+    def words(self) -> list[str]:
+        return self.metadata.words
+
+    @property
+    def word_bboxes(self) -> list[BoundingBox]:
+        word_bboxes = {}
+        for word_idx in self.word_ids:
+            if word_idx == -100:
+                continue
+            word_idx = word_idx.item()
+            if word_idx not in word_bboxes:
+                bbox = BoundingBox(value=self.token_bboxes[word_idx].tolist())
+                word_bboxes[word_idx] = bbox
+
+        word_bboxes = list(word_bboxes.values())
+        assert len(word_bboxes) == len(self.words), (
+            "Number of word bounding boxes does not match number of words"
+        )
+        return word_bboxes
 
     @classmethod
     def from_tokenized_instance(
