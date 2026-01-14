@@ -4,14 +4,15 @@ from typing import Self
 
 import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
+from atria_logger import get_logger
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict, model_validator
+
 from atria_insights.data_types._targets import (
     BatchExplanationTarget,
     SampleExplanationTarget,
 )
 from atria_insights.utilities._common import _to_device
-from atria_logger import get_logger
-from atria_types._utilities._repr import RepresentationMixin
-from pydantic import BaseModel, ConfigDict, model_validator
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -224,14 +225,25 @@ class SampleExplanationState(RepresentationMixin, BaseModel):
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
     strides: tuple[tuple[int, ...], ...] | None = None
     feature_mask: tuple[torch.Tensor, ...] | None = None
-    explanations: SampleExplanation | MultiTargetSampleExplanation
-    model_outputs: torch.Tensor
+    explanations: SampleExplanation | MultiTargetSampleExplanation | None = None
+    model_outputs: torch.Tensor | None = None
 
     @property
     def is_multitarget(self) -> bool:
         if isinstance(self.explanations, MultiTargetSampleExplanation):
             return True
         return False
+
+    @property
+    def explanations_dict(self) -> dict[str, torch.Tensor]:
+        """Return explanations as a dict of feature_key -> tensor."""
+        assert len(self.feature_keys) == self.explanations.n_features, (
+            "Number of feature keys must match number of explanation tensors."
+        )
+        return {
+            key: self.explanations.value[idx]
+            for idx, key in enumerate(self.feature_keys)
+        }
 
 
 class BatchExplanationState(RepresentationMixin, BaseModel):
