@@ -139,7 +139,6 @@ class HDF5DataCacher(DataCacher):
             return sample_key in hf
 
     def list_sample_keys(self) -> list[str]:
-        logger.debug(f"Listing sample keys in HDF5 file: {self._file_path}")
         with h5py.File(self._file_path, "r") as hf:
             return list(hf.keys())
 
@@ -167,7 +166,9 @@ class HDF5DataCacher(DataCacher):
             # log all keys in the h5 file
             logger.debug(f"Stored sample_key: {sample_key} in {self._file_path}")
 
-    def load_sample(self, sample_key: str) -> SerializableSampleData:
+    def load_sample(
+        self, sample_key: str, load_tensors: bool = True
+    ) -> SerializableSampleData:
         with h5py.File(self._file_path, "r") as hf:
             if sample_key not in hf:
                 raise ValueError(f"Sample key {sample_key} not found in HDF5 file.")
@@ -182,5 +183,19 @@ class HDF5DataCacher(DataCacher):
             return SerializableSampleData(
                 sample_id=sample_key,
                 attrs=self._load_attrs(state_group),
-                tensors=self._load_tensors(state_group),
+                tensors=self._load_tensors(state_group) if load_tensors else None,
             )
+
+    def load_sample_attrs(self, sample_key: str) -> dict[str, Any]:
+        with h5py.File(self._file_path, "r") as hf:
+            if sample_key not in hf:
+                raise ValueError(f"Sample key {sample_key} not found in HDF5 file.")
+
+            # get state group
+            state_group = hf[sample_key]
+
+            assert isinstance(state_group, h5py.Group), (
+                f"Expected h5py.Group, got {type(state_group)}"
+            )
+
+            return self._load_attrs(state_group)
