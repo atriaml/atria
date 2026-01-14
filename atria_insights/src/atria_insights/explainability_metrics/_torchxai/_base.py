@@ -65,8 +65,8 @@ class ExplainabilityMetric(
                 "cache_dir must be provided if caching is enabled"
             )
             self._cacher = MetricDataCacher(
-                cache_dir=cache_dir, config=self.config,
-                file_name=metric_name,)
+                cache_dir=cache_dir, config=self.config, file_name=metric_name
+            )
 
             logger.info("Explanation caching enabled.")
             logger.info(f"Storing outputs to file = {self._cacher.file_path}")
@@ -161,7 +161,7 @@ class ExplainabilityMetric(
                 data = self._load_from_disk(
                     sample_ids=explanation_step_output.explanation_inputs.sample_id
                 )
-                logger.info(f"Metric data loaded.")
+                logger.info("Metric data loaded.")
                 self._results.append(data)
                 self._num_examples += (
                     explanation_step_output.explanation_inputs.batch_size
@@ -217,7 +217,9 @@ class ExplainabilityMetric(
                 )
                 if isinstance(value[0], torch.Tensor):
                     metric_output[key] = torch.stack(value).transpose(0, 1)
-                    assert metric_output[key].shape[0] == explanation_inputs.batch_size, (
+                    assert (
+                        metric_output[key].shape[0] == explanation_inputs.batch_size
+                    ), (
                         f"Expected shape[0] to be batch size {explanation_inputs.batch_size}, got {metric_output[key].shape[0]}"
                     )
                     assert metric_output[key].shape[1] == n_targets, (
@@ -231,9 +233,7 @@ class ExplainabilityMetric(
                     assert all(
                         len(metric_output[key][i]) == n_targets
                         for i in range(explanation_inputs.batch_size)
-                    ), (
-                        f"Expected inner length to be number of targets {n_targets}"
-                    )
+                    ), f"Expected inner length to be number of targets {n_targets}"
             logger.debug(f"Transposed metric output: {metric_output}")
 
         metric_data = BatchMetricData(
@@ -241,7 +241,9 @@ class ExplainabilityMetric(
             data={**metric_output, "sample_exec_time": sample_exec_time},
         )
 
-        logger.info(f"Metric data computed: {self.name} for batch size {metric_data.batch_size}")
+        logger.info(
+            f"Metric data computed: {self.name} for batch size {metric_data.batch_size}"
+        )
 
         # save to disk
         if self._persist_to_disk:
@@ -256,3 +258,9 @@ class ExplainabilityMetric(
     def compute(self):
         """Compute final metric from accumulated state."""
         return self._results
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(config={self.config})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(config={self.config})"
