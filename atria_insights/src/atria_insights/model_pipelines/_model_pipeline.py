@@ -60,6 +60,10 @@ class ExplainableModelPipeline(
     def ops(self) -> Any:
         return ModelPipelineOps(self._model_pipeline)
 
+    @property
+    def cacher(self) -> ExplanationStateCacher | None:
+        return self._cacher if self._persist_to_disk else None
+
     def summarize(self):
         logger.info("XAI Model Pipeline Summary:")
         logger.info(self._model_pipeline.ops.summarize())
@@ -622,7 +626,9 @@ class ExplainableModelPipeline(
         #     f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
         # )
 
-        logger.info("Loaded cached explanations for full batch of size %d.", len(model_outputs))
+        logger.info(
+            "Loaded cached explanations for full batch of size %d.", len(model_outputs)
+        )
         return ExplanationStepOutput(
             explanation_inputs=explanation_inputs,
             explanation_state=explanation_state.to_device(
