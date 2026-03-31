@@ -14,12 +14,14 @@ from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
 from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
+from torchxai.data_types._target import SingleTargetPerSample
 from tqdm import tqdm
 
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import (
     BatchExplanation,
     BatchExplanationState,
+    ComputeMetrics,
     MultiTargetBatchExplanation,
 )
 from atria_insights.data_types._targets import BatchExplanationTarget
@@ -523,22 +525,112 @@ class ExplainableModelPipeline(
 
         target = kwargs.pop("target", None)
         if self.config.iterative_computation and isinstance(target, list):
+            logger.info(
+                "Running explainer forward with iterative computation for multi-target explanations."
+            )
             # disable multi-target for iterative computation
             self._explainer.multi_target = False
 
-            per_target_explanations = []
-            for t in tqdm(target, desc="Computing explanations per target"):
-                curr_explanations = self._explainer.explain(**kwargs, target=t)
-                assert isinstance(curr_explanations, tuple), (
-                    "Explainer returned invalid type during iterative computation. "
-                    "Expected tuple."
+            batched = True
+            if batched:
+                # if the input is batched we need to repeat the inputs for each target and compute explanations in a single forward pass
+                # Assumption: original batch size is always 1
+                per_target_explanations = []
+                internal_batch_size = self._explainer._internal_batch_size or len(
+                    target
                 )
-                per_target_explanations.append(curr_explanations)
+
+                logger.info(
+                    "internal_batch_size for iterative computation: %d",
+                    internal_batch_size,
+                )
+                logger.info("Total number of targets: %d", len(target))
+
+                # Calculate how many targets we can process at once
+                # Since original batch size is 1, we can process internal_batch_size targets simultaneously
+                num_targets_per_batch = internal_batch_size
+
+                for batch_start in tqdm(
+                    range(0, len(target), num_targets_per_batch),
+                    desc="Computing explanations per target batch",
+                ):
+                    batch_end = min(batch_start + num_targets_per_batch, len(target))
+                    target_batch = target[batch_start:batch_end]
+                    target_batch = SingleTargetPerSample(
+                        indices=[t.value[0] for t in target_batch]
+                    )
+                    num_targets_in_batch = len(target_batch.value)
+
+                    # Repeat inputs for each target in the batch
+                    batched_kwargs = {}
+                    for key, value in kwargs.items():
+                        if key == "inputs" and isinstance(value, tuple):
+                            # Repeat each input tensor for each target
+                            batched_kwargs[key] = tuple(
+                                inp.repeat_interleave(num_targets_in_batch, dim=0)
+                                for inp in value
+                            )
+                        elif key == "additional_forward_args" and isinstance(
+                            value, tuple
+                        ):
+                            # Repeat additional forward args
+                            batched_kwargs[key] = tuple(
+                                arg.repeat_interleave(num_targets_in_batch, dim=0)
+                                if isinstance(arg, torch.Tensor)
+                                else arg
+                                for arg in value
+                            )
+                        elif (
+                            key in ["baselines", "feature_mask"]
+                            and value is not None
+                            and isinstance(value, tuple)
+                        ):
+                            # Repeat baselines and feature masks
+                            batched_kwargs[key] = tuple(
+                                item.repeat_interleave(num_targets_in_batch, dim=0)
+                                for item in value
+                            )
+                        else:
+                            # Keep other args as is
+                            batched_kwargs[key] = value
+
+                    # Compute explanations for the batch
+                    curr_explanations = self._explainer.explain(
+                        **batched_kwargs, target=target_batch
+                    )
+                    assert isinstance(curr_explanations, tuple), (
+                        "Explainer returned invalid type during iterative computation. "
+                        "Expected tuple."
+                    )
+
+                    # The results are organized as: [s0_t0, s0_t1, ..., s0_tT, s1_t0, s1_t1, ..., s1_tT, ...]
+                    # We need to reorganize them per target: each target gets [s0_ti, s1_ti, ...]
+                    for target_idx in range(num_targets_in_batch):
+                        # Extract explanations for this target across all samples
+                        # Every num_targets_in_batch-th element, starting from target_idx
+                        target_explanation = tuple(
+                            exp[target_idx::num_targets_in_batch].detach().cpu()
+                            for exp in curr_explanations
+                        )
+                        per_target_explanations.append(target_explanation)
+            else:
+                per_target_explanations = []
+                for t in tqdm(target, desc="Computing explanations per target"):
+                    curr_explanations = self._explainer.explain(**kwargs, target=t)
+                    assert isinstance(curr_explanations, tuple), (
+                        "Explainer returned invalid type during iterative computation. "
+                        "Expected tuple."
+                    )
+                    per_target_explanations.append(curr_explanations)
 
             # re-enable multi-target
             self._explainer.multi_target = True
             return per_target_explanations
         else:
+            logger.info(
+                "Running explainer forward with multi_target=%s",
+                self._explainer.multi_target,
+            )
             # we need to map the atria_insights target to torchxai target
             if isinstance(target, list):
                 self._explainer.multi_target = True
@@ -666,7 +758,58 @@ class ExplainableModelPipeline(
                     )
                     logger.exception(e)
 
-        explanations = self.explainer_forward(explanation_inputs=explanation_inputs)
+        # Track compute metrics if enabled
+        compute_metrics = None
+        if self.config.profile_time:
+            device = (
+                explanation_inputs.inputs[0].device
+                if explanation_inputs.inputs
+                else "cpu"
+            )
+
+            if torch.cuda.is_available() and "cuda" in str(device):
+                # Use CUDA events for GPU timing
+                starter = torch.cuda.Event(enable_timing=True)
+                ender = torch.cuda.Event(enable_timing=True)
+
+                torch.cuda.synchronize()  # wait for previous work
+                starter.record()
+
+                # Run explanation
+                explanations = self.explainer_forward(
+                    explanation_inputs=explanation_inputs
+                )
+
+                ender.record()
+                torch.cuda.synchronize()  # wait for events to finish
+
+                elapsed_ms = starter.elapsed_time(ender)
+            else:
+                # Use time.perf_counter for CPU timing
+                import time
+
+                start_time = time.perf_counter()
+
+                # Run explanation
+                explanations = self.explainer_forward(
+                    explanation_inputs=explanation_inputs
+                )
+
+                end_time = time.perf_counter()
+                elapsed_ms = (end_time - start_time) * 1000  # Convert to milliseconds
+
+            # Create compute metrics
+            compute_metrics = ComputeMetrics(
+                elapsed_time_ms=elapsed_ms, device=str(device)
+            )
+
+            logger.info(
+                f"Explanation computation took {elapsed_ms:.3f} ms on device {device}"
+            )
+        else:
+            # Run explanation without timing
+            explanations = self.explainer_forward(explanation_inputs=explanation_inputs)
+
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."
 
         # prepare explanation states
@@ -684,6 +827,7 @@ class ExplainableModelPipeline(
             )
             if isinstance(explanations, list)
             else BatchExplanation(value=explanations),
+            compute_metrics=compute_metrics,
         )
 
         # save to disk
