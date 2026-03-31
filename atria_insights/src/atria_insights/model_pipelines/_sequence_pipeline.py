@@ -5,7 +5,6 @@ from collections import OrderedDict
 from typing import Any, ClassVar, TypeVar
 
 import torch
-from pydantic import Field, model_validator
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._sequence_pipeline import (
     LayoutTokenClassificationPipelineConfig,
@@ -20,6 +19,7 @@ from atria_models.core.models.transformers._models._encoder_model import (
 )
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
+from pydantic import Field, model_validator
 
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGenerator,
