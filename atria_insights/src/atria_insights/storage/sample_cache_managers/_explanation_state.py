@@ -103,6 +103,9 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "strides": json.dumps(data.strides),
                 "config_hash": self._config.hash,
                 "is_multitarget": data.is_multitarget,
+                "compute_metrics": json.dumps(data.compute_metrics.model_dump())
+                if data.compute_metrics is not None
+                else None,
             },
             tensors=tensors,
         )

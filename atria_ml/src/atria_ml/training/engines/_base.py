@@ -103,7 +103,6 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
         # configure engine
         self._setup_test_run()
-        self._attach_profilers()
         self._attach_event_handlers()
         self._attach_metrics()
 
@@ -121,6 +120,8 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         @self._engine.on(Events.EXCEPTION_RAISED)
         def on_exception(exception: Exception) -> None:
             raise exception
+
+        self._attach_profilers()
 
     def _attach_progress_bar(self) -> None:
         import ignite.distributed as idist
@@ -201,10 +202,25 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
     def _attach_profilers(self):
         if self._config.logging.profile_time:
+            from ignite.engine import Events
             from ignite.handlers import BasicTimeProfiler, HandlersTimeProfiler
 
-            HandlersTimeProfiler().attach(self._engine)
-            BasicTimeProfiler().attach(self._engine)
+            self._basic_profiler = BasicTimeProfiler()
+            self._basic_profiler.attach(self._engine)
+
+            self._handlers_profiler = HandlersTimeProfiler()
+            self._handlers_profiler.attach(self._engine)
+
+            @self._engine.on(Events.COMPLETED)
+            def log_intermediate_results():
+                self._basic_profiler.write_results(
+                    self._deps.output_dir
+                    / f"{self._engine_step.name}_basic_time_profile.json"
+                )
+                self._handlers_profiler.write_results(
+                    self._deps.output_dir
+                    / f"{self._engine_step.name}_handlers_time_profile.json"
+                )
 
     def _setup_test_run(self):
         from ignite.engine import Events
