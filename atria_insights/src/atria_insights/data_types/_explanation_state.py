@@ -6,7 +6,7 @@ import torch
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from atria_insights.data_types._targets import (
     BatchExplanationTarget,
@@ -17,6 +17,21 @@ from atria_insights.utilities._common import _to_device
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
 logger = get_logger(__name__)
+
+
+class ComputeMetrics(RepresentationMixin, BaseModel):
+    """Metrics tracking compute resources used for explanation generation."""
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+
+    elapsed_time_ms: float = Field(description="Elapsed time in milliseconds")
+    device: str = Field(default="cpu", description="Device used for computation")
 
 
 class SampleExplanation(RepresentationMixin, BaseModel):
@@ -227,6 +242,7 @@ class SampleExplanationState(RepresentationMixin, BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: SampleExplanation | MultiTargetSampleExplanation | None = None
     model_outputs: torch.Tensor | None = None
+    compute_metrics: ComputeMetrics | None = None
 
     @property
     def is_multitarget(self) -> bool:
@@ -264,6 +280,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: BatchExplanation | MultiTargetBatchExplanation
     model_outputs: torch.Tensor
+    compute_metrics: ComputeMetrics | None = None
 
     @property
     def is_multitarget(self) -> bool:
@@ -338,6 +355,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
                 ),
                 explanations=explanations[sample_idx],
                 model_outputs=self.model_outputs[sample_idx].unsqueeze(0),
+                compute_metrics=self.compute_metrics,
             )
             explanation_states.append(sample_expl_state)
         return explanation_states
@@ -448,6 +466,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
             frozen_features=frozen_features,
             explanations=explanations,
             model_outputs=model_outputs,
+            compute_metrics=data[0].compute_metrics,
         )
 
     def to_device(self, device: str | torch.device = "cpu") -> Self:

@@ -39,6 +39,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         "internal_batch_size",
         "grad_batch_size",
         "throw_on_load_mismatch",
+        "profile_time",
     }
     model_pipeline: ModelPipelineConfig
     feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig()
@@ -62,6 +63,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
     internal_batch_size: int = 1
     grad_batch_size: int = 1
     throw_on_load_mismatch: bool = False
+    profile_time: bool = False
 
     @model_validator(mode="after")
     def validate_explainer(self) -> Self:
