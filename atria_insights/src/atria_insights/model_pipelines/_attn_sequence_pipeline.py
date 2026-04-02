@@ -175,13 +175,6 @@ class AttnExplainableSequenceModelPipeline(
 
                 feature_mask_tuple += (mask,)  # type: ignore
 
-        # # finally we remap the feature keys from ids to embeddings
-        # feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
-        # if "token_type_ids" in additional_forward_kwargs:
-        #     additional_forward_kwargs["token_type_embeddings"] = (
-        #         additional_forward_kwargs.pop("token_type_ids")
-        #     )
-
         args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
         bsz = feature_values[0].shape[0]
         additional_forward_args = tuple(additional_forward_kwargs.values()) + (
