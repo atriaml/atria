@@ -8,6 +8,7 @@ import torch
 from atria_logger import get_logger
 from captum._utils.common import _format_additional_forward_args, _format_inputs
 from torchxai.data_types._common import TensorOrTupleOfTensorsGeneric
+from torchxai.explainers._explainer import Explainer
 
 from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.explainers._attn._utils import compute_flows
@@ -18,7 +19,7 @@ from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers
 logger = get_logger(__name__)
 
 
-class RawAttentionExplainer:
+class AttentionExplainer(Explainer):
     """
     Generic attention explainer for TransformersEncoderModel-based models.
     """
@@ -54,7 +55,7 @@ class RawAttentionExplainer:
 
     def _run_forward(
         self, forward_func: Callable, inputs: Any, additional_forward_args: Any
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, ...]:
         forward_func_args = signature(self._model).parameters
         if len(forward_func_args) == 0:
             return self._model()
@@ -79,12 +80,14 @@ class RawAttentionExplainer:
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         with torch.no_grad():
+            self._model.return_attns = True
             # 1. Extract - each model just returns tuple of attention tensors
             attn_tuples = self._run_forward(
                 forward_func=self._model,
                 inputs=inputs,
                 additional_forward_args=additional_forward_args,
             )
+            self._model.return_attns = False
 
             # 2. Aggregate - same for all models
             selected_attns_tuples = ()
@@ -117,8 +120,14 @@ class RawAttentionExplainer:
                 return explanations_per_target[0]
             return explanations_per_target
 
+    def __repr__(self) -> str:
+        attr_str = ", ".join(
+            f"{attr.lstrip('_')}={getattr(self, attr)}" for attr in self.__repr_attrs__
+        )
+        return f"{self.__class__.__name__}({attr_str})"
 
-class AttentionRolloutExplainer(RawAttentionExplainer):
+
+class AttentionRolloutExplainer(AttentionExplainer):
     def _aggregate_layers(self, attentions: torch.Tensor) -> torch.Tensor:
         """Aggregate per-layer attentions using attention rollout."""
         # first we reduce over heads
@@ -141,7 +150,7 @@ class AttentionRolloutExplainer(RawAttentionExplainer):
         return rollout[:, -1]
 
 
-class AttentionFlowExplainer(RawAttentionExplainer):
+class AttentionFlowExplainer(AttentionExplainer):
     """This implementation is correct but extremely expensive as the number of tokens grow, since
     we need to compute max-flow from each node in the attention graph to the input tokens, which is O(N^2) in the number of tokens,
     and we need to do this for each layer and each example in the batch."""

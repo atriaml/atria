@@ -27,10 +27,10 @@ T_AttnExplainerConfig = TypeVar("T_AttnExplainerConfig", bound=AttnExplainerConf
 
 
 @EXPLAINERS.register("attn/raw_attention")
-class RawAttentionExplainerConfig(AttnExplainerConfig):
+class AttentionExplainerConfig(AttnExplainerConfig):
     type: Literal["attn/raw_attention"] = "attn/raw_attention"
     module_path: str | None = (
-        "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer"
+        "atria_insights.explainers._attn._base_explainer.AttentionExplainer"
     )
 
 
@@ -51,7 +51,7 @@ class AttentionFlowExplainerConfig(AttnExplainerConfig):
 
 
 AttnExplainerConfigType = Annotated[
-    RawAttentionExplainerConfig
+    AttentionExplainerConfig
     | AttentionRolloutExplainerConfig
     | AttentionFlowExplainerConfig,
     Field(discriminator="type"),

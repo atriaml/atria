@@ -891,7 +891,7 @@
                     ]
                 },
                 "explainer": {
-                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionExplainer",
                     "head_reduction": "mean",
                     "type": "attn/raw_attention"
                 },
@@ -1270,7 +1270,7 @@
                     ]
                 },
                 "explainer": {
-                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionExplainer",
                     "head_reduction": "mean",
                     "type": "attn/raw_attention"
                 },
@@ -1437,7 +1437,7 @@
                     ]
                 },
                 "explainer": {
-                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionExplainer",
                     "head_reduction": "mean",
                     "type": "attn/raw_attention"
                 },
@@ -1565,7 +1565,7 @@
             "raw": {
                 "hash": "ed7928e9",
                 "config": {
-                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionExplainer",
                     "head_reduction": "mean",
                     "layer_aggregation": "raw",
                     "type": "attn/raw_attention"
@@ -1575,11 +1575,11 @@
             "raw_attention": {
                 "hash": "0ce9a524",
                 "config": {
-                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionExplainer",
                     "head_reduction": "mean",
                     "type": "attn/raw_attention"
                 },
-                "import_path": "atria_insights.explainers._attn._config.RawAttentionExplainerConfig"
+                "import_path": "atria_insights.explainers._attn._config.AttentionExplainerConfig"
             },
             "attention_rollout": {
                 "hash": "0d5b53b0",

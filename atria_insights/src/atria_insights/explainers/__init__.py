@@ -1,8 +1,8 @@
 from atria_insights.explainers._api import load_explainer_config
 from atria_insights.explainers._attn._config import (
+    AttentionExplainerConfig,
     AttnExplainerConfig,
     AttnExplainerConfigType,
-    RawAttentionExplainerConfig,
 )
 from atria_insights.explainers._base import ExplainerConfig
 from atria_insights.explainers._registry_group import EXPLAINERS
@@ -37,7 +37,7 @@ __all__ = [
     "KernelShapExplainerConfig",
     "AttnExplainerConfigType",
     "AttnExplainerConfig",
-    "RawAttentionExplainerConfig",
+    "AttentionExplainerConfig",
     "AttentionRolloutExplainerConfig",
     "AttentionFlowExplainerConfig",
 ]
