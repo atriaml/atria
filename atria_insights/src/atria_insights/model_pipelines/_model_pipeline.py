@@ -208,7 +208,7 @@ class ExplainableModelPipeline(
         """Generate baselines for the explainer."""
         logger.debug(
             "Generating baselines using baseline generator with config: %s",
-            self.config.baseline_generator,
+            self.config.metric_baseline_generator,
         )
         baselines = self._metric_baseline_generator(explained_inputs, **kwargs)
         log_tensor_info(baselines, name="metric_baselines")
