@@ -136,23 +136,3 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
         if output.attentions is None:
             raise ValueError("Model output contains no attentions.")
         return (output.attentions, output.layout_attentions)
-
-    def map_attentions_to_feature_space(
-        self, aggregated, inputs, feature_keys
-    ) -> tuple:
-        explanations = ()
-        for agg_for_target, input, key in zip(
-            aggregated, inputs, feature_keys, strict=True
-        ):
-            if key == "layout_ids":
-                bbox_shape = input.shape[-1]
-                agg_for_target = (
-                    agg_for_target.unsqueeze(-1).expand_as(input) / bbox_shape
-                )
-
-            assert agg_for_target.shape == input.shape, (
-                f"Shape mismatch for key '{key}': "
-                f"input: {input.shape}, explanation: {agg_for_target.shape}"
-            )
-            explanations += (agg_for_target,)
-        return explanations

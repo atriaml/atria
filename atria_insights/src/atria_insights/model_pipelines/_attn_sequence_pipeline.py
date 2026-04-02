@@ -20,14 +20,12 @@ from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
 from pydantic import model_validator
 
-from atria_insights.baseline_generators._sequence import (
-    NoEmbedSequenceBaselineGeneratorConfig,
-)
+from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.explainers._attn._config import (
+    AttentionExplainerConfig,
     AttnExplainerConfigType,
-    RawAttentionExplainerConfig,
 )
 from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.feature_segmentors._sequence import (
@@ -50,12 +48,12 @@ logger = get_logger(__name__)
 
 
 class AttnExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
-    explainer: AttnExplainerConfigType = RawAttentionExplainerConfig()
+    explainer: AttnExplainerConfigType = AttentionExplainerConfig()
     feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
         SequenceFeatureMaskSegmentorConfig()
     )
-    metric_baseline_generator: NoEmbedSequenceBaselineGeneratorConfig = (
-        NoEmbedSequenceBaselineGeneratorConfig()
+    metric_baseline_generator: SequenceBaselineGeneratorConfig = (
+        SequenceBaselineGeneratorConfig()
     )
 
     @model_validator(mode="after")
@@ -65,10 +63,10 @@ class AttnExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig)
                 "feature_segmentor must be an instance of SequenceFeatureMaskSegmentorConfig"
             )
         if not isinstance(
-            self.metric_baseline_generator, NoEmbedSequenceBaselineGeneratorConfig
+            self.metric_baseline_generator, SequenceBaselineGeneratorConfig
         ):
             raise ValueError(
-                "metric_baseline_generator must be an instance of NoEmbedSequenceBaselineGeneratorConfig"
+                "metric_baseline_generator must be an instance of SequenceBaselineGeneratorConfig"
             )
 
         return self
@@ -89,7 +87,7 @@ class AttnExplainableSequenceModelPipeline(
 
     def __init__(
         self,
-        config: AttnExplainableSequenceModelPipelineConfig,
+        config: ExplainableSequenceModelPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
@@ -105,9 +103,15 @@ class AttnExplainableSequenceModelPipeline(
         )
 
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
+        self._model_id_to_embeddings_inputs_list = []
+        for param in inspect.signature(
+            self._model_pipeline._model.ids_to_embeddings
+        ).parameters.values():
+            if param.name != "self":
+                self._model_id_to_embeddings_inputs_list.append(param.name)
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableSequenceModelForwardWrapper(model=model, is_embedding=False)
+        return ExplainableSequenceModelForwardWrapper(model=model)
 
     def _validated_inputs(  # type: ignore[override]
         self,
@@ -130,13 +134,14 @@ class AttnExplainableSequenceModelPipeline(
         metric_baselines_tuple = None
         feature_keys = tuple(inputs.keys())
         feature_values = tuple(inputs.values())
+
         if metric_baselines is not None:
             assert isinstance(metric_baselines, dict), (
                 "If inputs is an dict, metric_baselines must also be an dict."
             )
             metric_baselines_tuple = ()
             for input_key, input_value in inputs.items():
-                baseline = metric_baselines[input_key]
+                baseline = metric_baselines[input_key.replace("_embeddings", "_ids")]
 
                 # assert shape matches
                 # Note: baseline batch size can be different due to multiple baselines
@@ -154,7 +159,7 @@ class AttnExplainableSequenceModelPipeline(
             # expand feature masks to match input shapes
             feature_mask_tuple = ()
             for input_key, input_value in inputs.items():
-                mask = feature_mask[input_key]
+                mask = feature_mask[input_key.replace("_embeddings", "_ids")]
 
                 # unsqueeze dims to match input shape
                 while len(mask.shape) < len(inputs[input_key].shape):
@@ -169,6 +174,13 @@ class AttnExplainableSequenceModelPipeline(
                 )
 
                 feature_mask_tuple += (mask,)  # type: ignore
+
+        # # finally we remap the feature keys from ids to embeddings
+        # feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
+        # if "token_type_ids" in additional_forward_kwargs:
+        #     additional_forward_kwargs["token_type_embeddings"] = (
+        #         additional_forward_kwargs.pop("token_type_ids")
+        #     )
 
         args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
         bsz = feature_values[0].shape[0]
@@ -247,12 +259,14 @@ class AttnExplainableSequenceModelPipeline(
 
         if self._model_pipeline.config.use_image and (
             "image" in self._model_signature.parameters.keys()
+            or "image" in self._model_id_to_embeddings_inputs_list
         ):
             assert batch.image is not None, "Image cannot be None"
             inputs["image"] = batch.image
 
         if self._model_pipeline.config.use_bbox and (
             "layout_ids" in self._model_signature.parameters.keys()
+            or "layout_ids" in self._model_id_to_embeddings_inputs_list
         ):
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
             token_bboxes = batch.token_bboxes
@@ -271,34 +285,23 @@ class AttnExplainableSequenceModelPipeline(
     ) -> dict[str, torch.Tensor]:
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
 
-        # get default ids
-        default_ids = self._model_pipeline._model.get_default_ids_from_token_ids(
-            batch.token_ids
-        )
-        token_type_ids = (
-            batch.token_type_ids
-            if batch.token_type_ids is not None
-            else default_ids.get("token_type_ids")
-        )
-        position_ids = default_ids.get("position_ids")
-        assert token_type_ids is not None, "Token type ids cannot be None"
-        assert position_ids is not None, "Position ids cannot be None"
-
-        # first we generate the embeddings
-        explained_inputs = {
-            "token_ids": batch.token_ids,
-            "token_type_ids": token_type_ids,
-            "position_ids": position_ids,
-        }
-
-        if self._model_pipeline.config.use_image and (
-            "image" in self._model_signature.parameters.keys()
+        explained_inputs = self._generate_sequence_ids_to_embeddings(batch)
+        if (
+            self._model_pipeline.config.use_image
+            and "image" not in explained_inputs
+            and "image" in self._model_signature.parameters.keys()
         ):
             assert batch.image is not None, "Image cannot be None"
             explained_inputs["image"] = batch.image
+        return explained_inputs
 
-        if self._model_pipeline.config.use_bbox and (
-            "layout_ids_or_embeddings" in self._model_signature.parameters.keys()
+    def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):  # type: ignore[override]
+        additional_forward_kwargs = {"attention_mask": batch.attention_mask}
+        # for models where the additional wrapped args are not used, we still need to pass them as 'additional_forward_args'
+        # and we later filter them out in the wrapped model forward
+        if (
+            "layout_ids" in self._model_signature.parameters.keys()
+            and self._model_pipeline.config.use_bbox
         ):
             assert batch.token_bboxes is not None, "Token bboxes cannot be None"
             token_bboxes = batch.token_bboxes
@@ -309,11 +312,7 @@ class AttnExplainableSequenceModelPipeline(
                     else None
                 )
 
-            explained_inputs["layout_ids"] = token_bboxes
-        return explained_inputs
-
-    def _additional_forward_kwargs(self, batch: DocumentTensorDataModel):  # type: ignore[override]
-        additional_forward_kwargs = {"attention_mask": batch.attention_mask}
+            additional_forward_kwargs["layout_ids"] = token_bboxes
         return additional_forward_kwargs
 
     def _target(
@@ -438,15 +437,26 @@ class AttnExplainableSequenceModelPipeline(
                 sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
             )
 
-            # filter out ignored feature ids from input embeddings and add them to additional forward kwargs
-            for key in list(inputs.keys()):
-                if key in self._attn_feature_ids:
-                    continue
-                ignored_input = inputs.pop(key)
-                additional_forward_kwargs = {
-                    key: ignored_input,
-                    **additional_forward_kwargs,
-                }
+            # map inputs to embeddings
+            input_embeddings = self._model_pipeline._model.ids_to_embeddings(
+                **{key: inputs[key] for key in self._model_id_to_embeddings_inputs_list}
+            ).to_id_map()
+
+            finalized_inputs = {}
+            for key in inputs.keys():
+                if key in input_embeddings:
+                    embedding_key = key.replace("_ids", "_embeddings")
+                    if key not in self._attn_feature_ids:
+                        additional_forward_kwargs[embedding_key] = input_embeddings[key]
+                    else:
+                        finalized_inputs[embedding_key] = input_embeddings[key]
+                else:
+                    if key not in self._attn_feature_ids:
+                        additional_forward_kwargs[key] = inputs[key]
+                    else:
+                        finalized_inputs[key] = inputs[key]
+
+            inputs = finalized_inputs
 
             # now log info
             log_tensor_info(inputs, name="inputs")
@@ -525,9 +535,7 @@ class AttnExplainableSequenceModelPipeline(
             else:
                 logger.debug(f"  {k}: {type(v)}")
 
-        self._explainer._model.return_attns = True
         explanations = self._explainer.explain(**kwargs)
-        self._explainer._model.return_attns = False
 
         # validated explanations
         validated_explanations = []
@@ -682,9 +690,7 @@ class AttnExplainableTokenClassificationPipeline(
             )
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableTokenClassificationModelForwardWrapper(
-            model=model, is_embedding=False
-        )
+        return ExplainableTokenClassificationModelForwardWrapper(model=model)
 
 
 class AttnExplainableQuestionAnsweringPipelineConfig(
@@ -748,6 +754,4 @@ class AttnExplainableQuestionAnsweringPipeline(AttnExplainableSequenceModelPipel
         )
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableQuestionAnsweringModelForwardWrapper(
-            model=model, is_embedding=False
-        )
+        return ExplainableQuestionAnsweringModelForwardWrapper(model=model)

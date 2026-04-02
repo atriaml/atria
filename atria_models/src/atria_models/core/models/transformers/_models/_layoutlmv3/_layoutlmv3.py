@@ -502,7 +502,7 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
 
         # slice per modality
         sliced = {
-            "token_ids": full_agg[:, :seq_length],
+            "token_embeddings": full_agg[:, :seq_length],
             "image": full_agg[:, -visual_seq_len:],
         }
 
@@ -510,6 +510,12 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
         for input, key in zip(inputs, feature_keys, strict=True):
             agg_for_target = sliced[key]
 
+            # map token level attentions to input feature space
+            if key in ["token_embeddings", "layout_embeddings"]:
+                embedding_dim = input.shape[-1]
+                agg_for_target = (
+                    agg_for_target.unsqueeze(-1).expand_as(input) / embedding_dim
+                )
             if key == "image":
                 _, c, h, w = input.shape
                 num_patches = agg_for_target.shape[-1]

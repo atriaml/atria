@@ -267,6 +267,12 @@ class TransformersEncoderModel(
         for agg_for_target, input, key in zip(
             aggregated, inputs, feature_keys, strict=True
         ):
+            # map token level attentions to input feature space
+            if key in ["token_embeddings", "layout_embeddings"]:
+                embedding_dim = input.shape[-1]
+                agg_for_target = (
+                    agg_for_target.unsqueeze(-1).expand_as(input) / embedding_dim
+                )
             assert agg_for_target.shape == input.shape, (
                 f"Shape mismatch for key '{key}': "
                 f"input: {input.shape}, explanation: {agg_for_target.shape}"
