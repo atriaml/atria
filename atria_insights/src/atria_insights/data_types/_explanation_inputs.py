@@ -8,6 +8,7 @@ from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.explainers._attn._target import AttentionTokenTarget
 from atria_insights.utilities._common import _to_device
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
@@ -33,6 +34,7 @@ class BatchExplanationInputs(BaseModel):
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
     strides: tuple[tuple[int, ...], ...] | None = None
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
+    attention_token_target: AttentionTokenTarget | None = None
     frozen_features: list[torch.Tensor] | None = None
     feature_keys: tuple[str, ...]
 
@@ -94,27 +96,9 @@ class BatchExplanationInputs(BaseModel):
                     self.additional_forward_args, device
                 ),
                 "target": _to_device(self.target, device),
+                "attention_token_target": _to_device(
+                    self.attention_token_target, device
+                ),
                 "frozen_features": _to_device(self.frozen_features, device),
             }
         )
-
-    def get_explainer_kwargs(self) -> dict[str, Any]:
-        if self.target is None:
-            target = None
-        else:
-            target = (
-                [t.value for t in self.target]
-                if isinstance(self.target, list)
-                else self.target.value,
-            )
-        explainer_kwargs = {
-            "inputs": self.inputs,
-            "baselines": self.baselines,
-            "feature_mask": self.feature_mask,
-            "additional_forward_args": self.additional_forward_args,
-            "target": target,
-            "sliding_window_shapes": self.sliding_window_shapes,
-            "strides": self.strides,
-            "frozen_features": self.frozen_features,
-        }
-        return explainer_kwargs
