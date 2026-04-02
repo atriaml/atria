@@ -19,6 +19,17 @@ class LiLTEncoderLayerOutput:
     hidden_state: torch.Tensor | None = None
     layout_hidden_state: torch.Tensor | None = None
     attentions: tuple[torch.Tensor, ...] | None = None
+    layout_attentions: tuple[torch.Tensor, ...] | None = None
+
+
+@dataclass(frozen=True)
+class LiLTEncoderOutput(EncoderOutput):
+    layout_attentions: torch.Tensor | None = None
+
+    def attn_dict(self) -> dict[str, tuple[torch.Tensor, ...]]:
+        if self.attentions is None:
+            raise ValueError("Encoder output contains no attentions.")
+        return {"token_ids": self.attentions, "layout_ids": self.layout_attentions}
 
 
 class AttentionOutputFFN(nn.Module):
@@ -165,6 +176,7 @@ class LiLTAttentionBlock(nn.Module):
             hidden_state=hidden_state,
             layout_hidden_state=layout_hidden_state,
             attentions=attention_outputs.attentions,
+            layout_attentions=attention_outputs.layout_attentions,
         )
 
     def feed_forward_chunk(self, hidden_state: torch.Tensor) -> torch.Tensor:
@@ -202,6 +214,7 @@ class LiLTEncoderBlock(nn.Module):
     ) -> EncoderOutput:
         all_hidden_states = ()
         all_attentions = ()
+        all_layout_attentions = ()
         last_hidden_state = hidden_state
         last_layout_hidden_state = layout_hidden_state
 
@@ -221,12 +234,16 @@ class LiLTEncoderBlock(nn.Module):
             last_layout_hidden_state = layer_outputs.layout_hidden_state
             if self.config.output_attentions:
                 all_attentions = all_attentions + (layer_outputs.attentions,)
+                all_layout_attentions = all_layout_attentions + (
+                    layer_outputs.layout_attentions,
+                )
 
         if self.config.output_hidden_states:
             all_hidden_states = all_hidden_states + (last_hidden_state,)
 
-        return EncoderOutput(
+        return LiLTEncoderOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=all_hidden_states,
             attentions=all_attentions,
+            layout_attentions=all_layout_attentions,
         )

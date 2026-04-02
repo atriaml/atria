@@ -11,6 +11,7 @@ class LiLTAttentionOutput:
     context_output: torch.Tensor
     layout_context_output: torch.Tensor
     attentions: torch.Tensor | None = None
+    layout_attentions: torch.Tensor | None = None
 
 
 class LiLTMultiHeadSelfAttention(nn.Module):
@@ -189,5 +190,6 @@ class LiLTMultiHeadSelfAttention(nn.Module):
         return LiLTAttentionOutput(
             context_output=context_layer,
             layout_context_output=layout_context_layer,
-            attentions=attention_probs,
+            attentions=nn.Softmax(dim=-1)(tmp_attention_scores),
+            layout_attentions=nn.Softmax(dim=-1)(tmp_layout_attention_scores),
         )

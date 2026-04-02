@@ -45,7 +45,7 @@ class QuestionAnsweringHeadOutput:
 class TransformersEncoderModelOutput:
     last_hidden_state: torch.Tensor | None = None
     hidden_states: tuple[torch.Tensor, ...] | None = None
-    attentions: tuple[torch.Tensor, ...] | None = None
+    attentions: dict[str, tuple[torch.Tensor, ...]] | None = None
     head_output: (
         SequenceClassificationHeadOutput
         | TokenClassificationHeadOutput

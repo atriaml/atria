@@ -21,6 +21,7 @@ from atria_models.core.models.transformers._models._layoutlmv3._embeddings impor
     LayoutLMv3Embeddings,
 )
 from atria_models.core.models.transformers._outputs import (
+    EncoderOutput,
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
@@ -330,6 +331,10 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
         is_embedding: bool = False,
         **head_kwargs,
     ) -> TransformersEncoderModelOutput:
+        if layout_ids_or_embeddings is not None:
+            assert layout_ids is not None, (
+                "Layout ids must be provided if layout embeddings are provided."
+            )
         if token_ids_or_embeddings is not None:
             hidden_state = self._resolve_embeddings(
                 token_ids_or_embeddings=token_ids_or_embeddings,
@@ -438,6 +443,91 @@ class LayoutLMv3EncoderModel(TransformersEncoderModel[LayoutLMv3EncoderModelConf
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
+            attentions=self.encoder_output_to_attn_tuples(encoder_outputs)
+            if self.config.output_attentions
+            else None,
             head_output=head_output,
         )
+
+    def attn_feature_ids(self) -> set[str]:
+        return {"token_ids", "image"}
+
+    # def encoder_output_to_attn_dict(self, output: EncoderOutput) -> torch.Tensor:
+    #     if output.attentions is None:
+    #         raise ValueError("Model output contains no attentions.")
+
+    #     # for layoutlmv3 we need to extract the token attentions and the visual attentions separately since they are concatenated together in the output
+    #     # we assume that the token attentions are always before the visual attentions in the output
+    #     # we also assume that the visual attentions are always after the token attentions in the output
+    #     # we can determine the split point by looking at the shape of the attentions and the shape of the input image (if provided) or the shape of the token ids (if provided)
+    #     # if both are provided, we can use either one to determine the split point since they should be consistent with each other
+    #     # if neither is provided, we assume that the split point is at the end of the token attentions, which means that all attentions are token attentions
+    #     if output.attentions is None:
+    #         raise ValueError("Model output contains no attentions.")
+
+    #     # output.attentions is of shape (B, num_heads, seq_len + visual_seq_len, seq_len + visual_seq_len)
+    #     token_attentions = ()
+    #     visual_seq_len = (
+    #         self.visual_embeddings._grid_size[0] * self.visual_embeddings._grid_size[1]
+    #     )
+
+    #     # -1 to exclude the visual CLS token from the text sequence length calculation
+    #     seq_length = output.attentions[0].shape[2] - visual_seq_len - 1
+    #     for attn in output.attentions:
+    #         # all outputs attending to text tokens (CLS + text + SEP)
+    #         token_attentions += (attn[:, :, :, :seq_length],)
+
+    #     visual_attentions = ()
+    #     for attn in output.attentions:
+    #         # all outputs attending to visual patch tokens only (excludes visual CLS)
+    #         visual_attentions += (attn[:, :, :, -visual_seq_len:],)
+    #     return {"token_ids": token_attentions, "image": visual_attentions}
+
+    def encoder_output_to_attn_tuples(self, output: EncoderOutput) -> tuple:
+        if output.attentions is None:
+            raise ValueError("Model output contains no attentions.")
+        # single full attention stream
+        return (output.attentions,)
+
+    def map_attentions_to_feature_space(
+        self, aggregated, inputs, feature_keys
+    ) -> tuple:
+        # aggregated is a single-element tuple with (B, L_full)
+        full_agg = aggregated[0]
+
+        visual_seq_len = (
+            self.visual_embeddings._grid_size[0] * self.visual_embeddings._grid_size[1]
+        )
+        seq_length = full_agg.shape[-1] - visual_seq_len - 1
+
+        # slice per modality
+        sliced = {
+            "token_ids": full_agg[:, :seq_length],
+            "image": full_agg[:, -visual_seq_len:],
+        }
+
+        explanations = ()
+        for input, key in zip(inputs, feature_keys, strict=True):
+            agg_for_target = sliced[key]
+
+            if key == "image":
+                _, c, h, w = input.shape
+                num_patches = agg_for_target.shape[-1]
+                grid_size = int(math.sqrt(num_patches))
+                patch_size = h // grid_size
+
+                agg_for_target = agg_for_target.view(
+                    agg_for_target.size(0), grid_size, grid_size
+                )
+                agg_for_target = agg_for_target.repeat_interleave(
+                    patch_size, dim=1
+                ).repeat_interleave(patch_size, dim=2)
+                agg_for_target = agg_for_target.unsqueeze(1).expand(-1, c, -1, -1)
+                agg_for_target = agg_for_target / (patch_size * patch_size * c)
+
+            assert agg_for_target.shape == input.shape, (
+                f"Shape mismatch for key '{key}': "
+                f"input: {input.shape}, explanation: {agg_for_target.shape}"
+            )
+            explanations += (agg_for_target,)
+        return explanations

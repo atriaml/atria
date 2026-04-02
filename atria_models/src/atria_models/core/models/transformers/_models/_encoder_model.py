@@ -32,6 +32,7 @@ from atria_models.core.models.transformers._heads._token_classification import (
     TokenClassificationHead,
 )
 from atria_models.core.models.transformers._outputs import (
+    EncoderOutput,
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import _resolve_head_mask
@@ -113,7 +114,9 @@ class TransformersEncoderModel(
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
+            attentions=self.encoder_output_to_attn_tuples(encoder_outputs)
+            if self.config.output_attentions
+            else None,
             head_output=head_output,
         )
 
@@ -248,6 +251,28 @@ class TransformersEncoderModel(
             return self.head(last_hidden_state=last_hidden_state, **head_kwargs)
         else:
             raise ValueError(f"Unsupported head type: {type(self.head)}")
+
+    def attn_feature_ids(self) -> set[str]:
+        return {"token_ids"}
+
+    def encoder_output_to_attn_tuples(self, output: EncoderOutput) -> tuple:
+        if output.attentions is None:
+            raise ValueError("Model output contains no attentions.")
+        return (output.attentions,)
+
+    def map_attentions_to_feature_space(
+        self, aggregated, inputs, feature_keys
+    ) -> tuple:
+        explanations = ()
+        for agg_for_target, input, key in zip(
+            aggregated, inputs, feature_keys, strict=True
+        ):
+            assert agg_for_target.shape == input.shape, (
+                f"Shape mismatch for key '{key}': "
+                f"input: {input.shape}, explanation: {agg_for_target.shape}"
+            )
+            explanations += (agg_for_target,)
+        return explanations
 
     def __repr__(self):
         return nn.Module.__repr__(self)

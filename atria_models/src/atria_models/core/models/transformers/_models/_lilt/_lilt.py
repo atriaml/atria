@@ -16,6 +16,7 @@ from atria_models.core.models.transformers._models._lilt._embeddings import (
 )
 from atria_models.core.models.transformers._models._lilt._encoder_block import (
     LiLTEncoderBlock,
+    LiLTEncoderOutput,
 )
 from atria_models.core.models.transformers._outputs import (
     TransformersEncoderModelOutput,
@@ -110,12 +111,48 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
             head_mask=head_mask,
         )
         last_hidden_state = encoder_outputs.last_hidden_state
+
+        # lilt concatenates the last_hidden_state and layout_hidden_state before the head, so we need to do the same for head output
+        # but we haven't done this in our initial experiments. For now we assume this is done but fix it later
+        # at the moment all results are without concatenation, so we can just pass the last_hidden_state to the head and ignore the layout_hidden_state
+        # layout_hidden_state = torch.cat([last_hidden_state, encoder_outputs.layout_hidden_state], dim=-1)
+
         head_output = None
         if self.head is not None:
             head_output = self._head_forward(last_hidden_state, **head_kwargs)
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=encoder_outputs.hidden_states,
-            attentions=encoder_outputs.attentions,
+            attentions=self.encoder_output_to_attn_tuples(encoder_outputs)
+            if self.config.output_attentions
+            else None,
             head_output=head_output,
         )
+
+    def attn_feature_ids(self) -> set[str]:
+        return {"token_ids", "layout_ids"}
+
+    def encoder_output_to_attn_tuples(self, output: LiLTEncoderOutput) -> tuple:
+        if output.attentions is None:
+            raise ValueError("Model output contains no attentions.")
+        return (output.attentions, output.layout_attentions)
+
+    def map_attentions_to_feature_space(
+        self, aggregated, inputs, feature_keys
+    ) -> tuple:
+        explanations = ()
+        for agg_for_target, input, key in zip(
+            aggregated, inputs, feature_keys, strict=True
+        ):
+            if key == "layout_ids":
+                bbox_shape = input.shape[-1]
+                agg_for_target = (
+                    agg_for_target.unsqueeze(-1).expand_as(input) / bbox_shape
+                )
+
+            assert agg_for_target.shape == input.shape, (
+                f"Shape mismatch for key '{key}': "
+                f"input: {input.shape}, explanation: {agg_for_target.shape}"
+            )
+            explanations += (agg_for_target,)
+        return explanations
