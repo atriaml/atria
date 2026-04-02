@@ -1,4 +1,9 @@
 from atria_insights.explainers._api import load_explainer_config
+from atria_insights.explainers._attn._config import (
+    AttnExplainerConfig,
+    AttnExplainerConfigType,
+    RawAttentionExplainerConfig,
+)
 from atria_insights.explainers._base import ExplainerConfig
 from atria_insights.explainers._registry_group import EXPLAINERS
 from atria_insights.explainers._torchxai import (
@@ -30,4 +35,9 @@ __all__ = [
     "OcclusionExplainerConfig",
     "LimeExplainerConfig",
     "KernelShapExplainerConfig",
+    "AttnExplainerConfigType",
+    "AttnExplainerConfig",
+    "RawAttentionExplainerConfig",
+    "AttentionRolloutExplainerConfig",
+    "AttentionFlowExplainerConfig",
 ]
