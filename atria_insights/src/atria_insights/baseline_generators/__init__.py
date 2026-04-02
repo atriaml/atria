@@ -7,14 +7,18 @@ from pydantic import Field
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGeneratorConfig,
 )
-from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
+from atria_insights.baseline_generators._sequence import (
+    NoEmbedSequenceBaselineGeneratorConfig,
+    SequenceBaselineGeneratorConfig,
+)
 
 from ._simple import SimpleBaselineGeneratorConfig
 
 BaselineGeneratorConfigType = Annotated[
     SimpleBaselineGeneratorConfig
     | FeatureBasedBaselineGeneratorConfig
-    | SequenceBaselineGeneratorConfig,
+    | SequenceBaselineGeneratorConfig
+    | NoEmbedSequenceBaselineGeneratorConfig,
     Field(discriminator="type"),
 ]
 
@@ -22,5 +26,6 @@ __all__ = [
     "BaselineGeneratorConfigType",
     "SimpleBaselineGeneratorConfig",
     "SequenceBaselineGeneratorConfig",
+    "NoEmbedSequenceBaselineGeneratorConfig",
     "FeatureBasedBaselineGeneratorConfig",
 ]
