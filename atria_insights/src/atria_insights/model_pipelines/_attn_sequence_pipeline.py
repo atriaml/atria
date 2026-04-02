@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import inspect
 from collections import OrderedDict
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._sequence_pipeline import (
+    QuestionAnsweringPipelineConfig,
     SequenceClassificationPipelineConfig,
     SequenceModelPipeline,
+    TokenClassificationPipelineConfig,
 )
 from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_models.core.models.transformers._models._encoder_model import (
@@ -27,7 +29,7 @@ from atria_insights.explainers._attn._config import (
     AttnExplainerConfigType,
     RawAttentionExplainerConfig,
 )
-from atria_insights.explainers._attn._target import AttentionTokenTarget
+from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
@@ -36,10 +38,13 @@ from atria_insights.model_pipelines._common import (
     ExplanationTargetStrategy,
 )
 from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
+    ExplainableQuestionAnsweringModelForwardWrapper,
     ExplainableSequenceModelForwardWrapper,
+    ExplainableTokenClassificationModelForwardWrapper,
 )
 from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
 from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
+from atria_insights.model_pipelines._utilities import _generate_word_level_targets
 
 logger = get_logger(__name__)
 
@@ -351,11 +356,11 @@ class AttnExplainableSequenceModelPipeline(
             ]
 
     def _attn_token_target(
-        self, batch: DocumentTensorDataModel
-    ) -> AttentionTokenTarget:
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchAttentionTokenTarget:
         # defaults to CLS token explanation target
         batch_size = batch.token_ids.shape[0]
-        return AttentionTokenTarget(indices=[[0] for _ in range(batch_size)])
+        return BatchAttentionTokenTarget(indices=[[0] for _ in range(batch_size)])
 
     def _metric_baselines(self, explained_inputs: dict[str, torch.Tensor], **kwargs):
         """Generate baselines for the explainer."""
@@ -474,7 +479,9 @@ class AttnExplainableSequenceModelPipeline(
             target = self._target(batch=batch, model_outputs=model_outputs)
 
             # for attention explainers, we default to explaining the attention to the CLS token, so we prepare a separate target for that as well
-            attention_token_target = self._attn_token_target(batch=batch)
+            attention_token_target = self._attn_token_target(
+                batch=batch, model_outputs=model_outputs
+            )
 
             # prepare explanation inputs
             return model_outputs, BatchExplanationInputs(
@@ -549,11 +556,11 @@ class AttnExplainableSequenceClassificationPipelineConfig(
 
     @property
     def name(self) -> str:
-        return "sequence_classification"
+        return "attn_sequence_classification"
 
 
 @EXPLAINABLE_MODEL_PIPELINES.register("attn_sequence_classification")
-class ExplainableSequenceClassificationPipeline(
+class AttnExplainableSequenceClassificationPipeline(
     AttnExplainableSequenceModelPipeline[
         AttnExplainableSequenceClassificationPipelineConfig
     ]
@@ -561,195 +568,186 @@ class ExplainableSequenceClassificationPipeline(
     __config__ = AttnExplainableSequenceClassificationPipelineConfig
 
 
-# class ExplainableTokenClassificationPipelineConfig(
-#     ExplainableSequenceModelPipelineConfig
-# ):
-#     __hash_exclude__: ClassVar[set[str]] = {
-#         "explainability_metrics",
-#         "iterative_computation",
-#         "internal_batch_size",
-#         "grad_batch_size",
-#         "throw_on_load_mismatch",
-#         "remove_other_labels",
-#         "profile_time",
-#     }
+class AttnExplainableTokenClassificationPipelineConfig(
+    AttnExplainableSequenceModelPipelineConfig
+):
+    __hash_exclude__: ClassVar[set[str]] = {
+        "explainability_metrics",
+        "iterative_computation",
+        "internal_batch_size",
+        "grad_batch_size",
+        "throw_on_load_mismatch",
+        "remove_other_labels",
+        "profile_time",
+    }
 
-#     model_pipeline: TokenClassificationPipelineConfig = (
-#         TokenClassificationPipelineConfig()
-#     )
-#     use_word_level_targets: bool = True
-#     remove_other_labels: bool = False
+    model_pipeline: TokenClassificationPipelineConfig = (
+        TokenClassificationPipelineConfig()
+    )
+    use_word_level_targets: bool = True
+    remove_other_labels: bool = False
 
-#     @property
-#     def name(self) -> str:
-#         return "token_classification"
-
-
-# @EXPLAINABLE_MODEL_PIPELINES.register("token_classification")
-# class ExplainableTokenClassificationPipeline(
-#     ExplainableSequenceModelPipeline[ExplainableTokenClassificationPipelineConfig]
-# ):
-#     __config__ = ExplainableTokenClassificationPipelineConfig
-
-#     def _target(
-#         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-#     ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
-#         if self.config.explanation_target_strategy in [
-#             ExplanationTargetStrategy.ground_truth,
-#             ExplanationTargetStrategy.all,
-#         ]:
-#             # for token level tasks we do not support ground truth explanation targets
-#             # as the forward wrapper returns per token predicted logits
-#             raise ValueError(
-#                 "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
-#             )
-
-#         # the token classification forward wrapper always returns the per token predicted label logits
-#         # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
-#         if self.config.use_word_level_targets:
-#             # for word level targets per word instead of generating targets for each token,
-#             # we get the word ids and generate targets per word since models are usually trained with only
-#             # first token of each word having a label
-#             batch_size = model_outputs.shape[0]
-#             assert batch_size == 1, (
-#                 f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
-#                 f"This is because word ids are different for each sample in the batch and results in varying target shapes "
-#                 f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
-#                 f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
-#                 f"is introduced."
-#             )
-#             sample_word_ids = batch.word_ids[0]
-#             token_labels = batch.token_labels[0]
-#             target = [
-#                 BatchExplanationTarget(value=[index], name=[str(index)])
-#                 for index in _generate_word_level_targets(
-#                     word_ids_per_sample=sample_word_ids,
-#                     token_labels_per_sample=token_labels,
-#                     remove_other_labels=self.config.remove_other_labels,
-#                 )
-#             ]
-#             return target
-#         else:
-#             # otherwise we create explanation targets for each token
-#             return [
-#                 BatchExplanationTarget(
-#                     value=[i for _ in range(model_outputs.shape[0])],
-#                     name=[str(i) for _ in range(model_outputs.shape[0])],
-#                 )
-#                 for i in range(model_outputs.shape[1])
-#             ]
-
-#     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-#         return ExplainableTokenClassificationModelForwardWrapper(model=model)
+    @property
+    def name(self) -> str:
+        return "attn_token_classification"
 
 
-# class ExplainableLayoutTokenClassificationPipelineConfig(
-#     ExplainableSequenceModelPipelineConfig
-# ):
-#     model_pipeline: LayoutTokenClassificationPipelineConfig = (
-#         LayoutTokenClassificationPipelineConfig()
-#     )
-#     use_word_level_targets: bool = True
+@EXPLAINABLE_MODEL_PIPELINES.register("attn_token_classification")
+class AttnExplainableTokenClassificationPipeline(
+    AttnExplainableSequenceModelPipeline[
+        AttnExplainableTokenClassificationPipelineConfig
+    ]
+):
+    __config__ = AttnExplainableTokenClassificationPipelineConfig
 
-#     @property
-#     def name(self) -> str:
-#         return "layout_token_classification"
+    def _target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        if self.config.explanation_target_strategy in [
+            ExplanationTargetStrategy.ground_truth,
+            ExplanationTargetStrategy.all,
+        ]:
+            # for token level tasks we do not support ground truth explanation targets
+            # as the forward wrapper returns per token predicted logits
+            raise ValueError(
+                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
+            )
+
+        # the token classification forward wrapper always returns the per token predicted label logits
+        # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
+        if self.config.use_word_level_targets:
+            # for word level targets per word instead of generating targets for each token,
+            # we get the word ids and generate targets per word since models are usually trained with only
+            # first token of each word having a label
+            batch_size = model_outputs.shape[0]
+            assert batch_size == 1, (
+                f"Word level targets are only supported for batch size of 1. Found {batch_size=} "
+                f"This is because word ids are different for each sample in the batch and results in varying target shapes "
+                f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
+                f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
+                f"is introduced."
+            )
+            sample_word_ids = batch.word_ids[0]
+            token_labels = batch.token_labels[0]
+            target = [
+                BatchExplanationTarget(value=[index], name=[str(index)])
+                for index in _generate_word_level_targets(
+                    word_ids_per_sample=sample_word_ids,
+                    token_labels_per_sample=token_labels,
+                    remove_other_labels=self.config.remove_other_labels,
+                )
+            ]
+            return target
+        else:
+            # otherwise we create explanation targets for each token
+            return [
+                BatchExplanationTarget(
+                    value=[i for _ in range(model_outputs.shape[0])],
+                    name=[str(i) for _ in range(model_outputs.shape[0])],
+                )
+                for i in range(model_outputs.shape[1])
+            ]
+
+    def _attn_token_target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchAttentionTokenTarget:
+        if self.config.use_word_level_targets:
+            batch_size = batch.token_ids.shape[0]
+            assert batch_size == 1, (
+                f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
+                f"This is because word ids are different for each sample in the batch and results in varying target shapes "
+                f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
+                f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
+                f"is introduced."
+            )
+            sample_word_ids = batch.word_ids[0]
+            token_labels = batch.token_labels[0]
+            target = BatchAttentionTokenTarget(
+                indices=[
+                    _generate_word_level_targets(
+                        word_ids_per_sample=sample_word_ids,
+                        token_labels_per_sample=token_labels,
+                        remove_other_labels=self.config.remove_other_labels,
+                    )
+                ]
+            )
+            return target
+        else:
+            # default to CLS token explanation target
+            batch_size = batch.token_ids.shape[0]
+            return BatchAttentionTokenTarget(
+                indices=[
+                    list(range(batch.token_ids.shape[1])) for _ in range(batch_size)
+                ]
+            )
+
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        return ExplainableTokenClassificationModelForwardWrapper(
+            model=model, is_embedding=False
+        )
 
 
-# @EXPLAINABLE_MODEL_PIPELINES.register("layout_token_classification")
-# class ExplainableLayoutTokenClassificationPipeline(
-#     ExplainableSequenceModelPipeline[ExplainableLayoutTokenClassificationPipelineConfig]
-# ):
-#     __config__ = ExplainableLayoutTokenClassificationPipelineConfig
+class AttnExplainableQuestionAnsweringPipelineConfig(
+    AttnExplainableSequenceModelPipelineConfig
+):
+    model_pipeline: QuestionAnsweringPipelineConfig = QuestionAnsweringPipelineConfig()
 
-#     def _target(
-#         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-#     ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
-#         if self.config.explanation_target_strategy in [
-#             ExplanationTargetStrategy.ground_truth,
-#             ExplanationTargetStrategy.all,
-#         ]:
-#             # for token level tasks we do not support ground truth explanation targets
-#             # as the forward wrapper returns per token predicted logits
-#             raise ValueError(
-#                 "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
-#             )
-
-#         # the token classification forward wrapper always returns the per token predicted label logits
-#         # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
-#         if self.config.use_word_level_targets:
-#             # for word level targets per word instead of generating targets for each token,
-#             # we get the word ids and generate targets per word since models are usually trained with only
-#             # first token of each word having a label
-#             batch_size = model_outputs.shape[0]
-#             assert batch_size == 1, (
-#                 f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
-#                 f"This is because word ids are different for each sample in the batch and results in varying target shapes "
-#                 f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
-#                 f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
-#                 f"is introduced."
-#             )
-#             sample_word_ids = batch.word_ids[0]
-#             return [
-#                 BatchExplanationTarget(value=[index], name=[str(index)])
-#                 for index in _generate_word_level_targets(sample_word_ids)
-#             ]
-#         else:
-#             # otherwise we create explanation targets for each token
-#             return [
-#                 BatchExplanationTarget(
-#                     value=[i for _ in range(model_outputs.shape[0])],
-#                     name=[str(i) for _ in range(model_outputs.shape[0])],
-#                 )
-#                 for i in range(model_outputs.shape[1])
-#             ]
-
-#     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-#         return ExplainableTokenClassificationModelForwardWrapper(model=model)
+    @property
+    def name(self) -> str:
+        return "attn_question_answering"
 
 
-# class ExplainableQuestionAnsweringPipelineConfig(
-#     ExplainableSequenceModelPipelineConfig
-# ):
-#     model_pipeline: QuestionAnsweringPipelineConfig = QuestionAnsweringPipelineConfig()
+@EXPLAINABLE_MODEL_PIPELINES.register("attn_question_answering")
+class AttnExplainableQuestionAnsweringPipeline(AttnExplainableSequenceModelPipeline):
+    __config__ = AttnExplainableQuestionAnsweringPipelineConfig
 
-#     @property
-#     def name(self) -> str:
-#         return "question_answering"
+    def _target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
+        if self.config.explanation_target_strategy in [
+            ExplanationTargetStrategy.ground_truth,
+            ExplanationTargetStrategy.all,
+        ]:
+            # for token level tasks we do not support ground truth explanation targets
+            # as the forward wrapper returns per token predicted logits
+            raise ValueError(
+                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
+            )
 
+        # for question answering forward wrapper, model_outputs is of shape [batch_size, 2, seq_len]
+        # where the [batch_size, 0] contains start token probs and [batch_size, 1] contains end token probs
+        batch_size = model_outputs.shape[0]
 
-# @EXPLAINABLE_MODEL_PIPELINES.register("question_answering")
-# class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
-#     __config__ = ExplainableQuestionAnsweringPipelineConfig
+        # lets find the predicted start and end tokens and create targets for them
+        pred_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1)
+        pred_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1)
 
-#     def _target(
-#         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-#     ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
-#         if self.config.explanation_target_strategy in [
-#             ExplanationTargetStrategy.ground_truth,
-#             ExplanationTargetStrategy.all,
-#         ]:
-#             # for token level tasks we do not support ground truth explanation targets
-#             # as the forward wrapper returns per token predicted logits
-#             raise ValueError(
-#                 "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
-#             )
+        return [
+            BatchExplanationTarget(
+                value=pred_start_token_indices.tolist(),
+                name=["start" for _ in range(batch_size)],
+            ),
+            BatchExplanationTarget(
+                value=pred_end_token_indices.tolist(),
+                name=["end" for _ in range(batch_size)],
+            ),
+        ]
 
-#         # for question answering forward wrapper, model_outputs is of shape [batch_size, 2]
-#         # where the last dimension contains start and end token probabilities
-#         # therefore the first target for each sample is the logits of the start token and
-#         # the second is the logits of the end token
-#         batch_size = model_outputs.shape[0]
-#         return [
-#             BatchExplanationTarget(
-#                 value=[0 for _ in range(batch_size)],
-#                 name=["start" for _ in range(batch_size)],
-#             ),
-#             BatchExplanationTarget(
-#                 value=[1 for _ in range(batch_size)],
-#                 name=["end" for _ in range(batch_size)],
-#             ),
-#         ]
+    def _attn_token_target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchAttentionTokenTarget:
+        # for qa we need to keep attention targets for both start and end tokens
+        predicted_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1)
+        predicted_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1)
+        batch_size = batch.token_ids.shape[0]
+        return BatchAttentionTokenTarget(
+            indices=[
+                [predicted_start_token_indices[i], predicted_end_token_indices[i]]
+                for i in range(batch_size)
+            ]
+        )
 
-#     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-#         return ExplainableQuestionAnsweringModelForwardWrapper(model=model)
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        return ExplainableQuestionAnsweringModelForwardWrapper(
+            model=model, is_embedding=False
+        )

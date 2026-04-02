@@ -816,6 +816,7 @@ class ExplainableModelPipeline(
         explanation_state = BatchExplanationState(
             sample_id=explanation_inputs.sample_id,
             target=explanation_inputs.target,
+            attention_token_target=explanation_inputs.attention_token_target,
             feature_keys=explanation_inputs.feature_keys,
             frozen_features=explanation_inputs.frozen_features,
             sliding_window_shapes=explanation_inputs.sliding_window_shapes,

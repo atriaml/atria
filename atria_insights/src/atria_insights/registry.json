@@ -722,9 +722,9 @@
             "import_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableQuestionAnsweringPipelineConfig"
         },
         "attn_sequence_classification": {
-            "hash": "511d53a1",
+            "hash": "1fcc8aba",
             "config": {
-                "module_path": "atria_insights.model_pipelines._attn_sequence_pipeline.ExplainableSequenceClassificationPipeline",
+                "module_path": "atria_insights.model_pipelines._attn_sequence_pipeline.AttnExplainableSequenceClassificationPipeline",
                 "model_pipeline": {
                     "module_path": null,
                     "name": "sequence_classification",
@@ -893,7 +893,6 @@
                 "explainer": {
                     "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
                     "head_reduction": "mean",
-                    "layer_aggregation": "raw",
                     "type": "attn/raw_attention"
                 },
                 "explainability_metrics": null,
@@ -1123,6 +1122,334 @@
                 "use_word_level_targets": true
             },
             "import_path": "atria_insights.model_pipelines._sequence_pipeline.ExplainableLayoutTokenClassificationPipelineConfig"
+        },
+        "attn_token_classification": {
+            "hash": "602afb88",
+            "config": {
+                "module_path": "atria_insights.model_pipelines._attn_sequence_pipeline.AttnExplainableTokenClassificationPipeline",
+                "model_pipeline": {
+                    "module_path": null,
+                    "name": "token_classification",
+                    "model": {
+                        "builder_type": "transformers",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": "token_classification",
+                        "model_name_or_path": "bert-base-uncased",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": {
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_random",
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "use_segment_level_bboxes": false,
+                        "resize_image": null,
+                        "load_image": true,
+                        "load_bboxes": true
+                    },
+                    "eval_transform": {
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "use_segment_level_bboxes": false,
+                        "resize_image": null,
+                        "load_image": true,
+                        "load_bboxes": true
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "atria_metrics.core.entity_labeling.seqeval_metric.SeqEvalMetric",
+                            "name": "seqeval",
+                            "scheme": "IOB2"
+                        }
+                    ],
+                    "use_bbox": true,
+                    "use_image": true,
+                    "use_segment_info": true,
+                    "input_stride": 0
+                },
+                "feature_segmentor": {
+                    "module_path": "atria_insights.feature_segmentors._sequence.SequenceFeatureMaskSegmentor",
+                    "type": "sequence",
+                    "group_tokens_to_words": true,
+                    "image_segmentor": {
+                        "module_path": null,
+                        "type": "noop"
+                    }
+                },
+                "baseline_generator": {
+                    "module_path": "atria_insights.baseline_generators._simple.SimpleBaselineGenerator",
+                    "type": "simple",
+                    "baseline_strategy": "zeros",
+                    "baselines_fixed_value": 0.0
+                },
+                "metric_baseline_generator": {
+                    "module_path": "atria_insights.baseline_generators._sequence.NoEmbedSequenceBaselineGenerator",
+                    "type": "no_embed_sequence",
+                    "token_ids": "zero",
+                    "token_type_ids": "zero",
+                    "position_ids": "zero",
+                    "layout_ids": "zero",
+                    "image": "black",
+                    "image_mean": null,
+                    "image_std": null
+                },
+                "sliding_window_shapes_map": {
+                    "image": [
+                        3,
+                        16,
+                        16
+                    ]
+                },
+                "strides_map": {
+                    "image": [
+                        3,
+                        8,
+                        8
+                    ]
+                },
+                "explainer": {
+                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "head_reduction": "mean",
+                    "type": "attn/raw_attention"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false,
+                "internal_batch_size": 1,
+                "grad_batch_size": 1,
+                "throw_on_load_mismatch": false,
+                "profile_time": false,
+                "use_word_level_targets": true,
+                "remove_other_labels": false
+            },
+            "import_path": "atria_insights.model_pipelines._attn_sequence_pipeline.AttnExplainableTokenClassificationPipelineConfig"
+        },
+        "attn_question_answering": {
+            "hash": "559cf749",
+            "config": {
+                "module_path": "atria_insights.model_pipelines._attn_sequence_pipeline.AttnExplainableQuestionAnsweringPipeline",
+                "model_pipeline": {
+                    "module_path": null,
+                    "name": "question_answering",
+                    "model": {
+                        "builder_type": "transformers",
+                        "bn_to_gn": false,
+                        "frozen_layers": "none",
+                        "pretrained_checkpoint": null,
+                        "model_type": "question_answering",
+                        "model_name_or_path": "bert-base-uncased",
+                        "model_kwargs": {}
+                    },
+                    "train_transform": {
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "use_segment_level_bboxes": false,
+                        "resize_image": null,
+                        "load_image": true,
+                        "load_bboxes": true,
+                        "ignore_no_answer_qa_pair": false
+                    },
+                    "eval_transform": {
+                        "image_transform": {
+                            "to_rgb": true,
+                            "do_normalize": true,
+                            "do_resize": true,
+                            "stats": "imagenet",
+                            "resize_height": 224,
+                            "resize_width": 224,
+                            "image_mean": null,
+                            "image_std": null
+                        },
+                        "overflow_strategy": "return_all",
+                        "hf_processor": {
+                            "tokenizer_name": "bert-base-uncased",
+                            "cache_dir": null,
+                            "local_files_only": false,
+                            "apply_ocr": false,
+                            "add_prefix_space": true,
+                            "do_lower_case": true,
+                            "add_special_tokens": true,
+                            "padding": "max_length",
+                            "truncation": true,
+                            "max_length": 512,
+                            "stride": 0,
+                            "pad_to_multiple_of": 8,
+                            "is_split_into_words": true,
+                            "return_token_type_ids": null,
+                            "return_attention_mask": true,
+                            "return_special_tokens_mask": false,
+                            "return_offsets_mapping": false,
+                            "return_length": false,
+                            "return_tensors": "pt",
+                            "verbose": true
+                        },
+                        "use_segment_level_bboxes": false,
+                        "resize_image": null,
+                        "load_image": true,
+                        "load_bboxes": true,
+                        "ignore_no_answer_qa_pair": false
+                    },
+                    "metrics": [
+                        {
+                            "module_path": "atria_metrics.core.question_answering.due_eval.DueEvalMetric",
+                            "name": "due_eval",
+                            "dataset_name": "DocVQA",
+                            "metric": "ANLS",
+                            "ignore_case": true
+                        }
+                    ],
+                    "use_bbox": true,
+                    "use_image": true,
+                    "use_segment_info": true,
+                    "input_stride": 0
+                },
+                "feature_segmentor": {
+                    "module_path": "atria_insights.feature_segmentors._sequence.SequenceFeatureMaskSegmentor",
+                    "type": "sequence",
+                    "group_tokens_to_words": true,
+                    "image_segmentor": {
+                        "module_path": null,
+                        "type": "noop"
+                    }
+                },
+                "baseline_generator": {
+                    "module_path": "atria_insights.baseline_generators._simple.SimpleBaselineGenerator",
+                    "type": "simple",
+                    "baseline_strategy": "zeros",
+                    "baselines_fixed_value": 0.0
+                },
+                "metric_baseline_generator": {
+                    "module_path": "atria_insights.baseline_generators._sequence.NoEmbedSequenceBaselineGenerator",
+                    "type": "no_embed_sequence",
+                    "token_ids": "zero",
+                    "token_type_ids": "zero",
+                    "position_ids": "zero",
+                    "layout_ids": "zero",
+                    "image": "black",
+                    "image_mean": null,
+                    "image_std": null
+                },
+                "sliding_window_shapes_map": {
+                    "image": [
+                        3,
+                        16,
+                        16
+                    ]
+                },
+                "strides_map": {
+                    "image": [
+                        3,
+                        8,
+                        8
+                    ]
+                },
+                "explainer": {
+                    "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
+                    "head_reduction": "mean",
+                    "type": "attn/raw_attention"
+                },
+                "explainability_metrics": null,
+                "explanation_target_strategy": "predicted",
+                "iterative_computation": false,
+                "internal_batch_size": 1,
+                "grad_batch_size": 1,
+                "throw_on_load_mismatch": false,
+                "profile_time": false
+            },
+            "import_path": "atria_insights.model_pipelines._attn_sequence_pipeline.AttnExplainableQuestionAnsweringPipelineConfig"
         }
     },
     "explainer": {
@@ -1246,14 +1573,31 @@
                 "import_path": "atria_insights.explainers._attn._config.RawAttnExplainerConfig"
             },
             "raw_attention": {
-                "hash": "ed7928e9",
+                "hash": "0ce9a524",
                 "config": {
                     "module_path": "atria_insights.explainers._attn._base_explainer.RawAttentionExplainer",
                     "head_reduction": "mean",
-                    "layer_aggregation": "raw",
                     "type": "attn/raw_attention"
                 },
-                "import_path": "atria_insights.explainers._attn._config.RawAttnExplainerConfig"
+                "import_path": "atria_insights.explainers._attn._config.RawAttentionExplainerConfig"
+            },
+            "attention_rollout": {
+                "hash": "0d5b53b0",
+                "config": {
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionRolloutExplainer",
+                    "head_reduction": "mean",
+                    "type": "attn/attention_rollout"
+                },
+                "import_path": "atria_insights.explainers._attn._config.AttentionRolloutExplainerConfig"
+            },
+            "attention_flow": {
+                "hash": "619e2b32",
+                "config": {
+                    "module_path": "atria_insights.explainers._attn._base_explainer.AttentionFlowExplainer",
+                    "head_reduction": "mean",
+                    "type": "attn/attention_flow"
+                },
+                "import_path": "atria_insights.explainers._attn._config.AttentionFlowExplainerConfig"
             }
         }
     },

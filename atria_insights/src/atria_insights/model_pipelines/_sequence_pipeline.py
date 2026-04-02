@@ -715,7 +715,7 @@ class ExplainableTokenClassificationPipeline(
             # first token of each word having a label
             batch_size = model_outputs.shape[0]
             assert batch_size == 1, (
-                f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
+                f"Word level targets are only supported for batch size of 1. Found {batch_size=} "
                 f"This is because word ids are different for each sample in the batch and results in varying target shapes "
                 f"for each sample in the batch. Since for multiple targets, we use multi-target mode all samples"
                 f"must have equal number of targets which is not possible with per-target-mode unless some sort of padding "
@@ -838,18 +838,21 @@ class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
                 "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
             )
 
-        # for question answering forward wrapper, model_outputs is of shape [batch_size, 2]
-        # where the last dimension contains start and end token probabilities
-        # therefore the first target for each sample is the logits of the start token and
-        # the second is the logits of the end token
+        # for question answering forward wrapper, model_outputs is of shape [batch_size, 2, seq_len]
+        # where the [batch_size, 0] contains start token probs and [batch_size, 1] contains end token probs
         batch_size = model_outputs.shape[0]
+
+        # lets find the predicted start and end tokens and create targets for them
+        pred_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1)
+        pred_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1)
+
         return [
             BatchExplanationTarget(
-                value=[0 for _ in range(batch_size)],
+                value=pred_start_token_indices.tolist(),
                 name=["start" for _ in range(batch_size)],
             ),
             BatchExplanationTarget(
-                value=[1 for _ in range(batch_size)],
+                value=pred_end_token_indices.tolist(),
                 name=["end" for _ in range(batch_size)],
             ),
         ]

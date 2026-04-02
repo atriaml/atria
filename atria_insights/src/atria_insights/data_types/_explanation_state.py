@@ -12,6 +12,10 @@ from atria_insights.data_types._targets import (
     BatchExplanationTarget,
     SampleExplanationTarget,
 )
+from atria_insights.explainers._attn._target import (
+    BatchAttentionTokenTarget,
+    SampleAttentionTokenTarget,
+)
 from atria_insights.utilities._common import _to_device
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
@@ -235,6 +239,7 @@ class SampleExplanationState(RepresentationMixin, BaseModel):
 
     sample_id: str
     target: SampleExplanationTarget | list[SampleExplanationTarget] | None = None
+    attention_token_target: SampleAttentionTokenTarget | None = None
     feature_keys: tuple[str, ...]
     frozen_features: torch.Tensor | None = None
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
@@ -273,6 +278,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
 
     sample_id: list[str]
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
+    attention_token_target: BatchAttentionTokenTarget | None = None
     feature_keys: tuple[str, ...]
     frozen_features: list[torch.Tensor] | None = None
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
@@ -335,11 +341,17 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
 
         # create explanation states per sample
         explanations = self.explanations.tolist()
+        attention_token_targets = (
+            self.attention_token_target.tolist()
+            if self.attention_token_target
+            else [None] * batch_size
+        )
 
         for sample_idx in range(batch_size):
             sample_expl_state = SampleExplanationState(
                 sample_id=self.sample_id[sample_idx],
                 target=targets[sample_idx],
+                attention_token_target=attention_token_targets[sample_idx],
                 feature_keys=self.feature_keys,
                 sliding_window_shapes=self.sliding_window_shapes,
                 strides=self.strides,

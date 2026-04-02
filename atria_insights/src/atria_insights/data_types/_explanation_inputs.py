@@ -8,7 +8,7 @@ from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from atria_insights.data_types._targets import BatchExplanationTarget
-from atria_insights.explainers._attn._target import AttentionTokenTarget
+from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.utilities._common import _to_device
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
@@ -34,7 +34,7 @@ class BatchExplanationInputs(BaseModel):
     sliding_window_shapes: tuple[tuple[int, ...], ...] | None = None
     strides: tuple[tuple[int, ...], ...] | None = None
     target: BatchExplanationTarget | list[BatchExplanationTarget] | None = None
-    attention_token_target: AttentionTokenTarget | None = None
+    attention_token_target: BatchAttentionTokenTarget | None = None
     frozen_features: list[torch.Tensor] | None = None
     feature_keys: tuple[str, ...]
 

@@ -9,7 +9,7 @@ from atria_logger import get_logger
 from captum._utils.common import _format_additional_forward_args, _format_inputs
 from torchxai.data_types._common import TensorOrTupleOfTensorsGeneric
 
-from atria_insights.explainers._attn._target import AttentionTokenTarget
+from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.explainers._attn._utils import compute_flows
 from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
     ExplainableSequenceModelForwardWrapper,
@@ -71,80 +71,11 @@ class RawAttentionExplainer:
         )
         return output
 
-    # def explain(
-    #     self,
-    #     inputs: TensorOrTupleOfTensorsGeneric,
-    #     feature_keys: list[str],
-    #     attention_token_target: AttentionTokenTarget,
-    #     additional_forward_args: tuple[Any, ...] | None = None,
-    # ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
-    #     with torch.no_grad():
-    #         attns_dict = self._run_forward(
-    #             forward_func=self._model,
-    #             inputs=inputs,
-    #             additional_forward_args=additional_forward_args,
-    #         )
-
-    #         # get the attention per key and reduce it key-wise
-    #         explanations = ()
-    #         for input, key in zip(_format_inputs(inputs), feature_keys, strict=True):
-    #             logger.debug(f"Processing attentions for key: {key}")
-    #             assert key in attns_dict, (
-    #                 f"Key '{key}' not found in model outputs: {list(attns_dict.keys())}"
-    #             )
-    #             attns = attns_dict[key]  # tuple of (B, H, L, L) per layer
-
-    #             # convert to (B, Layer, H, L, L)
-    #             attns = (
-    #                 torch.stack([attn.cpu().detach() for attn in attns])
-    #                 .permute(1, 0, 2, 3, 4)
-    #                 .double()
-    #             )
-    #             agg = self._aggregate_layers(attns)
-    #             agg_for_target = attention_token_target.select(agg)  # (B, T, L_k)
-    #             agg_for_target = agg_for_target.squeeze(1)  # (B, L_k)
-
-    #             # we need to remap any attention xplanations to the input feature space, which is what users expect
-    #             # for token-level targets, this is a no-op since the target already selects the correct
-    #             # but for example if layout_ids are there, we need to spread the token level scores to the layout level (B, S) -> (B, S, 4) for the 4 layout tokens per input token
-    #             if key == "layout_ids":
-    #                 # we assume that the layout tokens are in the order of [CLS, SEP, PAD, MASK] and that the target is only selecting the CLS token, so we can just repeat the scores 4 times
-    #                 bbox_shape = input.shape[-1]
-    #                 agg_for_target = (
-    #                     agg_for_target.unsqueeze(-1).expand_as(input) / bbox_shape
-    #                 )
-
-    #             if key == "image":
-    #                 _, c, h, w = input.shape
-    #                 num_patches = agg_for_target.shape[-1]
-    #                 grid_size = int(math.sqrt(num_patches))
-    #                 patch_size = h // grid_size
-
-    #                 agg_for_target = agg_for_target.view(
-    #                     agg_for_target.size(0), grid_size, grid_size
-    #                 )
-    #                 agg_for_target = agg_for_target.repeat_interleave(
-    #                     patch_size, dim=1
-    #                 ).repeat_interleave(patch_size, dim=2)
-    #                 agg_for_target = agg_for_target.unsqueeze(1).expand(-1, c, -1, -1)
-    #                 agg_for_target = agg_for_target / (patch_size * patch_size * c)
-
-    #             # we must make sure that the input and explanation feature shapes match
-    #             # this makes sure that the attention explainer outputs ultimately look the same as attribution explainers
-    #             # this also makes sure we can visualize and validate them in a exact same fashion
-    #             assert agg_for_target.shape == input.shape, (
-    #                 f"Shape mismatch between input and explanation for key '{key}': "
-    #                 f"input shape: {input.shape}, explanation shape: {agg_for_target.shape}"
-    #             )
-
-    #             explanations += (agg_for_target,)
-
-    #         return explanations
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         feature_keys: list[str],
-        attention_token_target: AttentionTokenTarget,
+        attention_token_target: BatchAttentionTokenTarget,
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         with torch.no_grad():
@@ -156,23 +87,35 @@ class RawAttentionExplainer:
             )
 
             # 2. Aggregate - same for all models
-            aggregated = ()
+            selected_attns_tuples = ()
             for attns in attn_tuples:
                 attns = (
                     torch.stack([attn.cpu().detach() for attn in attns])
                     .permute(1, 0, 2, 3, 4)
                     .double()
                 )
-                agg = self._aggregate_layers(attns)
-                agg_for_target = attention_token_target.select(agg).squeeze(1)
-                aggregated += (agg_for_target,)
+                processed_attn = self._aggregate_layers(attns)
 
-            # 3. Map to feature space - model-specific
-            explanations = self._model._model.map_attentions_to_feature_space(
-                aggregated, _format_inputs(inputs), feature_keys
-            )
+                # this returns a list of attns over each target
+                selected_attns = attention_token_target.select(processed_attn)
 
-            return explanations
+                # we create a tuple of selected attns for each target, which we will then map to feature space in the next step
+                selected_attns_tuples += (selected_attns,)
+
+            # remap tuple of list of targets to list of tuple of targets, which is the format expected by the mapping function
+            selected_attns_tuples = list(zip(*selected_attns_tuples, strict=True))
+
+            # 3. Map to feature space - model-specific for each target
+            explanations_per_target = []
+            for selected_attns_tuple in selected_attns_tuples:
+                explanations = self._model._model.map_attentions_to_feature_space(
+                    selected_attns_tuple, _format_inputs(inputs), feature_keys
+                )
+                explanations_per_target.append(explanations)
+
+            if len(explanations_per_target) == 1:
+                return explanations_per_target[0]
+            return explanations_per_target
 
 
 class AttentionRolloutExplainer(RawAttentionExplainer):

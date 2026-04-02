@@ -155,20 +155,20 @@ class ExplainableQuestionAnsweringModelForwardWrapper(
         start_probs = torch.nn.functional.softmax(
             outputs.head_output.start_logits, dim=-1
         )
-        start_pred_prob = start_probs[
-            torch.arange(start_probs.size(0)), start_probs.argmax(dim=-1)
-        ]
+        # start_pred_prob = start_probs[
+        #     torch.arange(start_probs.size(0)), start_probs.argmax(dim=-1)
+        # ]
         end_probs = torch.nn.functional.softmax(outputs.head_output.end_logits, dim=-1)
-        end_pred_prob = end_probs[
-            torch.arange(end_probs.size(0)), end_probs.argmax(dim=-1)
-        ]
+        # end_pred_prob = end_probs[
+        #     torch.arange(end_probs.size(0)), end_probs.argmax(dim=-1)
+        # ]
 
-        probs = torch.cat(
-            [start_pred_prob.unsqueeze(-1), end_pred_prob.unsqueeze(-1)], dim=-1
-        )
+        # probs = torch.cat(
+        #     [start_pred_prob.unsqueeze(-1), end_pred_prob.unsqueeze(-1)], dim=-1
+        # )
         if self._return_attns:
             assert outputs.attentions is not None, (
                 "Model output contains no attentions. Make sure the model is configured to output attentions."
             )
             return outputs.attentions
-        return probs
+        return torch.stack([start_probs, end_probs], dim=1)

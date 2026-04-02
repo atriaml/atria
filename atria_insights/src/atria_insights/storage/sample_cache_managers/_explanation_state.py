@@ -11,6 +11,7 @@ from atria_insights.data_types._explanation_state import (
     SampleExplanationState,
 )
 from atria_insights.data_types._targets import SampleExplanationTarget
+from atria_insights.explainers._attn._target import SampleAttentionTokenTarget
 from atria_insights.model_pipelines._common import ExplainableModelPipelineConfig
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
@@ -45,6 +46,15 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             )
         else:
             target = None
+
+        if data.attention_token_target is not None:
+            attention_token_target = (
+                [t.model_dump() for t in data.attention_token_target]
+                if isinstance(data.attention_token_target, list)
+                else data.attention_token_target.model_dump()
+            )
+        else:
+            attention_token_target = None
 
         # we store explaantions list for multi-target scenario as stacked tensors
         tensors = {}
@@ -95,6 +105,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             attrs={
                 "sample_id": data.sample_id,
                 "target": json.dumps(target),
+                "attention_token_target": json.dumps(attention_token_target),
                 "feature_keys": list(data.feature_keys),
                 "frozen_features": data.frozen_features.tolist()
                 if data.frozen_features is not None
@@ -122,6 +133,12 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         target = data.attrs.get("target")
         assert isinstance(target, str), "target must be a string."
         target = json.loads(target)
+
+        attention_token_target = data.attrs.get("attention_token_target")
+        assert isinstance(attention_token_target, str), (
+            "attention_token_target must be a string."
+        )
+        attention_token_target = json.loads(attention_token_target)
 
         is_multitarget = data.attrs.get("is_multitarget", False)
 
@@ -172,10 +189,23 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "target must be a list for multi-target scenario."
             )
             target = [SampleExplanationTarget.model_validate(t) for t in target]
+            attention_token_target = (
+                [
+                    SampleAttentionTokenTarget.model_validate(t)
+                    for t in attention_token_target
+                ]
+                if attention_token_target
+                else None
+            )
         else:
             target = (
                 SampleExplanationTarget.model_validate(target)
                 if target is not None
+                else None
+            )
+            attention_token_target = (
+                SampleAttentionTokenTarget.model_validate(attention_token_target)
+                if attention_token_target is not None
                 else None
             )
 
@@ -210,6 +240,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         return SampleExplanationState(
             sample_id=sample_id,
             target=target,
+            attention_token_target=attention_token_target,
             feature_keys=tuple(feature_keys),
             frozen_features=frozen_features,
             sliding_window_shapes=sliding_window_shapes,
