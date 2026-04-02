@@ -120,3 +120,7 @@ experiments/train_baselines/train_entity_labeling.sh
 experiments/train_baselines/train_layout_analysis.sh
 experiments/train_baselines/train_question_answering.sh
 experiments/train_baselines/sequence_classification/train.sh
+atria_insights/src/atria_insights/explainers/_transformers/attention/attention_test.py
+atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests copy.ipynb
+atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests-layoutlmv3.ipynb
+atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests.ipynb
