@@ -87,7 +87,7 @@ class AttnExplainableSequenceModelPipeline(
 
     def __init__(
         self,
-        config: ExplainableSequenceModelPipelineConfig,
+        config: AttnExplainableSequenceModelPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,

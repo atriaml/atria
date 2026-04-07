@@ -132,13 +132,18 @@ class ModelExplainer:
             subset_size=total_samples,
         )
 
-        # log the ids of first few samples in the dataset
-        for idx, sample_list in enumerate(test_dataloader.dataset):
-            for sample in sample_list:
-                logger.info(f"Sample id in test dataset: {sample.metadata.sample_id}")
+        # # log the ids of first few samples in the dataset
+        # sample_ids = []
+        # for idx, sample_list in enumerate(test_dataloader.dataset):
+        #     for sample in sample_list:
+        #         logger.info(f"Sample id in test dataset: {sample.metadata.sample_id}")
 
-            if idx >= 10:
-                break
+        #         if sample.metadata.sample_id == "ffdw0217_13-6407_qa_1_overflow_0":
+        #             print(sample)
+
+        #         # if idx >= 10:
+        #         #     break
+        # exit()
 
         return ExplanationEngine(
             config=ExplanationEngineConfig(

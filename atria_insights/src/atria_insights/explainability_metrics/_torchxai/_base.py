@@ -188,6 +188,9 @@ class ExplainabilityMetric(
         else:
             explanations = explanation_state.explanations.value
 
+        logger.info(
+            f"Computing metric {self.name} for batch size {explanation_inputs.batch_size}."
+        )
         # compute metric
         metric_output = self._update(
             explanation_inputs=explanation_inputs, explanations=explanations
