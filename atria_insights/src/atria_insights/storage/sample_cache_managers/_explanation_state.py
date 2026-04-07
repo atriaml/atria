@@ -189,25 +189,17 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "target must be a list for multi-target scenario."
             )
             target = [SampleExplanationTarget.model_validate(t) for t in target]
-            attention_token_target = (
-                [
-                    SampleAttentionTokenTarget.model_validate(t)
-                    for t in attention_token_target
-                ]
-                if attention_token_target
-                else None
-            )
         else:
             target = (
                 SampleExplanationTarget.model_validate(target)
                 if target is not None
                 else None
             )
-            attention_token_target = (
-                SampleAttentionTokenTarget.model_validate(attention_token_target)
-                if attention_token_target is not None
-                else None
-            )
+        attention_token_target = (
+            SampleAttentionTokenTarget.model_validate(attention_token_target)
+            if attention_token_target is not None
+            else None
+        )
 
         model_outputs = None
         feature_mask = None
