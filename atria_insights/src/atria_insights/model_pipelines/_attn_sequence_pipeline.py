@@ -718,17 +718,18 @@ class AttnExplainableQuestionAnsweringPipeline(AttnExplainableSequenceModelPipel
         batch_size = model_outputs.shape[0]
 
         # lets find the predicted start and end tokens and create targets for them
-        pred_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1)
-        pred_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1)
+        pred_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1).tolist()
+        pred_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1).tolist()
+        pred_start_token_indices = [(0, idx) for idx in pred_start_token_indices]
+        pred_end_token_indices = [(1, idx) for idx in pred_end_token_indices]
 
         return [
             BatchExplanationTarget(
-                value=pred_start_token_indices.tolist(),
+                value=pred_start_token_indices,
                 name=["start" for _ in range(batch_size)],
             ),
             BatchExplanationTarget(
-                value=pred_end_token_indices.tolist(),
-                name=["end" for _ in range(batch_size)],
+                value=pred_end_token_indices, name=["end" for _ in range(batch_size)]
             ),
         ]
 
