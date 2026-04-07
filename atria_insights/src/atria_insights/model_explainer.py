@@ -10,7 +10,7 @@ import yaml
 from atria_datasets.core.dataset._datasets import Dataset
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
-from atria_logger._api import get_logger
+from atria_logger._api import enable_file_logging, get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
 from atria_ml.training.engines._test_engine import (
@@ -20,7 +20,6 @@ from atria_ml.training.engines._test_engine import (
 )
 from atria_ml.training.engines.utilities import _format_metrics_for_logging
 from omegaconf import OmegaConf
-from atria_logger._api import enable_file_logging, get_logger
 
 from atria_insights.configs.explanation_task_config import ExplanationTaskConfig
 from atria_insights.engines._explanation_engine import (
@@ -111,7 +110,8 @@ class ModelExplainer:
             tb_logger = TensorboardLogger(log_dir=log_dir)
 
             explainer_dir = (
-                Path(self._run_dir) / self._config.x_model_pipeline.explainer.type.split("/")[-1]
+                Path(self._run_dir)
+                / self._config.x_model_pipeline.explainer.type.split("/")[-1]
             )
             if not explainer_dir.exists():
                 explainer_dir.mkdir(parents=True, exist_ok=True)
@@ -131,6 +131,15 @@ class ModelExplainer:
             pin_memory=self._config.data.pin_memory,
             subset_size=total_samples,
         )
+
+        # log the ids of first few samples in the dataset
+        for idx, sample_list in enumerate(test_dataloader.dataset):
+            for sample in sample_list:
+                logger.info(f"Sample id in test dataset: {sample.metadata.sample_id}")
+
+            if idx >= 10:
+                break
+
         return ExplanationEngine(
             config=ExplanationEngineConfig(
                 logging=self._config.logging,
@@ -310,7 +319,10 @@ class ModelExplainer:
         return explanation_engine.run(self._checkpoint_path)
 
     def run(
-        self, total_samples: int | None = None, compute_metrics: bool = False, compute_features_only: bool = False
+        self,
+        total_samples: int | None = None,
+        compute_metrics: bool = False,
+        compute_features_only: bool = False,
     ) -> State:
         # run test
         self.test()
