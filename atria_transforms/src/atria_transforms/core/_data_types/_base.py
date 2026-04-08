@@ -2,6 +2,7 @@
 
 from typing import Any, Self, TypeVar
 
+import numpy as np
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
@@ -9,15 +10,8 @@ from atria_transforms.core._data_types._ops import TensorOperations
 
 
 class TensorDataModel(RepresentationMixin, BaseModel):
-    """
-    Base model where all declared fields must be tensors. Any additional fields are
-    stored in the `metadata` field and must be defined via an inner `Metadata` class.
-    """
-
     model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        extra="forbid",  # forbid unknown fields
-        validate_assignment=True,
+        arbitrary_types_allowed=True, extra="forbid", validate_assignment=True
     )
 
     metadata: Any = Field(default=None, repr=False)
@@ -27,14 +21,8 @@ class TensorDataModel(RepresentationMixin, BaseModel):
     def ops(self) -> TensorOperations:
         return TensorOperations(self)
 
-    #
-    # --------------------------------------------------------------
-    # Metadata handling
-    # --------------------------------------------------------------
-    #
     @classmethod
     def metadata_model(cls) -> type[BaseModel] | None:
-        """Return the user-defined inner Metadata class if present."""
         Metadata = getattr(cls, "Metadata", None)
         assert Metadata is None or issubclass(Metadata, BaseModel)
         return Metadata
@@ -42,17 +30,12 @@ class TensorDataModel(RepresentationMixin, BaseModel):
     @model_validator(mode="before")
     @classmethod
     def split_metadata(cls, data: Any) -> dict[str, Any]:
-        """
-        - Pull out keys belonging to Metadata schema
-        - Everything else must match declared tensor fields
-        """
         if not isinstance(data, dict):
             return data
 
         is_batched = data.pop("is_batched", False)
         meta_cls = cls.metadata_model()
         declared_tensor_fields = set(cls.model_fields.keys()) - {"metadata"}
-
         metadata_fields = set(meta_cls.model_fields.keys()) if meta_cls else set()
 
         metadata = {}
@@ -64,7 +47,6 @@ class TensorDataModel(RepresentationMixin, BaseModel):
             elif key in metadata_fields:
                 metadata[key] = value
             elif key == "metadata":
-                # user explicitly passed metadata model
                 metadata = value
             else:
                 raise ValueError(
@@ -81,49 +63,37 @@ class TensorDataModel(RepresentationMixin, BaseModel):
             cleaned["metadata"] = None
 
         if is_batched:
-            import torch
-
-            # ensure that each of the tensor fields are tensors of batch size 1
             batch_sizes = set()
             for name, value in cleaned.items():
                 if name == "metadata":
                     continue
-                if value is not None:
-                    if isinstance(value, torch.Tensor):
-                        batch_sizes.add(value.shape[0])
+                if value is not None and hasattr(value, "shape"):
+                    batch_sizes.add(value.shape[0])
 
             if len(batch_sizes) > 1:
                 raise ValueError(
-                    f"All tensor fields must have the same batch size. Found batch sizes: {batch_sizes}"
+                    f"All fields must have the same batch size. Found: {batch_sizes}"
                 )
         return cleaned
 
-    #
-    # --------------------------------------------------------------
-    # Tensor validation
-    # --------------------------------------------------------------
-    #
     @model_validator(mode="after")
     def validate_tensor_fields(self) -> Self:
         import torch
 
-        # ensure that each of the tensor fields are tensors of batch size 1
-        for name, _ in self.__class__.model_fields.items():
+        for name in self.__class__.model_fields:
             if name == "metadata":
                 continue
             value = getattr(self, name)
             if value is not None:
-                if not isinstance(value, torch.Tensor):
+                if not isinstance(value, (np.ndarray, torch.Tensor)):
                     raise TypeError(
-                        f"Field '{name}' must be torch.Tensor, got {type(value).__name__}"
+                        f"Field '{name}' must be np.ndarray or torch.Tensor, "
+                        f"got {type(value).__name__}"
                     )
         return self
 
     @classmethod
     def batch(cls, items: list[Self]) -> Self:
-        import torch
-
-        """Create a batched instance from a list of instances."""
         if not items:
             raise ValueError("Cannot batch empty list")
 
@@ -145,16 +115,18 @@ class TensorDataModel(RepresentationMixin, BaseModel):
 
             if vals[0] is None:
                 field_values[field_name] = None
+            elif isinstance(vals[0], np.ndarray):
+                field_values[field_name] = np.stack(vals, axis=0)
             else:
+                import torch
+
                 field_values[field_name] = torch.stack(vals, dim=0)
+
         batched_instance = cls(**field_values, is_batched=True)
         batched_instance._is_batched = True
         return batched_instance
 
     def __len__(self):
-        import torch
-
-        """Return batch size if batched, else 1."""
         if not self._is_batched:
             return 1
 
@@ -162,7 +134,7 @@ class TensorDataModel(RepresentationMixin, BaseModel):
             if field_name == "metadata":
                 continue
             val = getattr(self, field_name)
-            if isinstance(val, torch.Tensor):
+            if val is not None and hasattr(val, "shape"):
                 return val.shape[0]
         return 1
 

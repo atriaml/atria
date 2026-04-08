@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any, Self
 
-import torch
+import numpy as np
 from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -34,16 +34,16 @@ class HuggingfaceProcessorInput(BaseModel):
 
 class HuggingfaceProcessorOutput(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
-    token_ids: torch.Tensor
-    attention_mask: torch.Tensor
-    token_type_ids: torch.Tensor | None = None
-    special_tokens_mask: torch.Tensor | None = None
-    offsets_mapping: torch.Tensor | None = None
-    sequence_ids: torch.Tensor
-    word_ids: torch.Tensor
-    token_bboxes: torch.Tensor | None = None
-    token_labels: torch.Tensor | None = None
-    label: torch.Tensor | None = None
+    token_ids: np.ndarray
+    attention_mask: np.ndarray
+    token_type_ids: np.ndarray | None = None
+    special_tokens_mask: np.ndarray | None = None
+    offsets_mapping: np.ndarray | None = None
+    sequence_ids: np.ndarray
+    word_ids: np.ndarray
+    token_bboxes: np.ndarray | None = None
+    token_labels: np.ndarray | None = None
+    label: np.ndarray | None = None
 
     @model_validator(mode="after")
     def validate_lengths(self) -> Self:
@@ -59,7 +59,6 @@ class HuggingfaceProcessorOutput(BaseModel):
                         f"Batch size mismatch for field '{field_name}': "
                         f"expected {self.batch_size}, got {field_value.shape[0]}"
                     )
-
         return self
 
     @property
@@ -108,7 +107,7 @@ class HuggingfaceProcessor(DataTransform):
     return_special_tokens_mask: bool = False
     return_offsets_mapping: bool = False
     return_length: bool = False
-    return_tensors: str = "pt"
+    return_tensors: str = "np"
     verbose: bool = True
 
     @property
@@ -218,7 +217,7 @@ class HuggingfaceProcessor(DataTransform):
         label = None
         if input.label is not None:
             batch_size = tokenization_data["input_ids"].shape[0]
-            label = torch.tensor([input.label] * batch_size, dtype=torch.long)
+            label = np.array([input.label] * batch_size)
 
         return HuggingfaceProcessorOutput(
             token_ids=tokenization_data["input_ids"],

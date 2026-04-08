@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import torch
 from atria_logger import get_logger
 from atria_types._data_instance._base import BaseDataInstance
 from atria_types._generic._image import Image
@@ -15,17 +14,17 @@ logger = get_logger(__name__)
 class TokenizedDocumentInstance(BaseDataInstance):
     image: Image | None = None
     words: list[str]
-    token_ids: torch.Tensor
-    word_ids: torch.Tensor
-    special_tokens_mask: torch.Tensor | None = None
-    sequence_ids: torch.Tensor
-    token_bboxes: torch.Tensor | None = None
-    token_type_ids: torch.Tensor | None = None
-    token_labels: torch.Tensor | None = None
-    attention_mask: torch.Tensor | None = None
-    label: torch.Tensor | None = None
-    token_answer_start: torch.Tensor | None = None
-    token_answer_end: torch.Tensor | None = None
+    token_ids: np.ndarray
+    word_ids: np.ndarray
+    special_tokens_mask: np.ndarray | None = None
+    sequence_ids: np.ndarray
+    token_bboxes: np.ndarray | None = None
+    token_type_ids: np.ndarray | None = None
+    token_labels: np.ndarray | None = None
+    attention_mask: np.ndarray | None = None
+    label: np.ndarray | None = None
+    token_answer_start: np.ndarray | None = None
+    token_answer_end: np.ndarray | None = None
 
     @property
     def batch_size(self) -> int:
@@ -46,10 +45,10 @@ class TokenizedDocumentInstance(BaseDataInstance):
         mode="plain",
     )
     @classmethod
-    def serialize_tensor(cls, tensor: torch.Tensor) -> np.ndarray | None:
-        if tensor is None:
-            return tensor
-        return tensor.numpy()
+    def serialize_array(cls, value: np.ndarray | None) -> list | None:
+        if value is None:
+            return None
+        return value.tolist()
 
     @field_validator(
         "token_ids",
@@ -66,33 +65,42 @@ class TokenizedDocumentInstance(BaseDataInstance):
         mode="before",
     )
     @classmethod
-    def validate_tensor(cls, value: Any) -> torch.Tensor:
+    def validate_array(cls, value: Any) -> np.ndarray | None:
         if value is None:
+            return None
+        if isinstance(value, np.ndarray):
             return value
-        if isinstance(value, torch.Tensor):
-            return value
-        elif isinstance(value, np.ndarray):
-            return torch.tensor(value)
+        elif isinstance(value, list):
+            return np.array(value)
         else:
-            raise ValueError(f"Unsupported type for tensor field: {type(value)}")
+            try:
+                import torch
 
-    def resolve_overflow(self, overflow_idx: int, update_sample_id: bool = False) -> TokenizedDocumentInstance:
+                if isinstance(value, torch.Tensor):
+                    return value.numpy()
+            except ImportError:
+                pass
+            raise ValueError(f"Unsupported type for array field: {type(value)}")
+
+    def resolve_overflow(
+        self, overflow_idx: int, update_sample_id: bool = False
+    ) -> TokenizedDocumentInstance:
         batch_size = self.token_ids.shape[0]
 
-        def _get_at_idx(tensor: torch.Tensor | None) -> torch.Tensor | None:
-            if tensor is None:
+        def _get_at_idx(arr: np.ndarray | None) -> np.ndarray | None:
+            if arr is None:
                 return None
-            assert len(tensor) == batch_size, (
-                f"Tensor batch size {len(tensor)} does not match expected "
+            assert len(arr) == batch_size, (
+                f"Array batch size {len(arr)} does not match expected "
                 f"batch size {batch_size}"
             )
-            return tensor[overflow_idx]
+            if arr.ndim == 1:
+                return np.array(arr[overflow_idx])
+            return arr[overflow_idx]
 
         kwargs = {}
         if update_sample_id:
-            kwargs ={
-                "sample_id": f"{self.sample_id}_overflow_{overflow_idx}"
-            }
+            kwargs = {"sample_id": f"{self.sample_id}_overflow_{overflow_idx}"}
 
         return self.model_copy(
             update={

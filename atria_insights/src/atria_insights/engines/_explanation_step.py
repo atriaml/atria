@@ -53,6 +53,6 @@ class ExplanationStep(EngineStep):
         """Process batch with optional caching."""
         # set model to eval mode
         self._x_model_pipeline.ops.eval()
-        batch = batch[0].batch(batch)
+        batch = batch[0].batch(batch).ops.to_tensors()
         batch = batch.ops.to(self._device)
         return self._x_model_pipeline.explanation_step(batch=batch)

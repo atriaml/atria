@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-import torch
+import numpy as np
 from atria_logger import get_logger
 from PIL.Image import Image as PILImage
 
@@ -25,7 +25,7 @@ class ToRGB(DataTransform[PILImage]):
 
 
 @DATA_TRANSFORMS.register("standard_image_transform")
-class StandardImageTransform(DataTransform[torch.Tensor]):
+class StandardImageTransform(DataTransform[np.ndarray]):
     to_rgb: bool = True  # Convert image to RGB if it's in a different mode
     do_normalize: bool = True  # Normalize the image to ImageNet mean and std
     do_resize: bool = True  # Resize the image to 224x224
@@ -36,8 +36,8 @@ class StandardImageTransform(DataTransform[torch.Tensor]):
     image_std: list[float] | None = None
 
     @property
-    def data_model(self) -> type[torch.Tensor]:
-        return torch.Tensor
+    def data_model(self) -> type[np.ndarray]:
+        return np.ndarray
 
     def model_post_init(self, context) -> None:
         self._transform = None
@@ -79,7 +79,7 @@ class StandardImageTransform(DataTransform[torch.Tensor]):
         transform = Compose(transform)
         return transform
 
-    def __call__(self, image: PILImage) -> torch.Tensor:
+    def __call__(self, image: PILImage) -> np.ndarray:
         if not self._transform:
             self._transform = self._prepare_image_transform()
-        return self._transform(image)  # type: ignore
+        return self._transform(image).numpy()  # type: ignore

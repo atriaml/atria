@@ -70,13 +70,22 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             raise ValueError(
                 "Tokenizer output must be a TokenizedDocumentInstance or a list of them."
             )
-        tensor_models = [
-            DocumentTensorDataModel.from_tokenized_instance(
-                tokenized_instance=instance, image_transform=self.image_transform
+
+        updated_instances = []
+        for instance in overflowed_instances:
+            assert isinstance(instance, TokenizedDocumentInstance), (
+                "Overflow resolution must return TokenizedDocumentInstance objects"
             )
-            for instance in overflowed_instances
+            instance = instance.update(
+                image=self.image_transform(instance.image.content)
+                if instance.image is not None
+                else None
+            )
+            updated_instances.append(instance)
+        return [
+            DocumentTensorDataModel.from_tokenized_instance(tokenized_instance=instance)
+            for instance in updated_instances
         ]
-        return tensor_models
 
     def _resolve_overflow_for_instance(
         self, tokenized_instance: TokenizedDocumentInstance

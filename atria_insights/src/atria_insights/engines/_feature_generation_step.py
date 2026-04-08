@@ -46,7 +46,7 @@ class FeatureGenerationStep(EngineStep):
         self, engine: Engine, batch: list[TensorDataModel]
     ) -> BatchFeatures:
         self._x_model_pipeline.ops.eval()
-        collated_batch = batch[0].batch(batch).ops.to(self._device)
+        collated_batch = batch[0].batch(batch).ops.to_tensors().ops.to(self._device)
         with torch.no_grad():
             # prepare explained inputs
             inputs = self._x_model_pipeline._explained_inputs(batch=collated_batch)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Self
 
-import torch
+import numpy as np
 from atria_logger import get_logger
 from atria_types import DocumentInstance
 from atria_types._generic._annotations import AnnotationType
@@ -27,8 +27,8 @@ logger = get_logger(__name__)
 
 
 class QAHuggingfaceProcessorOutput(HuggingfaceProcessorOutput):
-    token_answer_start: torch.Tensor
-    token_answer_end: torch.Tensor
+    token_answer_start: np.ndarray
+    token_answer_end: np.ndarray
 
     @model_validator(mode="after")
     def validate_lengths(self) -> Self:

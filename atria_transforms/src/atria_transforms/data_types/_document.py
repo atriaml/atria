@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import Any
 
-import torch
+import numpy as np
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._bounding_box import BoundingBox
 from pydantic import BaseModel
@@ -24,24 +24,22 @@ class DocumentTensorDataModel(TensorDataModel):
         bbox_normalized: bool = True
         is_embedding: bool = False
 
-    token_ids: torch.Tensor
-    position_ids: torch.Tensor | None = None
-    word_ids: torch.Tensor
-    special_tokens_mask: torch.Tensor | None = None
-    sequence_ids: torch.Tensor
-    token_bboxes: torch.Tensor | None = None
-    layout_embeddings: torch.Tensor | None = None
-    token_type_ids: torch.Tensor | None = None
-    token_labels: torch.Tensor | None = None
-    attention_mask: torch.Tensor | None = None
+    token_ids: np.ndarray
+    position_ids: np.ndarray | None = None
+    word_ids: np.ndarray
+    special_tokens_mask: np.ndarray | None = None
+    sequence_ids: np.ndarray
+    token_bboxes: np.ndarray | None = None
+    layout_embeddings: np.ndarray | None = None
+    token_type_ids: np.ndarray | None = None
+    token_labels: np.ndarray | None = None
+    attention_mask: np.ndarray | None = None
 
-    # sample level fields
-    image: torch.Tensor | None = None
-    label: torch.Tensor | None = None
+    image: np.ndarray | None = None
+    label: np.ndarray | None = None
 
-    # extractive QA specific fields
-    token_answer_start: torch.Tensor | None = None
-    token_answer_end: torch.Tensor | None = None
+    token_answer_start: np.ndarray | None = None
+    token_answer_end: np.ndarray | None = None
 
     @property
     def words(self) -> list[str]:
@@ -53,7 +51,7 @@ class DocumentTensorDataModel(TensorDataModel):
         for word_idx in self.word_ids:
             if word_idx == -100:
                 continue
-            word_idx = word_idx.item()
+            word_idx = int(word_idx)
             if word_idx not in word_bboxes:
                 bbox = BoundingBox(value=self.token_bboxes[word_idx].tolist())
                 word_bboxes[word_idx] = bbox
@@ -64,16 +62,33 @@ class DocumentTensorDataModel(TensorDataModel):
         )
         return word_bboxes
 
+    def to_tensors(self) -> dict[str, Any]:
+        """Convert all numpy arrays to torch tensors. Call in main process only."""
+        import torch
+
+        result = {}
+        for name in self.__class__.model_fields.keys():
+            if name == "metadata":
+                result[name] = self.metadata
+                continue
+            value = getattr(self, name)
+            if value is None:
+                result[name] = None
+            elif isinstance(value, np.ndarray):
+                try:
+                    result[name] = torch.from_numpy(value)
+                except Exception as e:
+                    raise ValueError(
+                        f"Error converting field '{name}' to tensor: {e}"
+                    ) from e
+            else:
+                result[name] = value
+        return result
+
     @classmethod
     def from_tokenized_instance(
-        cls, tokenized_instance: TokenizedDocumentInstance, image_transform: Callable
+        cls, tokenized_instance: TokenizedDocumentInstance
     ) -> DocumentTensorDataModel:
-        image_tensor = (
-            image_transform(tokenized_instance.image.content)
-            if tokenized_instance.image is not None
-            else None
-        )
-
         qa_metadata = {}
         if tokenized_instance.has_annotation_type(
             annotation_type=AnnotationType.question_answering
@@ -84,11 +99,18 @@ class DocumentTensorDataModel(TensorDataModel):
             qa_pairs = annotation.qa_pairs
             assert len(qa_pairs) == 1, (
                 "Conversion from TokenizedDocumentInstance to DocumentTensorDataModel "
-                "for question answering is only supported with a single qa_pair per tokenized_instance"
+                "for question answering is only supported with a single qa_pair"
             )
             qa_metadata["question_id"] = qa_pairs[0].id
             qa_metadata["qa_question"] = qa_pairs[0].question_text
             qa_metadata["qa_answers"] = qa_pairs[0].answers
+
+        image = None
+        if tokenized_instance.image is not None:
+            assert isinstance(tokenized_instance.image, np.ndarray), (
+                "Image content must be a numpy array for conversion to DocumentTensorDataModel"
+            )
+
         return cls(
             index=tokenized_instance.index,
             sample_id=tokenized_instance.sample_id,
@@ -101,7 +123,7 @@ class DocumentTensorDataModel(TensorDataModel):
             token_type_ids=tokenized_instance.token_type_ids,
             token_labels=tokenized_instance.token_labels,
             attention_mask=tokenized_instance.attention_mask,
-            image=image_tensor,
+            image=image,
             label=tokenized_instance.label,
             token_answer_start=tokenized_instance.token_answer_start,
             token_answer_end=tokenized_instance.token_answer_end,

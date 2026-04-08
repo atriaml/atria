@@ -10,7 +10,7 @@ from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._qa_pair import QAPair
 
 if TYPE_CHECKING:
-    import torch
+    import numpy as np
     from transformers.tokenization_utils_base import BatchEncoding
 
 logger = get_logger(__name__)
@@ -93,8 +93,8 @@ def _document_instance_to_hf_processor_inputs(
 
 def _extract_sequence_and_word_ids(
     tokenization_data: BatchEncoding,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    import torch
+) -> tuple[np.ndarray, np.ndarray]:
+    import numpy as np
 
     sequence_ids = []
     word_ids = []
@@ -114,15 +114,15 @@ def _extract_sequence_and_word_ids(
         sequence_ids.append(sequence_ids_per_overflow)
         word_ids.append(word_ids_per_overflow)
 
-    sequence_ids = torch.tensor(sequence_ids)
-    word_ids = torch.tensor(word_ids)
+    sequence_ids = np.array(sequence_ids)
+    word_ids = np.array(word_ids)
     return sequence_ids, word_ids
 
 
 def _extract_token_bboxes_from_word_bboxes(
-    word_bboxes: list[list[float]], word_ids: torch.Tensor
-) -> torch.Tensor:
-    import torch
+    word_bboxes: list[list[float]], word_ids: np.ndarray
+) -> np.ndarray:
+    import numpy as np
 
     token_bboxes = []
     for word_ids_per_sample in word_ids:
@@ -131,13 +131,13 @@ def _extract_token_bboxes_from_word_bboxes(
             for word_id in word_ids_per_sample.tolist()
         ]
         token_bboxes.append(token_bboxes_per_sample)
-    return torch.tensor(token_bboxes)
+    return np.array(token_bboxes)
 
 
 def _extract_token_labels_from_word_labels(
     word_labels: list[int], word_ids: Any
-) -> torch.Tensor:
-    import torch
+) -> np.ndarray:
+    import numpy as np
 
     token_labels = []
     for word_ids_per_sample in word_ids:
@@ -150,12 +150,12 @@ def _extract_token_labels_from_word_labels(
                 token_labels_per_sample.append(word_labels[word_id])
             last_word_id = word_id
         token_labels.append(token_labels_per_sample)
-    return torch.tensor(token_labels)
+    return np.array(token_labels)
 
 
 def _extract_segment_level_data(
-    token_ids: torch.Tensor,
-    token_bboxes: torch.Tensor,
+    token_ids: np.ndarray,
+    token_bboxes: np.ndarray,
     all_special_ids: list[int],
     max_segment_num: int = 150,
 ) -> Mapping[str, Any]:
@@ -281,11 +281,11 @@ def _get_subword_start_end(word_start, word_end, word_ids, sequence_ids):
 
 def _generate_qa_token_ids(
     qa_pair: QAPair,
-    word_ids: torch.Tensor,
-    sequence_ids: torch.Tensor,
+    word_ids: np.ndarray,
+    sequence_ids: np.ndarray,
     sequence_length: int = 512,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    import torch
+) -> tuple[np.ndarray, np.ndarray]:
+    import numpy as np
 
     # since we can have multiple answers per question, we need to handle that here and just take one which is not
     # -1
@@ -326,21 +326,15 @@ def _generate_qa_token_ids(
             )
         token_answer_starts.append(token_answer_start)
         token_answer_ends.append(token_answer_end)
-    token_answer_start = torch.tensor(
-        token_answer_starts, dtype=torch.long, device=word_ids.device
-    )
-    token_answer_end = torch.tensor(
-        token_answer_ends, dtype=torch.long, device=word_ids.device
-    )
+    token_answer_start = np.array(token_answer_starts, dtype=np.int64)
+    token_answer_end = np.array(token_answer_ends, dtype=np.int64)
     return token_answer_start, token_answer_end
 
 
 def _generate_segment_level_bbox_ranks(
-    token_ids: torch.Tensor,
-    segment_level_bboxes: torch.Tensor,
-    all_special_ids: list[int],
+    token_ids: np.ndarray, segment_level_bboxes: np.ndarray, all_special_ids: list[int]
 ):
-    import torch
+    import numpy as np
 
     line_rank_ids = []
     assert len(token_ids) == len(segment_level_bboxes), (
@@ -356,7 +350,7 @@ def _generate_segment_level_bbox_ranks(
         line_rank = 0
         last_b = None
         for token_id, b in zip(token_ids_per_sample, bboxes_per_sample, strict=True):
-            if last_b is not None and not torch.equal(b, last_b):
+            if last_b is not None and not np.array_equal(b, last_b):
                 line_rank += 1
             if token_id in all_special_ids:
                 line_rank_ids_per_sample.append(0)
@@ -365,19 +359,17 @@ def _generate_segment_level_bbox_ranks(
             last_b = b
         line_rank_ids.append(line_rank_ids_per_sample)
 
-    return torch.tensor(line_rank_ids, device=segment_level_bboxes.device)
+    return np.array(line_rank_ids, dtype=np.int64)
 
 
-def _generate_segment_level_inner_ranks(line_rank_id: torch.Tensor):
-    import torch
+def _generate_segment_level_inner_ranks(line_rank_id: np.ndarray) -> np.ndarray:
+    import numpy as np
 
     # line_inner_rank_id is the inner rank as follows 1 means start 2 for all middle tokens 3 for end token ... for each token in the line/segment.
     # if there is no middle token, start token will be 1 and end token will be 3.
     inner_ranks = []
     for line_ranks_per_sample in line_rank_id:
-        inner_ranks_per_sample = torch.zeros_like(
-            line_ranks_per_sample, device=line_ranks_per_sample.device
-        )
+        inner_ranks_per_sample = np.zeros_like(line_ranks_per_sample)
 
         line_segment_spans = []
         start_idx = 0
@@ -404,11 +396,13 @@ def _generate_segment_level_inner_ranks(line_rank_id: torch.Tensor):
                 inner_ranks_per_sample[span_start + 1 : span_end] = 2
                 inner_ranks_per_sample[span_end] = 3  # end
         inner_ranks.append(inner_ranks_per_sample)
-    return torch.stack(inner_ranks)
+    return np.stack(inner_ranks)
 
 
-def _generate_first_token_idxes(line_rank_id: torch.Tensor, max_segment_num: int = 150):
-    import torch
+def _generate_first_token_idxes(
+    line_rank_id: np.ndarray, max_segment_num: int = 150
+) -> tuple[np.ndarray, np.ndarray]:
+    import numpy as np
 
     first_token_idxes = []
     first_token_idxes_mask = []
@@ -436,8 +430,6 @@ def _generate_first_token_idxes(line_rank_id: torch.Tensor, max_segment_num: int
         first_token_idxes_mask.append(first_token_idxes_mask_per_sample)
         first_token_idxes.append(first_token_idxes_per_sample)
 
-    first_token_idxes = torch.tensor(first_token_idxes, device=line_rank_id.device)
-    first_token_idxes_mask = torch.tensor(
-        first_token_idxes_mask, device=line_rank_id.device, dtype=torch.float32
-    )
+    first_token_idxes = np.array(first_token_idxes, dtype=np.int64)
+    first_token_idxes_mask = np.array(first_token_idxes_mask, dtype=np.float32)
     return first_token_idxes, first_token_idxes_mask
