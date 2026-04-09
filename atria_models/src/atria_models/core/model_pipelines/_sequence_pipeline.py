@@ -470,6 +470,7 @@ class TokenClassificationPipeline(SequenceModelPipeline):
         return TokenClassificationModelOutput(
             loss=loss,
             logits=logits,
+            token_labels=batch.token_labels,
             predicted_label_names=predicted_label_names,
             target_label_names=target_label_names,
         )

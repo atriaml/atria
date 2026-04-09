@@ -110,6 +110,7 @@ class DocumentTensorDataModel(TensorDataModel):
             assert isinstance(tokenized_instance.image, np.ndarray), (
                 "Image content must be a numpy array for conversion to DocumentTensorDataModel"
             )
+            image = tokenized_instance.image
 
         return cls(
             index=tokenized_instance.index,

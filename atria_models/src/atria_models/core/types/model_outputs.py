@@ -37,24 +37,40 @@ class ClassificationModelOutput(ModelOutput):
 @dataclass(frozen=True)
 class TokenClassificationModelOutput(ModelOutput):
     logits: torch.Tensor | None = None
+    token_labels: torch.Tensor | None = None
     predicted_label_names: list[list[str]] | None = None
     target_label_names: list[list[str]] | None = None
 
-    def is_correct(self) -> list[bool] | None:
-        if (
-            self.predicted_label_names is not None
-            and self.target_label_names is not None
-        ):
-            return [
-                [
-                    pred == target
-                    for pred, target in zip(pred_seq, target_seq, strict=True)
+    def is_correct(self, token_level: bool = True) -> list[bool] | None:
+        if token_level:
+            predictions = (
+                self.logits.argmax(dim=-1) if self.logits is not None else None
+            )
+            if predictions is not None and self.token_labels is not None:
+                return [
+                    [
+                        (pred == target).item()
+                        for pred, target in zip(pred_seq, target_seq, strict=True)
+                    ]
+                    for pred_seq, target_seq in zip(
+                        predictions, self.token_labels, strict=True
+                    )
                 ]
-                for pred_seq, target_seq in zip(
-                    self.predicted_label_names, self.target_label_names, strict=True
-                )
-            ]
-        return None
+        else:
+            if (
+                self.predicted_label_names is not None
+                and self.target_label_names is not None
+            ):
+                return [
+                    [
+                        pred == target
+                        for pred, target in zip(pred_seq, target_seq, strict=True)
+                    ]
+                    for pred_seq, target_seq in zip(
+                        self.predicted_label_names, self.target_label_names, strict=True
+                    )
+                ]
+            return None
 
 
 @dataclass(frozen=True)

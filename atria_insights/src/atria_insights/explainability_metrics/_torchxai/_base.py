@@ -158,15 +158,21 @@ class ExplainabilityMetric(
                 logger.debug(
                     f"Found cached metric for full batch of size {len(explanation_step_output.explanation_inputs.sample_id)} from disk."
                 )
-                data = self._load_from_disk(
-                    sample_ids=explanation_step_output.explanation_inputs.sample_id
-                )
-                logger.info("Metric data loaded.")
-                self._results.append(data)
-                self._num_examples += (
-                    explanation_step_output.explanation_inputs.batch_size
-                )
-                return
+                try:
+                    data = self._load_from_disk(
+                        sample_ids=explanation_step_output.explanation_inputs.sample_id
+                    )
+                    # logger.info("Metric data loaded.")
+                    self._results.append(data)
+                    self._num_examples += (
+                        explanation_step_output.explanation_inputs.batch_size
+                    )
+                    return
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to load metric data from disk cache for batch. Recomputing metric. Error: {e}"
+                    )
+                    is_batch_done = False
 
         logger.debug(f"Computing metric {self.name}.")
 

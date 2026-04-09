@@ -114,8 +114,9 @@ class BatchMetricData(BaseModel):
             if isinstance(value_list[0], torch.Tensor):
                 if value_list[0].ndim == 0:
                     data_dict[key] = torch.tensor(value_list)
-                elif value_list[0].ndim == 1 and value_list[0].shape[0] == 1:
-                    # special case for 1D tensors of shape (1,)
+                elif value_list[0].ndim == 1 and all(
+                    value_list[idx].shape[0] == 1 for idx in range(len(value_list))
+                ):
                     data_dict[key] = torch.cat(value_list)
                 else:
                     if not all((v.shape == first_shape) for v in value_list):
@@ -124,7 +125,7 @@ class BatchMetricData(BaseModel):
                         data_dict[key] = torch.stack(value_list)
 
             assert len(data_dict[key]) == len(sample_ids), (
-                f"Data for key '{key}' has length {len(data_dict[key])}, expected {len(sample_ids)}."
+                f"Data for key '{key}' has length {len(data_dict[key])}, expected {len(sample_ids)}. Got values: {data_dict[key]}"
             )
         return cls(sample_id=sample_ids, data=data_dict)
 

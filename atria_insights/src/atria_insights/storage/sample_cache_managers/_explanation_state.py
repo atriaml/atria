@@ -24,13 +24,31 @@ logger = get_logger(__name__)
 
 
 class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
-    def __init__(self, cache_dir: str | Path, config: ExplainableModelPipelineConfig):
+    def __init__(
+        self,
+        cache_dir: str | Path,
+        config: ExplainableModelPipelineConfig,
+        load_existing: bool = False,
+    ):
         # create a child cache dir for the given explainer
-        super().__init__(
-            cache_dir=Path(cache_dir), file_name=f"explanations-{config.hash}.hdf5"
-        )
-        self._config = config
-        self._dump_config()
+        # hack for configs if already exists
+        cache_path = Path(cache_dir)
+        if load_existing:
+            existing_files = list(cache_path.glob("explanations-*.hdf5"))
+            logger.info(
+                f"Looking for existing explanation cache files in {cache_path}. Found {len(existing_files)} files."
+            )
+            if existing_files:
+                file_name = existing_files[0].name
+                self._config = None
+        else:
+            file_name = f"explanations-{config.hash}.hdf5"
+            self._config = config
+
+        super().__init__(cache_dir=Path(cache_dir), file_name=file_name)
+
+        if not load_existing and self._config is not None:
+            self._dump_config()
 
     def _dump_config(self) -> dict:
         self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
@@ -135,10 +153,11 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         target = json.loads(target)
 
         attention_token_target = data.attrs.get("attention_token_target")
-        assert isinstance(attention_token_target, str), (
-            "attention_token_target must be a string."
-        )
-        attention_token_target = json.loads(attention_token_target)
+        if attention_token_target is not None:
+            assert isinstance(attention_token_target, str), (
+                "attention_token_target must be a string."
+            )
+            attention_token_target = json.loads(attention_token_target)
 
         is_multitarget = data.attrs.get("is_multitarget", False)
 
