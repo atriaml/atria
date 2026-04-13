@@ -120,15 +120,21 @@ def _extract_sequence_and_word_ids(
 
 
 def _extract_token_bboxes_from_word_bboxes(
-    word_bboxes: list[list[float]], word_ids: np.ndarray
+    word_bboxes: list[list[float]], word_ids: np.ndarray, sequence_ids: np.ndarray
 ) -> np.ndarray:
     import numpy as np
 
     token_bboxes = []
-    for word_ids_per_sample in word_ids:
+    for word_ids_per_sample, sequence_ids_per_sample in zip(
+        word_ids, sequence_ids, strict=True
+    ):
         token_bboxes_per_sample = [
-            [0, 0, 0, 0] if word_id == -100 else word_bboxes[word_id]
-            for word_id in word_ids_per_sample.tolist()
+            [0, 0, 0, 0]
+            if word_id == -100 or sequence_id == 0
+            else word_bboxes[word_id]
+            for word_id, sequence_id in zip(
+                word_ids_per_sample, sequence_ids_per_sample, strict=True
+            )
         ]
         token_bboxes.append(token_bboxes_per_sample)
     return np.array(token_bboxes)
