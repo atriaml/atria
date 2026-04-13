@@ -107,7 +107,7 @@ class HuggingfaceProcessor(DataTransform):
     return_special_tokens_mask: bool = False
     return_offsets_mapping: bool = False
     return_length: bool = False
-    return_tensors: str = "np"
+    return_tensors: str = "pt"
     verbose: bool = True
 
     @property
@@ -153,7 +153,7 @@ class HuggingfaceProcessor(DataTransform):
             "return_special_tokens_mask": self.return_special_tokens_mask,
             "return_offsets_mapping": self.return_offsets_mapping,
             "return_length": self.return_length,
-            "return_tensors": self.return_tensors,
+            "return_tensors": "np",  # override as we don't want tensors inside preprocessing steps.
             "verbose": self.verbose,
         }
 
