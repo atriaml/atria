@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Any
 
 import torch
+from atria_logger._api import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -114,13 +117,21 @@ class QAModelOutput(ModelOutput):
     def is_correct(self) -> bool | None:
         from anls import anls_score
 
+        logger.debug(
+            f"Calculating ANLS score for prediction: {self.answer} and gold answers: {self.gt_answers}"
+        )
+
         if self.answer is not None and self.gt_answers is not None:
-            anls_score = anls_score(
-                prediction=self.answer,
-                gold_labels=self.gt_answers,  # this takes a list of targets
-                threshold=0.5,
-            )
-        return anls_score > 0.5
+            anls_scores = [
+                anls_score(
+                    prediction=ans,
+                    gold_labels=gt,  # this takes a list of targets
+                    threshold=0.5,
+                )
+                for ans, gt in zip(self.answer, self.gt_answers, strict=True)
+            ]
+            return [score >= 0.5 for score in anls_scores]
+        return None
 
 
 @dataclass(frozen=True)
