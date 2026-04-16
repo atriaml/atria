@@ -79,10 +79,12 @@ class BaseDataModel(  # type: ignore[misc]
                 f"Failed to create PyArrow schema for {cls.__name__}"
             ) from e
 
-    def to_row(self, include_none: bool = True) -> dict[str, Any]:
+    def to_row(
+        self, include_none: bool = True, exclude: set[str] | None = None
+    ) -> dict[str, Any]:
         try:
             schema = self.table_schema_flattened()
-            data = _flatten_dict(self.model_dump())
+            data = _flatten_dict(self.model_dump(exclude=exclude))
 
             if include_none:
                 return {k: data.get(k) for k in schema}
