@@ -13,8 +13,30 @@ logger = get_logger(__name__)
 class ModelOutput:
     loss: torch.Tensor | None = None
 
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
+
     def to_dict(self) -> dict[str, Any]:
-        return {k: v for k, v in self.__dict__.items() if v is not None}
+        # Convert all torch tensors to lists for JSON serialization
+        result = {}
+        for k, v in self.__dict__.items():
+            if v is None:
+                continue
+            if isinstance(v, torch.Tensor):
+                result[k] = v.cpu().numpy().tolist()
+            elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
+                result[k] = [
+                    item.cpu().numpy().tolist()
+                    if isinstance(item, torch.Tensor)
+                    else item
+                    for item in v
+                ]
+            else:
+                result[k] = v
+
+        result["type"] = self.type
+        return result
 
 
 @dataclass(frozen=True)
@@ -25,6 +47,10 @@ class ClassificationModelOutput(ModelOutput):
     gt_label_name: list[str] | None = None
     predicted_label_value: torch.Tensor | None = None
     predicted_label_name: list[str] | None = None
+
+    @property
+    def type(self) -> str:
+        return "classification"
 
     def is_correct(self) -> bool | None:
         if self.predicted_label_value is not None and self.gt_label_value is not None:
@@ -43,6 +69,10 @@ class TokenClassificationModelOutput(ModelOutput):
     token_labels: torch.Tensor | None = None
     predicted_label_names: list[list[str]] | None = None
     target_label_names: list[list[str]] | None = None
+
+    @property
+    def type(self) -> str:
+        return "token_classification"
 
     def is_correct(self, token_level: bool = True) -> list[bool] | None:
         if token_level:
@@ -83,6 +113,10 @@ class LayoutTokenClassificationModelOutput(ModelOutput):
     layout_token_bboxes: torch.Tensor | None = None
 
     @property
+    def type(self) -> str:
+        return "layout_token_classification"
+
+    @property
     def layout_token_predictions(self) -> torch.Tensor | None:
         if self.layout_token_logits is not None:
             return torch.argmax(self.layout_token_logits, dim=-1)
@@ -114,6 +148,10 @@ class QAModelOutput(ModelOutput):
     answer: list[str] | None = None
     gt_answers: list[list[str]] | None = None
 
+    @property
+    def type(self) -> str:
+        return "question_answering"
+
     def is_correct(self) -> bool | None:
         from anls import anls_score
 
@@ -139,3 +177,7 @@ class MMDetEvaluationOutput(ModelOutput):
     loss_dict: dict | None = None
     det_data_samples: list[Any] | None = None
     class_labels: list[str] | None = None
+
+    @property
+    def type(self) -> str:
+        return "layout"
