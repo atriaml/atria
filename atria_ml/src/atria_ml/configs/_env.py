@@ -32,6 +32,19 @@ class RuntimeEnvConfig(RepresentationMixin, BaseModel):
         return base_path
 
     @property
+    def run_model_dir(self) -> Path:
+        base_path = Path(self.output_dir) / self.exp_name
+        if self.model_name is not None:
+            base_path = base_path / self.model_name
+
+        # get the checkpoint dir
+        for dir in base_path.iterdir():
+            if dir.is_dir() and dir.name.startswith("checkpoint"):
+                base_path = dir
+                break
+        return base_path
+
+    @property
     def run_dir(self) -> Path:
         base_path = Path(self.output_dir) / self.exp_name
         if self.dataset_name is not None:
