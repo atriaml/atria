@@ -22,14 +22,25 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
     ):
         # create a child cache dir for the given explainer
 
-        file_name = (
-            f"metrics/{file_name}.hdf5" or f"metrics/{config.type}-{config.hash}.hdf5"
-        )
+        file_name = f"metrics/{file_name}.hdf5"
+        if not (Path(cache_dir) / file_name).exists():
+            # find all files starting with the name
+            existing_files = list(
+                (Path(cache_dir) / "metrics").glob(f"{config.type}-*.hdf5")
+            )
+            # go over files to see to take the largest file
+            if existing_files:
+                existing_files = sorted(
+                    existing_files, key=lambda x: x.stat().st_size, reverse=True
+                )
+                file_name = existing_files[0].relative_to(cache_dir)
+
+            # file_name = f"metrics/{config.type}-{config.hash}.hdf5"
         super().__init__(cache_dir=Path(cache_dir), file_name=file_name)
         self._config = config
 
         # save config to attrs
-        self._dump_config()
+        # self._dump_config()
 
     def _dump_config(self) -> dict:
         if not self.file_path.with_suffix(".yaml").exists():
