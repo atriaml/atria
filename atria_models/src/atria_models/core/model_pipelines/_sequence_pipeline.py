@@ -716,7 +716,9 @@ class QuestionAnsweringPipeline(SequenceModelPipeline):
             qa_outputs["sample_id"].append(sample_id)
             qa_outputs["question"].append(question_per_sample_idx[qid])
             qa_outputs["answer"].append(answer)
-        return QAModelOutput(loss=loss, **qa_outputs)
+        return QAModelOutput(
+            loss=loss, start_logits=start_logits, end_logits=end_logits, **qa_outputs
+        )
 
     def build_metrics(
         self,
