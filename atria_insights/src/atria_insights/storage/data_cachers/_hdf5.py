@@ -128,8 +128,14 @@ class HDF5DataCacher(DataCacher):
         if not self._file_path.parent.exists():
             self._file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with h5py.File(self._file_path, "a") as hf:
-            self._save_attrs(hf, attrs)
+        try:
+            with h5py.File(self._file_path, "a") as hf:
+                self._save_attrs(hf, attrs)
+        except Exception as e:
+            logger.error(
+                f"Failed to save file attributes: {attrs} to HDF5 file {self._file_path}."
+            )
+            raise e
 
     def sample_exists(self, sample_key: str) -> bool:
         if not Path(self._file_path).exists():
@@ -171,7 +177,9 @@ class HDF5DataCacher(DataCacher):
     ) -> SerializableSampleData:
         with h5py.File(self._file_path, "r") as hf:
             if sample_key not in hf:
-                raise ValueError(f"Sample key {sample_key} not found in HDF5 file.")
+                raise ValueError(
+                    f"Sample key {sample_key} not found in HDF5 file : {self._file_path}"
+                )
 
             # get state group
             state_group = hf[sample_key]
@@ -189,7 +197,9 @@ class HDF5DataCacher(DataCacher):
     def load_sample_attrs(self, sample_key: str) -> dict[str, Any]:
         with h5py.File(self._file_path, "r") as hf:
             if sample_key not in hf:
-                raise ValueError(f"Sample key {sample_key} not found in HDF5 file.")
+                raise ValueError(
+                    f"Sample key {sample_key} not found in HDF5 file {self._file_path}."
+                )
 
             # get state group
             state_group = hf[sample_key]
