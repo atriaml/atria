@@ -147,6 +147,8 @@ class QAModelOutput(ModelOutput):
     question: list[str] | None = None
     answer: list[str] | None = None
     gt_answers: list[list[str]] | None = None
+    start_logits: torch.Tensor | None = None
+    end_logits: torch.Tensor | None = None
 
     @property
     def type(self) -> str:
