@@ -19,9 +19,9 @@ lib64/
 parts/
 sdist/
 var/
-*.egg-info/
+**/**.egg-info/
 .installed.cfg
-*.egg
+**/**.egg
 MANIFEST
 
 # Virtual environments
@@ -86,42 +86,3 @@ pyrightconfig.json
 # Local scripts / config files
 *.env
 cache/
-data_dir/
-outputs/
-test_data/
-atria_datasets/examples/data/
-visualizations/
-atria_transforms/src/atria_transforms/tfs/_ocr_engines/_base.py
-atria_transforms/src/atria_transforms/tfs/_ocr_engines/tesseract.py
-atria_datasets/.vscode/settings.json
-tesseract_ocr_output.png/test_doc.png
-test.ipynb
-output
-atria_types/.vscode/settings.json
-atria_types/test.png/doc_002.png
-atria_transforms/.vscode/settings.json
-atria_transforms/tesseract_ocr_output.png/test_doc.png
-test_iterator.py
-test_pool.py
-test_pool2.py
-test.ipynb
-test_hfio.h5
-test_hfio.ipynb
-test_hfio.pt
-test_hfio.py
-experiments/train_baselines/base.sh
-experiments/train_baselines/jobs_set_cls.sh
-experiments/train_baselines/jobs_set_dla_doclaynet.sh
-experiments/train_baselines/jobs_set_dla_icdar_publaynet.sh
-experiments/train_baselines/jobs_set_kie.sh
-experiments/train_baselines/jobs_set_vqa.sh
-experiments/train_baselines/train_classification.sh
-experiments/train_baselines/train_entity_labeling.sh
-experiments/train_baselines/train_layout_analysis.sh
-experiments/train_baselines/train_question_answering.sh
-experiments/train_baselines/sequence_classification/train.sh
-atria_insights/src/atria_insights/explainers/_transformers/attention/attention_test.py
-atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests copy.ipynb
-atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests-layoutlmv3.ipynb
-atria_insights/src/atria_insights/explainers/_transformers/attention/attention-tests.ipynb
-atria_datasets/src/atria_datasets/core/storage/shard_list_datasets_test.py
