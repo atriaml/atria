@@ -123,3 +123,4 @@ atria-ml = { path = "../atria_ml" , editable = true }
 atria-transforms = { path = "../atria_transforms", editable = true }
 atria-models = { path = "../atria_models", editable = true }
 atria-metrics = { path = "../atria_metrics", editable = true }
+torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }

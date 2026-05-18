@@ -19,7 +19,6 @@ dependencies = [
     "h5typer>=0.2.0",
     "joblib>=1.5.2",
     "jupytext>=1.18.1",
-    "torchxai",
     "tuna>=0.5.11",
 ]
 
@@ -36,7 +35,6 @@ atria-ml = { path = "atria_ml", editable = true }
 atria-datasets = { path = "atria_datasets", editable = true }
 atria-metrics = { path = "atria_metrics", editable = true }
 atria-insights = { path= "atria_insights", editable = true }
-torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }
 
 [dependency-groups]
 dev = [
