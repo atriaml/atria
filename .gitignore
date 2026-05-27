@@ -86,3 +86,4 @@ pyrightconfig.json
 # Local scripts / config files
 *.env
 cache/
+atriax_client/
