@@ -21,6 +21,9 @@ from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
+    from atria_datasets.core.storage._storage_managers._deltalake import (
+        DeltalakeStorageManager,
+    )
     from atria_datasets.core.storage._storage_managers._msgpack import (
         MsgpackStorageManager,
     )
@@ -130,9 +133,9 @@ def _get_storage_manager(
     config_name: str,
     num_processes: int,
     name_suffix: str = "",
-) -> MsgpackStorageManager:
+) -> MsgpackStorageManager | DeltalakeStorageManager:
     if cached_storage_type == FileStorageType.DELTALAKE:
-        from atria_datasets.core.storage.deltalake_storage_manager import (
+        from atria_datasets.core.storage._storage_managers._deltalake import (
             DeltalakeStorageManager,
         )
 
@@ -140,6 +143,7 @@ def _get_storage_manager(
             storage_dir=storage_dir,
             config_name=config_name,
             num_processes=num_processes,
+            name_suffix=name_suffix,
         )
     elif cached_storage_type == FileStorageType.MSGPACK:
         from atria_datasets.core.storage._storage_managers._msgpack import (

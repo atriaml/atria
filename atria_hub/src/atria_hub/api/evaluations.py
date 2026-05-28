@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from atria_core.logger.logger import get_logger
+from atria_logger import get_logger
 from atriax_client.models.config_base import ConfigBase
 from atriax_client.types import File
 

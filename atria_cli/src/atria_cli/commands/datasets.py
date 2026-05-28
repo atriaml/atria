@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from atria_core.logger import get_logger
+from atria_logger import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Callable

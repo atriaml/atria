@@ -11,6 +11,7 @@ requires-python = "==3.11.*"
 license = { file = "LICENSE.txt" }
 authors = [{ name = "Saifullah", email = "saifullah.saifullah@dfki.de" }]
 dependencies = [
+    "atriax-client",
     "gotrue>=2.12.3",
     "keyring>=25.6.0",
     "lakefs>=0.11.1",
@@ -106,6 +107,15 @@ xfail_strict = true         # Treat tests that are marked as xfail but pass as t
 
 [tool.uv]
 managed = true
+
+[tool.uv.workspace]
+members = [
+    "src/atriax_client",
+    "atriax_client",
+]
+
+[tool.uv.sources]
+atriax-client = { path = "../atriax_client", editable = true }
 
 [dependency-groups]
 dev = [

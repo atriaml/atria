@@ -42,7 +42,7 @@ class AtriaHubClient:
         self._api_client = AtriaxClient(base_url=base_url)
         self._auth_client: AuthClient = create_client(
             supabase_url=base_url,
-            supabase_key="dummy-key",
+            supabase_key=settings.ATRIAX_ANON_KEY,
             options=ClientOptions(storage=self._credentials_storage)
             if use_key_ring
             else None,

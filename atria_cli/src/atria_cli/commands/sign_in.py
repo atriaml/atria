@@ -1,4 +1,4 @@
-from atria_core.logger import get_logger
+from atria_logger import get_logger
 
 logger = get_logger(__name__)
 

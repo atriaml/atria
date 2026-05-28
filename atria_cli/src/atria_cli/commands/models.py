@@ -1,4 +1,4 @@
-from atria_core.logger import get_logger
+from atria_logger import get_logger
 from atria_registry.utilities import instantiate_object_from_config
 
 logger = get_logger(__name__)

@@ -4,7 +4,7 @@ from atria_hub.config import settings
 
 
 def get_logger(name: str) -> logging.Logger:
-    from atria_core.logger import get_logger
+    from atria_logger import get_logger
 
     logger = get_logger(name)
 

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from atria_core.logger.logger import get_logger
+from atria_logger import get_logger
 from atriax_client.types import Response
 
 if TYPE_CHECKING:

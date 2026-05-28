@@ -39,8 +39,6 @@ class AtriaHub:
 
         self._base_url = base_url
         self._storage_url = storage_url
-        print("Initializing AtriaHub client with base URL:", self._base_url)
-        exit()
         self._client = AtriaHubClient(
             base_url=base_url,
             storage_url=storage_url,
@@ -76,7 +74,6 @@ class AtriaHub:
     ) -> AtriaHub:
         """Initialize the AtriaHub client and authenticate."""
         try:
-            logger.info("Checking AtriaHub connectivity at %s", self._base_url)
             self._health_check_api.health_check()
 
         except RuntimeError:
