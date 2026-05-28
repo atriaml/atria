@@ -1,7 +1,8 @@
+import json
 from enum import Enum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_serializer, field_validator, model_validator
 
 from atria_types._base._data_model import BaseDataModel
 from atria_types._generic._bounding_box import BoundingBox
@@ -113,10 +114,38 @@ class DocumentContent(BaseDataModel):
             te.segment_bbox for te in self.text_elements if te.segment_bbox is not None
         ]
 
+    @field_validator("text_elements", mode="before")
+    @classmethod
+    def deserialize_text_elements(cls, v: Any) -> list[TextElement] | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            parsed = json.loads(v)
+            return [TextElement(**el) if isinstance(el, dict) else el for el in parsed]
+        return v
+
+    @field_serializer("text_elements")
+    def serialize_text_elements(
+        self, v: list[TextElement] | None, _info: Any
+    ) -> str | None:
+        if v is None:
+            return None
+        return json.dumps([el.model_dump() for el in v])
+
     @model_validator(mode="before")
     @classmethod
     def validate_content(cls, values: Any) -> Any:
-        if values.get("text") is None and values.get("text_elements") is not None:
-            texts = [te.text for te in values["text_elements"] if te.text is not None]
+        # handle both dict and model instances in text_elements
+        text_elements = values.get("text_elements")
+        if values.get("text") is None and text_elements is not None:
+            if isinstance(text_elements, str):
+                text_elements = json.loads(text_elements)
+            texts = [
+                te["text"] if isinstance(te, dict) else te.text
+                for te in text_elements
+                if (te.get("text") if isinstance(te, dict) else te.text) is not None
+            ]
             values["text"] = " ".join(texts)
         return values
+
+    # ... properties unchanged ...

@@ -82,13 +82,24 @@ class BaseDataModel(  # type: ignore[misc]
     def to_row(
         self, include_none: bool = True, exclude: set[str] | None = None
     ) -> dict[str, Any]:
+        import pyarrow as pa
+
         schema = self.table_schema_flattened()
         data = _flatten_dict(self.model_dump(exclude=exclude))
 
-        if include_none:
-            return {k: data.get(k) for k in schema}
-        else:
-            return {k: v for k, v in data.items() if k in schema and v is not None}
+        row = {}
+        for key in schema:
+            value = data.get(key)
+            if value is not None or include_none:
+                row[key] = value
+            if row[key] is not None:
+                try:
+                    pa.scalar(row[key], type=schema[key])
+                except (pa.ArrowInvalid, pa.ArrowTypeError) as e:
+                    raise TypeError(
+                        f"Expected type {schema[key]} for field {key}, got {type(row[key])}"
+                    ) from e
+        return row
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Self:
