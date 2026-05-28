@@ -55,12 +55,6 @@ class ModuleConfig(RepresentationMixin, BaseModel):
         """Convert the ModuleConfig to a dict suitable for Hydra instantiate."""
         return to_instantiable_dict(self)
 
-    def to_yaml(self) -> str:
-        """Serialize the ModuleConfig to a YAML string."""
-        from omegaconf import OmegaConf
-
-        return OmegaConf.to_yaml(OmegaConf.create(self.to_dict()))
-
     def build(self, **kwargs) -> Any:
         assert self.module_path is not None, (
             "module_path must be set to build the module for config "
@@ -82,7 +76,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     def unsafe_update(self, **kwargs: Any):
         """Return a new ModuleConfig with updated kwargs."""
         for key, value in kwargs.items():
-            self.__dict__[key] = value
+            self.__dict__[key] = value  # type: ignore
 
 
 class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
@@ -143,19 +137,28 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
 
 class PydanticConfigurableModule(RepresentationMixin, BaseModel):
     __version__ = "0.0.0"
+    __hash_exclude__: ClassVar[set[str]] = set()
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
 
     @property
     def hash(self) -> str:
-        return _get_config_hash(self.model_dump())
+        config = self.model_dump(exclude=self.__hash_exclude__)
+        return _get_config_hash(config)
 
     @property
     def kwargs(self) -> dict[str, Any]:
         return self.model_dump()
 
-    def to_yaml(self) -> str:
-        """Serialize the ModuleConfig to a YAML string."""
+    @classmethod
+    def from_dict(cls, obj: dict) -> Self:
+        """Create a ModuleConfig from a dict, resolving _target_ entries."""
+        from hydra.utils import instantiate
         from omegaconf import OmegaConf
 
-        config_omegaconf = OmegaConf.create(self.model_dump())
-        return OmegaConf.to_yaml(config_omegaconf)
+        omega_conf = OmegaConf.create(obj)
+        obj = instantiate(omega_conf)
+        return cls.model_validate(obj)
+
+    def to_dict(self) -> dict:
+        """Convert the ModuleConfig to a dict suitable for Hydra instantiate."""
+        return to_instantiable_dict(self)

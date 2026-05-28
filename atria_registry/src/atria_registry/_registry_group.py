@@ -5,13 +5,13 @@ from __future__ import annotations
 import copy
 import importlib
 import json
-import typing
+import os
 from pathlib import Path
 from typing import Any, Generic
 
 import yaml
 from atria_logger import get_logger
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from atria_registry._common import T_ModuleConfig
 from atria_registry._module_base import (
@@ -19,21 +19,15 @@ from atria_registry._module_base import (
     ModuleConfig,
     PydanticConfigurableModule,
 )
-from atria_registry._utilities import (
-    _extract_nested_defaults,
-    _get_config_hash,
-    _resolve_module_from_path,
-)
 
 logger = get_logger(__name__)
 
-_BUILD_REGISTRY = True
+_BUILD_REGISTRY = os.environ.get("ATRIA_BUILD_REGISTRY", "false").lower() == "true"
 
 
 class ConfigSpec(BaseModel):
     hash: str
     config: dict[str, Any]
-    import_path: str | None = None
 
 
 class RegistryGroup(Generic[T_ModuleConfig]):
@@ -104,27 +98,28 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         if not _BUILD_REGISTRY:
 
             def noop(module):
-                logger.debug(
-                    f"Skipping registration of module {module_name} because _BUILD_REGISTRY is False."
-                )
                 return module
 
             return noop
+
+        logger.debug(
+            f"Registering module '{module_name}' with configs: {configs} in registry group '{self._name}'"
+        )
 
         def decorator(module):
             if issubclass(module, ModuleConfig | PydanticConfigurableModule):
                 assert configs is None, (
                     "Configs should not be provided when registering a ModuleConfig subclass."
                 )
-                config_import_path = module.__module__ + "." + module.__name__
-                config = _extract_nested_defaults(module)
+                # initialize the config to default values
+                config = module()
+                config_hash = config.hash
+                config = config.to_dict()
 
                 if issubclass(module, ModuleConfig):
                     assert config["module_path"] is not None, (
                         f"{module} must have module_path defined."
                     )
-
-                config_hash = _get_config_hash(config)
 
                 cur = self.get_store_value_at_path(module_name)
                 if cur is not None:
@@ -144,9 +139,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
                 self.set_store_value_at_path(
                     module_name,
-                    ConfigSpec(
-                        hash=config_hash, config=config, import_path=config_import_path
-                    ).model_dump(),
+                    ConfigSpec(hash=config_hash, config=config).model_dump(),
                 )
 
                 # log registration for debugging
@@ -215,9 +208,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             else module.__name__
         )
 
-        # second get config import path
-        config_import_path = config.__module__ + "." + config.__class__.__name__
-
         # update module path in config
         if isinstance(config, ModuleConfig):
             config = config.model_copy(update={"module_path": module_path})
@@ -225,8 +215,8 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             config["module_path"] = module_path
 
         # get config hash
-        config = config.model_dump() if isinstance(config, BaseModel) else config
-        config_hash = _get_config_hash(config)
+        config_hash = config.hash
+        config = config.to_dict()
 
         cur = self.get_store_value_at_path(module_name)
         if cur is not None:
@@ -245,10 +235,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 )
 
         self.set_store_value_at_path(
-            module_name,
-            ConfigSpec(
-                hash=config_hash, config=config, import_path=config_import_path
-            ).model_dump(),
+            module_name, ConfigSpec(hash=config_hash, config=config).model_dump()
         )
 
         # log registration for debugging
@@ -277,31 +264,18 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             raise RuntimeError(
                 f"Module path '{module_path}' not found in registry. Available paths:\n {all_modules_str}"
             )
-        config_import_path = node.get("import_path", None)
         config = node["config"]
-        config.update(kwargs)
 
-        # go through the config recursively and check if there is any field with value "???" and raise an error
-        self._validate_non_missing_fields(module_path, config)
+        assert "_target_" in config, (
+            f"Config for module_path={module_path} must contain '_target_' field for instantiation."
+        )
+        from hydra.utils import instantiate
+        from omegaconf import OmegaConf
 
-        if config_import_path is not None:
-            config_cls = _resolve_module_from_path(config_import_path)
-            assert issubclass(config_cls, ModuleConfig | PydanticConfigurableModule), (
-                f"Config class at path {config_import_path} is not a ModuleConfig or PydanticConfigurableModule."
-            )
-            try:
-                logger.debug(
-                    f"Validating config={config_cls} with data={config} for module_path={module_path}"
-                )
-                config = config_cls.model_validate(config)
-                return typing.cast(T_ModuleConfig, config)
-            except ValidationError as e:
-                logger.error(
-                    f"Error validating config={config_cls} with data={config} for module_path={module_path}"
-                )
-                raise e
-        else:
-            return config
+        omega_conf = OmegaConf.create(config)
+        obj = instantiate(omega_conf)
+        obj.model_copy(update={**kwargs})
+        return obj
 
     def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
         """Dump registry.json into the package folder."""
@@ -311,13 +285,11 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
         registry = {}
         if path.exists():
+            with open(path) as f:
+                registry = json.load(f)
             if refresh:
                 logger.debug(f"Refreshing registry at {path}.")
-                path.unlink()
-            else:
-                with open(path) as f:
-                    logger.debug(f"Loading existing registry from {path} for dumping.")
-                    registry = json.load(f)
+                registry[self._name] = {}
 
         registry[self._name] = self._store
 
