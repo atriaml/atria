@@ -82,19 +82,13 @@ class BaseDataModel(  # type: ignore[misc]
     def to_row(
         self, include_none: bool = True, exclude: set[str] | None = None
     ) -> dict[str, Any]:
-        try:
-            schema = self.table_schema_flattened()
-            data = _flatten_dict(self.model_dump(exclude=exclude))
+        schema = self.table_schema_flattened()
+        data = _flatten_dict(self.model_dump(exclude=exclude))
 
-            if include_none:
-                return {k: data.get(k) for k in schema}
-            else:
-                return {k: v for k, v in data.items() if k in schema and v is not None}
-
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to convert {self.__class__.__name__} to row"
-            ) from e
+        if include_none:
+            return {k: data.get(k) for k in schema}
+        else:
+            return {k: v for k, v in data.items() if k in schema and v is not None}
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Self:
