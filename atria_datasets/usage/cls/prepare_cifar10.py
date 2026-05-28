@@ -3,6 +3,7 @@ import os
 from atria_logger import get_logger
 
 from atria_datasets import load_dataset_config
+from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
 logger = get_logger(__name__)
 
@@ -29,13 +30,17 @@ def main(visualize_sample: bool = False, upload: bool = True):
         )
 
     if upload:
-        dataset_info = dataset.upload_to_hub(name="cifar10-example2")
-        print(f"Dataset uploaded to hub with path: {dataset_info.repo_id}")
+        repo_info = dataset.upload_to_hub(name="cifar10-example2")
+        print("repo_info", repo_info)
 
         # # reload dataset from hub to verify upload
-        # hub_dataset = load_dataset_config(
-        #     "hub/saifullah3396/cifar10-example/default"
-        # ).build()
+        dataset = CachedDataset.load_from_hub(
+            username=repo_info["username"],
+            name=repo_info["name"],
+            branch=repo_info["branch"],
+        )
+
+        logger.info(f"dataset loaded from hub successfully: \n{dataset}")
         # hub_sample = next(iter(hub_dataset.train))
         # logger.info(f"First sample in train split of hub dataset:\n{hub_sample}")
 

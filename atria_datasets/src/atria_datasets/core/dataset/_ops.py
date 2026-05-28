@@ -8,9 +8,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 from atria_hub.hub import AtriaHub  # type: ignore[import-not-found]
 from atria_logger import get_logger
-from atriax_client.models.dataset import (
-    Dataset as DatasetInfo,  # type: ignore[import-not-found]
-)
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CACHE_DIR,
@@ -19,7 +16,6 @@ from atria_datasets.core.constants import (
 
 if TYPE_CHECKING:
     from atria_hub.utilities import get_logger
-    from atriax_client.models.dataset import Dataset as DatasetInfo
 
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
@@ -71,7 +67,7 @@ class DatasetHubOps:
         branch: str = "main",
         is_public: bool = False,
         overwrite_existing: bool = False,
-    ) -> DatasetInfo:
+    ) -> dict[str, str]:
         """Upload the cached dataset to Atria Hub.
 
         Args:
@@ -116,9 +112,7 @@ class DatasetHubOps:
             logger.info(
                 f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
             )
-            repo_path = f"{hub.auth.username}/{hub_name}@{branch}"
-            logger.info(f"Dataset is available at: {repo_path}")
-            return dataset_info
+            return {"username": hub.auth.username, "name": hub_name, "branch": branch}
         except Exception as e:
             logger.error(f"Failed to upload dataset to hub: {e}")
             raise
@@ -178,7 +172,7 @@ class DatasetHubOps:
         )
 
     @classmethod
-    def download_from_hub(
+    def load_from_hub(
         cls,
         name: str,
         username: str | None = None,

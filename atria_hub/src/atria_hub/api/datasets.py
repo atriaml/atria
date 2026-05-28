@@ -195,6 +195,8 @@ class DatasetsApi(BaseApi):
 
         src = f"{dataset_repo_id}/{branch}/{config_dir}/"
         tgt = str(Path(destination_path) / config_dir)
+        print("Src:", src)
+        print("Tgt:", tgt)
         self._client.fs.get(
             src,
             tgt,
@@ -222,8 +224,14 @@ class DatasetsApi(BaseApi):
         """Check if a configuration exists in the dataset."""
         from pathlib import Path
 
-        dir_ls = self._client.fs.ls(f"{dataset_repo_id}/{branch}/conf/dataset/")
-        return [Path(x["name"]).name.replace(".yaml", "") for x in dir_ls]
+        dir_ls = self._client.fs.ls(f"{dataset_repo_id}/{branch}/")
+        # find all dirs
+        configs = [
+            Path(x["name"]).name
+            for x in dir_ls
+            if x["type"] == "directory" and Path(x["name"]).name != "conf"
+        ]
+        return configs
 
     def get_config(self, dataset_repo_id: str, branch: str, config_name: str) -> dict:
         from pathlib import Path

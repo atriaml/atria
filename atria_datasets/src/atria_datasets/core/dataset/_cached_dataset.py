@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Generic
 
 import yaml
 from atria_logger import get_logger
-from atria_types import DatasetMetadata, DatasetSplitType
+from atria_types import DatasetMetadata, DatasetSplitType, RepresentationMixin
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CONFIG_PATH,
@@ -22,19 +22,20 @@ from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_hub.utilities import get_logger
-    from atriax_client.models.dataset import Dataset as DatasetInfo
 
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
 logger = get_logger(__name__)
 
 
-class CachedDataset(Generic[T_BaseDataInstance]):
+class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
     """Immutable, file-backed dataset produced by cache().
 
     All state is loaded lazily from the snapshot directory on disk.
     Upload and download hub operations are available directly on this class.
     """
+
+    __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
 
     def __init__(self, path: Path | str) -> None:
         self._path = Path(path)
@@ -44,7 +45,7 @@ class CachedDataset(Generic[T_BaseDataInstance]):
         self.__split_iterators: dict[DatasetSplitType, SplitIterator] | None = None
 
     @classmethod
-    def download_from_hub(
+    def load_from_hub(
         cls,
         name: str,
         username: str | None = None,
@@ -59,7 +60,7 @@ class CachedDataset(Generic[T_BaseDataInstance]):
         """
         from atria_datasets.core.dataset._ops import DatasetHubOps
 
-        return DatasetHubOps.download_from_hub(
+        return DatasetHubOps.load_from_hub(
             name=name,
             username=username,
             branch=branch,
@@ -74,7 +75,7 @@ class CachedDataset(Generic[T_BaseDataInstance]):
         branch: str = "main",
         is_public: bool = False,
         overwrite_existing: bool = False,
-    ) -> DatasetInfo:
+    ) -> dict[str, str]:
         """Upload this frozen cached dataset snapshot to Atria Hub."""
         from atria_datasets.core.dataset._ops import DatasetHubOps
 
