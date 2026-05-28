@@ -41,7 +41,7 @@ if TYPE_CHECKING:
         HTTPDownloader,
     )
     from atria_datasets.core.storage.deltalake_reader import DeltalakeReader
-    from atria_datasets.core.storage.deltalake_storage_manager import (
+    from atria_datasets.core.storage._storage_managers._deltalake import (
         DeltalakeStorageManager,
     )
     from atria_datasets.core.storage._shard_writers._msgpack import (
@@ -74,7 +74,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "HTTPDownloader",
         ],
         "core.storage.deltalake_reader": ["DeltalakeReader"],
-        "core.storage.deltalake_storage_manager": ["DeltalakeStorageManager"],
+        "core.storage._storage_managers._deltalake": ["DeltalakeStorageManager"],
         "core.storage.msgpack_shard_writer": [
             "MsgpackFileWriter",
             "MsgpackShardWriter",
