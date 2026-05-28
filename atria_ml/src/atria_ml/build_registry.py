@@ -5,4 +5,4 @@ from atria_ml.schedulers._registry_group import LR_SCHEDULERS
 
 if __name__ == "__main__":
     OPTIMIZERS.dump(refresh=True)
-    LR_SCHEDULERS.dump()
+    LR_SCHEDULERS.dump(refresh=True)

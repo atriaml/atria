@@ -9,4 +9,4 @@ from atria_models import MODEL_PIPELINES, MODELS
 
 if __name__ == "__main__":
     MODEL_PIPELINES.dump(refresh=True)
-    MODELS.dump()
+    MODELS.dump(refresh=True)

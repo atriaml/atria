@@ -23,4 +23,4 @@ if [[ -z "$PROJECT_ROOT" ]]; then
 fi
 
 
-ATRIA_FILE_STORE_BUILD_ENABLED=True uv run $SCRIPT_DIR/../src/atria_models/build_registry.py
+ATRIA_BUILD_REGISTRY=True uv run $SCRIPT_DIR/../src/atria_models/build_registry.py
