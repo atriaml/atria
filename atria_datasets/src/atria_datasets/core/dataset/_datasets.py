@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, Self
+from typing import Generic, Self
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
@@ -23,10 +23,6 @@ from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
 logger = get_logger(__name__)
-
-if TYPE_CHECKING:
-    from atria_datasets.core.dataset._dataset_builders import DatasetBuilder
-
 
 class Dataset(
     ConfigurableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
@@ -79,77 +75,10 @@ class Dataset(
     __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
     __config__: type[T_DatasetConfig]
 
-    def __init__(
-        self,
-        config: T_DatasetConfig | dict | None = None,
-        data_dir: str | None = None,
-        split: DatasetSplitType | None = None,
-        access_token: str | None = None,
-        overwrite_existing_cached: bool = False,
-        allowed_keys: set[str] | None = None,
-        num_processes: int = 8,
-        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        enable_cached_splits: bool = True,
-        store_artifact_content: bool = True,
-        max_cache_image_size: int | None = None,
-    ) -> None:
+    def __init__(self, config: T_DatasetConfig | dict | None = None) -> None:
         super().__init__(config=config)
-
-        self._dataset_builder = self._prepare_dataset_builder(
-            data_dir=data_dir,
-            split=split,
-            access_token=access_token,
-            overwrite_existing_cached=overwrite_existing_cached,
-            allowed_keys=allowed_keys,
-            num_processes=num_processes,
-            cached_storage_type=cached_storage_type,
-            enable_cached_splits=enable_cached_splits,
-            store_artifact_content=store_artifact_content,
-            max_cache_image_size=max_cache_image_size,
-        )
-        self._split_iterators = self._dataset_builder.prepare_splits()
-
-    def _prepare_dataset_builder(
-        self,
-        data_dir: str | None = None,
-        split: DatasetSplitType | None = None,
-        access_token: str | None = None,
-        overwrite_existing_cached: bool = False,
-        allowed_keys: set[str] | None = None,
-        num_processes: int = 8,
-        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        enable_cached_splits: bool = True,
-        store_artifact_content: bool = True,
-        max_cache_image_size: int | None = None,
-    ) -> DatasetBuilder:
-        from atria_datasets.core.dataset._dataset_builders import (
-            CachedDatasetBuilder,
-            DatasetBuilder,
-        )
-
-        kwargs = {
-            "data_dir": data_dir,
-            "split": split,
-            "access_token": access_token,
-            "allowed_keys": allowed_keys,
-        }
-        if enable_cached_splits:
-            kwargs.update(
-                {
-                    "cached_storage_type": cached_storage_type,
-                    "store_artifact_content": store_artifact_content,
-                    "max_cache_image_size": max_cache_image_size,
-                    "overwrite_existing_cached": overwrite_existing_cached,
-                    "num_processes": num_processes,
-                }
-            )
-
-        dataset_builder = (
-            DatasetBuilder(dataset=self, **kwargs)
-            if not enable_cached_splits
-            else CachedDatasetBuilder(dataset=self, **kwargs)
-        )
-        return dataset_builder
+        self._split_iterators: dict[DatasetSplitType, SplitIterator] = {}
+        self._data_dir: str | None = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -218,16 +147,6 @@ class Dataset(
     def data_model(self) -> type[T_BaseDataInstance]:
         """The data model class used for type validation and instantiation."""
         return self.__data_model__
-
-    @property
-    def downloaded_files(self) -> dict[str, Path]:
-        """Dictionary of downloaded file paths."""
-        return self._dataset_builder._downloaded_files
-
-    @property
-    def access_token(self) -> str | None:
-        """Access token used for downloading private datasets."""
-        return self._dataset_builder._access_token
 
     @property
     def train(self) -> SplitIterator[T_BaseDataInstance]:

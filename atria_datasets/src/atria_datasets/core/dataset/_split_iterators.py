@@ -97,8 +97,12 @@ class SplitIterator(
         )
         self._tf_enabled = True
         self._is_iterable = isinstance(self._base_iterator, Iterable)
-        self._supports_indexing = hasattr(self._base_iterator, "__getitem__")
-        self._supports_multi_indexing = hasattr(self._base_iterator, "__getitems__")
+        self._supports_indexing = hasattr(
+            self._base_iterator, "__getitem__"
+        ) and hasattr(self._base_iterator, "__len__")
+        self._supports_multi_indexing = hasattr(
+            self._base_iterator, "__getitems__"
+        ) and hasattr(self._base_iterator, "__len__")
         if not self._is_iterable:
             assert hasattr(self._base_iterator, "__len__"), (
                 f"T he base iterator {self._base_iterator} must implement __len__ to support indexing. "

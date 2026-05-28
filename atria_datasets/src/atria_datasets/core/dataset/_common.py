@@ -4,23 +4,25 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar
 
 import yaml
 from atria_logger import get_logger
 from atria_registry._module_base import ModuleConfig
-from atria_types import BaseDataInstance, DocumentInstance, ImageInstance
+from atria_types import BaseDataInstance
 from atria_types._common import DatasetSplitType
 from pydantic import ConfigDict
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CONFIG_PATH,
     _DEFAULT_ATRIA_DATASETS_METADATA_PATH,
+    _DEFAULT_SNAPSHOT_PATH,
 )
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
-    from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
+    from atria_datasets.core.dataset._cached_dataset import CachedDataset
+    from atria_datasets.core.dataset._datasets import Dataset
     from atria_datasets.core.storage._storage_managers._deltalake import (
         DeltalakeStorageManager,
     )
@@ -46,35 +48,31 @@ class DatasetConfig(ModuleConfig):
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
         overwrite_existing_cached: bool = False,
-        allowed_keys: set[str] | None = None,
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
-        enable_cached_splits: bool = False,
+        enable_cached_splits: bool = True,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
         **kwargs,
-    ) -> ImageDataset | DocumentDataset:
-        from atria_datasets.core.dataset._datasets import DocumentDataset, ImageDataset
+    ) -> Dataset | CachedDataset:
+        from atria_datasets.core.dataset._dataset_builders import cache, load
 
-        dataset = super().build(
-            data_dir=data_dir,
-            split=split,
-            access_token=access_token,
-            overwrite_existing_cached=overwrite_existing_cached,
-            allowed_keys=allowed_keys,
-            num_processes=num_processes,
-            cached_storage_type=cached_storage_type,
-            enable_cached_splits=enable_cached_splits,
-            store_artifact_content=store_artifact_content,
-            max_cache_image_size=max_cache_image_size,
-            **kwargs,
+        dataset = super().build(**kwargs)
+        if enable_cached_splits:
+            return cache(
+                dataset=dataset,
+                data_dir=data_dir,
+                split=split,
+                access_token=access_token,
+                cached_storage_type=cached_storage_type,
+                overwrite_existing_cached=overwrite_existing_cached,
+                store_artifact_content=store_artifact_content,
+                max_cache_image_size=max_cache_image_size,
+                num_processes=num_processes,
+            )
+        return load(
+            dataset=dataset, data_dir=data_dir, split=split, access_token=access_token
         )
-        if dataset.__data_model__ == ImageInstance:
-            return cast(ImageDataset, dataset)
-        elif dataset.__data_model__ == DocumentInstance:
-            return cast(DocumentDataset, dataset)
-        else:
-            raise TypeError(f"Unsupported data model type: {dataset.__data_model__}")
 
 
 class HuggingfaceDatasetConfig(DatasetConfig):
@@ -96,35 +94,47 @@ class DatasetLoadingMode(str, enum.Enum):
     online_streaming = "online_streaming"
 
 
+def _write_yaml(file_path: Path, data: dict) -> None:
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(file_path, "w") as f:
+        yaml.dump(data, f, sort_keys=False)
+
+
 def _save_dataset_info(
     storage_dir: str, config_name: str, config: dict, metadata: dict
 ) -> None:
-    """
-    Save dataset configuration and metadata to files.
-
-    Creates YAML files containing:
-    - Dataset configuration (config.yaml)
-    - Dataset metadata (metadata.yaml)
-    """
-
-    def write_yaml_file(file_path: Path, data: dict) -> None:
-        """Write data to YAML file, creating directories as needed."""
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, "w") as f:
-            yaml.dump(data, f, sort_keys=False)
-
-    # Save configuration
     config_file_path = (
         Path(storage_dir) / config_name / _DEFAULT_ATRIA_DATASETS_CONFIG_PATH
     )
     logger.info("Saving dataset configuration to %s", config_file_path)
-    write_yaml_file(config_file_path, config)
+    _write_yaml(config_file_path, config)
 
     metadata_file_path = (
         Path(storage_dir) / config_name / _DEFAULT_ATRIA_DATASETS_METADATA_PATH
     )
     logger.info("Saving dataset metadata to %s", metadata_file_path)
-    write_yaml_file(metadata_file_path, metadata)
+    _write_yaml(metadata_file_path, metadata)
+
+
+def _save_snapshot(
+    storage_dir: Path | str,
+    config_name: str,
+    data_model: type,
+    storage_type: FileStorageType,
+    dataset_name: str | None,
+    dataset_class_name: str,
+) -> None:
+    snapshot = {
+        "storage_type": storage_type.value,
+        "data_model": f"{data_model.__module__}.{data_model.__qualname__}",
+        "dataset_name": dataset_name,
+        "dataset_class_name": dataset_class_name,
+        "config_name": config_name,
+        "config_hash": config_name.rsplit("-", 1)[-1],
+    }
+    snapshot_path = Path(storage_dir) / config_name / _DEFAULT_SNAPSHOT_PATH
+    logger.info("Saving dataset snapshot to %s", snapshot_path)
+    _write_yaml(snapshot_path, snapshot)
 
 
 def _get_storage_manager(

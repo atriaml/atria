@@ -49,6 +49,8 @@ Path: The default directory for Atria file storage. This is a subdirectory of
 """
 
 _DEFAULT_DOWNLOAD_PATH = ".download_cache"
+
+_DEFAULT_SNAPSHOT_PATH = "snapshot.yaml"
 """
 Path: The default download path for temporary storage of downloaded files. This
 directory is used to store files temporarily during download operations.
