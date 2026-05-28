@@ -4,11 +4,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 declare -a small_datasets=(
     "cifar10/1k"
     # "huggingface_cifar10/plain_text_1k"
-    # "tobacco3482/image_with_ocr"
+    "tobacco3482/image_with_ocr"
     # "rvlcdip/image_with_ocr_1k"
     # "mnist/mnist_1k"
-    # "cord/default"
-    # "funsd/default"
+    "cord"
+    "funsd"
     # "sroie/default"
     # "wild_receipts/default"
     # "docile/kile"
@@ -30,18 +30,16 @@ declare -a big_datasets=(
 )
 
 
-if [[ "$1" == "small_datasets" ]]; then
-    for dataset_entry in "${available_datasets[@]}"; do
-        IFS="/" read -r name config <<< "$dataset_entry"
-        echo "Processing dataset: $name with config: $config"
-        uv run python -m atria_cli.cli datasets prepare_and_upload $name $config ${@:2}
+if [[ "$1" == "small" ]]; then
+    for dataset_entry in "${small_datasets[@]}"; do
+        echo "Processing dataset: $dataset_entry"
+        python -m atria_cli.cli datasets prepare_and_upload $dataset_entry ${@:1}
     done
-elif [[ "$1" == "big_datasets" ]]; then
+elif [[ "$1" == "big" ]]; then
     for dataset_entry in "${big_datasets[@]}"; do
-        IFS="/" read -r name config <<< "$dataset_entry"
-        echo "Processing dataset: $name with config: $config"
-        uv run python -m atria_cli.cli datasets prepare_and_upload $name $config ${@:2}
+        echo "Processing dataset: $dataset_entry"
+        python -m atria_cli.cli datasets prepare_and_upload $dataset_entry ${@:1}
     done
 else
-    uv run python -m atria_cli.cli datasets prepare_and_upload $@
+    python -m atria_cli.cli datasets prepare_and_upload $@
 fi

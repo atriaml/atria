@@ -15,7 +15,7 @@ from atria_datasets.core.constants import (
 )
 
 if TYPE_CHECKING:
-    from atria_hub.utilities import get_logger
+    from atria_logger import get_logger
 
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 

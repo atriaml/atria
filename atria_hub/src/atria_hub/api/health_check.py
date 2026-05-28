@@ -1,6 +1,7 @@
+from atria_logger import get_logger
+
 from atria_hub.api.base import BaseApi
 from atria_hub.exceptions import api_error_handler
-from atria_hub.utilities import get_logger
 
 logger = get_logger(__name__)
 

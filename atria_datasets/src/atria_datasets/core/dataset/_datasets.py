@@ -24,6 +24,7 @@ from atria_datasets.core.storage.utilities import FileStorageType
 
 logger = get_logger(__name__)
 
+
 class Dataset(
     ConfigurableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
 ):
@@ -79,6 +80,7 @@ class Dataset(
         super().__init__(config=config)
         self._split_iterators: dict[DatasetSplitType, SplitIterator] = {}
         self._data_dir: str | None = None
+        self._downloaded_files: dict[str, Path] = {}
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -108,6 +110,11 @@ class Dataset(
     def metadata(self) -> DatasetMetadata:
         """Dataset metadata containing description, version, and other information."""
         return self._metadata()
+
+    @property
+    def downloaded_files(self) -> dict[str, Path]:
+        """Dictionary of downloaded file paths, keyed by download key."""
+        return self._downloaded_files
 
     def process_dataset(
         self,

@@ -28,6 +28,7 @@ class ModelPipeline(
 ):
     __abstract__ = True
     __config__: type[T_ModelPipelineConfig]
+    __repr_fields__: set[str] = {"config", "labels", "model"}
     __pipeline_name__: ClassVar[str]
 
     def __init__(self, config: T_ModelPipelineConfig, labels: DatasetLabels) -> None:

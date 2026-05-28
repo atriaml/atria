@@ -1,5 +1,4 @@
 from atria_logger import get_logger
-from atria_registry.utilities import instantiate_object_from_config
 
 logger = get_logger(__name__)
 
@@ -9,51 +8,25 @@ def upload(
     ckpt_path: str,
     branch: str = "main",
     is_public: bool = False,
-    description: str = None,
     overwrite_existing: bool = False,
 ):
     """
-    Uploads a model to the Atria Hub and verifies configuration integrity.
+    Creates a safetensors snapshot from a ModelPipeline checkpoint and uploads it to Atria Hub.
     """
     try:
-        import logging
-
-        import deepdiff
         import torch
-        from atria_models.pipelines.atria_model_pipeline import AtriaModelPipeline
+        from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
-        logger = logging.getLogger(__name__)
-
-        # Load checkpoint
-        checkpoint = torch.load(ckpt_path, map_location="cpu")
-
-        # Extract and build model pipeline
-        build_config = checkpoint["model_pipeline"]["atria_config"]
-        model_pipeline: AtriaModelPipeline = instantiate_object_from_config(
-            build_config
-        ).build_from_checkpoint(checkpoint=checkpoint["model_pipeline"])
-
-        # Make sure that the model pipeline is built correctly and matches the checkpoint
-        diff = deepdiff.DeepDiff(
-            build_config, model_pipeline.build_config, ignore_order=True
+        pipeline = torch.load(ckpt_path, map_location="cpu")
+        assert isinstance(pipeline, ModelPipeline), (
+            f"Expected a ModelPipeline instance, got {type(pipeline)}"
         )
-        if diff:
-            # this should not happen, the newly created build config must match the checkpoint
-            # build config with which it is instantiated
-            raise RuntimeError(
-                f"Configuration mismatch: {diff}. The checkpoint model pipeline config does not match the "
-                "instantiated model pipeline config. Please check the model pipeline configuration."
-            )
-
-        logger.info("Model pipeline instantiated successfully: %s", model_pipeline)
-        model_pipeline.upload_to_hub(
+        pipeline.upload_to_hub(
             name=name,
             branch=branch,
             is_public=is_public,
-            description=description,
             overwrite_existing=overwrite_existing,
         )
-
     except Exception as e:
         logger.exception("Failed to upload model:", exc_info=e)
 
@@ -65,10 +38,10 @@ def download(
     download_dir: str | None = None,
 ):
     """
-    Downloads a model from the Atria Hub.
+    Downloads a model snapshot from Atria Hub and loads it as a ModelPipeline.
     """
-    from atria_models.pipelines.atria_model_pipeline import AtriaModelPipeline
+    from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
-    AtriaModelPipeline.download_from_hub(
+    ModelPipeline.load_from_hub(
         name=name, branch=branch, config_name=config_name, download_dir=download_dir
     )

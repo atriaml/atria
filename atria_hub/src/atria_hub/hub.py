@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from atria_logger import get_logger
+
 from atria_hub.config import settings
-from atria_hub.utilities import get_logger
 
 if TYPE_CHECKING:
     from atria_hub.api.auth import AuthApi

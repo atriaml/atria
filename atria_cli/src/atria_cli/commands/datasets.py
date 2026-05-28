@@ -1,31 +1,23 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from atria_datasets.core.dataset._cached_dataset import CachedDataset
 from atria_logger import get_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from atria_datasets import FileStorageType
 
 logger = get_logger(__name__)
 
 
 def prepare_and_upload(
     name: str,
-    config_name: str = "default",
     branch: str = "main",
     is_public: bool = False,
+    overwrite_existing: bool = False,
     data_dir: str | None = None,
-    provider: str | None = None,
-    preprocess_transform: Callable | None = None,
-    shard_storage_type: FileStorageType | None = None,
     access_token: str | None = None,
-    num_processes: int = 0,
-    dataset_load_mode: str = "in_memory",
     overwrite_existing_cached: bool = False,
-    overwrite_existing_shards: bool = False,
+    num_processes: int = 8,
+    enable_cached_splits: bool = True,
+    store_artifact_content: bool = True,
+    max_cache_image_size: int | None = None,
     max_train_samples: int | None = None,
     max_validation_samples: int | None = None,
     max_test_samples: int | None = None,
@@ -34,32 +26,36 @@ def prepare_and_upload(
     Uploads a dataset to the Atria Hub.
     """
     try:
-        from atria_datasets import AtriaDataset
+        from atria_datasets import FileStorageType, load_dataset_config
 
-        logger.info(f"Preparing dataset {name} for upload to Atria Hub...")
-        dataset: AtriaDataset = AtriaDataset.load_from_registry(
-            name=name,
-            config_name=config_name,
-            data_dir=data_dir,
-            provider=provider,
-            preprocess_transform=preprocess_transform,
-            shard_storage_type=shard_storage_type,
-            dataset_load_mode=dataset_load_mode,
-            num_processes=num_processes,
-            overwrite_existing_cached=overwrite_existing_cached,
-            overwrite_existing_shards=overwrite_existing_shards,
-            access_token=access_token,
-            build_kwargs={
-                "max_train_samples": max_train_samples,
-                "max_validation_samples": max_validation_samples,
-                "max_test_samples": max_test_samples,
-            },
+        dataset_config = load_dataset_config(
+            f"{name}",
+            max_train_samples=max_train_samples,
+            max_validation_samples=max_validation_samples,
+            max_test_samples=max_test_samples,
         )
-        dataset.upload_to_hub(
-            name=name.split("/")[-1] if name else name,
+        dataset = dataset_config.build(
+            data_dir=data_dir,
+            access_token=access_token,
+            overwrite_existing_cached=overwrite_existing_cached,
+            num_processes=num_processes,
+            cached_storage_type=FileStorageType.DELTALAKE,
+            enable_cached_splits=enable_cached_splits,
+            store_artifact_content=store_artifact_content,
+            max_cache_image_size=max_cache_image_size,
+        )
+        logger.info(f"Preparing dataset {name} for upload to Atria Hub...")
+        assert isinstance(dataset, CachedDataset), (
+            "Expected dataset to be a CachedDataset after preparation."
+        )
+        repo_info = dataset.upload_to_hub(
+            name=dataset_config.dataset_name,
             branch=branch,
             is_public=is_public,
+            overwrite_existing=overwrite_existing,
         )
+        repo_path = f"{repo_info['username']}/{repo_info['name']}@{repo_info['branch']}"
+        logger.info(f"Dataset uploaded to path: {repo_path}")
     except Exception as e:
         logger.exception(e)
 
@@ -71,7 +67,7 @@ def download(
     data_dir: str | None = None,
 ):
     """
-    Downloads a model from the Atria Hub.
+    Downloads a dataset from the Atria Hub.
     """
     from atria_datasets import AtriaHubDataset, DatasetLoadingMode
 

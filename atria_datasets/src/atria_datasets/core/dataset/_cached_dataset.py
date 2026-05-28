@@ -21,7 +21,7 @@ from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
-    from atria_hub.utilities import get_logger
+    from atria_logger import get_logger
 
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 

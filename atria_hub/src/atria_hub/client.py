@@ -3,8 +3,9 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from atria_logger import get_logger
+
 from atria_hub.config import settings
-from atria_hub.utilities import get_logger
 
 if TYPE_CHECKING:
     from atriax_client import (

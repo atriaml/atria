@@ -93,30 +93,49 @@ class DeltalakeWriterWorker:
 
             sample_row = s.to_row()
 
+            # first find all mappings of keys that have file_path + possible content
+            file_path_content_pairs = []
             for key in list(sample_row.keys()):
                 if "file_path" not in key:
                     continue
+                file_path = sample_row[key]
                 content_key = key.replace("file_path", "content")
-                assert content_key in sample_row, (
-                    f"Column '{content_key}' not found in sample row. Expected 'content' "
-                    f"column for the corresponding file path '{key}'."
-                )
-                content = sample_row[content_key]
-                if content is None and sample_row[key] is None:
+                content = sample_row.get(content_key, None)
+                if file_path is None and content is None:
                     continue
-                assert content is not None, (
-                    f"Content for key '{content_key}' is None. Expected valid binary content."
-                )
-                self._ensure_wds_writer()
-                assert self._wds_writer is not None
-                self._wds_writer.write({"__key__": str(s.key), content_key: content})
-                member = self._wds_writer.tarstream.tarstream.members[-1]
-                sample_row[key] = (
-                    f"{self._current_shard_path}?offset={self._offset + 1536}&length={member.size}"
-                )
-                sample_row[content_key] = None
-                self._offset = self._wds_writer.tarstream.tarstream.offset
+                file_path_content_pairs.append((key, file_path, content_key, content))
 
+            for (
+                file_path_key,
+                file_path,
+                content_key,
+                content,
+            ) in file_path_content_pairs:
+                # we store data in two formats
+                # if the file is pdfs they are already compressed so we store them directly in file folder data/
+                # if the file is images, we store them in webdataset tar shards in shards/ to avoid too many small files
+                if content is not None:
+                    self._ensure_wds_writer()
+                    assert self._wds_writer is not None
+                    self._wds_writer.write(
+                        {"__key__": str(s.key), content_key: content}
+                    )
+                    member = self._wds_writer.tarstream.tarstream.members[-1]
+                    sample_row[file_path_key] = (
+                        f"{self._current_shard_path}?offset={self._offset + 1536}&length={member.size}"
+                    )
+                    self._offset = self._wds_writer.tarstream.tarstream.offset
+                    sample_row[content_key] = None
+
+                else:
+                    # for content that cannot go into tar files, we store them directly and keep file paths in the row
+                    file_path = sample_row[file_path_key]
+                    tgt_file_path = (
+                        Path(self._write_dir) / self._split / "data" / file_path
+                    )
+                    tgt_file_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(file_path, tgt_file_path)
+                    sample_row[file_path_key] = str(Path("data") / file_path)
             self._accumulated_rows.append(sample_row)
 
     def close(self) -> list[dict]:
@@ -264,11 +283,14 @@ class SingleDeltalakeWriter:
             preprocess_transform=split_iterator._tf,
         ).load()
 
-        for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
-            try:
+        try:
+            for idx, sample in tqdm.tqdm(
+                data_iterator, desc=f"Writing split {split_name}"
+            ):
                 worker.write(idx, sample)
-            except Exception:
-                logger.exception(f"Error writing sample at index {idx}")
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt detected, stopping split writing...")
+            raise
 
         all_rows = worker.close()
 

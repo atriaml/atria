@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from atria_hub.api.base import BaseApi
-from atria_hub.utilities import get_logger
+from atria_logger import get_logger
 from atria_types import DatasetSplitType
+
+from atria_hub.api.base import BaseApi
 
 if TYPE_CHECKING:
     import uuid
 
-    from atria_hub.api.base import BaseApi
-    from atria_hub.utilities import get_logger
     from atriax_client.models.data_instance_type import DataInstanceType
     from atriax_client.models.dataset import Dataset
+
+    from atria_hub.api.base import BaseApi
 
 logger = get_logger(__name__)
 

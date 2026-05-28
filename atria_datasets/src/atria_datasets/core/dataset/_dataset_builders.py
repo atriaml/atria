@@ -89,7 +89,9 @@ def _default_data_dir(dataset: Dataset) -> str:
     return str(_DEFAULT_ATRIA_DATASETS_CACHE_DIR / name)
 
 
-def _prepare_downloads(dataset: Dataset, data_dir: str, access_token: str | None) -> None:
+def _prepare_downloads(
+    dataset: Dataset, data_dir: str, access_token: str | None
+) -> list[str]:
     from atria_datasets.core.dataset._datasets import Dataset as _Dataset
     from atria_datasets.core.download_manager._download_manager import DownloadManager
 
@@ -102,7 +104,6 @@ def _prepare_downloads(dataset: Dataset, data_dir: str, access_token: str | None
     if dataset._custom_download.__func__ is not _Dataset._custom_download:
         dataset._custom_download(data_dir, access_token)
     else:
-
         download_dir = Path(data_dir) / _DEFAULT_DOWNLOAD_PATH
         download_dir.mkdir(parents=True, exist_ok=True)
         download_manager = DownloadManager(
@@ -116,6 +117,7 @@ def _prepare_downloads(dataset: Dataset, data_dir: str, access_token: str | None
                 access_token=access_token,
             )
             logger.info(f"Downloaded files {downloaded}")
+        return downloaded
 
 
 def _prepare_split(
@@ -162,7 +164,7 @@ def load(
     """Populate split iterators in-memory and return the dataset."""
     data_dir = _validate_data_dir(data_dir or _default_data_dir(dataset))
     dataset._data_dir = data_dir
-    _prepare_downloads(dataset, data_dir, access_token)
+    dataset._downloaded_files = _prepare_downloads(dataset, data_dir, access_token)
 
     split_iterators: dict[DatasetSplitType, SplitIterator] = {}
     for s in dataset._available_splits():
@@ -214,16 +216,21 @@ def cache(
         if not split_exists:
             splits_to_cache.append(s)
         else:
-            logger.info(f"Loading cached split {s.value} from {storage_manager.split_dir(s)}")
+            logger.info(
+                f"Loading cached split {s.value} from {storage_manager.split_dir(s)}"
+            )
 
     if splits_to_cache:
-        _prepare_downloads(dataset, data_dir, access_token)
+        dataset._downloaded_files = _prepare_downloads(dataset, data_dir, access_token)
 
     info_saved = False
     for s in splits_to_cache:
         logger.info(f"Caching split [{s.value}] to {storage_dir}")
         split_iterator = _prepare_split(
-            dataset, s, data_dir, split_iterator_type,
+            dataset,
+            s,
+            data_dir,
+            split_iterator_type,
             store_artifact_content=store_artifact_content,
             resize_images=max_cache_image_size is not None,
             image_max_size=max_cache_image_size,
@@ -231,15 +238,19 @@ def cache(
         storage_manager.write_split(split_iterator=split_iterator)
         if not info_saved:
             _save_dataset_info(
-                str(storage_dir), unique_config_name,
-                dataset_config.model_dump(), dataset.metadata.model_dump(),
+                str(storage_dir),
+                unique_config_name,
+                dataset_config.model_dump(),
+                dataset.metadata.model_dump(),
             )
             info_saved = True
 
     if not info_saved:
         _save_dataset_info(
-            str(storage_dir), unique_config_name,
-            dataset_config.model_dump(), dataset.metadata.model_dump(),
+            str(storage_dir),
+            unique_config_name,
+            dataset_config.model_dump(),
+            dataset.metadata.model_dump(),
         )
 
     _save_snapshot(

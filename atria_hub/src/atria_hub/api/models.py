@@ -103,48 +103,65 @@ class ModelsApi(BaseApi):
         model: Model,
         branch: str,
         config_name: str,
-        configs_base_path: str,
-        model_checkpoint: bytes,
-        model_config: dict,
-        dataset_metadata: dict,
+        model_files: list[tuple[str, str]],
         overwrite_existing: bool = False,
-    ) -> Model:
-        import lakefs
-        import yaml
+    ) -> None:
+        import mimetypes
 
-        branch: lakefs.Branch = (
+        import lakefs
+        import tqdm
+
+        lk_branch: lakefs.Branch = (
             lakefs.repository(model.repo_id, client=self._client.lakefs_client)
             .branch(branch)
             .create(source_reference=model.default_branch, exist_ok=True)
-        ).id
+        )
 
-        # get target repository path
-        self._client.fs.source_branch = branch
-        tgt = f"{model.repo_id}/{branch}/"
-
-        # first verify that model already does not exist
-        model_dir = f"{tgt}{config_name}/"
+        # check for existing snapshot directory
+        self._client.fs.source_branch = lk_branch.id
+        model_dir = f"{model.repo_id}/{lk_branch.id}/{config_name}/"
         if self._client.fs.exists(model_dir) and not overwrite_existing:
             raise RuntimeError(
-                f"Model {model_dir} already exists. "
-                f"Either choose a different branch or set overwrite_existing=True to overwrite. "
-                f"to overwrite the dataset."
+                f"Model snapshot '{model_dir}' already exists. "
+                "Set overwrite_existing=True to overwrite."
             )
-        branch: lakefs.Branch = lakefs.repository(
-            model.repo_id, client=self._client.lakefs_client
+
+        for src, file_tgt in tqdm.tqdm(model_files, desc="Uploading"):
+            content_type = mimetypes.guess_type(src)[0] or "application/octet-stream"
+            with open(src, "rb") as f:
+                lk_branch.object(file_tgt).upload(f.read(), content_type=content_type)
+
+        self._commit_changes(
+            repo_id=str(model.repo_id),
+            branch=lk_branch.id,
+            message=f"Upload model snapshot for config {config_name}",
+        )
+
+    def download_files(
+        self, model_repo_id: str, branch: str, config_name: str, destination_path: str
+    ) -> None:
+        from pathlib import Path
+
+        from fsspec.callbacks import TqdmCallback
+
+        src = f"{model_repo_id}/{branch}/{config_name}/"
+        tgt = str(Path(destination_path) / config_name)
+        self._client.fs.get(
+            src,
+            tgt,
+            recursive=True,
+            callback=TqdmCallback(tqdm_kwargs={"desc": "Downloading model"}),
+        )
+
+    def _commit_changes(self, repo_id: str, branch: str, message: str) -> None:
+        import lakefs
+
+        lk_branch = lakefs.repository(
+            repo_id, client=self._client.lakefs_client
         ).branch(branch)
-        branch.create(model.default_branch, exist_ok=True)
-        branch.object(f"{config_name}/model.bin").upload(
-            model_checkpoint, content_type="application/octet-stream"
-        )
-        branch.object(f"{config_name}/dataset_metadata.yaml").upload(
-            yaml.dump(dataset_metadata, sort_keys=False).encode("utf-8"),
-            content_type="application/x-yaml",
-        )
-        branch.object(f"{configs_base_path}/{config_name}.yaml").upload(
-            yaml.dump(model_config, sort_keys=False).encode("utf-8"),
-            content_type="application/x-yaml",
-        )
+        uncommitted = list(lk_branch.uncommitted())
+        if uncommitted:
+            lk_branch.commit(message=message)
 
     def get_available_configs(
         self, dataset_repo_id: str, branch: str, configs_base_path: str

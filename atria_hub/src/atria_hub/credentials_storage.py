@@ -1,7 +1,6 @@
 import keyring
+from atria_logger import get_logger
 from gotrue._sync.storage import SyncSupportedStorage
-
-from atria_hub.utilities import get_logger
 
 logger = get_logger(__name__)
 
