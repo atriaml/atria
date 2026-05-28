@@ -225,9 +225,10 @@ class ImageModelPipeline(ModelPipeline[T_ImageModelPipelineConfig]):
 
 
 class ImageClassificationPipelineConfig(ImageModelPipelineConfig):
-    name: str = "image_classification"
+    pass
 
 
 @MODEL_PIPELINES.register("image_classification")
 class ImageClassificationPipeline(ImageModelPipeline):
     __config__ = ImageClassificationPipelineConfig
+    __pipeline_name__ = "image_classification"

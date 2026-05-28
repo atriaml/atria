@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Generic, Literal
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, Generic, Literal
 
 from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
@@ -27,6 +28,7 @@ class ModelPipeline(
 ):
     __abstract__ = True
     __config__: type[T_ModelPipelineConfig]
+    __pipeline_name__: ClassVar[str]
 
     def __init__(self, config: T_ModelPipelineConfig, labels: DatasetLabels) -> None:
         from atria_models.core.model_builders._base import ModelBuilder
@@ -135,3 +137,40 @@ class ModelPipeline(
             f"Checkpoint at {checkpoint_path} does not contain 'model_pipeline' key."
         )
         self.load_state_dict(checkpoint["model_pipeline"])
+
+    def save_snapshot(
+        self, name: str | None = None, config_name: str = "default"
+    ) -> Path:
+        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+
+        return ModelHubOps(self).save_snapshot(name=name, config_name=config_name)
+
+    def upload_to_hub(
+        self,
+        name: str,
+        branch: str = "main",
+        is_public: bool = False,
+        overwrite_existing: bool = False,
+    ) -> dict:
+        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+
+        return ModelHubOps(self).upload_to_hub(
+            name=name,
+            branch=branch,
+            is_public=is_public,
+            overwrite_existing=overwrite_existing,
+        )
+
+    @classmethod
+    def load_from_hub(
+        cls,
+        name: str,
+        branch: str = "main",
+        config_name: str = "default",
+        download_dir=None,
+    ) -> ModelPipeline:
+        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+
+        return ModelHubOps.load_from_hub(
+            name=name, branch=branch, config_name=config_name, download_dir=download_dir
+        )

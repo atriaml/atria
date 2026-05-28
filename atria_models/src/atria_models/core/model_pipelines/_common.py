@@ -4,9 +4,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from atria_metrics import MetricConfig
 from atria_registry import ModuleConfig
-from atria_registry._module_base import BaseModel
 from atria_transforms.core import DataTransform
-from pydantic import ConfigDict, SerializeAsAny
+from pydantic import BaseModel, ConfigDict, SerializeAsAny
 
 from atria_models.core.model_builders._common import FrozenLayers, ModelBuilderType
 
@@ -33,7 +32,7 @@ class ModelConfig(BaseModel):
 
 
 class ModelPipelineConfig(ModuleConfig):
-    name: str
+    name: str = "default"
     model: ModelConfig = ModelConfig()
     train_transform: SerializeAsAny[DataTransform] | None = (
         None  # the type at runtime can be child of DataTransform so we need to use SerializeAsAny

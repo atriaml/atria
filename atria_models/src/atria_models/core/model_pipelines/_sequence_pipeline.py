@@ -258,7 +258,6 @@ class SequenceClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="sequence_classification",
     )
-    name: str = "sequence_classification"
     metrics: (
         list[
             Annotated[
@@ -316,6 +315,7 @@ class SequenceClassificationPipelineConfig(SequenceModelPipelineConfig):
 @MODEL_PIPELINES.register("sequence_classification")
 class SequenceClassificationPipeline(SequenceModelPipeline):
     __config__ = SequenceClassificationPipelineConfig
+    __pipeline_name__ = "sequence_classification"
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.classification is not None, (
@@ -389,7 +389,6 @@ class TokenClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="token_classification",
     )
-    name: str = "token_classification"
     metrics: (
         list[Annotated[SeqEvalMetricConfig, Field(discriminator="name")]] | None
     ) = None
@@ -431,6 +430,7 @@ class TokenClassificationPipelineConfig(SequenceModelPipelineConfig):
 @MODEL_PIPELINES.register("token_classification")
 class TokenClassificationPipeline(SequenceModelPipeline):
     __config__ = TokenClassificationPipelineConfig
+    __pipeline_name__ = "token_classification"
 
     def _model_build_kwargs(self) -> dict[str, object]:
         assert self._labels.ser is not None, "Labels must be provided for ser tasks."
@@ -496,7 +496,6 @@ class LayoutTokenClassificationPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="token_classification",
     )
-    name: str = "layout_token_classification"
     metrics: (
         list[
             Annotated[
@@ -556,6 +555,7 @@ class LayoutTokenClassificationPipelineConfig(SequenceModelPipelineConfig):
 @MODEL_PIPELINES.register("layout_token_classification")
 class LayoutTokenClassificationPipeline(TokenClassificationPipeline):
     __config__ = LayoutTokenClassificationPipelineConfig
+    __pipeline_name__ = "layout_token_classification"
 
     def _output_transform(
         self,
@@ -592,7 +592,6 @@ class QuestionAnsweringPipelineConfig(SequenceModelPipelineConfig):
         builder_type=ModelBuilderType.transformers,
         model_type="question_answering",
     )
-    name: str = "question_answering"
     metrics: (
         list[Annotated[DueEvalMetricConfig, Field(discriminator="name")]] | None
     ) = None
@@ -634,6 +633,7 @@ class QuestionAnsweringPipelineConfig(SequenceModelPipelineConfig):
 @MODEL_PIPELINES.register("question_answering")
 class QuestionAnsweringPipeline(SequenceModelPipeline):
     __config__ = QuestionAnsweringPipelineConfig
+    __pipeline_name__ = "question_answering"
 
     def _model_build_kwargs(self) -> dict[str, object]:
         return {}
