@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import pickle
 import shutil
 import sys
 from collections.abc import Callable
@@ -48,7 +49,6 @@ class DeltalakeWriterWorker:
         self._current_shard = 0
         self._current_shard_path: Path | None = None
         self._offset = 0
-        self._accumulated_rows: list[dict] = []
 
     def load(self) -> Self:
         return self
@@ -72,13 +72,14 @@ class DeltalakeWriterWorker:
                 Path("shards") / self._split / Path(self._wds_writer.fname).name
             )
 
-    def write(self, index: int, sample: Any) -> None:
+    def write(self, index: int, sample: Any) -> list[dict]:
         if self._preprocess_transform is not None:
             result = self._preprocess_transform(index, sample)
             list_of_samples = result if isinstance(result, list) else [result]
         else:
             list_of_samples = [sample]
 
+        rows: list[dict] = []
         for s in list_of_samples:
             # Detect shard rotation and update tracked path/offset
             if (
@@ -136,13 +137,13 @@ class DeltalakeWriterWorker:
                     tgt_file_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy(file_path, tgt_file_path)
                     sample_row[file_path_key] = str(Path("data") / file_path)
-            self._accumulated_rows.append(sample_row)
+            rows.append(sample_row)
+        return rows
 
-    def close(self) -> list[dict]:
+    def close(self) -> None:
         if self._wds_writer is not None:
             self._wds_writer.close()
             self._wds_writer = None
-        return self._accumulated_rows
 
 
 @ray.remote
@@ -165,16 +166,16 @@ class DeltalakeShardWriterActor:
             preprocess_transform=preprocess_transform,
         ).load()
 
-    def write(self, sample_tuple: tuple) -> bool:
+    def write(self, sample_tuple: tuple) -> list[dict]:
         idx, sample = sample_tuple
         try:
-            self.writer.write(idx, sample)
+            return self.writer.write(idx, sample)
         except Exception:
             logger.exception(f"Error writing sample at index {idx}")
-        return True
+            return []
 
-    def close(self) -> list[dict]:
-        return self.writer.close()
+    def close(self) -> None:
+        self.writer.close()
 
 
 def _write_rows_to_deltalake(
@@ -195,12 +196,14 @@ class RayParallelDeltalakeWriter:
         max_shard_size: int = 100_000,
         max_concurrent_tasks_limit: int = 128,
         max_memory_per_actor: int = 500 * 1024 * 1024,
+        max_memory: int = 1_000_000_000,
     ):
         self.write_dir = write_dir
         self.num_workers = num_workers
         self.max_shard_size = max_shard_size
         self._max_concurrent_tasks_limit = max_concurrent_tasks_limit
         self._max_memory_per_actor = max_memory_per_actor
+        self._max_memory = max_memory
 
     def write_split(self, split_iterator: SplitIterator, split_dir: Path) -> None:
         split_name = split_iterator.split.value
@@ -224,6 +227,33 @@ class RayParallelDeltalakeWriter:
             for i in range(self.num_workers)
         ]
 
+        coordinator_batch: list[dict] = []
+        write_batch_size: int | None = None
+        first_batch = True
+
+        def _maybe_flush_batch() -> None:
+            nonlocal first_batch, write_batch_size
+            if not coordinator_batch:
+                return
+            if write_batch_size is None:
+                write_batch_size = max(
+                    1, self._max_memory // len(pickle.dumps(coordinator_batch[0]))
+                )
+                logger.info(
+                    f"Delta lake write batch size: {write_batch_size} rows "
+                    f"(max_memory={self._max_memory // 1_000_000} MB)"
+                )
+            if len(coordinator_batch) >= write_batch_size:
+                mode = "overwrite" if first_batch else "append"
+                logger.info(
+                    f"Writing batch of {len(coordinator_batch)} rows to delta lake at {split_dir}"
+                )
+                _write_rows_to_deltalake(
+                    coordinator_batch, split_dir, split_iterator.data_model, mode=mode
+                )
+                first_batch = False
+                coordinator_batch.clear()
+
         try:
             data_iterator = iter(split_iterator)
             pending_tasks = []
@@ -238,21 +268,27 @@ class RayParallelDeltalakeWriter:
                 if len(pending_tasks) >= self._max_concurrent_tasks_limit:
                     ready_tasks, pending_tasks = ray.wait(pending_tasks, num_returns=1)
                     try:
-                        ray.get(ready_tasks)
+                        for row_list in ray.get(ready_tasks):
+                            coordinator_batch.extend(row_list)
                     except Exception as e:
                         logger.exception("Error in shard writer actor task")
                         raise e
+                    _maybe_flush_batch()
 
-            ray.get(pending_tasks)
+            for row_list in ray.get(pending_tasks):
+                coordinator_batch.extend(row_list)
+            _maybe_flush_batch()
 
-            all_actor_rows = ray.get([actor.close.remote() for actor in actors])  # type: ignore[union-attr]
-            all_rows = [row for actor_rows in all_actor_rows for row in actor_rows]
+            ray.get([actor.close.remote() for actor in actors])  # type: ignore[union-attr]
 
-            if all_rows:
+            if coordinator_batch:
+                mode = "overwrite" if first_batch else "append"
                 logger.info(
-                    f"Writing {len(all_rows)} rows to delta lake at {split_dir}"
+                    f"Writing final batch of {len(coordinator_batch)} rows to delta lake at {split_dir}"
                 )
-                _write_rows_to_deltalake(all_rows, split_dir, split_iterator.data_model)
+                _write_rows_to_deltalake(
+                    coordinator_batch, split_dir, split_iterator.data_model, mode=mode
+                )
 
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt detected, shutting down Ray actors...")
@@ -266,9 +302,15 @@ class RayParallelDeltalakeWriter:
 
 
 class SingleDeltalakeWriter:
-    def __init__(self, write_dir: Path, max_shard_size: int = 100_000):
+    def __init__(
+        self,
+        write_dir: Path,
+        max_shard_size: int = 100_000,
+        max_memory: int = 1_000_000_000,
+    ):
         self.write_dir = write_dir
         self.max_shard_size = max_shard_size
+        self._max_memory = max_memory
 
     def write_split(self, split_iterator: SplitIterator, split_dir: Path) -> None:
         split_name = split_iterator.split.value
@@ -283,20 +325,53 @@ class SingleDeltalakeWriter:
             preprocess_transform=split_iterator._tf,
         ).load()
 
+        coordinator_batch: list[dict] = []
+        write_batch_size: int | None = None
+        first_batch = True
+
         try:
             for idx, sample in tqdm.tqdm(
                 data_iterator, desc=f"Writing split {split_name}"
             ):
-                worker.write(idx, sample)
+                coordinator_batch.extend(worker.write(idx, sample))
+
+                if write_batch_size is None and coordinator_batch:
+                    write_batch_size = max(
+                        1, self._max_memory // len(pickle.dumps(coordinator_batch[0]))
+                    )
+                    logger.info(
+                        f"Delta lake write batch size: {write_batch_size} rows "
+                        f"(max_memory={self._max_memory // 1_000_000} MB)"
+                    )
+
+                if write_batch_size and len(coordinator_batch) >= write_batch_size:
+                    mode = "overwrite" if first_batch else "append"
+                    logger.info(
+                        f"Writing batch of {len(coordinator_batch)} rows to delta lake at {split_dir}"
+                    )
+                    _write_rows_to_deltalake(
+                        coordinator_batch,
+                        split_dir,
+                        split_iterator.data_model,
+                        mode=mode,
+                    )
+                    first_batch = False
+                    coordinator_batch.clear()
+
         except KeyboardInterrupt:
             logger.warning("KeyboardInterrupt detected, stopping split writing...")
             raise
 
-        all_rows = worker.close()
+        worker.close()
 
-        if all_rows:
-            logger.info(f"Writing {len(all_rows)} rows to delta lake at {split_dir}")
-            _write_rows_to_deltalake(all_rows, split_dir, split_iterator.data_model)
+        if coordinator_batch:
+            mode = "overwrite" if first_batch else "append"
+            logger.info(
+                f"Writing final batch of {len(coordinator_batch)} rows to delta lake at {split_dir}"
+            )
+            _write_rows_to_deltalake(
+                coordinator_batch, split_dir, split_iterator.data_model, mode=mode
+            )
 
 
 class DeltalakeStorageManager:
@@ -307,7 +382,7 @@ class DeltalakeStorageManager:
         storage_dir: str | Path,
         config_name: str,
         num_processes: int = 8,
-        max_memory: int = 1_000_000_000,
+        max_memory: int = 1_000_000_00,
         max_shard_size: int = 100_000,
         name_suffix: str = "",
     ):
@@ -380,10 +455,13 @@ class DeltalakeStorageManager:
                 write_dir=write_dir,
                 num_workers=self.num_processes,
                 max_shard_size=self.max_shard_size,
+                max_memory=self.max_memory,
             )
         else:
             writer = SingleDeltalakeWriter(
-                write_dir=write_dir, max_shard_size=self.max_shard_size
+                write_dir=write_dir,
+                max_shard_size=self.max_shard_size,
+                max_memory=self.max_memory,
             )
 
         split_iterator.disable_tf()
