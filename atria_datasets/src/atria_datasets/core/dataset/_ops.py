@@ -6,7 +6,11 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from atria_hub.hub import AtriaHub  # type: ignore[import-not-found]
 from atria_logger import get_logger
+from atriax_client.models.dataset import (
+    Dataset as DatasetInfo,  # type: ignore[import-not-found]
+)
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CACHE_DIR,
@@ -14,6 +18,9 @@ from atria_datasets.core.constants import (
 )
 
 if TYPE_CHECKING:
+    from atria_hub.utilities import get_logger
+    from atriax_client.models.dataset import Dataset as DatasetInfo
+
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
 logger = get_logger(__name__)
@@ -64,7 +71,7 @@ class DatasetHubOps:
         branch: str = "main",
         is_public: bool = False,
         overwrite_existing: bool = False,
-    ) -> None:
+    ) -> DatasetInfo:
         """Upload the cached dataset to Atria Hub.
 
         Args:
@@ -73,13 +80,7 @@ class DatasetHubOps:
             is_public: Whether to make the dataset public
             overwrite_existing: Overwrite existing files on hub
         """
-        try:
-            from atria_hub.hub import AtriaHub  # type: ignore[import-not-found]
-        except ImportError:
-            raise ImportError(
-                "The 'atria_hub' package is required to upload datasets to the hub. "
-                "Install with: uv add https://github.com/saifullah3396/atria_hub"
-            )
+        from atria_hub.api.datasets import FilesExistError
 
         hub_name = (
             name or self._dataset.dataset_name or self._dataset.dataset_class_name
@@ -99,16 +100,25 @@ class DatasetHubOps:
                 ),
                 is_public=is_public,
             )
-            hub.datasets.upload_files(
-                dataset=dataset_info,
-                branch=branch,
-                config_dir=self._dataset._path.name,
-                dataset_files=self.prepare_dataset_files_from_dir(),
-                overwrite_existing=overwrite_existing,
-            )
+            try:
+                hub.datasets.upload_files(
+                    dataset=dataset_info,
+                    branch=branch,
+                    config_dir=self._dataset._path.name,
+                    dataset_files=self.prepare_dataset_files_from_dir(),
+                    overwrite_existing=overwrite_existing,
+                )
+            except FilesExistError:
+                logger.warning(
+                    f"Files already exist in dataset '{hub_name}' on branch '{branch}'. "
+                    "Set overwrite_existing=True to overwrite existing files."
+                )
             logger.info(
                 f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
             )
+            repo_path = f"{hub.auth.username}/{hub_name}@{branch}"
+            logger.info(f"Dataset is available at: {repo_path}")
+            return dataset_info
         except Exception as e:
             logger.error(f"Failed to upload dataset to hub: {e}")
             raise

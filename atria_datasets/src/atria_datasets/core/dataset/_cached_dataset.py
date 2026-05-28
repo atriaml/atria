@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
-from typing import Generic
+from typing import TYPE_CHECKING, Generic
 
 import yaml
 from atria_logger import get_logger
@@ -19,6 +19,12 @@ from atria_datasets.core.dataset._common import T_BaseDataInstance
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
+
+if TYPE_CHECKING:
+    from atria_hub.utilities import get_logger
+    from atriax_client.models.dataset import Dataset as DatasetInfo
+
+    from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
 logger = get_logger(__name__)
 
@@ -68,11 +74,11 @@ class CachedDataset(Generic[T_BaseDataInstance]):
         branch: str = "main",
         is_public: bool = False,
         overwrite_existing: bool = False,
-    ) -> None:
+    ) -> DatasetInfo:
         """Upload this frozen cached dataset snapshot to Atria Hub."""
         from atria_datasets.core.dataset._ops import DatasetHubOps
 
-        DatasetHubOps(self).upload_to_hub(
+        return DatasetHubOps(self).upload_to_hub(
             name=name,
             branch=branch,
             is_public=is_public,

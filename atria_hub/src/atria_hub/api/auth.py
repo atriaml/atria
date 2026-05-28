@@ -1,7 +1,6 @@
-from gotrue.types import User
-
 from atria_hub.api.base import BaseApi
 from atria_hub.utilities import get_logger
+from gotrue.types import User
 
 logger = get_logger(__name__)
 
@@ -16,12 +15,12 @@ class AuthApi(BaseApi):
         return session.user
 
     @property
-    def username(self) -> User:
-        """Return the user ID from the Supabase session."""
+    def username(self) -> str:
+        """Return the username from the Supabase session."""
         session = self.get_session()
         if not session:
             raise RuntimeError("No active session. Please authenticate.")
-        return session.user.user_metadata["profile"]["username"]
+        return session.user.user_metadata["username"]
 
     def get_session(self):
         try:

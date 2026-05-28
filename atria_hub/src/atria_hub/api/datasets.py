@@ -9,12 +9,10 @@ from atria_types import DatasetSplitType
 if TYPE_CHECKING:
     import uuid
 
-    # from atria_core.types.common import DatasetSplitType
-    # from atriax_client.models.data_instance_type import DataInstanceType
-    # from atriax_client.models.dataset import Dataset
-
     from atria_hub.api.base import BaseApi
     from atria_hub.utilities import get_logger
+    from atriax_client.models.data_instance_type import DataInstanceType
+    from atriax_client.models.dataset import Dataset
 
 logger = get_logger(__name__)
 
@@ -26,6 +24,13 @@ class DatasetNotFoundError(Exception):
         super().__init__(f"Dataset {username}/{name} not found in the hub.")
         self.username = username
         self.name = name
+
+
+class FilesExistError(Exception):
+    """Exception raised when files to be uploaded already exist in the target branch."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class DatasetsApi(BaseApi):
@@ -51,12 +56,12 @@ class DatasetsApi(BaseApi):
             response = dataset_find_one.sync_detailed(
                 client=client, username=username, name=name
             )
+            if response.status_code == 404:
+                raise DatasetNotFoundError(username=username, name=name)
             if response.status_code != 200:
                 raise RuntimeError(
                     f"Failed to get dataset: {response.status_code} - {response.content.decode('utf-8')}"
                 )
-            if response.status_code == 404:
-                raise DatasetNotFoundError(username=username, name=name)
             return response.parsed
 
     def create(
@@ -102,7 +107,7 @@ class DatasetsApi(BaseApi):
 
         try:
             return self.get_by_name(username=username, name=name)
-        except Exception:
+        except DatasetNotFoundError:
             return self.create(
                 name=name,
                 default_branch=default_branch,
@@ -110,6 +115,9 @@ class DatasetsApi(BaseApi):
                 data_instance_type=data_instance_type,
                 is_public=is_public,
             )
+        except Exception as e:
+            logger.error(f"Failed to get or create dataset: {e}")
+            raise
 
     def upload_files(
         self,
@@ -137,7 +145,7 @@ class DatasetsApi(BaseApi):
         # first verify that delta directory already does not exist
         deltadir = f"{tgt}{config_dir}/delta/"
         if self._client.fs.exists(deltadir) and not overwrite_existing:
-            raise RuntimeError(
+            raise FilesExistError(
                 f"Delta directory {deltadir} already exists. "
                 f"Either choose a different branch or set overwrite_existing=True to overwrite. "
                 f"to overwrite the dataset."
@@ -171,6 +179,12 @@ class DatasetsApi(BaseApi):
                 content_type=content_type,
             )
 
+        self.commit_changes(
+            dataset_repo_id=dataset.repo_id,
+            branch=branch,
+            message=f"Upload dataset files for config {config_dir}",
+        )
+
     def download_files(
         self, dataset_repo_id: str, branch: str, config_dir: str, destination_path: str
     ) -> None:
@@ -192,7 +206,6 @@ class DatasetsApi(BaseApi):
         self, dataset_repo_id: str, branch: str, config_name: str
     ) -> list[DatasetSplitType]:
         from pathlib import Path
-
 
         # get target repository path
         tgt = f"{dataset_repo_id}/{branch}/{config_name}/delta/"
