@@ -6,10 +6,10 @@ import copy
 import importlib
 import json
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any, Generic
 
-import yaml
 from atria_logger import get_logger
 from pydantic import BaseModel
 
@@ -43,7 +43,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         self._name = name
         self._package = package
         self._store: dict[str, Any] = {}
-        self.load()
 
     @property
     def name(self) -> str:
@@ -68,17 +67,31 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
     def list_all_modules(self) -> list[str]:
         """List all registered module paths in the registry group."""
-        module_names = []
+        module_names: list[str] = []
 
-        def _traverse(store: dict[str, Any], prefix: str = ""):
+        def _traverse(store: dict[str, Any], prefix: str = "") -> None:
             for key, value in store.items():
                 current_path = f"{prefix}/{key}" if prefix else key
-                if "config" in value:
+                if isinstance(value, dict) and "config" in value:
                     module_names.append(current_path)
                 else:
                     _traverse(value, current_path)
 
         _traverse(self._store)
+        in_memory = set(module_names)
+
+        try:
+            conn = self._get_db_connection()
+            rows = conn.execute(
+                "SELECT path FROM registry WHERE group_name=?", (self._name,)
+            ).fetchall()
+            conn.close()
+            for (path,) in rows:
+                if path not in in_memory:
+                    module_names.append(path)
+        except Exception as e:
+            logger.warning(f"SQLite registry list failed: {e}")
+
         return module_names
 
     def _package_dir(self) -> Path:
@@ -91,6 +104,24 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             f"Module '{self._package}' does not have a __file__ attribute."
         )
         return Path(module.__file__).parent
+
+    def _db_path(self) -> Path:
+        return self._package_dir() / "registry.db"
+
+    def _get_db_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(self._db_path()))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS registry (
+                group_name TEXT NOT NULL,
+                path       TEXT NOT NULL,
+                hash       TEXT NOT NULL,
+                config     TEXT NOT NULL,
+                PRIMARY KEY (group_name, path)
+            )
+        """)
+        conn.commit()
+        return conn
 
     def register(
         self, module_name: str, configs: dict[str, ModuleConfig | dict] | None = None
@@ -173,15 +204,33 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         return decorator
 
     def get_store_value_at_path(self, module_path: str) -> Any:
+        # Check in-memory store first
         cur = self._store
         parts = module_path.strip("/").split("/")
-
+        found = True
         for d in parts:
             if not isinstance(cur, dict) or d not in cur:
-                return None  # or raise KeyError
+                found = False
+                break
             cur = cur[d]
+        if found:
+            return copy.deepcopy(cur)
 
-        return copy.deepcopy(cur)
+        # SQLite fallback — single-row lookup, no full-file read
+        path_key = "/".join(parts)
+        try:
+            conn = self._get_db_connection()
+            row = conn.execute(
+                "SELECT hash, config FROM registry WHERE group_name=? AND path=?",
+                (self._name, path_key),
+            ).fetchone()
+            conn.close()
+            if row:
+                return {"hash": row[0], "config": json.loads(row[1])}
+        except Exception as e:
+            logger.warning(f"SQLite registry query failed: {e}")
+
+        return None
 
     def set_store_value_at_path(self, module_path: str, value: Any) -> None:
         cur = self._store
@@ -278,43 +327,57 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         return obj
 
     def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
-        """Dump registry.json into the package folder."""
-        if path is None:
-            pkg_dir = self._package_dir()
-            path = pkg_dir / "registry.json"
+        """Dump the in-memory store into the SQLite registry database."""
+        db_path = path or self._db_path()
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS registry (
+                group_name TEXT NOT NULL,
+                path       TEXT NOT NULL,
+                hash       TEXT NOT NULL,
+                config     TEXT NOT NULL,
+                PRIMARY KEY (group_name, path)
+            )
+        """)
+        if refresh:
+            conn.execute("DELETE FROM registry WHERE group_name=?", (self._name,))
 
-        registry = {}
-        if path.exists():
-            with open(path) as f:
-                registry = json.load(f)
-            if refresh:
-                logger.debug(f"Refreshing registry at {path}.")
-                registry[self._name] = {}
+        def _flatten(d: dict, prefix: str = "") -> None:
+            for key, value in d.items():
+                p = f"{prefix}/{key}" if prefix else key
+                if isinstance(value, dict) and "config" in value and "hash" in value:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO registry VALUES (?,?,?,?)",
+                        (self._name, p, value["hash"], json.dumps(value["config"])),
+                    )
+                elif isinstance(value, dict):
+                    _flatten(value, p)
 
-        registry[self._name] = self._store
+        _flatten(self._store)
+        conn.commit()
+        conn.close()
+        logger.debug(f"Dumped '{self._name}' group registry to {db_path}")
+        return db_path
 
-        with open(path, "w") as f:
-            logger.debug(f"Dumping '{self._name}' group registry to {path}")
-            json.dump(registry, f, indent=4)
-
-        return path
-
-    def load(self):
-        """Load registry.json from the package folder."""
-        pkg_dir = self._package_dir()
-        path = pkg_dir / "registry.json"
-
-        if not path.exists():
+    def load(self) -> None:
+        """Load all entries from SQLite into the in-memory store."""
+        db_path = self._db_path()
+        if not db_path.exists():
             return
-
-        with open(path) as f:
-            registry = json.load(f)
-            if self._name in registry:
-                logger.debug(f"Loading '{self._name}' group registry from {path}")
-                self._store = registry[self._name]
+        conn = sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT path, hash, config FROM registry WHERE group_name=?", (self._name,)
+        ).fetchall()
+        conn.close()
+        for path, hash_val, config_str in rows:
+            self.set_store_value_at_path(
+                path, {"hash": hash_val, "config": json.loads(config_str)}
+            )
+        logger.debug(f"Loaded '{self._name}' group registry from {db_path}")
 
     def __repr__(self) -> str:
-        return f"<RegistryGroup name={self._name} package={self._package} registered_modules={yaml.dump(self.store, indent=4)}>"
+        return f"<RegistryGroup name={self._name} package={self._package} store_keys={list(self._store.keys())}>"
 
     def __str__(self) -> str:
         return self.__repr__()
