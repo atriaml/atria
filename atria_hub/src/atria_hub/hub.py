@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+class AtriaHubConnectionError(Exception):
+    """Exception raised when AtriaHub is unreachable."""
 
 class AtriaHub:
     def __init__(
@@ -82,7 +84,7 @@ class AtriaHub:
                 "AtriaHub is unreachable at %s. Please check your connection.",
                 self._base_url,
             )
-            raise
+            raise AtriaHubConnectionError(f"AtriaHub is unreachable at {self._base_url}")
         self._auth_api.initialize_auth(
             email=credentials.email if credentials is not None else None,
             password=credentials.password if credentials is not None else None,

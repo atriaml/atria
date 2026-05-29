@@ -14,6 +14,9 @@ from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR,
 )
 
+from atria_hub.hub import AtriaHubConnectionError
+from atria_hub.api.datasets import FilesExistError
+
 if TYPE_CHECKING:
     from atria_logger import get_logger
 
@@ -76,7 +79,6 @@ class DatasetHubOps:
             is_public: Whether to make the dataset public
             overwrite_existing: Overwrite existing files on hub
         """
-        from atria_hub.api.datasets import FilesExistError
 
         hub_name = (
             name or self._dataset.dataset_name or self._dataset.dataset_class_name
@@ -113,6 +115,11 @@ class DatasetHubOps:
                 f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
             )
             return {"username": hub.auth.username, "name": hub_name, "branch": branch}
+        except AtriaHubConnectionError:
+            logger.error(
+                "Failed to connect to AtriaHub. Please check your connection and try again."
+            )
+            raise
         except Exception as e:
             logger.error(f"Failed to upload dataset to hub: {e}")
             raise

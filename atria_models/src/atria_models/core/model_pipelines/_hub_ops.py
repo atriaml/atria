@@ -16,6 +16,8 @@ from atria_models.core.model_pipelines.constants import (
     DEFAULT_ATRIA_MODELS_CACHE_DIR,
 )
 
+from atria_hub.src.atria_hub.hub import AtriaHubConnectionError
+
 if TYPE_CHECKING:
     from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
@@ -83,26 +85,35 @@ class ModelHubOps:
     ) -> dict:
         from atria_hub.hub import AtriaHub
 
-        snapshot_dir = self.save_snapshot(name)
-        hub_name = snapshot_dir.parent.parent.name
+        try:
+            snapshot_dir = self.save_snapshot(name)
+            hub_name = snapshot_dir.parent.parent.name
 
-        hub = AtriaHub().initialize()
-        model_info = hub.models.get_or_create(
-            username=str(hub.auth.username),
-            name=hub_name,
-            task_type=self._pipeline.__pipeline_name__,
-            is_public=is_public,
-        )
-        hub.models.upload_files(
-            model=model_info,
-            branch=branch,
-            config_name=snapshot_dir.name,
-            model_files=self._prepare_snapshot_files(snapshot_dir),
-            overwrite_existing=overwrite_existing,
-        )
-        logger.info(f"Model '{hub_name}' uploaded successfully to branch '{branch}'.")
-        return {"username": hub.auth.username, "name": hub_name, "branch": branch}
+            hub = AtriaHub().initialize()
+            model_info = hub.models.get_or_create(
+                username=str(hub.auth.username),
+                name=hub_name,
+                task_type=self._pipeline.__pipeline_name__,
+                is_public=is_public,
+            )
+            hub.models.upload_files(
+                model=model_info,
+                branch=branch,
+                config_name=snapshot_dir.name,
+                model_files=self._prepare_snapshot_files(snapshot_dir),
+                overwrite_existing=overwrite_existing,
+            )
+            logger.info(f"Model '{hub_name}' uploaded successfully to branch '{branch}'.")
+            return {"username": hub.auth.username, "name": hub_name, "branch": branch}
 
+        except AtriaHubConnectionError:
+            logger.error(
+                "Failed to connect to AtriaHub. Please check your connection and try again."
+            )
+            raise
+        except Exception as e:
+            logger.error(f"Failed to upload dataset to hub: {e}")
+            raise
     @staticmethod
     def _parse_model_name(name: str) -> tuple[str | None, str]:
         parts = name.split("/")
