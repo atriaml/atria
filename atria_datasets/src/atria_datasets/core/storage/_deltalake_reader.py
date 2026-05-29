@@ -149,6 +149,10 @@ class DeltalakeReader(Sequence["T_BaseDataInstance"]):
     def _process_row(self, row: dict) -> T_BaseDataInstance:
         if self.allowed_keys:
             row = {k: v for k, v in row.items() if k in self.allowed_keys}
+        # fix nan values that can appear in deltalake tables for optional fields
+        for key, value in row.items():
+            if isinstance(value, float) and value != value:  # check for nan
+                row[key] = None
         return self.data_model.from_row(row)
 
     def _load_and_process_rows(self, indices: list[int]) -> list[T_BaseDataInstance]:
