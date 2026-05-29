@@ -325,7 +325,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
         omega_conf = OmegaConf.create(config)
         obj = instantiate(omega_conf)
-        obj.model_copy(update={**kwargs})
+        obj = obj.model_copy(update={**kwargs})
         return obj
 
     def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
