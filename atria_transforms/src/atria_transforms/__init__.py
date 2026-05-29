@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from atria_transforms.tfs._image_transforms import StandardImageTransform  # noqa
     from atria_transforms.tfs._torchvision import ResizeTransform  # noqa
     from atria_transforms.api.tfs import load_transform
+    from atria_transforms.registry import DATA_TRANSFORMS
 
 __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
@@ -22,5 +23,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "tfs._document_processor._base": ["DocumentProcessor"],
         "tfs._image_processor._base": ["ImageProcessor"],
         "tfs._torchvision": ["ResizeTransform"],
+        "registry": ["DATA_TRANSFORMS"],
     },
 )

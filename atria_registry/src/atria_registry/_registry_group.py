@@ -152,7 +152,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                         f"{module} must have module_path defined."
                     )
 
-                cur = self.get_store_value_at_path(module_name)
+                cur = self.get_store_value_at_path(module_name, load_from_db=False)
                 if cur is not None:
                     assert isinstance(cur, dict), (
                         f"Expected dict at path {module_name}, got {type(cur)}"
@@ -160,12 +160,12 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                     if "hash" in cur:
                         if config_hash == cur["hash"]:
                             logger.debug(
-                                f"Module '{module_name}' with  is already registered. Skipping registration."
+                                f"Module '{module_name}' with hash '{config_hash}' is already registered. Skipping registration."
                             )
                             return module
 
                         logger.warning(
-                            f"Module '{module_name}' with  is already registered with a different configuration. Replacing it."
+                            f"Module '{module_name}' with hash '{config_hash}' is already registered with a different configuration. Replacing it."
                         )
 
                 self.set_store_value_at_path(
@@ -203,7 +203,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
         return decorator
 
-    def get_store_value_at_path(self, module_path: str) -> Any:
+    def get_store_value_at_path(
+        self, module_path: str, load_from_db: bool = True
+    ) -> Any:
         # Check in-memory store first
         cur = self._store
         parts = module_path.strip("/").split("/")
@@ -216,19 +218,19 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         if found:
             return copy.deepcopy(cur)
 
-        # SQLite fallback — single-row lookup, no full-file read
-        path_key = "/".join(parts)
-        try:
-            conn = self._get_db_connection()
-            row = conn.execute(
-                "SELECT hash, config FROM registry WHERE group_name=? AND path=?",
-                (self._name, path_key),
-            ).fetchone()
-            conn.close()
-            if row:
-                return {"hash": row[0], "config": json.loads(row[1])}
-        except Exception as e:
-            logger.warning(f"SQLite registry query failed: {e}")
+        if load_from_db:
+            path_key = "/".join(parts)
+            try:
+                conn = self._get_db_connection()
+                row = conn.execute(
+                    "SELECT hash, config FROM registry WHERE group_name=? AND path=?",
+                    (self._name, path_key),
+                ).fetchone()
+                conn.close()
+                if row:
+                    return {"hash": row[0], "config": json.loads(row[1])}
+            except Exception as e:
+                logger.warning(f"SQLite registry query failed: {e}")
 
         return None
 
@@ -267,7 +269,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         config_hash = config.hash
         config = config.to_dict()
 
-        cur = self.get_store_value_at_path(module_name)
+        cur = self.get_store_value_at_path(module_name, load_from_db=False)
         if cur is not None:
             assert isinstance(cur, dict), (
                 f"Expected dict at path {module_name}, got {type(cur)}"
@@ -275,12 +277,12 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             if "hash" in cur:
                 if config_hash == cur["hash"]:
                     logger.debug(
-                        f"Module '{module_name}' with  is already registered. Skipping registration."
+                        f"Module '{module_name}' with hash '{config_hash}' is already registered. Skipping registration."
                     )
                     return
 
                 logger.warning(
-                    f"Module '{module_name}' with  is already registered with a different configuration. Replacing it."
+                    f"Module '{module_name}' with hash '{config_hash}' is already registered with a different configuration. Replacing it."
                 )
 
         self.set_store_value_at_path(
@@ -358,6 +360,10 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         conn.commit()
         conn.close()
         logger.debug(f"Dumped '{self._name}' group registry to {db_path}")
+
+        logger.info(
+            f"Registry dump complete. Registered modules:\n{self.list_all_modules()}"
+        )
         return db_path
 
     def load(self) -> None:

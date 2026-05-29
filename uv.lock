@@ -513,8 +513,6 @@ dependencies = [
     { name = "pytesseract" },
     { name = "requests" },
     { name = "rich" },
-    { name = "torch" },
-    { name = "torchvision" },
 ]
 
 [package.metadata]
@@ -540,8 +538,6 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "rich", specifier = ">=14.0.0" },
-    { name = "torch", specifier = "==2.1.2" },
-    { name = "torchvision", specifier = "==0.16.2" },
 ]
 provides-extras = ["test"]
 
