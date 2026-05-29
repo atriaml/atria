@@ -321,11 +321,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             f"Config for module_path={module_path} must contain '_target_' field for instantiation."
         )
         from hydra.utils import instantiate
-        from omegaconf import OmegaConf
 
-        omega_conf = OmegaConf.create(config)
-        obj = instantiate(omega_conf)
-        obj = obj.model_copy(update={**kwargs})
+        config.update(kwargs)
+        obj = instantiate(config)
         return obj
 
     def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
