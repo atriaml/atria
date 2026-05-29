@@ -136,13 +136,13 @@ class DatasetHubOps:
         )
 
     @staticmethod
-    def _resolve_config_dir(
-        hub, dataset_repo_id: str, branch: str, config_dir: str | None
+    def _resolve_config_name(
+        hub, dataset_repo_id: str, branch: str, config_name: str | None
     ) -> str:
         available_configs = hub.datasets.get_available_configs(
             dataset_repo_id, branch=branch
         )
-        if config_dir is None:
+        if config_name is None:
             if len(available_configs) == 1:
                 return available_configs[0]
             if len(available_configs) == 0:
@@ -154,26 +154,26 @@ class DatasetHubOps:
                 f"Please pass config_dir explicitly. Available configurations: {available_configs}"
             )
 
-        if config_dir in available_configs:
-            return config_dir
+        if config_name in available_configs:
+            return config_name
 
         matching_configs = [
-            cfg for cfg in available_configs if cfg.startswith(config_dir)
+            cfg for cfg in available_configs if cfg.startswith(config_name)
         ]
         if len(matching_configs) == 1:
             logger.info(
-                f"Resolved config_dir '{config_dir}' to '{matching_configs[0]}'."
+                f"Resolved config_dir '{config_name}' to '{matching_configs[0]}'."
             )
             return matching_configs[0]
 
         if len(matching_configs) > 1:
             raise RuntimeError(
-                f"Multiple configurations match '{config_dir}': {matching_configs}. "
+                f"Multiple configurations match '{config_name}': {matching_configs}. "
                 "Please specify config_dir explicitly."
             )
 
         raise ValueError(
-            f"Configuration '{config_dir}' not found on branch '{branch}'. "
+            f"Configuration '{config_name}' not found on branch '{branch}'. "
             f"Available configurations: {available_configs}"
         )
 
@@ -183,7 +183,7 @@ class DatasetHubOps:
         name: str,
         username: str | None = None,
         branch: str = "main",
-        config_dir: str | None = None,
+        config_name: str | None = None,
         storage_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
@@ -193,7 +193,7 @@ class DatasetHubOps:
             name: Dataset name in format 'dataset_name' or 'username/dataset_name'.
             username: Dataset owner username when `name` does not include a username.
             branch: Hub branch to download from.
-            config_dir: Frozen cached configuration directory name on the hub.
+            config_name: Frozen cached configuration name on the hub.
                 If omitted and exactly one config exists, that config is used.
             storage_dir: Local storage directory where the config directory should be placed.
                 Defaults to '~/.cache/atria/datasets/<dataset_name>/storage'.
@@ -228,11 +228,11 @@ class DatasetHubOps:
             )
         dataset_repo_id = str(cast(Any, dataset_info).repo_id)
 
-        resolved_config_dir = cls._resolve_config_dir(
+        resolved_config_dir = cls._resolve_config_name(
             hub=hub,
             dataset_repo_id=dataset_repo_id,
             branch=branch,
-            config_dir=config_dir,
+            config_name=config_name,
         )
 
         base_storage_dir = (

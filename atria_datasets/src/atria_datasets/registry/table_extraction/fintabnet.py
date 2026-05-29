@@ -58,6 +58,7 @@ class SplitIterator:
     def __init__(self, split: DatasetSplitType, data_dir: str, seed: int = 42):
         self.split = split
         self.data_dir = Path(data_dir)
+        self.seed = seed
 
         base_path = self.data_dir / "FinTabNet.c-Structure" / "FinTabNet.c-Structure"
 

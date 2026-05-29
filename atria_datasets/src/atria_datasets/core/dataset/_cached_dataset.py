@@ -88,7 +88,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         name: str,
         username: str | None = None,
         branch: str = "main",
-        config_dir: str | None = None,
+        config_name: str | None = None,
         storage_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
@@ -99,7 +99,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             name=name,
             username=username,
             branch=branch,
-            config_dir=config_dir,
+            config_name=config_name,
             storage_dir=storage_dir,
             overwrite_existing=overwrite_existing,
         )

@@ -49,7 +49,7 @@ def prepare_and_upload(
             "Expected dataset to be a CachedDataset after preparation."
         )
         repo_info = dataset.upload_to_hub(
-            name=dataset_config.dataset_name,
+            name=dataset_config.dataset_name.replace("/", "-").replace("_", "-"),
             branch=branch,
             is_public=is_public,
             overwrite_existing=overwrite_existing,
@@ -64,18 +64,15 @@ def download(
     name: str,
     config_name: str = "default",
     branch: str = "main",
-    data_dir: str | None = None,
+    download_dir: str | None = None,
 ):
     """
     Downloads a dataset from the Atria Hub.
     """
-    from atria_datasets import AtriaHubDataset, DatasetLoadingMode
 
     logger.info(f"Downloading dataset {name} from Atria Hub...")
-    AtriaHubDataset.load_from_hub(
-        name=name,
-        branch=branch,
-        config_name=config_name,
-        data_dir=data_dir,
-        dataset_load_mode=DatasetLoadingMode.local_streaming,
+    dataset = CachedDataset.load_from_hub(
+        name=name, branch=branch, config_name=config_name, storage_dir=download_dir
     )
+
+    logger.info(f"dataset loaded from hub successfully: \n{dataset}")
