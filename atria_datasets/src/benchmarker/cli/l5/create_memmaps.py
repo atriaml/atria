@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import logging
-import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Tuple, Union
 
 import fire
 
@@ -12,9 +10,6 @@ from benchmarker.data.reader import Corpus, qa_strategies
 from benchmarker.data.slicer import LongPageStrategy
 from benchmarker.data.t5 import T5DownstreamDataConverter
 from benchmarker.utils.training import load_tokenizer
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def list_wrapper(features_iterator: Iterator[Feature], limit: int = -1):

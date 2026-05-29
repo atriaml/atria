@@ -1,11 +1,11 @@
-import logging
 import math
 
 import torch.distributed
+from atria_logger import get_logger
 from deltalake import DeltaTable
 from torch.utils.data import IterableDataset, get_worker_info
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DeltaIterableDataset(IterableDataset):

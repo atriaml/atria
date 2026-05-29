@@ -57,7 +57,9 @@ class HuggingfaceDataset(
         return self.__hf_dataset_builder
 
     def _custom_download(
-        self, data_dir: str, access_token: str | None = None  # noqa: ARG002
+        self,
+        data_dir: str,
+        access_token: str | None = None,  # noqa: ARG002
     ) -> dict[str, Path]:
         return {}
 
@@ -84,9 +86,7 @@ class HuggingfaceDataset(
                 record_checksums=False,
             )
         return datasets.DownloadManager(
-            data_dir=data_dir,
-            download_config=download_config,
-            record_checksums=False,
+            data_dir=data_dir, download_config=download_config, record_checksums=False
         )
 
     def _available_splits(self) -> list[DatasetSplitType]:

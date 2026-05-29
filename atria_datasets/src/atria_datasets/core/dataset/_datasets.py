@@ -7,8 +7,6 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Generic
 
-from atria_datasets.core import dataset
-from atria_datasets.core.dataset._dataset_builders import _default_data_dir, _validate_data_dir
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
 from atria_transforms.core import DataTransform
@@ -21,6 +19,10 @@ from atria_types import (
 )
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
+from atria_datasets.core.dataset._dataset_builders import (
+    _default_data_dir,
+    _validate_data_dir,
+)
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
@@ -176,21 +178,28 @@ class Dataset(
                         train_transform=train_transform,
                         eval_transform=eval_transform,
                     ).load()
-            if preprocess_train_transform is not None or preprocess_eval_transform is not None:
+            if (
+                preprocess_train_transform is not None
+                or preprocess_eval_transform is not None
+            ):
                 assert cached_storage_type == FileStorageType.MSGPACK, (
                     "Caching with preprocess transforms is only supported for MSGPACK storage type."
                 )
                 preprocess_tf = preprocess_train_transform or preprocess_eval_transform
                 try:
-                    assert type(preprocess_train_transform) == type(preprocess_eval_transform), (
+                    assert type(preprocess_train_transform) == type(
+                        preprocess_eval_transform
+                    ), (
                         "preprocess_train_transform and preprocess_eval_transform must be of the same type."
                     )
-                    assert preprocess_tf.data_model  == self.data_model, (
+                    assert preprocess_tf.data_model == self.data_model, (
                         "preprocess_transform's data_model must match the dataset's data_model. Arbitrary transforms with different data models are not supported for caching."
                         f"Found preprocess transform data model: {preprocess_tf.data_model}, dataset data model: {self.data_model}"
                     )
                 except NotImplementedError:
-                    raise ValueError("preprocess_transform must implement data_model property returning a BaseDataInstance.")
+                    raise ValueError(
+                        "preprocess_transform must implement data_model property returning a BaseDataInstance."
+                    )
 
             self.load(
                 data_dir=data_dir,
@@ -225,11 +234,22 @@ class Dataset(
             if split is not None and s != split:
                 continue
             if _for_cache:
-                tf = preprocess_train_transform if s == DatasetSplitType.train else (preprocess_eval_transform or preprocess_train_transform)
+                tf = (
+                    preprocess_train_transform
+                    if s == DatasetSplitType.train
+                    else (preprocess_eval_transform or preprocess_train_transform)
+                )
             else:
-                tf = train_transform if s == DatasetSplitType.train else (eval_transform or train_transform)
+                tf = (
+                    train_transform
+                    if s == DatasetSplitType.train
+                    else (eval_transform or train_transform)
+                )
             split_iterators[s] = _prepare_split(
-                self, s, resolved, split_iterator_type,
+                self,
+                s,
+                resolved,
+                split_iterator_type,
                 store_artifact_content=store_artifact_content,
                 resize_images=max_cache_image_size is not None,
                 image_max_size=max_cache_image_size,
@@ -276,7 +296,11 @@ class Dataset(
         )
         storage_dir, unique_config_name = unique_path.parent, unique_path.name
         storage_manager = _get_storage_manager(
-            cached_storage_type, data_dir, str(storage_dir), unique_config_name, num_processes, 
+            cached_storage_type,
+            data_dir,
+            str(storage_dir),
+            unique_config_name,
+            num_processes,
         )
 
         for s, split_iterator in self._split_iterators.items():
@@ -291,11 +315,15 @@ class Dataset(
                 logger.info(f"Caching split [{s.value}] to {storage_dir}")
                 storage_manager.write_split(split_iterator=split_iterator)
             else:
-                logger.info(f"Skipping cached split {s.value} at {storage_manager.split_dir(s)}")
+                logger.info(
+                    f"Skipping cached split {s.value} at {storage_manager.split_dir(s)}"
+                )
 
         _save_dataset_info(
-            str(storage_dir), unique_config_name,
-            self.config.model_dump(), self.metadata.model_dump(),
+            str(storage_dir),
+            unique_config_name,
+            self.config.model_dump(),
+            self.metadata.model_dump(),
         )
         output_data_model = (
             _resolve_output_data_model(preprocess_train_transform, self.data_model)
@@ -309,8 +337,12 @@ class Dataset(
             storage_type=cached_storage_type,
             dataset_name=self.config.dataset_name,
             dataset_class_name=self.__class__.__name__,
-            train_transform=preprocess_train_transform.to_dict() if preprocess_train_transform is not None else None,
-            eval_transform=preprocess_eval_transform.to_dict() if preprocess_eval_transform is not None else None,
+            train_transform=preprocess_train_transform.to_dict()
+            if preprocess_train_transform is not None
+            else None,
+            eval_transform=preprocess_eval_transform.to_dict()
+            if preprocess_eval_transform is not None
+            else None,
         )
         return CachedDataset(
             path=unique_path,

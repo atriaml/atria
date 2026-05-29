@@ -6,8 +6,6 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from more_itertools import sample
-
 from atria_logger import get_logger
 from atria_transforms.core import DataTransform
 from atria_types import DatasetSplitType
@@ -113,15 +111,20 @@ def _get_combined_transform_hash(
     preprocess_train_transform: DataTransform | None,
     preprocess_eval_transform: DataTransform | None,
 ) -> str:
-    t = preprocess_train_transform.hash if preprocess_train_transform is not None else "none"
-    e = preprocess_eval_transform.hash if preprocess_eval_transform is not None else "none"
+    t = (
+        preprocess_train_transform.hash
+        if preprocess_train_transform is not None
+        else "none"
+    )
+    e = (
+        preprocess_eval_transform.hash
+        if preprocess_eval_transform is not None
+        else "none"
+    )
     return hashlib.md5(f"train:{t}|eval:{e}".encode()).hexdigest()[:8]
 
 
-def _resolve_output_data_model(
-    transform: DataTransform | None,
-    fallback: type,
-) -> type:
+def _resolve_output_data_model(transform: DataTransform | None, fallback: type) -> type:
     if isinstance(transform, DataTransform):
         try:
             dm = transform.data_model
@@ -142,7 +145,9 @@ def _compute_unique_cache_path(
     storage_dir = Path(resolved) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
     config_name = dataset.config.config_name + "-" + dataset.config.hash
     if preprocess_train_transform is not None:
-        config_name += "-" + _get_combined_transform_hash(preprocess_train_transform, preprocess_eval_transform)
+        config_name += "-" + _get_combined_transform_hash(
+            preprocess_train_transform, preprocess_eval_transform
+        )
     return storage_dir / config_name
 
 
@@ -199,15 +204,19 @@ def _prepare_split(
         DatasetSplitType.test: dataset.config.max_test_samples,
     }
     if for_cache:
-        base_tf: PreprocessOutputTransformer | LoadOutputTransformer = PreprocessOutputTransformer(
-            data_dir=data_dir,
-            store_artifact_content=store_artifact_content,
-            resize_images=resize_images,
-            image_max_size=image_max_size,
+        base_tf: PreprocessOutputTransformer | LoadOutputTransformer = (
+            PreprocessOutputTransformer(
+                data_dir=data_dir,
+                store_artifact_content=store_artifact_content,
+                resize_images=resize_images,
+                image_max_size=image_max_size,
+            )
         )
     else:
         base_tf = LoadOutputTransformer()
-    output_transform: PreprocessOutputTransformer | LoadOutputTransformer | ComposedTransform = base_tf
+    output_transform: (
+        PreprocessOutputTransformer | LoadOutputTransformer | ComposedTransform
+    ) = base_tf
     if user_transform is not None:
         output_transform = ComposedTransform([base_tf, user_transform])
     return split_iterator_type(

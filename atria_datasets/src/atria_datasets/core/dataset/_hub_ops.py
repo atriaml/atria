@@ -6,7 +6,11 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from atria_hub.hub import AtriaHub  # type: ignore[import-not-found]
+from atria_hub.api.datasets import FilesExistError
+from atria_hub.hub import (
+    AtriaHub,  # type: ignore[import-not-found]
+    AtriaHubConnectionError,
+)
 from atria_logger import get_logger
 
 from atria_datasets.core.constants import (
@@ -14,12 +18,7 @@ from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR,
 )
 
-from atria_hub.hub import AtriaHubConnectionError
-from atria_hub.api.datasets import FilesExistError
-
 if TYPE_CHECKING:
-    from atria_logger import get_logger
-
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
 
 logger = get_logger(__name__)
@@ -106,14 +105,14 @@ class DatasetHubOps:
                     dataset_files=self.prepare_dataset_files_from_dir(),
                     overwrite_existing=overwrite_existing,
                 )
+                logger.info(
+                    f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
+                )
             except FilesExistError:
                 logger.warning(
                     f"Files already exist in dataset '{hub_name}' on branch '{branch}'. "
                     "Set overwrite_existing=True to overwrite existing files."
                 )
-            logger.info(
-                f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
-            )
             return {"username": hub.auth.username, "name": hub_name, "branch": branch}
         except AtriaHubConnectionError:
             logger.error(

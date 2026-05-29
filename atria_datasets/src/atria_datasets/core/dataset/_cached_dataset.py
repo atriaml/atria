@@ -61,7 +61,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         snapshot_file = self._path / _DEFAULT_SNAPSHOT_PATH
         with open(snapshot_file) as f:
             self._snapshot_data = yaml.safe_load(f)
-        assert self._snapshot_data is not None, f"Snapshot file is empty: {snapshot_file}"
+        assert self._snapshot_data is not None, (
+            f"Snapshot file is empty: {snapshot_file}"
+        )
 
         fqn = self._snapshot_data["data_model"]
         module_name, class_name = fqn.rsplit(".", 1)
@@ -91,7 +93,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         overwrite_existing: bool = False,
     ) -> CachedDataset:
         """Download a frozen cached dataset snapshot from Atria Hub."""
-        from atria_datasets.core.dataset._ops import DatasetHubOps
+        from atria_datasets.core.dataset._hub_ops import DatasetHubOps
 
         return DatasetHubOps.load_from_hub(
             name=name,
@@ -110,7 +112,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         overwrite_existing: bool = False,
     ) -> dict[str, str]:
         """Upload this frozen cached dataset snapshot to Atria Hub."""
-        from atria_datasets.core.dataset._ops import DatasetHubOps
+        from atria_datasets.core.dataset._hub_ops import DatasetHubOps
 
         return DatasetHubOps(self).upload_to_hub(
             name=name,
@@ -132,7 +134,13 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             return False
         with open(snapshot_file) as f:
             snapshot = yaml.safe_load(f)
-        required_keys = {"dataset_class_name", "data_model", "storage_type", "config_name", "config_hash"}
+        required_keys = {
+            "dataset_class_name",
+            "data_model",
+            "storage_type",
+            "config_name",
+            "config_hash",
+        }
         return not (required_keys - snapshot.keys())
 
     # ------------------------------------------------------------------
@@ -189,7 +197,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         return self._metadata_data
 
     @property
-    def split_iterators(self) -> dict[DatasetSplitType, SplitIterator[T_BaseDataInstance]]:
+    def split_iterators(
+        self,
+    ) -> dict[DatasetSplitType, SplitIterator[T_BaseDataInstance]]:
         self._require_loaded()
         return self._split_iterators_data  # type: ignore[return-value]
 
@@ -218,8 +228,16 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             iterator = storage_manager.read_split(
                 split=split, data_model=self.data_model, allowed_keys=self._allowed_keys
             )
-            tf = self._train_transform if split == DatasetSplitType.train else (self._eval_transform or self._train_transform)
-            iterator.output_transform = ComposedTransform([LoadOutputTransformer(), tf]) if tf is not None else LoadOutputTransformer()
+            tf = (
+                self._train_transform
+                if split == DatasetSplitType.train
+                else (self._eval_transform or self._train_transform)
+            )
+            iterator.output_transform = (
+                ComposedTransform([LoadOutputTransformer(), tf])
+                if tf is not None
+                else LoadOutputTransformer()
+            )
             result[split] = iterator
         return result
 
