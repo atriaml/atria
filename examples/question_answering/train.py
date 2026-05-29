@@ -23,6 +23,7 @@ def main(
     project_name: str = "my_atria_project",
     dataset_name: str = "due_benchmark/DocVQA",
     model_name: str = "bert-base-uncased",
+    tokenizer_name: str = "bert-base-uncased",
     builder_type: ModelBuilderType = ModelBuilderType.atria,
     exp_name: str = "train_qa_03",
     output_dir: str = "./outputs",
@@ -40,6 +41,9 @@ def main(
     overwrite_output_dir: bool = False,
     splitting_enabled: bool = True,
     split_ratio: float = 0.95,
+    use_segment_level_bboxes: bool = False,
+    save_images_in_preprocess: bool = False,
+    save_bboxes_in_preprocess: bool = False,
 ):
     config = TrainingTaskConfig(
         env=RuntimeEnvConfig(
@@ -67,7 +71,8 @@ def main(
                     stats=stats, resize_width=image_size, resize_height=image_size
                 ),
                 overflow_strategy="return_random",
-                is_training=True,
+                use_segment_level_bboxes=use_segment_level_bboxes,
+                ignore_no_answer_qa_pair=True,
             ),
             eval_transform=load_transform(
                 "document_processor/question_answering",
@@ -78,21 +83,42 @@ def main(
                     stats=stats, resize_width=image_size, resize_height=image_size
                 ),
                 overflow_strategy="return_all",
-                is_training=False,
+                ignore_no_answer_qa_pair=False,
             ),
         ),
         data=DataConfig(
-            dataset_config=load_dataset_config(dataset_name),
+            dataset_config=load_dataset_config(
+                dataset_name,
+                max_train_samples=100,
+                max_test_samples=100,
+                max_validation_samples=100,
+            ),
             num_workers=num_workers,
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
             splitting_enabled=splitting_enabled,
             split_ratio=split_ratio,
             preprocess_train_transform=load_transform(
-                "unroll_qa_pairs_transform", remove_no_answer_samples=True
+                "document_tokenizer/question_answering",
+                hf_processor={
+                    "tokenizer_name": tokenizer_name,
+                },
+                use_segment_level_bboxes=use_segment_level_bboxes,
+                resize_image=(image_size, image_size),
+                load_image=save_images_in_preprocess,
+                load_bboxes=save_bboxes_in_preprocess,
+                ignore_no_answer_qa_pair=True,
             ),
             preprocess_eval_transform=load_transform(
-                "unroll_qa_pairs_transform", remove_no_answer_samples=False
+                "document_tokenizer/question_answering",
+                hf_processor={
+                    "tokenizer_name": tokenizer_name,
+                },
+                use_segment_level_bboxes=use_segment_level_bboxes,
+                resize_image=(image_size, image_size),
+                load_image=save_images_in_preprocess,
+                load_bboxes=save_bboxes_in_preprocess,
+                ignore_no_answer_qa_pair=False,
             ),
         ),
         trainer=TrainerConfig(

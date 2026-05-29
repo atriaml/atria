@@ -23,6 +23,7 @@ def main(
     project_name: str = "my_atria_project",
     dataset_name: str = "funsd",
     model_name: str = "lilt-roberta-base",
+    tokenizer_name: str = "SCUT-DLVCLab/lilt-roberta-en-base",
     builder_type: ModelBuilderType = ModelBuilderType.atria,
     exp_name: str = "train_layout_token_cls_03",
     output_dir: str = "./outputs",
@@ -59,9 +60,9 @@ def main(
                 model_type="token_classification",
             ),
             train_transform=load_transform(
-                "token_classification_document_processor",
+                "document_processor/token_classification",
                 hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
+                    "tokenizer_name": tokenizer_name,
                 },
                 image_transform=StandardImageTransform(
                     stats=stats, resize_width=image_size, resize_height=image_size
@@ -69,9 +70,9 @@ def main(
                 overflow_strategy="return_first",
             ),
             eval_transform=load_transform(
-                "token_classification_document_processor",
+                "document_processor/token_classification",
                 hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
+                    "tokenizer_name": tokenizer_name,
                 },
                 image_transform=StandardImageTransform(
                     stats=stats, resize_width=image_size, resize_height=image_size

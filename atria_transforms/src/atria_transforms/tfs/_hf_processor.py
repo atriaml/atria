@@ -160,9 +160,9 @@ class HuggingfaceProcessor(DataTransform):
         self._possible_args = inspect.signature(processor.__call__).parameters.keys()  # type: ignore
         for key in list(call_kwargs.keys()):
             if key not in self._possible_args:
-                logger.warning(
-                    f"Invalid keyword argument '{key}' found in call_kwargs for {self.__class__.__name__}. Skipping it."
-                )
+                # logger.warning(
+                #     f"Invalid keyword argument '{key}' found in call_kwargs for {self.__class__.__name__}. Skipping it."
+                # )
                 call_kwargs.pop(key)
 
         return call_kwargs

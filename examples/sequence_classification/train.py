@@ -12,6 +12,7 @@ from atria_ml.configs import (
 )
 from atria_ml.optimizers._api import load_optimizer_config
 from atria_ml.task_pipelines._trainer import Trainer
+from atria_ml.training._configs import EarlyStoppingConfig, ModelCheckpointConfig
 from atria_models.api.models import load_model_pipeline_config
 from atria_models.core.model_builders._common import ModelBuilderType
 from atria_models.core.model_pipelines._common import ModelConfig
@@ -23,6 +24,7 @@ def main(
     project_name: str = "my_atria_project",
     dataset_name: str = "tobacco3482/image_with_ocr",
     model_name: str = "bert-base-uncased",
+    tokenizer_name: str = "bert-base-uncased",
     builder_type: ModelBuilderType = ModelBuilderType.atria,
     exp_name: str = "train_seq_cls_01",
     output_dir: str = "./outputs",
@@ -37,9 +39,8 @@ def main(
     lr: float = 1e-5,
     weight_decay: float = 0.01,
     warmup_steps: int = 1000,
-    save_images_in_preprocess: bool = True,
-    save_bboxes_in_preprocess: bool = True,
-    use_segment_level_bboxes: bool = False,
+    splitting_enabled: bool = True,
+    split_ratio: float = 0.95,
 ):
     config = TrainingTaskConfig(
         env=RuntimeEnvConfig(
@@ -58,9 +59,9 @@ def main(
                 model_type="sequence_classification",
             ),
             train_transform=load_transform(
-                "sequence_classification_document_processor",
+                "document_processor/sequence_classification",
                 hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
+                    "tokenizer_name": tokenizer_name,
                 },
                 image_transform=StandardImageTransform(
                     stats=stats, resize_width=image_size, resize_height=image_size
@@ -68,9 +69,9 @@ def main(
                 overflow_strategy="return_first",
             ),
             eval_transform=load_transform(
-                "sequence_classification_document_processor",
+                "document_processor/sequence_classification",
                 hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
+                    "tokenizer_name": tokenizer_name,
                 },
                 image_transform=StandardImageTransform(
                     stats=stats, resize_width=image_size, resize_height=image_size
@@ -81,28 +82,11 @@ def main(
         data=DataConfig(
             dataset_config=load_dataset_config(dataset_name),
             num_workers=num_workers,
+            num_processes=num_workers,
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
-            preprocess_train_transform=load_transform(
-                "document_tokenizer",
-                hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
-                },
-                use_segment_level_bboxes=use_segment_level_bboxes,
-                image_size=(image_size, image_size),
-                save_images=save_images_in_preprocess,
-                save_bboxes=save_bboxes_in_preprocess,
-            ),
-            preprocess_eval_transform=load_transform(
-                "document_tokenizer",
-                hf_processor={
-                    "tokenizer_name": "bert-base-uncased",
-                },
-                use_segment_level_bboxes=use_segment_level_bboxes,
-                image_size=(image_size, image_size),
-                save_images=save_images_in_preprocess,
-                save_bboxes=save_bboxes_in_preprocess,
-            ),
+            splitting_enabled=splitting_enabled,
+            split_ratio=split_ratio,
         ),
         trainer=TrainerConfig(
             max_epochs=max_epochs,
@@ -113,6 +97,16 @@ def main(
             ),
             warmup=WarmupConfig(
                 warmup_steps=warmup_steps,
+            ),
+            early_stopping=EarlyStoppingConfig(
+                enabled=True,
+                monitored_metric="validation/accuracy",
+                patience=10,
+                mode="max",
+            ),
+            model_checkpoint=ModelCheckpointConfig(
+                monitored_metric="validation/accuracy",
+                mode="max",
             ),
         ),
         do_train=True,
