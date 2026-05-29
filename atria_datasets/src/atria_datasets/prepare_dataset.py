@@ -1,6 +1,8 @@
 import fire
 from atria_logger import get_logger
 
+from atria_datasets.core.dataset._cached_dataset import CachedDataset
+
 logger = get_logger(__name__)
 
 from atria_datasets.registry.document_classification.rvlcdip import *  # noqa
@@ -31,9 +33,10 @@ def prepare_dataset(
     access_token: str | None = None,
     overwrite_existing_cached: bool = False,
     num_processes: int = 8,
-    visualize_samples: bool = True,
+    visualize_samples: bool = False,
     n_visualized_samples: int = 16,
     print_samples: bool = True,
+    upload: bool = True,
 ):
     # first lets load the image classification datasets
     from atria_datasets import load_dataset_config
@@ -77,6 +80,24 @@ def prepare_dataset(
                 sample.viz.visualize(output_path=output_path)
                 if idx + 1 >= n_visualized_samples:
                     break
+
+    if upload:
+        assert isinstance(dataset, CachedDataset), (
+            "Only CachedDataset can be uploaded to hub"
+        )
+        repo_info = dataset.upload_to_hub(name=name, overwrite_existing=True)
+        print("repo_info", repo_info)
+
+        # reload dataset from hub to verify upload
+        dataset = CachedDataset.load_from_hub(
+            username=repo_info["username"],
+            name=repo_info["name"],
+            branch=repo_info["branch"],
+        )
+
+        logger.info(f"dataset loaded from hub successfully: \n{dataset}")
+        hub_sample = next(iter(dataset.train))
+        logger.info(f"First sample in train split of hub dataset:\n{hub_sample}")
 
 
 def main():

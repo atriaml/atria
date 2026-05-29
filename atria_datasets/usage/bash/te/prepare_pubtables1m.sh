@@ -1,3 +1,3 @@
 #!/bin/bash
 
-uv run prepare_dataset pubtables1m/structure --max-samples 100
+uv run prepare_dataset pubtables1m/structure --max-samples 100 $@
