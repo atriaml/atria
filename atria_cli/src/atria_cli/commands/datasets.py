@@ -62,7 +62,7 @@ def prepare_and_upload(
 
 def download(
     name: str,
-    config_name: str = "default",
+    config_name: str | None = None,
     branch: str = "main",
     download_dir: str | None = None,
 ):
@@ -72,7 +72,7 @@ def download(
 
     logger.info(f"Downloading dataset {name} from Atria Hub...")
     dataset = CachedDataset.load_from_hub(
-        name=name, branch=branch, config_name=config_name, storage_dir=download_dir
+        name=name, branch=branch, config_name=config_name, download_dir=download_dir
     )
 
     logger.info(f"dataset loaded from hub successfully: \n{dataset}")
