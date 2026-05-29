@@ -2,18 +2,22 @@ import fire
 from atria_datasets.api.datasets import FileStorageType, load_dataset_config
 
 
-def main(dataset_name: str = "tobacco3482/image_with_ocr"):
+def main(dataset_name: str = "cifar10/1k"):
     # load example dataset
     dataset_config = load_dataset_config(dataset_name)
 
     # build the dataset and model pipeline
     dataset = dataset_config.build(
-        data_dir="/mnt/noel/phd-2026/.atria_cache/",
         cached_storage_type=FileStorageType.DELTALAKE,
         enable_cached_splits=True,
     )
 
     print("dataset", dataset)
+
+    dataset.process_dataset(
+        train_transform=dataset_config.model_config.train_transform,
+        eval_transform=dataset_config.model_config.eval_transform,
+    )
 
 
 if __name__ == "__main__":

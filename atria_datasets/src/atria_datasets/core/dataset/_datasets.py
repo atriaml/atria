@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Generic, Self
+from typing import Generic
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
+from atria_transforms.core import DataTransform
 from atria_types import (
     BaseDataInstance,
     DatasetMetadata,
@@ -118,33 +119,30 @@ class Dataset(
 
     def process_dataset(
         self,
-        train_transform: Callable,
-        eval_transform: Callable | None = None,
+        train_transform: DataTransform,
+        eval_transform: DataTransform | None = None,
         split: DatasetSplitType | None = None,
-        processed_data_dir: str | None = None,
         cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         overwrite_existing_cached: bool = False,
         store_artifact_content: bool = True,
         max_cache_image_size: int | tuple[int, int] | None = None,
         num_processes: int = 8,
-    ) -> Self:
-        """Process the entire dataset and return a new Dataset instance."""
-        from atria_datasets.core.dataset._dataset_processor import DatasetProcessor
+    ) -> CachedDataset:
+        """Apply transforms to each split and return a file-backed CachedDataset."""
+        from atria_datasets.core.dataset._cached_dataset import CachedDataset
+        from atria_datasets.core.dataset._dataset_builders import cache
 
-        split_iterators = DatasetProcessor(
+        return cache(
             dataset=self,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
             split=split,
-            data_dir=processed_data_dir,
             cached_storage_type=cached_storage_type,
             overwrite_existing_cached=overwrite_existing_cached,
             store_artifact_content=store_artifact_content,
             max_cache_image_size=max_cache_image_size,
             num_processes=num_processes,
-        ).process_splits()
-        self._split_iterators.update(split_iterators)
-        return self
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         """Check if a specific dataset split exists."""

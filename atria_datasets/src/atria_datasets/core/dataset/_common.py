@@ -125,6 +125,8 @@ def _save_snapshot(
     storage_type: FileStorageType,
     dataset_name: str | None,
     dataset_class_name: str,
+    train_transform: dict | None = None,
+    eval_transform: dict | None = None,
 ) -> None:
     snapshot = {
         "storage_type": storage_type.value,
@@ -133,6 +135,8 @@ def _save_snapshot(
         "dataset_class_name": dataset_class_name,
         "config_name": config_name,
         "config_hash": config_name.rsplit("-", 1)[-1],
+        "train_transform": train_transform,
+        "eval_transform": eval_transform,
     }
     snapshot_path = Path(storage_dir) / config_name / _DEFAULT_SNAPSHOT_PATH
     logger.info("Saving dataset snapshot to %s", snapshot_path)
