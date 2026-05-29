@@ -48,55 +48,49 @@ def main(case: int = 0):
         logger.info(f"First train sample from cache:\n{sample}")
 
     elif case == 3:
-        # Load with caching + transform — transform hash baked into cache path
-        logger.info("=== Case 3: load with caching + transform ===")
+        # Cache with preprocess transform baked in — hash included in cache path
+        logger.info("=== Case 3: load with caching + preprocess transform ===")
         cached = dataset_config.build(
             enable_cached_splits=True,
-            train_transform=train_tf,
-            eval_transform=eval_tf,
+            preprocess_train_transform=train_tf,
+            preprocess_eval_transform=eval_tf,
         )
         logger.info(f"CachedDataset: {cached}")
         sample = next(iter(cached.train))
-        logger.info(f"First train sample from transform cache:\n{sample}")
+        logger.info(f"First train sample from preprocess cache:\n{sample}")
 
     elif case == 4:
-        # Load with caching + transform — transform hash baked into cache path
-        logger.info("=== Case 4: load with caching + transform + MSGPACK ===")
+        # Cache with preprocess transform + MSGPACK storage
+        logger.info("=== Case 4: load with caching + preprocess transform + MSGPACK ===")
         cached = dataset_config.build(
             enable_cached_splits=True,
-            train_transform=train_tf,
-            eval_transform=eval_tf,
+            preprocess_train_transform=train_tf,
+            preprocess_eval_transform=eval_tf,
             cached_storage_type=FileStorageType.MSGPACK,
         )
         logger.info(f"CachedDataset: {cached}")
         sample = next(iter(cached.train))
-        logger.info(f"First train sample from transform cache:\n{sample}")
+        logger.info(f"First train sample from preprocess cache:\n{sample}")
 
     elif case == 5:
-        # Raw in-memory load + transform — returns Dataset, transforms applied on-the-fly
-        logger.info("=== Case 5: raw in-memory load + transform ===")
+        # Raw in-memory load + runtime transform — transforms applied on-the-fly
+        logger.info("=== Case 5: raw in-memory load + runtime transform ===")
         dataset = dataset_config.build(enable_cached_splits=False, train_transform=train_tf, eval_transform=eval_tf)
         logger.info(f"Dataset: {dataset}")
         sample = next(iter(dataset.train))
         logger.info(f"First train sample:\n{sample}")
 
     elif case == 6:
-        # CachedDataset.process() — re-cache existing CachedDataset with transforms
-        logger.info("=== Case 4: CachedDataset.process() ===")
-        cached = dataset_config.build(enable_cached_splits=True)
+        # Build with preprocess transform baked into MSGPACK cache, runtime transform applied on load
+        logger.info("=== Case 7: preprocess cache + runtime transform ===")
+        cached = dataset_config.build(
+            enable_cached_splits=True,
+            train_transform=train_tf,
+            eval_transform=eval_tf,
+        )
         logger.info(f"CachedDataset: {cached}")
         sample = next(iter(cached.train))
-        logger.info(f"First train sample from processed cache:\n{sample}")
-
-    elif case == 7:
-        # CachedDataset.process() — re-cache existing CachedDataset with transforms
-        logger.info("=== Case 4: CachedDataset.process() ===")
-        cached = dataset_config.build(enable_cached_splits=True)
-        logger.info(f"CachedDataset: {cached}")
-        processed = cached.process(train_transform=train_tf, eval_transform=eval_tf, cached_storage_type=FileStorageType.MSGPACK)
-        logger.info(f"Processed CachedDataset: {processed}")
-        sample = next(iter(cached.train))
-        logger.info(f"First train sample from processed cache:\n{sample}")
+        logger.info(f"First train sample:\n{sample}")
     else:
         raise ValueError(f"Unknown case {case}. Valid cases: 0–4.")
 

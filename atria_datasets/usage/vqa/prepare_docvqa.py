@@ -10,39 +10,21 @@ def main():
     dataset_config = load_dataset_config("due_benchmark/DocVQA")
     dataset = dataset_config.build(
         enable_cached_splits=True,
-        train_transform=load_transform(
+        preprocess_train_transform=load_transform(
             "unroll_qa_pairs_transform", remove_no_answer_samples=True
         ),
-        eval_transform=load_transform(
+        preprocess_eval_transform=load_transform(
             "unroll_qa_pairs_transform", remove_no_answer_samples=False
         ),
         max_cache_image_size=1024,
-        num_processes=8,)
+        num_processes=8,
+    )
     logger.info(f"Loaded dataset:\n{dataset}")
 
     # get first sample
     sample = next(iter(dataset.train))
 
     logger.info(f"First sample in train split:\n{sample}")
-
-    # process the dataset with a custom transform
-    processed_dataset = dataset.cache(
-        train_transform=load_transform(
-            "unroll_qa_pairs_transform", remove_no_answer_samples=True
-        ),
-        eval_transform=load_transform(
-            "unroll_qa_pairs_transform", remove_no_answer_samples=False
-        ),
-        max_cache_image_size=1024,
-        num_processes=8,
-    )
-
-    # get first sample after processing
-    logger.info(processed_dataset)
-
-    for sample in processed_dataset.train:
-        logger.info(f"Processed sample in train split:\n{sample}")
-        break
 
 
 if __name__ == "__main__":

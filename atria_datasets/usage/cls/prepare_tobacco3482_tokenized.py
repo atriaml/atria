@@ -26,8 +26,8 @@ def main():
 
     # process the dataset with a custom transform
     processed_dataset = dataset.cache(
-        train_transform=DocumentTokenizer(image_size=(224, 224)),
-        eval_transform=DocumentTokenizer(image_size=(224, 224)),
+        preprocess_train_transform=DocumentTokenizer(image_size=(224, 224)),
+        preprocess_eval_transform=DocumentTokenizer(image_size=(224, 224)),
         num_processes=8,
     )
     logger.info(f"Processed dataset:\n{processed_dataset}")

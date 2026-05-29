@@ -133,18 +133,24 @@ class Dataset(
         cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         allowed_keys: set[str] | None = None,
         split_iterator_type: type[SplitIterator] = SplitIterator,
+        preprocess_train_transform: DataTransform | None = None,
+        preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
+        _for_cache: bool = False,
     ) -> Dataset | CachedDataset:
         """Unified entry point for loading a dataset.
 
-        When enable_cached_splits=False (default): downloads data, prepares split
-        iterators (applying optional transforms), and returns self.
+        preprocess_train/eval_transform: baked into the cache at write time
+            (PreprocessOutputTransformer path).
+        train/eval_transform: applied at iteration time via LoadOutputTransformer
+            composition (both cached and uncached).
 
-        When enable_cached_splits=True: checks if the cache already exists and returns
-        it immediately if so; otherwise runs the non-caching load path to populate
-        split iterators, then calls cache() to write to disk and returns the
-        resulting CachedDataset.
+        When enable_cached_splits=False: prepares split iterators using
+            LoadOutputTransformer + train/eval_transform and returns self.
+        When enable_cached_splits=True: on cache hit returns CachedDataset with
+            train/eval_transform; on miss writes via PreprocessOutputTransformer +
+            preprocess transforms, then returns CachedDataset with train/eval_transform.
         """
         from atria_datasets.core.dataset._cached_dataset import CachedDataset
         from atria_datasets.core.dataset._dataset_builders import (
@@ -157,25 +163,32 @@ class Dataset(
 
         if enable_cached_splits:
             unique_path = _compute_unique_cache_path(
-                self, data_dir, train_transform, eval_transform
+                self, data_dir, preprocess_train_transform, preprocess_eval_transform
             )
             if unique_path.exists() and not overwrite_existing_cached:
                 logger.info(f"Loading existing cached dataset from {unique_path}")
                 if CachedDataset.validate_cache(unique_path):
-                    return CachedDataset(path=unique_path, allowed_keys=allowed_keys)
-            if train_transform is not None or eval_transform is not None:
+                    return CachedDataset(
+                        path=unique_path,
+                        allowed_keys=allowed_keys,
+                        train_transform=train_transform,
+                        eval_transform=eval_transform,
+                    ).load()
+            if preprocess_train_transform is not None or preprocess_eval_transform is not None:
                 assert cached_storage_type == FileStorageType.MSGPACK, (
-                    "Caching with transforms is only supported for MSGPACK storage type."
+                    "Caching with preprocess transforms is only supported for MSGPACK storage type."
                 )
+                preprocess_tf = preprocess_train_transform or preprocess_eval_transform
                 try:
-                    assert type(train_transform) == type(eval_transform), "train_transform and eval_transform must be of the same type."
-                    data_model = train_transform.data_model
-                    if not issubclass(data_model, BaseDataInstance):
-                        raise ValueError(
-                            f"Output transform data_model must be a subclass of BaseDataInstance. Got: {data_model}"
-                        )
+                    assert type(preprocess_train_transform) == type(preprocess_eval_transform), (
+                        "preprocess_train_transform and preprocess_eval_transform must be of the same type."
+                    )
+                    assert preprocess_tf.data_model  == self.data_model, (
+                        "preprocess_transform's data_model must match the dataset's data_model. Arbitrary transforms with different data models are not supported for caching."
+                        f"Found preprocess transform data model: {preprocess_tf.data_model}, dataset data model: {self.data_model}"
+                    )
                 except NotImplementedError:
-                    raise ValueError("transform must implement data_model property that must return a BaseDataInstance.")
+                    raise ValueError("preprocess_transform must implement data_model property returning a BaseDataInstance.")
 
             self.load(
                 data_dir=data_dir,
@@ -185,8 +198,9 @@ class Dataset(
                 store_artifact_content=store_artifact_content,
                 max_cache_image_size=max_cache_image_size,
                 split_iterator_type=split_iterator_type,
-                train_transform=train_transform,
-                eval_transform=eval_transform,
+                preprocess_train_transform=preprocess_train_transform,
+                preprocess_eval_transform=preprocess_eval_transform,
+                _for_cache=True,
             )
             return self.cache(
                 data_dir=data_dir,
@@ -195,6 +209,8 @@ class Dataset(
                 overwrite_existing_cached=overwrite_existing_cached,
                 num_processes=num_processes,
                 allowed_keys=allowed_keys,
+                preprocess_train_transform=preprocess_train_transform,
+                preprocess_eval_transform=preprocess_eval_transform,
                 train_transform=train_transform,
                 eval_transform=eval_transform,
             )
@@ -206,13 +222,17 @@ class Dataset(
         for s in self._available_splits():
             if split is not None and s != split:
                 continue
-            tf = train_transform if s == DatasetSplitType.train else (eval_transform or train_transform)
+            if _for_cache:
+                tf = preprocess_train_transform if s == DatasetSplitType.train else (preprocess_eval_transform or preprocess_train_transform)
+            else:
+                tf = train_transform if s == DatasetSplitType.train else (eval_transform or train_transform)
             split_iterators[s] = _prepare_split(
                 self, s, resolved, split_iterator_type,
                 store_artifact_content=store_artifact_content,
                 resize_images=max_cache_image_size is not None,
                 image_max_size=max_cache_image_size,
                 user_transform=tf,
+                for_cache=_for_cache,
             )
         self._split_iterators = split_iterators
         return self
@@ -225,15 +245,17 @@ class Dataset(
         overwrite_existing_cached: bool = False,
         num_processes: int = 8,
         allowed_keys: set[str] | None = None,
+        preprocess_train_transform: DataTransform | None = None,
+        preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
     ) -> CachedDataset:
         """Write already-loaded split iterators to disk and return a CachedDataset.
 
         Requires that load() has been called first to populate self._split_iterators.
-        train_transform/eval_transform are used only to compute the cache path hash
-        and record them in the snapshot — transforms must already be applied to the
-        split iterators by load().
+        preprocess transforms are used only to compute the cache path hash and record
+        them in the snapshot. train/eval_transform are forwarded to the returned
+        CachedDataset for runtime application.
         """
         from atria_datasets.core.dataset._cached_dataset import CachedDataset
         from atria_datasets.core.dataset._common import (
@@ -247,7 +269,7 @@ class Dataset(
         )
 
         unique_path = _compute_unique_cache_path(
-            self, data_dir, train_transform, eval_transform
+            self, data_dir, preprocess_train_transform, preprocess_eval_transform
         )
         storage_dir, unique_config_name = unique_path.parent, unique_path.name
         storage_manager = _get_storage_manager(
@@ -273,8 +295,8 @@ class Dataset(
             self.config.model_dump(), self.metadata.model_dump(),
         )
         output_data_model = (
-            _resolve_output_data_model(train_transform, self.data_model)
-            if train_transform is not None
+            _resolve_output_data_model(preprocess_train_transform, self.data_model)
+            if preprocess_train_transform is not None
             else self.data_model
         )
         _save_snapshot(
@@ -284,10 +306,15 @@ class Dataset(
             storage_type=cached_storage_type,
             dataset_name=self.config.dataset_name,
             dataset_class_name=self.__class__.__name__,
-            train_transform=train_transform.to_dict() if train_transform is not None else None,
-            eval_transform=eval_transform.to_dict() if eval_transform is not None else None,
+            train_transform=preprocess_train_transform.to_dict() if preprocess_train_transform is not None else None,
+            eval_transform=preprocess_eval_transform.to_dict() if preprocess_eval_transform is not None else None,
         )
-        return CachedDataset(path=unique_path, allowed_keys=allowed_keys)
+        return CachedDataset(
+            path=unique_path,
+            allowed_keys=allowed_keys,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        ).load()
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         """Check if a specific dataset split exists."""

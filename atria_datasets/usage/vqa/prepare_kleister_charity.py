@@ -18,13 +18,12 @@ def main():
 
     # process the dataset with a custom transform
     processed_dataset = dataset.cache(
-        train_transform=load_transform(
+        preprocess_train_transform=load_transform(
             "unroll_qa_pairs_transform", remove_no_answer_samples=True
         ),
-        eval_transform=load_transform(
+        preprocess_eval_transform=load_transform(
             "unroll_qa_pairs_transform", remove_no_answer_samples=False
         ),
-        max_cache_image_size=1024,
         num_processes=8,
     )
 

@@ -56,6 +56,8 @@ class DatasetConfig(ModuleConfig):
         num_processes: int = 8,
         cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         allowed_keys: set[str] | None = None,
+        preprocess_train_transform: DataTransform | None = None,
+        preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
         **kwargs,
@@ -72,6 +74,8 @@ class DatasetConfig(ModuleConfig):
             num_processes=num_processes,
             cached_storage_type=cached_storage_type,
             allowed_keys=allowed_keys,
+            preprocess_train_transform=preprocess_train_transform,
+            preprocess_eval_transform=preprocess_eval_transform,
             train_transform=train_transform,
             eval_transform=eval_transform,
         )

@@ -253,7 +253,7 @@ class DatasetHubOps:
                     f"Cached dataset already exists at '{target_path}'. "
                     "Skipping download."
                 )
-                return CachedDataset(path=target_path)
+                return CachedDataset(path=target_path).load()
             logger.warning(f"Overwriting existing cached dataset at '{target_path}'.")
             shutil.rmtree(target_path)
 
@@ -274,4 +274,4 @@ class DatasetHubOps:
         logger.info(
             f"Dataset '{owner}/{dataset_name}' downloaded successfully to '{target_path}'."
         )
-        return CachedDataset(path=target_path)
+        return CachedDataset(path=target_path).load()
