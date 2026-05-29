@@ -21,20 +21,19 @@ class ImageProcessor(DataTransform[ImageTensorDataModel]):
     def __call__(
         self, image_instance: ImageInstance
     ) -> ImageTensorDataModel | list[ImageTensorDataModel]:
-
         assert image_instance.image.content is not None, "Image content is None."
         image_tensor = self.tf(image_instance.image.content)
         label = image_instance.get_annotation_by_type(
             AnnotationType.classification
         ).label.value
         label = np.array(label) if label is not None else None
-        return self._output_transform(
-            image_instance=image_instance, image=image_tensor, label=label
+        return ImageTensorDataModel(
+            index=image_instance.index,
+            sample_id=image_instance.sample_id,
+            image=image_tensor,
+            label=label,
         )
 
-    def _output_transform(
-        self, image_instance: ImageInstance, **kwargs
-    ) -> ImageTensorDataModel:
-        return ImageTensorDataModel(
-            index=image_instance.index, sample_id=image_instance.sample_id, **kwargs
-        )
+    @property
+    def data_model(self) -> type[ImageTensorDataModel]:
+        return ImageTensorDataModel

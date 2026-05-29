@@ -9,14 +9,12 @@ from atria_logger import get_logger
 from atria_registry._module_base import PydanticConfigurableModule
 from pydantic import ConfigDict
 
-from .._data_types import T_TensorDataModel
-
 logger = get_logger(__name__)
 
 T = TypeVar("T")
 
 
-class DataTransform(PydanticConfigurableModule, Generic[T_TensorDataModel]):
+class DataTransform(PydanticConfigurableModule, Generic[T]):
     """Base class for data transforms.
     Transforms should be stateless and operate on input data instances to produce
     transformed output data instances.
@@ -27,13 +25,10 @@ class DataTransform(PydanticConfigurableModule, Generic[T_TensorDataModel]):
     )
 
     @property
-    def data_model(self) -> type[T_TensorDataModel]:
+    def data_model(self) -> type[T]:
         """Returns the data model class that this transform outputs."""
         raise NotImplementedError
 
-    def build(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
     @abstractmethod
-    def __call__(self, input: Any) -> T_TensorDataModel | list[T_TensorDataModel]:
+    def __call__(self, input: Any) -> T | list[T]:
         raise NotImplementedError
