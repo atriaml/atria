@@ -186,6 +186,7 @@ def cache(
     store_artifact_content: bool = True,
     max_cache_image_size: int | None = None,
     num_processes: int = 8,
+    allowed_keys: set[str] | None = None,
     split_iterator_type: type[SplitIterator] = SplitIterator,
 ) -> CachedDataset:
     """Cache splits to disk and return a file-backed CachedDataset."""
@@ -262,4 +263,6 @@ def cache(
         dataset_class_name=dataset.__class__.__name__,
     )
 
-    return CachedDataset(path=storage_dir / unique_config_name)
+    return CachedDataset(
+        path=storage_dir / unique_config_name, allowed_keys=allowed_keys
+    )

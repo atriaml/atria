@@ -53,6 +53,7 @@ class DatasetConfig(ModuleConfig):
         enable_cached_splits: bool = True,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
+        allowed_keys: set[str] | None = None,
         **kwargs,
     ) -> Dataset | CachedDataset:
         from atria_datasets.core.dataset._dataset_builders import cache, load
@@ -69,6 +70,7 @@ class DatasetConfig(ModuleConfig):
                 store_artifact_content=store_artifact_content,
                 max_cache_image_size=max_cache_image_size,
                 num_processes=num_processes,
+                allowed_keys=allowed_keys,
             )
         return load(
             dataset=dataset, data_dir=data_dir, split=split, access_token=access_token

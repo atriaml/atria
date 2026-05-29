@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 from atria_logger import get_logger
 from atria_types import ImageInstance
 from atria_types._generic._annotations import AnnotationType
@@ -20,14 +21,13 @@ class ImageProcessor(DataTransform[ImageTensorDataModel]):
     def __call__(
         self, image_instance: ImageInstance
     ) -> ImageTensorDataModel | list[ImageTensorDataModel]:
-        import torch
 
         assert image_instance.image.content is not None, "Image content is None."
         image_tensor = self.tf(image_instance.image.content)
         label = image_instance.get_annotation_by_type(
             AnnotationType.classification
         ).label.value
-        label = torch.tensor(label, dtype=torch.long)
+        label = np.array(label) if label is not None else None
         return self._output_transform(
             image_instance=image_instance, image=image_tensor, label=label
         )

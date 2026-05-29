@@ -1,17 +1,5 @@
 import fire
-from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_ml.configs import (
-    DataConfig,
-    RuntimeEnvConfig,
-    TrainerConfig,
-    TrainingTaskConfig,
-)
-from atria_ml.optimizers._api import load_optimizer_config
-from atria_ml.task_pipelines._trainer import Trainer
-from atria_models.api.models import load_model_pipeline_config
-from atria_models.core.model_pipelines._common import ModelConfig
-from atria_transforms.api.tfs import load_transform
 
 
 def main(
@@ -30,6 +18,19 @@ def main(
     optim: str = "adamw",
     lr: float = 0.001,
 ):
+    from atria_datasets.api.datasets import load_dataset_config
+    from atria_ml.configs import (
+        DataConfig,
+        RuntimeEnvConfig,
+        TrainerConfig,
+        TrainingTaskConfig,
+    )
+    from atria_ml.optimizers._api import load_optimizer_config
+    from atria_ml.task_pipelines._trainer import Trainer
+    from atria_models.api.models import load_model_pipeline_config
+    from atria_models.core.model_pipelines._common import ModelConfig
+    from atria_transforms.api.tfs import load_transform
+
     config = TrainingTaskConfig(
         env=RuntimeEnvConfig(
             project_name=project_name,

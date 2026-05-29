@@ -37,12 +37,13 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
 
     __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
 
-    def __init__(self, path: Path | str) -> None:
+    def __init__(self, path: Path | str, allowed_keys: set[str] | None = None) -> None:
         self._path = Path(path)
         self.__snapshot: dict | None = None
         self.__metadata: DatasetMetadata | None = None
         self.__data_model: type[T_BaseDataInstance] | None = None
         self.__split_iterators: dict[DatasetSplitType, SplitIterator] | None = None
+        self._allowed_keys: set[str] | None = allowed_keys
 
     @classmethod
     def load_from_hub(
@@ -161,7 +162,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             num_processes=1,
         )
         return {
-            split: storage_manager.read_split(split=split, data_model=self.data_model)
+            split: storage_manager.read_split(
+                split=split, data_model=self.data_model, allowed_keys=self._allowed_keys
+            )
             for split in DatasetSplitType
             if storage_manager.split_exists(split)
         }

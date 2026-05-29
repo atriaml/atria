@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from atria_types._generic._annotations import AnnotationType
 from atria_types._generic._bounding_box import BoundingBox
@@ -61,29 +59,6 @@ class DocumentTensorDataModel(TensorDataModel):
             "Number of word bounding boxes does not match number of words"
         )
         return word_bboxes
-
-    def to_tensors(self) -> dict[str, Any]:
-        """Convert all numpy arrays to torch tensors. Call in main process only."""
-        import torch
-
-        result = {}
-        for name in self.__class__.model_fields.keys():
-            if name == "metadata":
-                result[name] = self.metadata
-                continue
-            value = getattr(self, name)
-            if value is None:
-                result[name] = None
-            elif isinstance(value, np.ndarray):
-                try:
-                    result[name] = torch.from_numpy(value)
-                except Exception as e:
-                    raise ValueError(
-                        f"Error converting field '{name}' to tensor: {e}"
-                    ) from e
-            else:
-                result[name] = value
-        return result
 
     @classmethod
     def from_tokenized_instance(
