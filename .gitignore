@@ -88,3 +88,4 @@ pyrightconfig.json
 cache/
 test.py
 outputs/
+**/**visualizations
