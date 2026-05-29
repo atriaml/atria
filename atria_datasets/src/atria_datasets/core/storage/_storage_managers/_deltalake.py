@@ -478,7 +478,7 @@ class DeltalakeStorageManager:
         allowed_keys: set[str] | None = None,
         streaming_mode: bool = False,
     ) -> SplitIterator:
-        from atria_datasets.core.storage.deltalake_reader import (
+        from atria_datasets.core.storage._deltalake_reader import (
             InMemoryDeltalakeReader,
             LocalDeltalakeReader,
         )

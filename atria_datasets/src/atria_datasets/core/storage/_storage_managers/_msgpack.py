@@ -10,7 +10,7 @@ from atria_logger import get_logger
 from atria_types import BaseDataInstance, DatasetSplitType
 
 from atria_datasets.core.dataset._datasets import SplitIterator
-from atria_datasets.core.storage.shard_list_datasets import MsgpackShardListDataset
+from atria_datasets.core.storage._shard_list_datasets import MsgpackShardListDataset
 
 logger = get_logger(__name__)
 

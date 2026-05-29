@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         GoogleDriveDownloader,
         HTTPDownloader,
     )
-    from atria_datasets.core.storage.deltalake_reader import DeltalakeReader
+    from atria_datasets.core.storage._deltalake_reader import DeltalakeReader
     from atria_datasets.core.storage._storage_managers._deltalake import (
         DeltalakeStorageManager,
     )

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from atria_datasets.core.batch_samplers._group_batch_sampler import GroupBatchSampler
-from atria_datasets.core.batch_samplers.utilities import _create_aspect_ratio_groups
+from atria_datasets.core.batch_samplers._utilities import _create_aspect_ratio_groups
 
 if TYPE_CHECKING:
     from torch.utils.data.sampler import RandomSampler, SequentialSampler

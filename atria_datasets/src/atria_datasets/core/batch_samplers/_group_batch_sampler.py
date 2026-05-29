@@ -46,7 +46,7 @@ class GroupBatchSampler(BatchSampler):
         Raises:
             AssertionError: If the buffer size exceeds the batch size.
         """
-        from atria_datasets.core.batch_samplers.utilities import _repeat_to_at_least
+        from atria_datasets.core.batch_samplers._utilities import _repeat_to_at_least
 
         buffer_per_group = defaultdict(list)
         samples_per_group = defaultdict(list)
