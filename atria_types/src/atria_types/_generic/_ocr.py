@@ -10,6 +10,21 @@ from atria_types._pydantic import OptStrField, TableSchemaMetadata
 from atria_types._utilities._url_fetchers import _load_bytes_from_uri
 
 
+def _detect_encoding(content: bytes) -> str:
+    # Compressed formats
+    if content[:2] == b"\x1f\x8b":
+        return "gzip"
+    if content[:2] == b"x\x9c" or content[:2] == b"x\x01" or content[:2] == b"x\xda":
+        return "zlib"
+    if content[:4] == b"\x28\xb5\x2f\xfd":
+        return "zstd"
+    if content[:3] == b"BZh":
+        return "bzip2"
+
+    # Plain text
+    return "utf-8"
+
+
 class OCR(BaseDataModel):
     file_path: OptStrField = None
     type: Annotated[OCRType | None, TableSchemaMetadata(pa_type="string")] = None
@@ -30,6 +45,8 @@ class OCR(BaseDataModel):
         return value
 
     def load(self):
+        from atria_types._utilities._string_encoding import _decompress_string
+
         if self.content is None:
             if self.file_path is None:
                 raise ValueError("Either file_path or content must be provided.")
@@ -38,7 +55,14 @@ class OCR(BaseDataModel):
             if content.startswith(b"b'"):
                 content = ast.literal_eval(content.decode("utf-8"))
             if isinstance(content, bytes):
-                content = content.decode("utf-8")
+                encoding = _detect_encoding(content)
+                if encoding == "utf-8":
+                    content = content.decode("utf-8")
+                else:
+                    content = _decompress_string(
+                        content
+                    )  # already knows it's compressed
+
             return self.model_copy(
                 update={
                     "content": content,
