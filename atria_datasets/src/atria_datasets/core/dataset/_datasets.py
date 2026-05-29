@@ -20,6 +20,8 @@ from atria_types import (
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
 from atria_datasets.core.dataset._dataset_builders import (
+    ComposedTransform,
+    LoadOutputTransformer,
     _default_data_dir,
     _validate_data_dir,
 )
@@ -192,9 +194,8 @@ class Dataset(
                     ), (
                         "preprocess_train_transform and preprocess_eval_transform must be of the same type."
                     )
-                    assert preprocess_tf.data_model == self.data_model, (
-                        "preprocess_transform's data_model must match the dataset's data_model. Arbitrary transforms with different data models are not supported for caching."
-                        f"Found preprocess transform data model: {preprocess_tf.data_model}, dataset data model: {self.data_model}"
+                    assert issubclass(preprocess_tf.data_model, BaseDataInstance), (
+                        "preprocess_transform must implement data_model property returning a BaseDataInstance."
                     )
                 except NotImplementedError:
                     raise ValueError(
@@ -350,6 +351,28 @@ class Dataset(
             train_transform=train_transform,
             eval_transform=eval_transform,
         ).load()
+
+    def apply_transforms(
+        self,
+        train_transform: DataTransform | None = None,
+        eval_transform: DataTransform | None = None,
+    ) -> None:
+        for key, split_iterator in self._split_iterators.items():
+            if key == DatasetSplitType.train and train_transform is not None:
+                split_iterator.output_transform = (
+                    ComposedTransform([LoadOutputTransformer(), train_transform])
+                    if train_transform is not None
+                    else LoadOutputTransformer()
+                )
+            elif (
+                key in {DatasetSplitType.validation, DatasetSplitType.test}
+                and eval_transform is not None
+            ):
+                split_iterator.output_transform = (
+                    ComposedTransform([LoadOutputTransformer(), eval_transform])
+                    if eval_transform is not None
+                    else LoadOutputTransformer()
+                )
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         """Check if a specific dataset split exists."""

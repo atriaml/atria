@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
+from atria_hub.src.atria_hub.hub import AtriaHubConnectionError
 from atria_logger import get_logger
 from atria_registry._module_base import ModuleConfig
 
@@ -15,8 +16,6 @@ from atria_models.core.model_pipelines.constants import (
     _DEFAULT_MODEL_WEIGHTS_PATH,
     DEFAULT_ATRIA_MODELS_CACHE_DIR,
 )
-
-from atria_hub.src.atria_hub.hub import AtriaHubConnectionError
 
 if TYPE_CHECKING:
     from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
@@ -62,7 +61,6 @@ class ModelHubOps:
 
         labels = self._pipeline._labels
         config = self._pipeline.config.to_dict()
-        import yaml
 
         with open(snapshot_dir / _DEFAULT_MODEL_METADATA_PATH, "w") as f:
             yaml.dump(
@@ -103,7 +101,9 @@ class ModelHubOps:
                 model_files=self._prepare_snapshot_files(snapshot_dir),
                 overwrite_existing=overwrite_existing,
             )
-            logger.info(f"Model '{hub_name}' uploaded successfully to branch '{branch}'.")
+            logger.info(
+                f"Model '{hub_name}' uploaded successfully to branch '{branch}'."
+            )
             return {"username": hub.auth.username, "name": hub_name, "branch": branch}
 
         except AtriaHubConnectionError:
@@ -114,6 +114,7 @@ class ModelHubOps:
         except Exception as e:
             logger.error(f"Failed to upload dataset to hub: {e}")
             raise
+
     @staticmethod
     def _parse_model_name(name: str) -> tuple[str | None, str]:
         parts = name.split("/")

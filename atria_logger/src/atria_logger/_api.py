@@ -14,8 +14,6 @@ import logging
 from ._constants import _ROOT_LOGGER_NAME
 from ._root import get_root_adapter
 
-__all__ = ["get_logger", "enable_file_logging", "set_atria_log_level"]
-
 
 def get_logger(name: str | None = None) -> logging.Logger:
     """Return a logger for a module in the library.

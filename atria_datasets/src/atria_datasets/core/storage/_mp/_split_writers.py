@@ -44,6 +44,7 @@ class ShardWriterActor:
             max_shard_size=max_shard_size,
             preprocess_transform=preprocess_transform,
         ).load()
+        self.error_count = 0
 
     def write(self, sample_tuple):
         idx, sample = sample_tuple
@@ -53,6 +54,11 @@ class ShardWriterActor:
             logger.error(f"Duplicate key at index {idx}, skipping")
         except Exception:
             logger.exception(f"Error writing sample at index {idx}")
+            self.error_count += 1
+
+        if self.error_count >= 10:
+            logger.error("Too many errors encountered. Stopping writer.")
+            raise RuntimeError("Too many errors in ShardWriterActor")
         return True
 
     def close(self):
@@ -110,6 +116,7 @@ class RayParallelSplitWriter:
             total_samples_stored = 0
             actor_iterator = itertools.cycle(self.actors)
 
+            error_count = 0
             for idx, sample in tqdm.tqdm(
                 data_iterator, desc=f"Writing split {split_name}"
             ):
@@ -120,11 +127,7 @@ class RayParallelSplitWriter:
                 # Limit number of concurrent in-flight tasks
                 if len(pending_tasks) >= self._max_concurrent_tasks_limit:
                     ready_tasks, pending_tasks = ray.wait(pending_tasks, num_returns=1)
-                    try:
-                        ray.get(ready_tasks)
-                    except Exception as e:
-                        logger.exception("Error in shard writer actor task")
-                        raise e
+                    ray.get(ready_tasks)
 
                 if max_samples is not None and total_samples_stored >= max_samples:
                     break
@@ -374,6 +377,7 @@ class SingleSplitWriter:
             preprocess_transform=split_iterator._tf,
         ).load()
 
+        error_count = 0
         for idx, sample in tqdm.tqdm(data_iterator, desc=f"Writing split {split_name}"):
             try:
                 writer.write(idx, sample)
@@ -381,6 +385,11 @@ class SingleSplitWriter:
                 logger.error(f"Duplicate key at sample index {idx}. Skipping.")
             except Exception:
                 logger.exception(f"Error writing sample at index {idx}")
+                error_count += 1
+
+            if error_count >= 10:
+                logger.error("Too many errors encountered. Stopping writer.")
+                raise RuntimeError("Too many errors in SingleSplitWriter")
 
         write_info = writer.close()
         return self._finalize_shards(write_info)

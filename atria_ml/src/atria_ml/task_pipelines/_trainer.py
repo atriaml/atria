@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
-from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger import enable_file_logging
 from atria_logger._api import get_logger
@@ -260,8 +259,17 @@ class Trainer:
         # setup logging
         tb_logger = self._setup_logging()
 
+        # get model transforms
+        train_transform = self._config.model_pipeline.train_transform
+        eval_transform = self._config.model_pipeline.eval_transform
+
         # build dataset
         dataset = self._config.data.build_dataset()
+
+        # apply transforms
+        dataset.apply_transforms(
+            train_transform=train_transform, eval_transform=eval_transform
+        )
 
         # load labels
         labels = dataset.metadata.dataset_labels
@@ -274,19 +282,6 @@ class Trainer:
 
         # log model pipeline
         logger.info(model_pipeline.ops.summarize())
-
-        # get model transforms
-        train_transform = model_pipeline.config.train_transform
-        eval_transform = model_pipeline.config.eval_transform
-
-        try:
-            dataset.train.output_transform = train_transform
-            dataset.validation.output_transform = eval_transform
-            dataset.test.output_transform = eval_transform
-        except SplitNotFoundError:
-            logger.warning(
-                "One or more dataset splits not found while setting output transforms."
-            )
 
         logger.info("Data transforms:")
         logger.info(f"Train transform:\n{train_transform}")

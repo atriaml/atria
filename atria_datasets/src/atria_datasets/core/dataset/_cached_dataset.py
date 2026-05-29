@@ -16,6 +16,10 @@ from atria_datasets.core.constants import (
     _DEFAULT_SNAPSHOT_PATH,
 )
 from atria_datasets.core.dataset._common import DatasetConfig, T_BaseDataInstance
+from atria_datasets.core.dataset._dataset_builders import (
+    ComposedTransform,
+    LoadOutputTransformer,
+)
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
@@ -24,6 +28,19 @@ if TYPE_CHECKING:
     from atria_transforms.core import DataTransform
 
 logger = get_logger(__name__)
+
+
+class SafeTupleLoader(yaml.SafeLoader):
+    pass
+
+
+def construct_python_tuple(loader, node):
+    return tuple(loader.construct_sequence(node))
+
+
+SafeTupleLoader.add_constructor(
+    "tag:yaml.org,2002:python/tuple", construct_python_tuple
+)
 
 
 class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
@@ -50,7 +67,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         self._snapshot_data: dict | None = None
         self._metadata_data: DatasetMetadata | None = None
         self._data_model_cls: type[T_BaseDataInstance] | None = None
-        self._split_iterators_data: dict[DatasetSplitType, SplitIterator] | None = None
+        self._split_iterators: dict[DatasetSplitType, SplitIterator] | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -60,7 +77,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         """Load all state from disk: snapshot, metadata, data model, split iterators."""
         snapshot_file = self._path / _DEFAULT_SNAPSHOT_PATH
         with open(snapshot_file) as f:
-            self._snapshot_data = yaml.safe_load(f)
+            self._snapshot_data = yaml.load(f, Loader=SafeTupleLoader)
         assert self._snapshot_data is not None, (
             f"Snapshot file is empty: {snapshot_file}"
         )
@@ -75,7 +92,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             with open(metadata_path) as f:
                 self._metadata_data = DatasetMetadata(**yaml.safe_load(f))
 
-        self._split_iterators_data = self._build_split_iterators()
+        self._split_iterators = self._build_split_iterators()
         return self
 
     # ------------------------------------------------------------------
@@ -133,7 +150,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         if not snapshot_file.exists():
             return False
         with open(snapshot_file) as f:
-            snapshot = yaml.safe_load(f)
+            snapshot = yaml.load(f, Loader=SafeTupleLoader)
         required_keys = {
             "dataset_class_name",
             "data_model",
@@ -201,7 +218,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         self,
     ) -> dict[DatasetSplitType, SplitIterator[T_BaseDataInstance]]:
         self._require_loaded()
-        return self._split_iterators_data  # type: ignore[return-value]
+        return self._split_iterators  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Internal
@@ -244,6 +261,29 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
     # ------------------------------------------------------------------
     # Split access
     # ------------------------------------------------------------------
+
+    def apply_transforms(
+        self,
+        train_transform: DataTransform | None = None,
+        eval_transform: DataTransform | None = None,
+    ) -> None:
+        assert self._split_iterators is not None, "Split iterators not loaded"
+        for key, split_iterator in self._split_iterators.items():
+            if key == DatasetSplitType.train and train_transform is not None:
+                split_iterator.output_transform = (
+                    ComposedTransform([LoadOutputTransformer(), train_transform])
+                    if train_transform is not None
+                    else LoadOutputTransformer()
+                )
+            elif (
+                key in {DatasetSplitType.validation, DatasetSplitType.test}
+                and eval_transform is not None
+            ):
+                split_iterator.output_transform = (
+                    ComposedTransform([LoadOutputTransformer(), eval_transform])
+                    if eval_transform is not None
+                    else LoadOutputTransformer()
+                )
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         return split in self.split_iterators

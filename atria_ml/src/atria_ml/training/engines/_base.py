@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from collections.abc import Callable
 from dataclasses import field
@@ -161,7 +160,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
                 )
                 formatted_metrics = _format_metrics_for_logging(metrics)
                 logger.info(f"{self._engine_step.name} metrics:")
-                logger.info(json.dumps(formatted_metrics, indent=4))
+                logger.info(formatted_metrics)
 
             @self._engine.on(Events.EPOCH_COMPLETED)
             def progress_on_epoch_completed(engine: Engine) -> None:

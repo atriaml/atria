@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import Dataset
@@ -9,6 +7,7 @@ from atria_datasets.core.dataset_splitters._standard_splitter import StandardSpl
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_logger import get_logger
 from atria_registry._module_base import BaseModel
+from atria_transforms.core._tfs._base import DataTransform
 from atria_types import DatasetSplitType
 from atria_types._utilities._repr import RepresentationMixin
 from pydantic import ConfigDict, Field
@@ -44,8 +43,8 @@ class DataConfig(RepresentationMixin, BaseModel):
     split_ratio: float = 0.9
 
     # preprocess transforms
-    preprocess_train_transform: Callable | None = None
-    preprocess_eval_transform: Callable | None = None
+    preprocess_train_transform: DataTransform | None = None
+    preprocess_eval_transform: DataTransform | None = None
     preprocess_max_cache_image_size: int | None = None
 
     def build_dataset(self) -> Dataset:
