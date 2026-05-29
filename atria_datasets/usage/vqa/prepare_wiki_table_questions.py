@@ -17,7 +17,7 @@ def main():
     logger.info(f"First sample in train split:\n{sample}")
 
     # process the dataset with a custom transform
-    processed_dataset = dataset.process_dataset(
+    processed_dataset = dataset.cache(
         train_transform=load_transform(
             "unroll_qa_pairs_transform", remove_no_answer_samples=True
         ),

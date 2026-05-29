@@ -25,7 +25,7 @@ def main():
     logger.info(f"First sample in train split:\n{sample}")
 
     # process the dataset with a custom transform
-    processed_dataset = dataset.process_dataset(
+    processed_dataset = dataset.cache(
         train_transform=DocumentTokenizer(image_size=(224, 224)),
         eval_transform=DocumentTokenizer(image_size=(224, 224)),
         num_processes=8,

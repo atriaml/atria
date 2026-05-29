@@ -14,7 +14,7 @@ def main(dataset_name: str = "cifar10/1k"):
 
     print("dataset", dataset)
 
-    dataset.process_dataset(
+    dataset.cache(
         train_transform=dataset_config.model_config.train_transform,
         eval_transform=dataset_config.model_config.eval_transform,
     )

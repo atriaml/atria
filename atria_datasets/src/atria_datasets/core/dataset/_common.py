@@ -21,6 +21,8 @@ from atria_datasets.core.constants import (
 from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
+    from atria_transforms.core import DataTransform
+
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
     from atria_datasets.core.dataset._datasets import Dataset
     from atria_datasets.core.storage._storage_managers._deltalake import (
@@ -47,33 +49,31 @@ class DatasetConfig(ModuleConfig):
         data_dir: str | None = None,
         split: DatasetSplitType | None = None,
         access_token: str | None = None,
-        overwrite_existing_cached: bool = False,
-        num_processes: int = 8,
-        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         enable_cached_splits: bool = True,
+        overwrite_existing_cached: bool = False,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,
+        num_processes: int = 8,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         allowed_keys: set[str] | None = None,
+        train_transform: DataTransform | None = None,
+        eval_transform: DataTransform | None = None,
         **kwargs,
     ) -> Dataset | CachedDataset:
-        from atria_datasets.core.dataset._dataset_builders import cache, load
-
         dataset = super().build(**kwargs)
-        if enable_cached_splits:
-            return cache(
-                dataset=dataset,
-                data_dir=data_dir,
-                split=split,
-                access_token=access_token,
-                cached_storage_type=cached_storage_type,
-                overwrite_existing_cached=overwrite_existing_cached,
-                store_artifact_content=store_artifact_content,
-                max_cache_image_size=max_cache_image_size,
-                num_processes=num_processes,
-                allowed_keys=allowed_keys,
-            )
-        return load(
-            dataset=dataset, data_dir=data_dir, split=split, access_token=access_token
+        return dataset.load(
+            data_dir=data_dir,
+            split=split,
+            access_token=access_token,
+            enable_cached_splits=enable_cached_splits,
+            overwrite_existing_cached=overwrite_existing_cached,
+            store_artifact_content=store_artifact_content,
+            max_cache_image_size=max_cache_image_size,
+            num_processes=num_processes,
+            cached_storage_type=cached_storage_type,
+            allowed_keys=allowed_keys,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
         )
 
 

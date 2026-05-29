@@ -22,8 +22,7 @@ from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_logger import get_logger
-
-    from atria_datasets.core.dataset._cached_dataset import CachedDataset
+    from atria_transforms.core import DataTransform
 
 logger = get_logger(__name__)
 
@@ -35,7 +34,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
     Upload and download hub operations are available directly on this class.
     """
 
-    __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
+    __repr_fields__ = {"data_model", "data_dir", "split_iterators", "metadata"}
 
     def __init__(self, path: Path | str, allowed_keys: set[str] | None = None) -> None:
         self._path = Path(path)
@@ -86,6 +85,21 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             is_public=is_public,
             overwrite_existing=overwrite_existing,
         )
+    
+    @classmethod
+    def validate_cache(cls, path: Path | str) -> bool:
+        """Validate that the given path contains a valid cached dataset snapshot."""
+        path = Path(path)
+        snapshot_file = path / _DEFAULT_SNAPSHOT_PATH
+        if not snapshot_file.exists():
+            return False
+        with open(snapshot_file) as f:
+            snapshot = yaml.safe_load(f)
+        required_keys = {"dataset_class_name", "data_model", "storage_type", "config_name", "config_hash"}
+        missing_keys = required_keys - snapshot.keys()
+        if missing_keys:
+            return False
+        return True
 
     @property
     def _snapshot(self) -> dict:
@@ -140,6 +154,87 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
                 with open(metadata_path) as f:
                     self.__metadata = DatasetMetadata(**yaml.safe_load(f))
         return self.__metadata
+
+    def process(
+        self,
+        train_transform: DataTransform,
+        eval_transform: DataTransform | None = None,
+        split: DatasetSplitType | None = None,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
+        overwrite_existing_cached: bool = False,
+        num_processes: int = 8,
+        allowed_keys: set[str] | None = None,
+    ) -> CachedDataset:
+        """Apply transforms to each split and return a new file-backed CachedDataset."""
+        from atria_datasets.core.dataset._common import (
+            _get_storage_manager,
+            _save_dataset_info,
+            _save_snapshot,
+        )
+        from atria_datasets.core.dataset._dataset_builders import (
+            _get_combined_transform_hash,
+            _resolve_output_data_model,
+        )
+
+        storage_dir = self._path.parent
+        unique_config_name = self._path.name + "-" + _get_combined_transform_hash(train_transform, eval_transform)
+
+        if train_transform is not None or eval_transform is not None:
+            assert cached_storage_type == FileStorageType.MSGPACK, (
+                "Process with transforms is currently only supported for Msgpack storage. Please set cached_storage_type=FileStorageType.MSGPACK."
+            )
+            # try:
+            #     assert type(train_transform) == type(eval_transform), "train_transform and eval_transform must be of the same type."
+            #     data_model = train_transform.data_model
+            #     if not issubclass(data_model, BaseDataInstance):
+            #         raise ValueError(
+            #             f"Output transform data_model must be a subclass of BaseDataInstance. Got: {data_model}"
+            #         )
+            # except NotImplementedError:
+            #     raise ValueError("transform must implement data_model property that must return a BaseDataInstance.")
+
+        storage_manager = _get_storage_manager(
+            cached_storage_type, str(storage_dir), unique_config_name, num_processes
+        )
+
+        splits_to_cache: list[DatasetSplitType] = []
+        for s in list(self.split_iterators):
+            if split is not None and s != split:
+                continue
+            split_exists = storage_manager.split_exists(split=s)
+            if split_exists and overwrite_existing_cached:
+                logger.warning(f"Overwriting existing cached split {s.value}")
+                storage_manager.purge_split(s)
+                split_exists = False
+            if not split_exists:
+                splits_to_cache.append(s)
+            else:
+                logger.info(f"Loading cached split {s.value} from {storage_manager.split_dir(s)}")
+
+        for s in splits_to_cache:
+            logger.info(f"Caching split [{s.value}] to {storage_dir}")
+            tf = train_transform if s == DatasetSplitType.train else (eval_transform or train_transform)
+            split_iterator = self.split_iterators[s]
+            split_iterator.output_transform = tf
+            storage_manager.write_split(split_iterator=split_iterator)
+
+        _save_dataset_info(
+            str(storage_dir), unique_config_name,
+            self.config,
+            self.metadata.model_dump() if self.metadata is not None else {},
+        )
+        output_data_model = _resolve_output_data_model(train_transform, self.data_model)
+        _save_snapshot(
+            storage_dir=storage_dir,
+            config_name=unique_config_name,
+            data_model=output_data_model,
+            storage_type=cached_storage_type,
+            dataset_name=self.dataset_name,
+            dataset_class_name=self.dataset_class_name,
+            train_transform=train_transform.to_dict(),
+            eval_transform=eval_transform.to_dict() if eval_transform is not None else None,
+        )
+        return CachedDataset(path=storage_dir / unique_config_name, allowed_keys=allowed_keys)
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         return split in self.split_iterators
