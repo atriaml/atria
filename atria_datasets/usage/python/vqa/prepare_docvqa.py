@@ -7,16 +7,9 @@ logger = get_logger(__name__)
 
 
 def main():
-    dataset_config = load_dataset_config("due_benchmark/DocVQA")
+    dataset_config = load_dataset_config("due_benchmark/DocVQA", max_train_samples=100, max_validation_samples=100, max_test_samples=100)
     dataset = dataset_config.build(
         enable_cached_splits=True,
-        preprocess_train_transform=load_transform(
-            "unroll_qa_pairs_transform", remove_no_answer_samples=True
-        ),
-        preprocess_eval_transform=load_transform(
-            "unroll_qa_pairs_transform", remove_no_answer_samples=False
-        ),
-        max_cache_image_size=1024,
         num_processes=8,
     )
     logger.info(f"Loaded dataset:\n{dataset}")

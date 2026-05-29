@@ -13,7 +13,7 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 def main():
     dataset_config = load_dataset_config("wild_receipts")
-    dataset = dataset_config.build(enable_cached_splits=False)
+    dataset = dataset_config.build(enable_cached_splits=True)
     logger.info(f"Loaded dataset:\n{dataset}")
 
     # get first sample

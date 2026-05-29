@@ -13,7 +13,7 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 def main():
     dataset_config = load_dataset_config("docile/kile")
-    dataset = dataset_config.build(enable_cached_splits=True)
+    dataset = dataset_config.build(enable_cached_splits=True, access_token=os.getenv("ACCESS_TOKEN"))
     logger.info(f"Loaded dataset:\n{dataset}")
 
     # get first sample

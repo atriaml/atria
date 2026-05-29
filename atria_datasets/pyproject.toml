@@ -29,6 +29,7 @@ dependencies = [
     "hydra_zen==0.14.0",
     "lakefs>=0.11.1",
     "lazy-loader>=0.4",
+    "more-itertools>=11.1.0",
     "msgpack>=1.1.1",
     "pandarallel>=1.6.5",
     "pandas>=2.3.1",
