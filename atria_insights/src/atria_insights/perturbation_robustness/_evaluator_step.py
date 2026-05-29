@@ -41,7 +41,7 @@ class PerturbationRobustnessEvaluatorStep(EngineStep):
         with torch.no_grad():
             self._model_pipeline.ops.eval()
             batch = batch_list[0].batch(batch_list)
-            batch = batch.ops.to_tensors().ops.to(self._device)
+            batch = batch.ops.to_torch().ops.to(self._device)
             batch = self._perturbation_transform(batch)
             return self._model_pipeline.evaluation_step(
                 evaluation_engine=engine, batch=batch, stage="test"

@@ -188,7 +188,7 @@ class TrainingStep(EngineStep):
         self._validate_gradient_config()
         self._reset_optimizers(engine=engine)
         self._model_pipeline.ops.train()
-        collated_batch = batch[0].batch(batch).ops.to_tensors()
+        collated_batch = batch[0].batch(batch).ops.to_torch()
         collated_batch = collated_batch.ops.to(self._device)
         model_output = self._call_forward(engine=engine, batch=collated_batch)
         self._update_optimizers(engine=engine, loss=model_output.loss)  # type: ignore

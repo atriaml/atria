@@ -126,29 +126,6 @@ class TensorDataModel(RepresentationMixin, BaseModel):
         batched_instance._is_batched = True
         return batched_instance
 
-    def to_torch(self) -> dict[str, Any]:
-        """Convert all numpy arrays to torch tensors. Call in main process only."""
-        import torch
-
-        result = {}
-        for name in self.__class__.model_fields.keys():
-            if name == "metadata":
-                result[name] = self.metadata
-                continue
-            value = getattr(self, name)
-            if value is None:
-                result[name] = None
-            elif isinstance(value, np.ndarray):
-                try:
-                    result[name] = torch.from_numpy(value)
-                except Exception as e:
-                    raise ValueError(
-                        f"Error converting field '{name}' to tensor: {e}"
-                    ) from e
-            else:
-                result[name] = value
-        return result
-
     def __len__(self):
         if not self._is_batched:
             return 1

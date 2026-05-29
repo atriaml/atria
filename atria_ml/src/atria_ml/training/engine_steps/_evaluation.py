@@ -43,7 +43,7 @@ class EvaluationStep(EngineStep):
         with torch.no_grad():
             with autocast(enabled=self._with_amp):
                 collated_batch = batch[0].batch(batch)
-                collated_batch = collated_batch.ops.to_tensors().ops.to(self._device)
+                collated_batch = collated_batch.ops.to_torch().ops.to(self._device)
                 return self._model_step(engine=engine, batch=collated_batch)
 
     def _model_step(

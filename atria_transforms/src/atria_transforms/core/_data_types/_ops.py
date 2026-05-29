@@ -39,7 +39,7 @@ class TensorOperations:
             return self.model.model_copy(update=updates)
         return self.model
 
-    def to_tensors(self) -> TensorDataModel:
+    def to_torch(self) -> TensorDataModel:
         """Convert all numpy arrays to torch tensors."""
         import torch
 
