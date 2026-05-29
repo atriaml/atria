@@ -15,7 +15,7 @@ from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_METADATA_PATH,
     _DEFAULT_SNAPSHOT_PATH,
 )
-from atria_datasets.core.dataset._common import T_BaseDataInstance
+from atria_datasets.core.dataset._common import DatasetConfig, T_BaseDataInstance
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
@@ -173,10 +173,10 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         return self._snapshot_data["config_hash"]  # type: ignore[index]
 
     @property
-    def config(self) -> dict:
+    def config(self) -> DatasetConfig:
         config_path = self._path / _DEFAULT_ATRIA_DATASETS_CONFIG_PATH
         with open(config_path) as f:
-            return yaml.safe_load(f)
+            return DatasetConfig.model_validate(yaml.safe_load(f))
 
     @property
     def data_model(self) -> type[T_BaseDataInstance]:
