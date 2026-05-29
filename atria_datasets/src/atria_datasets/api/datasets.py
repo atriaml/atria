@@ -32,7 +32,7 @@ def load_dataset(
     overwrite_existing_cached: bool = False,
     allowed_keys: set[str] | None = None,
     num_processes: int = 8,
-    cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+    cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
     enable_cached_splits: bool = False,
     store_artifact_content: bool = True,
     max_cache_image_size: int | None = None,

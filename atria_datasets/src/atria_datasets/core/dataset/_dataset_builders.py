@@ -181,7 +181,7 @@ def cache(
     data_dir: str | None = None,
     split: DatasetSplitType | None = None,
     access_token: str | None = None,
-    cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+    cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
     overwrite_existing_cached: bool = False,
     store_artifact_content: bool = True,
     max_cache_image_size: int | None = None,

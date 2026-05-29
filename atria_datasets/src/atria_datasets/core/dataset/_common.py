@@ -49,7 +49,7 @@ class DatasetConfig(ModuleConfig):
         access_token: str | None = None,
         overwrite_existing_cached: bool = False,
         num_processes: int = 8,
-        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         enable_cached_splits: bool = True,
         store_artifact_content: bool = True,
         max_cache_image_size: int | None = None,

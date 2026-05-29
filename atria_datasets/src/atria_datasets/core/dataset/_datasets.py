@@ -122,7 +122,7 @@ class Dataset(
         eval_transform: Callable | None = None,
         split: DatasetSplitType | None = None,
         processed_data_dir: str | None = None,
-        cached_storage_type: FileStorageType = FileStorageType.MSGPACK,
+        cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         overwrite_existing_cached: bool = False,
         store_artifact_content: bool = True,
         max_cache_image_size: int | tuple[int, int] | None = None,

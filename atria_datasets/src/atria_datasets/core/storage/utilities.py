@@ -38,7 +38,7 @@ class FileStorageType(str, Enum):
         Returns the file format extension for the storage type.
 
         Returns:
-            str: The file format extension (e.g., "msgpack", "tar").
+            str: The file format extension (e.g., "msgpack", "tar", "parquet").
 
         Raises:
             ValueError: If the storage type is unsupported.
