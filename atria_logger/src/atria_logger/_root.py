@@ -80,6 +80,9 @@ class RootLoggerAdapter(logging.LoggerAdapter[logging.Logger]):
             log_format=_DEFAULT_LOG_FORMAT,
         )
 
+        # remove propagation of logs to ancestor loggers to prevent duplicate logs in some environments
+        self.logger.propagate = False
+
         # since parent filters are not applied to child propagated logs,
         # we need to add the distributed filter to each handler
         for handler in self.logger.handlers:
