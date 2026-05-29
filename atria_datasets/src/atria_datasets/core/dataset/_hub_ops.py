@@ -184,7 +184,7 @@ class DatasetHubOps:
         username: str | None = None,
         branch: str = "main",
         config_name: str | None = None,
-        storage_dir: str | Path | None = None,
+        download_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
         """Download a frozen cached dataset snapshot from Atria Hub.
@@ -195,7 +195,7 @@ class DatasetHubOps:
             branch: Hub branch to download from.
             config_name: Frozen cached configuration name on the hub.
                 If omitted and exactly one config exists, that config is used.
-            storage_dir: Local storage directory where the config directory should be placed.
+            download_dir: Local storage directory where the config directory should be placed.
                 Defaults to '~/.cache/atria/datasets/<dataset_name>/storage'.
             overwrite_existing: Overwrite an already downloaded local snapshot.
 
@@ -236,8 +236,8 @@ class DatasetHubOps:
         )
 
         base_storage_dir = (
-            Path(storage_dir)
-            if storage_dir is not None
+            Path(download_dir) / dataset_name
+            if download_dir is not None
             else (
                 Path(_DEFAULT_ATRIA_DATASETS_CACHE_DIR)
                 / dataset_name

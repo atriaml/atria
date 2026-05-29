@@ -89,7 +89,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         username: str | None = None,
         branch: str = "main",
         config_name: str | None = None,
-        storage_dir: str | Path | None = None,
+        download_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
         """Download a frozen cached dataset snapshot from Atria Hub."""
@@ -100,7 +100,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             username=username,
             branch=branch,
             config_name=config_name,
-            storage_dir=storage_dir,
+            download_dir=download_dir,
             overwrite_existing=overwrite_existing,
         )
 
