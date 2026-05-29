@@ -12,7 +12,7 @@ from atria_types._generic._image import Image
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    import torch
+    pass
 
 
 class ImageOps(StandardOps[Image]):
@@ -29,14 +29,6 @@ class ImageOps(StandardOps[Image]):
     def content(self):
         assert self.image.content is not None, "Image content is missing."
         return self.image.content
-
-    # -----------------------------
-    # Conversion methods
-    # -----------------------------
-    def to_tensor(self) -> torch.Tensor:
-        from torchvision.transforms.functional import to_tensor
-
-        return to_tensor(self.content)
 
     def to_numpy(self) -> np.ndarray:
         return np.array(self.content)

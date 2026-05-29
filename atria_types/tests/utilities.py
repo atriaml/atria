@@ -14,7 +14,6 @@ def _assert_values_equal(value1, value2, float_rtolerance=1e-05):
     import math
 
     import numpy as np
-    import torch
     from pydantic import BaseModel
 
     # Compare floats with tolerance.
@@ -35,16 +34,6 @@ def _assert_values_equal(value1, value2, float_rtolerance=1e-05):
         )
         for key in value1:
             _assert_values_equal(value1[key], value2[key], float_rtolerance)
-    elif isinstance(value1, torch.Tensor) and isinstance(value2, torch.Tensor):
-        assert value1.shape == value2.shape, (
-            f"Tensor shapes differ: {value1.shape} vs {value2.shape}"
-        )
-        assert value1.dtype == value2.dtype, (
-            f"Tensor dtypes differ: {value1.dtype} vs {value2.dtype}"
-        )
-        assert torch.allclose(value1, value2, rtol=float_rtolerance), (
-            f"Tensors not close: {value1} vs {value2}"
-        )
     elif isinstance(value1, np.ndarray) and isinstance(value2, np.ndarray):
         assert value1.shape == value2.shape, (
             f"Tensor shapes differ: {value1.shape} vs {value2.shape}"

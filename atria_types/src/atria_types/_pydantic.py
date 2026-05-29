@@ -177,47 +177,6 @@ def _is_tensor_type(value: Any) -> bool:
     return False
 
 
-def _tensor_validator(ndim: int) -> WrapValidator:
-    """
-    Creates a validator for tensor sizes.
-
-    Args:
-        ndim (int): The expected number of dimensions for the tensor.
-
-    Returns:
-        WrapValidator: A Pydantic validator that checks the tensor size.
-    """
-
-    def _wrapped(value: Any, handler: ValidatorFunctionWrapHandler) -> Any:
-        """
-        Validates a tensor, ensuring it has the correct dimensions.
-
-        Args:
-            value: The value to validate.
-            handler (ValidatorFunctionWrapHandler): The validation handler.
-
-        Returns:
-            Any: The validated value.
-
-        Raises:
-            ValueError: If the tensor doesn't have the expected dimensions.
-        """
-        # Then check if it's a tensor-like object without importing torch
-        if _is_tensor_type(value):
-            import torch
-
-            if isinstance(value, torch.Tensor):
-                if value.ndim != ndim:
-                    raise ValueError(
-                        f"Expected a tensor with {ndim} dimensions, got {value.ndim}D tensor"
-                    )
-                return value
-
-        return handler(value)
-
-    return WrapValidator(_wrapped)
-
-
 def _image_validator(value: Any, handler: ValidatorFunctionWrapHandler) -> Any:
     """
     Validates an image value, supporting various input types including tensors.
@@ -268,33 +227,27 @@ A type annotation for file paths.
 Supports both `str` and `Path` types, with validation to ensure the path exists and is a file.
 """
 
-IntField = Annotated[int, _tensor_validator(0), TableSchemaMetadata(pa_type="int64")]
+IntField = Annotated[int, TableSchemaMetadata(pa_type="int64")]
 """
 An integer field type annotation with PyArrow metadata.
 """
 
-BoolField = Annotated[bool, _tensor_validator(0), TableSchemaMetadata(pa_type="bool")]
+BoolField = Annotated[bool, TableSchemaMetadata(pa_type="bool")]
 """
 A boolean field type annotation with PyArrow metadata and tensor support.
 """
 
-FloatField = Annotated[
-    float, _tensor_validator(0), TableSchemaMetadata(pa_type="float64")
-]
+FloatField = Annotated[float, TableSchemaMetadata(pa_type="float64")]
 """
 A float field type annotation with PyArrow metadata and tensor support.
 """
 
-ListIntField = Annotated[
-    list[int], _tensor_validator(1), TableSchemaMetadata(pa_type="list<int64>")
-]
+ListIntField = Annotated[list[int], TableSchemaMetadata(pa_type="list<int64>")]
 """
 A list of integers field type annotation with PyArrow metadata and tensor support.
 """
 
-ListFloatField = Annotated[
-    list[float], _tensor_validator(1), TableSchemaMetadata(pa_type="list<float64>")
-]
+ListFloatField = Annotated[list[float], TableSchemaMetadata(pa_type="list<float64>")]
 """
 A list of floats field type annotation with PyArrow metadata and tensor support.
 """
@@ -307,9 +260,7 @@ ListStrField = Annotated[list[str], TableSchemaMetadata(pa_type="list<string>")]
 """A list of strings field type annotation with PyArrow metadata.
 """
 
-ListBoolField = Annotated[
-    list[bool], _tensor_validator(1), TableSchemaMetadata(pa_type="list<bool>")
-]
+ListBoolField = Annotated[list[bool], TableSchemaMetadata(pa_type="list<bool>")]
 """A list of booleans field type annotation with PyArrow metadata and tensor support.
 """
 
@@ -317,22 +268,18 @@ ListBoolField = Annotated[
 # Optional fields
 ###
 
-OptIntField = Annotated[
-    int | None, _tensor_validator(0), TableSchemaMetadata(pa_type="int64")
-]
+OptIntField = Annotated[int | None, TableSchemaMetadata(pa_type="int64")]
 """
 An optional integer field type annotation with PyArrow metadata and tensor support.
 """
 
-OptFloatField = Annotated[
-    float | None, _tensor_validator(0), TableSchemaMetadata(pa_type="float64")
-]
+OptFloatField = Annotated[float | None, TableSchemaMetadata(pa_type="float64")]
 """
 An optional float field type annotation with PyArrow metadata and tensor support.
 """
 
 OptListIntField = Annotated[
-    list[int] | None, _tensor_validator(1), TableSchemaMetadata(pa_type="list<int64>")
+    list[int] | None, TableSchemaMetadata(pa_type="list<int64>")
 ]
 """
 An optional list of integers field type annotation with PyArrow metadata and tensor support.
@@ -340,7 +287,6 @@ An optional list of integers field type annotation with PyArrow metadata and ten
 
 OptListFloatField = Annotated[
     list[float] | None,
-    _tensor_validator(1),
     TableSchemaMetadata(pa_type="list<float64>"),
 ]
 """

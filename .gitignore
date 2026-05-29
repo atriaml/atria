@@ -87,3 +87,4 @@ pyrightconfig.json
 *.env
 cache/
 atriax_client/
+test.py
