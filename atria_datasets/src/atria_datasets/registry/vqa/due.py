@@ -382,7 +382,7 @@ class DueBenchmark(DocumentDataset):
         doc = DocumentInstance(
             sample_id=sample["sample_id"] + f"-{uuid.uuid4().hex[:4]}",
             page_id=sample["page_idx"],
-            pdf=PDF(file_path=str(sample["pdf_file_path"])),
+            # pdf=PDF(file_path=str(sample["pdf_file_path"])), # since we load the image we don't need to keep the pdf file separately
             image=Image(content=page_image),
             content=DocumentContent(
                 text_elements=[
