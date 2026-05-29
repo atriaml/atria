@@ -58,7 +58,9 @@ class DataConfig(RepresentationMixin, BaseModel):
             cached_storage_type=self.cached_storage_type,
             enable_cached_splits=self.enable_cached_splits,
             store_artifact_content=self.store_artifact_content,
-            max_cache_image_size=self.max_cache_image_size,
+            max_cache_image_size=self.preprocess_max_cache_image_size,
+            preprocess_train_transform=self.preprocess_train_transform,
+            preprocess_eval_transform=self.preprocess_eval_transform,
         )
         if (
             DatasetSplitType.validation not in dataset.split_iterators
