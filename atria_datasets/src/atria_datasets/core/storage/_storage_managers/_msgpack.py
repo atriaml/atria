@@ -38,12 +38,14 @@ class MsgpackStorageManager:
 
     def __init__(
         self,
+        data_dir: str | Path,
         storage_dir: str | Path,
         config_name: str,
         num_processes: int = 8,
         max_shard_size: int = 100_000,
         name_suffix: str = "",
     ):
+        self.data_dir = data_dir
         self.storage_dir = Path(storage_dir)
         self.config_name = config_name
         self.num_processes = num_processes

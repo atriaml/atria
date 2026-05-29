@@ -7,6 +7,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Generic
 
+from atria_datasets.core import dataset
+from atria_datasets.core.dataset._dataset_builders import _default_data_dir, _validate_data_dir
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
 from atria_transforms.core import DataTransform
@@ -268,12 +270,13 @@ class Dataset(
             _resolve_output_data_model,
         )
 
+        data_dir = _validate_data_dir(data_dir or _default_data_dir(self))
         unique_path = _compute_unique_cache_path(
             self, data_dir, preprocess_train_transform, preprocess_eval_transform
         )
         storage_dir, unique_config_name = unique_path.parent, unique_path.name
         storage_manager = _get_storage_manager(
-            cached_storage_type, str(storage_dir), unique_config_name, num_processes
+            cached_storage_type, data_dir, str(storage_dir), unique_config_name, num_processes, 
         )
 
         for s, split_iterator in self._split_iterators.items():

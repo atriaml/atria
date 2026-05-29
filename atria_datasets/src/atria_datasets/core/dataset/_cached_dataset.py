@@ -205,6 +205,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         )
 
         storage_manager = _get_storage_manager(
+            data_dir=str(self._path.parent),
             cached_storage_type=self.storage_type,
             storage_dir=str(self._path.parent),
             config_name=self._path.name,

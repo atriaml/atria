@@ -149,6 +149,7 @@ def _save_snapshot(
 
 def _get_storage_manager(
     cached_storage_type: FileStorageType,
+    data_dir: str,
     storage_dir: str,
     config_name: str,
     num_processes: int,
@@ -160,6 +161,7 @@ def _get_storage_manager(
         )
 
         return DeltalakeStorageManager(
+            data_dir=data_dir,
             storage_dir=storage_dir,
             config_name=config_name,
             num_processes=num_processes,
@@ -171,6 +173,7 @@ def _get_storage_manager(
         )
 
         return MsgpackStorageManager(
+            data_dir=data_dir,
             storage_dir=storage_dir,
             config_name=config_name,
             num_processes=num_processes,

@@ -6,6 +6,8 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from more_itertools import sample
+
 from atria_logger import get_logger
 from atria_transforms.core import DataTransform
 from atria_types import DatasetSplitType
@@ -73,7 +75,8 @@ class PreprocessOutputTransformer:
                     max_size=self._image_max_size
                 )
             sample = sample.update(image=image)
-        return sample.ops.convert_file_paths_to_relative(parent_dir=self._data_dir)
+        sample = sample.ops.convert_file_paths_to_relative(parent_dir=self._data_dir)
+        return sample
 
 
 class LoadOutputTransformer:

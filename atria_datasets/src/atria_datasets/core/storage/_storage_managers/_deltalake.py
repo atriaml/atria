@@ -34,6 +34,7 @@ class DeltalakeWriterWorker:
         self,
         worker_id: int,
         write_dir: Path,
+        data_dir: str | Path,
         split: str,
         data_model: type[BaseDataInstance],
         max_shard_size: int,
@@ -41,6 +42,7 @@ class DeltalakeWriterWorker:
     ):
         self._worker_id = worker_id
         self._write_dir = Path(write_dir)
+        self._data_dir = Path(data_dir)
         self._split = split
         self._data_model = data_model
         self._max_shard_size = max_shard_size
@@ -131,11 +133,13 @@ class DeltalakeWriterWorker:
                 else:
                     # for content that cannot go into tar files, we store them directly and keep file paths in the row
                     file_path = sample_row[file_path_key]
+                    src_file_path = Path(self._data_dir) / file_path
+                    assert src_file_path.is_file(), f"Source file {src_file_path} does not exist"
                     tgt_file_path = (
-                        Path(self._write_dir) / self._split / "data" / file_path
+                        Path(self._write_dir) / "data" / self._split / file_path
                     )
                     tgt_file_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy(file_path, tgt_file_path)
+                    shutil.copy(src_file_path, tgt_file_path)
                     sample_row[file_path_key] = str(Path("data") / file_path)
             rows.append(sample_row)
         return rows
@@ -152,6 +156,7 @@ class DeltalakeShardWriterActor:
         self,
         worker_id: int,
         write_dir: Path,
+        data_dir: str | Path,
         split: str,
         data_model: type[BaseDataInstance],
         max_shard_size: int,
@@ -160,6 +165,7 @@ class DeltalakeShardWriterActor:
         self.writer = DeltalakeWriterWorker(
             worker_id=worker_id,
             write_dir=write_dir,
+            data_dir=data_dir,
             split=split,
             data_model=data_model,
             max_shard_size=max_shard_size,
@@ -192,6 +198,7 @@ class RayParallelDeltalakeWriter:
     def __init__(
         self,
         write_dir: Path,
+        data_dir: str | Path,
         num_workers: int = 4,
         max_shard_size: int = 100_000,
         max_concurrent_tasks_limit: int = 128,
@@ -199,11 +206,12 @@ class RayParallelDeltalakeWriter:
         max_memory: int = 1_000_000_000,
     ):
         self.write_dir = write_dir
+        self.data_dir = data_dir
         self.num_workers = num_workers
         self.max_shard_size = max_shard_size
-        self._max_concurrent_tasks_limit = max_concurrent_tasks_limit
-        self._max_memory_per_actor = max_memory_per_actor
-        self._max_memory = max_memory
+        self.max_concurrent_tasks_limit = max_concurrent_tasks_limit
+        self.max_memory_per_actor = max_memory_per_actor
+        self.max_memory = max_memory
 
     def write_split(self, split_iterator: SplitIterator, split_dir: Path) -> None:
         split_name = split_iterator.split.value
@@ -216,9 +224,10 @@ class RayParallelDeltalakeWriter:
         )
 
         actors = [
-            DeltalakeShardWriterActor.options(memory=self._max_memory_per_actor).remote(
+            DeltalakeShardWriterActor.options(memory=self.max_memory_per_actor).remote(
                 worker_id=i,
                 write_dir=self.write_dir,
+                data_dir=self.data_dir,
                 split=split_name,
                 data_model=split_iterator.data_model,
                 max_shard_size=self.max_shard_size,
@@ -237,11 +246,11 @@ class RayParallelDeltalakeWriter:
                 return
             if write_batch_size is None:
                 write_batch_size = max(
-                    1, self._max_memory // len(pickle.dumps(coordinator_batch[0]))
+                    1, self.max_memory // len(pickle.dumps(coordinator_batch[0]))
                 )
                 logger.info(
                     f"Delta lake write batch size: {write_batch_size} rows "
-                    f"(max_memory={self._max_memory // 1_000_000} MB)"
+                    f"(max_memory={self.max_memory // 1_000_000} MB)"
                 )
             if len(coordinator_batch) >= write_batch_size:
                 mode = "overwrite" if first_batch else "append"
@@ -265,7 +274,7 @@ class RayParallelDeltalakeWriter:
                 actor = next(actor_iterator)
                 pending_tasks.append(actor.write.remote((idx, sample)))  # type: ignore[union-attr]
 
-                if len(pending_tasks) >= self._max_concurrent_tasks_limit:
+                if len(pending_tasks) >= self.max_concurrent_tasks_limit:
                     ready_tasks, pending_tasks = ray.wait(pending_tasks, num_returns=1)
                     try:
                         for row_list in ray.get(ready_tasks):
@@ -304,13 +313,15 @@ class RayParallelDeltalakeWriter:
 class SingleDeltalakeWriter:
     def __init__(
         self,
+        data_dir: str | Path,
         write_dir: Path,
         max_shard_size: int = 100_000,
         max_memory: int = 1_000_000_000,
     ):
+        self.data_dir = data_dir
         self.write_dir = write_dir
         self.max_shard_size = max_shard_size
-        self._max_memory = max_memory
+        self.max_memory = max_memory
 
     def write_split(self, split_iterator: SplitIterator, split_dir: Path) -> None:
         split_name = split_iterator.split.value
@@ -318,6 +329,7 @@ class SingleDeltalakeWriter:
 
         worker = DeltalakeWriterWorker(
             worker_id=0,
+            data_dir=self.data_dir,
             write_dir=self.write_dir,
             split=split_name,
             data_model=split_iterator.data_model,
@@ -337,11 +349,11 @@ class SingleDeltalakeWriter:
 
                 if write_batch_size is None and coordinator_batch:
                     write_batch_size = max(
-                        1, self._max_memory // len(pickle.dumps(coordinator_batch[0]))
+                        1, self.max_memory // len(pickle.dumps(coordinator_batch[0]))
                     )
                     logger.info(
                         f"Delta lake write batch size: {write_batch_size} rows "
-                        f"(max_memory={self._max_memory // 1_000_000} MB)"
+                        f"(max_memory={self.max_memory // 1_000_000} MB)"
                     )
 
                 if write_batch_size and len(coordinator_batch) >= write_batch_size:
@@ -379,6 +391,7 @@ class DeltalakeStorageManager:
 
     def __init__(
         self,
+        data_dir: str | Path,
         storage_dir: str | Path,
         config_name: str,
         num_processes: int = 8,
@@ -386,6 +399,7 @@ class DeltalakeStorageManager:
         max_shard_size: int = 100_000,
         name_suffix: str = "",
     ):
+        self.data_dir = data_dir
         self.storage_dir = Path(storage_dir)
         self.config_name = config_name
         self.num_processes = num_processes
@@ -452,6 +466,7 @@ class DeltalakeStorageManager:
 
         if self.num_processes > 1:
             writer = RayParallelDeltalakeWriter(
+                data_dir=self.data_dir,
                 write_dir=write_dir,
                 num_workers=self.num_processes,
                 max_shard_size=self.max_shard_size,
@@ -459,6 +474,7 @@ class DeltalakeStorageManager:
             )
         else:
             writer = SingleDeltalakeWriter(
+                data_dir=self.data_dir,
                 write_dir=write_dir,
                 max_shard_size=self.max_shard_size,
                 max_memory=self.max_memory,
