@@ -196,8 +196,6 @@ class DatasetsApi(BaseApi):
 
         src = f"{dataset_repo_id}/{branch}/{config_dir}/"
         tgt = str(Path(destination_path) / config_dir)
-        print("Src:", src)
-        print("Tgt:", tgt)
         self._client.fs.get(
             src,
             tgt,
