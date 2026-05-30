@@ -117,3 +117,26 @@ class TrainingTaskConfig(TaskConfigBase):
     do_validation: bool = True
     do_visualization: bool = False
     reevaluate_metrics: bool = True
+
+
+class EvaluationTaskConfig(TaskConfigBase):
+    model_pipeline: ModelPipelineConfig
+    eval_checkpoint: str
+    save_snapshot: bool = True
+
+    @classmethod
+    def from_training_config(
+        cls, training_config: TrainingTaskConfig, eval_checkpoint: str
+    ) -> Self:
+        return cls(
+            env=training_config.env,
+            data=training_config.data,
+            logging=training_config.logging,
+            test_run=training_config.test_run,
+            use_fixed_batch_iterator=training_config.use_fixed_batch_iterator,
+            save_test_outputs_to_disk=training_config.save_test_outputs_to_disk,
+            use_ema_for_evaluation=training_config.use_ema_for_evaluation,
+            with_amp=training_config.with_amp,
+            model_pipeline=training_config.model_pipeline,
+            eval_checkpoint=eval_checkpoint,
+        )

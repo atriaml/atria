@@ -321,7 +321,10 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         from ignite.handlers.checkpoint import Checkpoint
 
         logger.info(f"Loading checkpoint from {checkpoint_path}")
+        if not Path(checkpoint_path).exists():
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location="cpu")
+
         Checkpoint.load_objects(
             to_load=self._to_load_state_dict(), checkpoint=checkpoint, strict=True
         )

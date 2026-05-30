@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -329,7 +328,7 @@ class Trainer:
 
         metrics = _format_metrics_for_logging(metrics)
         logger.info("Test metrics:")
-        logger.info(json.dumps(metrics, indent=4))
+        logger.info(metrics)
 
         # serialize test metrics
         self._config.dump_metrics_file(data=metrics)  #  type: ignore
