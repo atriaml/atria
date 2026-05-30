@@ -133,9 +133,9 @@ def main(
         model_pipeline = evaluator._state.model_pipeline
 
         # save snapshot locally
-        model_pipeline.save_snapshot(snapshot_dir=snapshot_dir)
+        model_pipeline.save_to_disk(snapshot_dir=snapshot_dir)
 
-    loaded_pipeline = ModelPipeline.load_from_snapshot(
+    loaded_pipeline = ModelPipeline.load_from_disk(
         Path(config.env.run_dir) / "model_snapshot"
     )
 

@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 import yaml
 from atria_hub.hub import AtriaHubConnectionError
 from atria_logger import get_logger
-from atria_registry._module_base import ModuleConfig
 from atriax_client.models.task_type import TaskType
 
 from atria_models.core.model_pipelines.constants import (
@@ -50,60 +49,6 @@ class ModelHubOps:
     def __init__(self, pipeline: ModelPipeline) -> None:
         self._pipeline = pipeline
 
-    def _default_snapshot_dir(self) -> Path:
-        model_name = self._pipeline.config.model.model_name_or_path
-        name = f"{model_name}-{self._pipeline.__pipeline_name__}"
-
-        sanitized_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
-
-        return Path(DEFAULT_ATRIA_MODELS_CACHE_DIR) / sanitized_name
-
-    def create_snapshot(self) -> SnapshotArtifact:
-        """
-        Create an in-memory snapshot.
-
-        Does NOT write anything to disk.
-        """
-        from safetensors.torch import save
-
-        labels = self._pipeline._labels
-        config = self._pipeline.config.to_dict()
-
-        metadata = yaml.dump(
-            {
-                "config": config,
-                "labels": (labels.model_dump() if labels is not None else None),
-            }
-        ).encode("utf-8")
-
-        weights = save(self._pipeline._model.state_dict())
-
-        return SnapshotArtifact(weights=weights, metadata=metadata)
-
-    def save_snapshot(self, snapshot_dir: str | Path | None = None) -> Path:
-        """
-        Persist a snapshot to disk.
-        """
-        artifact = self.create_snapshot()
-
-        target_dir = (
-            Path(snapshot_dir)
-            if snapshot_dir is not None
-            else self._default_snapshot_dir()
-        )
-
-        target_dir.mkdir(parents=True, exist_ok=True)
-
-        with open(target_dir / _DEFAULT_MODEL_WEIGHTS_PATH, "wb") as f:
-            f.write(artifact.weights)
-
-        with open(target_dir / _DEFAULT_MODEL_METADATA_PATH, "wb") as f:
-            f.write(artifact.metadata)
-
-        logger.info(f"Saved model snapshot to '{target_dir}'.")
-
-        return target_dir
-
     def upload_to_hub(
         self,
         name: str | None = None,
@@ -114,8 +59,7 @@ class ModelHubOps:
         from atria_hub.hub import AtriaHub
 
         try:
-            snapshot = self.create_snapshot()
-
+            snapshot = self._pipeline.snapshot()
             hub_name = name or self._pipeline.config.model.model_name_or_path
 
             hub = AtriaHub().initialize()
@@ -215,33 +159,3 @@ class ModelHubOps:
             )
 
         return cls.load_from_snapshot(target_path)
-
-    @staticmethod
-    def load_from_snapshot(snapshot_dir: Path) -> ModelPipeline:
-        from atria_types import DatasetLabels
-        from safetensors.torch import load_file
-
-        with open(snapshot_dir / _DEFAULT_MODEL_METADATA_PATH) as f:
-            metadata = yaml.load(f, Loader=SafeTupleLoader)
-
-        config_dict = metadata.get("config")
-
-        if config_dict is None:
-            raise ValueError(
-                f"Model metadata at '{snapshot_dir}' is missing 'config' field."
-            )
-
-        labels = metadata.get("labels")
-        labels = DatasetLabels.model_validate(labels) if labels else DatasetLabels()
-
-        config = ModuleConfig.from_dict(config_dict)
-
-        pipeline = config.build(labels=labels)
-
-        weights = load_file(snapshot_dir / _DEFAULT_MODEL_WEIGHTS_PATH)
-
-        pipeline._model.load_state_dict(weights, strict=True)
-
-        logger.info(f"Loaded model pipeline from snapshot at '{snapshot_dir}'.")
-
-        return pipeline

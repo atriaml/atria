@@ -3,15 +3,21 @@ from __future__ import annotations
 import inspect
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Generic, Literal
+from typing import TYPE_CHECKING, ClassVar, Generic, Literal, Self
 
 from atria_logger import get_logger
-from atria_registry._module_base import ConfigurableModule
+from atria_registry._module_base import ConfigurableModule, ModuleConfig
 from atria_transforms.core._data_types._base import TensorDataModel
 from atria_types._datasets import DatasetLabels
+from realtime import dataclass
 
 from atria_models.core.model_pipelines._common import T_ModelPipelineConfig
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
+from atria_models.core.model_pipelines.constants import (
+    _DEFAULT_MODEL_METADATA_PATH,
+    _DEFAULT_MODEL_WEIGHTS_PATH,
+    DEFAULT_ATRIA_MODELS_CACHE_DIR,
+)
 from atria_models.core.types.model_outputs import ModelOutput
 
 if TYPE_CHECKING:
@@ -21,6 +27,12 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class SnapshotArtifact:
+    weights: bytes
+    metadata: bytes
 
 
 class ModelPipeline(
@@ -127,6 +139,44 @@ class ModelPipeline(
         if "model" in state_dict:
             self._model.load_state_dict(state_dict["model"], strict=True)
 
+    def snapshot(self) -> SnapshotArtifact:
+        import yaml
+        from safetensors.torch import save
+
+        labels = self._labels
+        config = self.config.to_dict()
+
+        metadata = yaml.dump(
+            {
+                "config": config,
+                "labels": (labels.model_dump() if labels is not None else None),
+            }
+        ).encode("utf-8")
+
+        weights = save(self._model.state_dict())
+
+        return SnapshotArtifact(weights=weights, metadata=metadata)
+
+    @classmethod
+    def from_snapshot(cls, snapshot: SnapshotArtifact) -> Self:
+        import yaml
+        from atria_types import DatasetLabels
+
+        metadata = yaml.safe_load(snapshot.metadata.decode("utf-8"))
+        config_dict = metadata.get("config")
+        labels = metadata.get("labels")
+
+        if config_dict is None:
+            raise ValueError("Model metadata is missing 'config' field.")
+        if labels is None:
+            raise ValueError("Model metadata is missing 'labels' field.")
+
+        labels = DatasetLabels.model_validate(labels)
+        config = ModuleConfig.from_dict(config_dict)
+        pipeline = config.build(labels=labels)
+        pipeline._model.load_state_dict(snapshot.weights, strict=True)
+        return pipeline
+
     def load_checkpoint(self, checkpoint_path: str) -> None:
         import torch
 
@@ -136,16 +186,61 @@ class ModelPipeline(
         )
         self.load_state_dict(checkpoint["model_pipeline"])
 
-    def save_snapshot(self, snapshot_dir: str | Path | None = None) -> Path:
-        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+    def _default_snapshot_dir(self) -> Path:
+        model_name = self.config.model.model_name_or_path
+        name = f"{model_name}-{self.__pipeline_name__}"
 
-        return ModelHubOps(self).save_snapshot(snapshot_dir=snapshot_dir)
+        sanitized_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+
+        return Path(DEFAULT_ATRIA_MODELS_CACHE_DIR) / sanitized_name
+
+    def save_to_disk(self, snapshot_dir: str | Path | None = None) -> Path:
+        artifact = self.snapshot()
+        target_dir = (
+            Path(snapshot_dir)
+            if snapshot_dir is not None
+            else self._default_snapshot_dir()
+        )
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+        with open(target_dir / _DEFAULT_MODEL_WEIGHTS_PATH, "wb") as f:
+            f.write(artifact.weights)
+
+        with open(target_dir / _DEFAULT_MODEL_METADATA_PATH, "wb") as f:
+            f.write(artifact.metadata)
+
+        logger.info(f"Saved model snapshot to '{target_dir}'.")
+        return target_dir
 
     @classmethod
-    def load_from_snapshot(cls, snapshot_dir: str | Path) -> ModelPipeline:
-        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+    def load_from_disk(cls, snapshot_dir: str | Path) -> Self:
+        snapshot_dir = Path(snapshot_dir)
+        if not snapshot_dir.exists():
+            raise FileNotFoundError(
+                f"Snapshot directory '{snapshot_dir}' does not exist."
+            )
+        if not snapshot_dir.is_dir():
+            raise ValueError(f"Snapshot path '{snapshot_dir}' is not a directory.")
 
-        return ModelHubOps.load_from_snapshot(Path(snapshot_dir))
+        weights_path = snapshot_dir / _DEFAULT_MODEL_WEIGHTS_PATH
+        metadata_path = snapshot_dir / _DEFAULT_MODEL_METADATA_PATH
+
+        if not weights_path.exists():
+            raise FileNotFoundError(
+                f"Model weights file '{weights_path}' does not exist."
+            )
+        if not metadata_path.exists():
+            raise FileNotFoundError(
+                f"Model metadata file '{metadata_path}' does not exist."
+            )
+
+        with open(weights_path, "rb") as f:
+            weights = f.read()
+        with open(metadata_path, "rb") as f:
+            metadata = f.read()
+
+        snapshot = SnapshotArtifact(weights=weights, metadata=metadata)
+        return cls.from_snapshot(snapshot)
 
     def upload_to_hub(
         self,
