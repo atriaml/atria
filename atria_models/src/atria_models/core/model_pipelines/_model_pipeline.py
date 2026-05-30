@@ -161,6 +161,7 @@ class ModelPipeline(
     def from_snapshot(cls, snapshot: SnapshotArtifact) -> Self:
         import yaml
         from atria_types import DatasetLabels
+        from safetensors.torch import load
 
         metadata = yaml.safe_load(snapshot.metadata.decode("utf-8"))
         config_dict = metadata.get("config")
@@ -174,7 +175,7 @@ class ModelPipeline(
         labels = DatasetLabels.model_validate(labels)
         config = ModuleConfig.from_dict(config_dict)
         pipeline = config.build(labels=labels)
-        pipeline._model.load_state_dict(snapshot.weights, strict=True)
+        pipeline._model.load_state_dict(load(snapshot.weights), strict=True)
         return pipeline
 
     def load_checkpoint(self, checkpoint_path: str) -> None:
