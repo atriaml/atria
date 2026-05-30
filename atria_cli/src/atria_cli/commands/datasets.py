@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 
 def prepare_and_upload(
     name: str,
+    target_name: str | None = None,
     branch: str = "main",
     is_public: bool = False,
     overwrite_existing: bool = False,
@@ -49,7 +50,8 @@ def prepare_and_upload(
             "Expected dataset to be a CachedDataset after preparation."
         )
         repo_info = dataset.upload_to_hub(
-            name=dataset_config.dataset_name.replace("/", "-").replace("_", "-"),
+            name=target_name
+            or dataset_config.dataset_name.replace("/", "-").replace("_", "-"),
             branch=branch,
             is_public=is_public,
             overwrite_existing=overwrite_existing,

@@ -34,7 +34,7 @@ def main(upload: bool = False):
     print("Files:", [f.name for f in snapshot_dir.iterdir()])
 
     if not upload:
-        reloaded = ModelHubOps._load_from_snapshot(snapshot_dir)
+        reloaded = ModelHubOps.load_from_snapshot(snapshot_dir)
         assert _weights_match(pipeline, reloaded), "Local round-trip: weight mismatch!"
         print("Local round-trip OK.")
 
