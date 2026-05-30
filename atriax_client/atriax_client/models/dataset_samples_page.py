@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -16,13 +14,13 @@ T = TypeVar("T", bound="DatasetSamplesPage")
 class DatasetSamplesPage:
     """
     Attributes:
-        items (list[DatasetSamplesPageItemsItem]):
+        items (list['DatasetSamplesPageItemsItem']):
         total (int):
         page (int):
         page_size (int):
     """
 
-    items: list[DatasetSamplesPageItemsItem]
+    items: list["DatasetSamplesPageItemsItem"]
     total: int
     page: int
     page_size: int

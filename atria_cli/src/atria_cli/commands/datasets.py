@@ -56,6 +56,7 @@ def prepare_and_upload(
             is_public=is_public,
             overwrite_existing=overwrite_existing,
         )
+        repo_info = dataset.finalize()
         repo_path = f"{repo_info['username']}/{repo_info['name']}@{repo_info['branch']}"
         logger.info(f"Dataset uploaded to path: {repo_path}")
     except Exception as e:

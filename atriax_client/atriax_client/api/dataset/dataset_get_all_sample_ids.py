@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from typing import Any, cast
-from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -17,19 +16,19 @@ def _get_kwargs(
     config: str,
     split: str,
     *,
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_search: None | str | Unset
+    json_search: None | Unset | str
     if isinstance(search, Unset):
         json_search = UNSET
     else:
         json_search = search
     params["search"] = json_search
 
-    json_search_by: None | str | Unset
+    json_search_by: None | Unset | str
     if isinstance(search_by, Unset):
         json_search_by = UNSET
     else:
@@ -40,12 +39,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/ids/{branch}/{config}/{split}/".format(
-            id=quote(str(id), safe=""),
-            branch=quote(str(branch), safe=""),
-            config=quote(str(config), safe=""),
-            split=quote(str(split), safe=""),
-        ),
+        "url": f"/api/v1/dataset/{id}/ids/{branch}/{config}/{split}/",
         "params": params,
     }
 
@@ -59,12 +53,10 @@ def _parse_response(
         response_200 = cast(list[int], response.json())
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -89,8 +81,8 @@ def sync_detailed(
     split: str,
     *,
     client: AuthenticatedClient,
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> Response[HTTPValidationError | list[int]]:
     """Get All Sample Ids
 
@@ -99,15 +91,15 @@ def sync_detailed(
         branch (str):
         config (str):
         split (str):
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[Union[HTTPValidationError, list[int]]]
     """
 
     kwargs = _get_kwargs(
@@ -133,8 +125,8 @@ def sync(
     split: str,
     *,
     client: AuthenticatedClient,
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> HTTPValidationError | list[int] | None:
     """Get All Sample Ids
 
@@ -143,15 +135,15 @@ def sync(
         branch (str):
         config (str):
         split (str):
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        Union[HTTPValidationError, list[int]]
     """
 
     return sync_detailed(
@@ -172,8 +164,8 @@ async def asyncio_detailed(
     split: str,
     *,
     client: AuthenticatedClient,
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> Response[HTTPValidationError | list[int]]:
     """Get All Sample Ids
 
@@ -182,15 +174,15 @@ async def asyncio_detailed(
         branch (str):
         config (str):
         split (str):
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[Union[HTTPValidationError, list[int]]]
     """
 
     kwargs = _get_kwargs(
@@ -214,8 +206,8 @@ async def asyncio(
     split: str,
     *,
     client: AuthenticatedClient,
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> HTTPValidationError | list[int] | None:
     """Get All Sample Ids
 
@@ -224,15 +216,15 @@ async def asyncio(
         branch (str):
         config (str):
         split (str):
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        Union[HTTPValidationError, list[int]]
     """
 
     return (

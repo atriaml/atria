@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -15,12 +13,12 @@ T = TypeVar("T", bound="BodyDatasetUpdate")
 class BodyDatasetUpdate:
     """
     Attributes:
-        name (str | Unset):
-        is_public (bool | Unset):  Default: False.
+        name (Union[Unset, str]):
+        is_public (Union[Unset, bool]):  Default: False.
     """
 
-    name: str | Unset = UNSET
-    is_public: bool | Unset = False
+    name: Unset | str = UNSET
+    is_public: Unset | bool = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

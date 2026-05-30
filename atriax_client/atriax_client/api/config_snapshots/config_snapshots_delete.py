@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -16,9 +15,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "delete",
-        "url": "/api/v1/config_snapshots/{id}/".format(
-            id=quote(str(id), safe=""),
-        ),
+        "url": f"/api/v1/config_snapshots/{id}/",
     }
 
     return _kwargs
@@ -31,12 +28,10 @@ def _parse_response(
         response_200 = UUID(response.json())
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -69,7 +64,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | UUID]
+        Response[Union[HTTPValidationError, UUID]]
     """
 
     kwargs = _get_kwargs(
@@ -98,7 +93,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | UUID
+        Union[HTTPValidationError, UUID]
     """
 
     return sync_detailed(
@@ -122,7 +117,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | UUID]
+        Response[Union[HTTPValidationError, UUID]]
     """
 
     kwargs = _get_kwargs(
@@ -149,7 +144,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | UUID
+        Union[HTTPValidationError, UUID]
     """
 
     return (

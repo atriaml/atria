@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -17,11 +15,11 @@ class ModelValidationConfig:
 
     Attributes:
         model_id (str):
-        branch (str | Unset):  Default: 'main'.
+        branch (Union[Unset, str]):  Default: 'main'.
     """
 
     model_id: str
-    branch: str | Unset = "main"
+    branch: Unset | str = "main"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

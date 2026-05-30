@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -19,12 +17,12 @@ T = TypeVar("T", bound="LakeFSStoragePaginatedObjects")
 class LakeFSStoragePaginatedObjects:
     """
     Attributes:
-        objects (list[LakeFSStorageObject]):
-        next_after (None | str | Unset):
+        objects (list['LakeFSStorageObject']):
+        next_after (Union[None, Unset, str]):
     """
 
-    objects: list[LakeFSStorageObject]
-    next_after: None | str | Unset = UNSET
+    objects: list["LakeFSStorageObject"]
+    next_after: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -33,7 +31,7 @@ class LakeFSStoragePaginatedObjects:
             objects_item = objects_item_data.to_dict()
             objects.append(objects_item)
 
-        next_after: None | str | Unset
+        next_after: None | Unset | str
         if isinstance(self.next_after, Unset):
             next_after = UNSET
         else:
@@ -63,12 +61,12 @@ class LakeFSStoragePaginatedObjects:
 
             objects.append(objects_item)
 
-        def _parse_next_after(data: object) -> None | str | Unset:
+        def _parse_next_after(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(None | Unset | str, data)
 
         next_after = _parse_next_after(d.pop("next_after", UNSET))
 

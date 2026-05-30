@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
@@ -36,9 +34,9 @@ class SampleExplanation:
     updated_at: str
     sample_index: int
     name: str
-    config: ConfigBase
+    config: "ConfigBase"
     config_hash: str
-    explanation_metadata: SampleExplanationExplanationMetadata
+    explanation_metadata: "SampleExplanationExplanationMetadata"
     evaluation_experiment_id: UUID
     explanation_url: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)

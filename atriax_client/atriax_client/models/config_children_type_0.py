@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -17,7 +15,7 @@ T = TypeVar("T", bound="ConfigChildrenType0")
 class ConfigChildrenType0:
     """ """
 
-    additional_properties: dict[str, ConfigBase | list[ConfigBase]] = _attrs_field(init=False, factory=dict)
+    additional_properties: dict[str, Union["ConfigBase", list["ConfigBase"]]] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.config_base import ConfigBase
@@ -44,14 +42,14 @@ class ConfigChildrenType0:
         additional_properties = {}
         for prop_name, prop_dict in d.items():
 
-            def _parse_additional_property(data: object) -> ConfigBase | list[ConfigBase]:
+            def _parse_additional_property(data: object) -> Union["ConfigBase", list["ConfigBase"]]:
                 try:
                     if not isinstance(data, dict):
                         raise TypeError()
                     additional_property_type_0 = ConfigBase.from_dict(data)
 
                     return additional_property_type_0
-                except (TypeError, ValueError, AttributeError, KeyError):
+                except:  # noqa: E722
                     pass
                 if not isinstance(data, list):
                     raise TypeError()
@@ -75,10 +73,10 @@ class ConfigChildrenType0:
     def additional_keys(self) -> list[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> ConfigBase | list[ConfigBase]:
+    def __getitem__(self, key: str) -> Union["ConfigBase", list["ConfigBase"]]:
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: ConfigBase | list[ConfigBase]) -> None:
+    def __setitem__(self, key: str, value: Union["ConfigBase", list["ConfigBase"]]) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

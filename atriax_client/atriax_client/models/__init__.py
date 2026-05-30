@@ -33,7 +33,6 @@ from .dataset_status import DatasetStatus
 from .dataset_storage_metadata import DatasetStorageMetadata
 from .dataset_storage_metadata_configs import DatasetStorageMetadataConfigs
 from .dataset_storage_metadata_splits import DatasetStorageMetadataSplits
-from .dataset_validation_config import DatasetValidationConfig
 from .evaluation_experiment import EvaluationExperiment
 from .evaluation_experiment_get_or_create import EvaluationExperimentGetOrCreate
 from .evaluation_experiment_update import EvaluationExperimentUpdate
@@ -49,6 +48,7 @@ from .explanation_visualization_data import ExplanationVisualizationData
 from .explanation_visualization_data_outputs_type_0 import ExplanationVisualizationDataOutputsType0
 from .explanation_visualization_data_processing_options_type_0 import ExplanationVisualizationDataProcessingOptionsType0
 from .filtered_task_body import FilteredTaskBody
+from .finalize_dataset_task_config import FinalizeDatasetTaskConfig
 from .http_validation_error import HTTPValidationError
 from .image_explanation_visualizer_options import ImageExplanationVisualizerOptions
 from .lake_fs_branch_summary import LakeFSBranchSummary
@@ -118,7 +118,6 @@ __all__ = (
     "DatasetStorageMetadata",
     "DatasetStorageMetadataConfigs",
     "DatasetStorageMetadataSplits",
-    "DatasetValidationConfig",
     "EvaluationExperiment",
     "EvaluationExperimentGetOrCreate",
     "EvaluationExperimentUpdate",
@@ -134,6 +133,7 @@ __all__ = (
     "ExplanationVisualizationDataOutputsType0",
     "ExplanationVisualizationDataProcessingOptionsType0",
     "FilteredTaskBody",
+    "FinalizeDatasetTaskConfig",
     "HTTPValidationError",
     "ImageExplanationVisualizerOptions",
     "LakeFSBranchSummary",

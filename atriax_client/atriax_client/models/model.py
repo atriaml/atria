@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
@@ -30,8 +28,8 @@ class Model:
         user_id (UUID):
         storage_metadata (ModelStorageMetadata):
         task_type (TaskType):
-        default_branch (str | Unset):  Default: 'main'.
-        is_public (bool | Unset):  Default: False.
+        default_branch (Union[Unset, str]):  Default: 'main'.
+        is_public (Union[Unset, bool]):  Default: False.
     """
 
     id: UUID
@@ -42,10 +40,10 @@ class Model:
     type_: str
     repo_id: str
     user_id: UUID
-    storage_metadata: ModelStorageMetadata
+    storage_metadata: "ModelStorageMetadata"
     task_type: TaskType
-    default_branch: str | Unset = "main"
-    is_public: bool | Unset = False
+    default_branch: Unset | str = "main"
+    is_public: Unset | bool = False
 
     def to_dict(self) -> dict[str, Any]:
         id = str(self.id)

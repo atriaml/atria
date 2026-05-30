@@ -5,7 +5,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.dataset_validation_config import DatasetValidationConfig
+from ...models.finalize_dataset_task_config import FinalizeDatasetTaskConfig
 from ...models.http_validation_error import HTTPValidationError
 from ...models.task import Task
 from ...types import Response
@@ -13,7 +13,7 @@ from ...types import Response
 
 def _get_kwargs(
     *,
-    body: DatasetValidationConfig,
+    body: FinalizeDatasetTaskConfig,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -37,12 +37,10 @@ def _parse_response(
         response_200 = Task.from_dict(response.json())
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -63,12 +61,12 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    body: DatasetValidationConfig,
+    body: FinalizeDatasetTaskConfig,
 ) -> Response[HTTPValidationError | Task]:
     """Publish Dataset Validation Task
 
     Args:
-        body (DatasetValidationConfig): Config for uploading raw images/PDFs and converting to
+        body (FinalizeDatasetTaskConfig): Config for uploading raw images/PDFs and converting to
             DeltaLake.
 
     Raises:
@@ -76,7 +74,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | Task]
+        Response[Union[HTTPValidationError, Task]]
     """
 
     kwargs = _get_kwargs(
@@ -93,12 +91,12 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    body: DatasetValidationConfig,
+    body: FinalizeDatasetTaskConfig,
 ) -> HTTPValidationError | Task | None:
     """Publish Dataset Validation Task
 
     Args:
-        body (DatasetValidationConfig): Config for uploading raw images/PDFs and converting to
+        body (FinalizeDatasetTaskConfig): Config for uploading raw images/PDFs and converting to
             DeltaLake.
 
     Raises:
@@ -106,7 +104,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | Task
+        Union[HTTPValidationError, Task]
     """
 
     return sync_detailed(
@@ -118,12 +116,12 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    body: DatasetValidationConfig,
+    body: FinalizeDatasetTaskConfig,
 ) -> Response[HTTPValidationError | Task]:
     """Publish Dataset Validation Task
 
     Args:
-        body (DatasetValidationConfig): Config for uploading raw images/PDFs and converting to
+        body (FinalizeDatasetTaskConfig): Config for uploading raw images/PDFs and converting to
             DeltaLake.
 
     Raises:
@@ -131,7 +129,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | Task]
+        Response[Union[HTTPValidationError, Task]]
     """
 
     kwargs = _get_kwargs(
@@ -146,12 +144,12 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    body: DatasetValidationConfig,
+    body: FinalizeDatasetTaskConfig,
 ) -> HTTPValidationError | Task | None:
     """Publish Dataset Validation Task
 
     Args:
-        body (DatasetValidationConfig): Config for uploading raw images/PDFs and converting to
+        body (FinalizeDatasetTaskConfig): Config for uploading raw images/PDFs and converting to
             DeltaLake.
 
     Raises:
@@ -159,7 +157,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | Task
+        Union[HTTPValidationError, Task]
     """
 
     return (

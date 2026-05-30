@@ -14,11 +14,11 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     *,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    name: None | Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_config_type: None | str | Unset
+    json_config_type: None | Unset | str
     if isinstance(config_type, Unset):
         json_config_type = UNSET
     elif isinstance(config_type, ConfigType):
@@ -27,7 +27,7 @@ def _get_kwargs(
         json_config_type = config_type
     params["config_type"] = json_config_type
 
-    json_name: None | str | Unset
+    json_name: None | Unset | str
     if isinstance(name, Unset):
         json_name = UNSET
     else:
@@ -52,12 +52,10 @@ def _parse_response(
         response_200 = Config.from_dict(response.json())
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -79,20 +77,20 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    name: None | Unset | str = UNSET,
 ) -> Response[Config | HTTPValidationError]:
     """Find One
 
     Args:
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        config_type (Union[ConfigType, None, Unset]):
+        name (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[Union[Config, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -111,20 +109,20 @@ def sync(
     *,
     client: AuthenticatedClient,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    name: None | Unset | str = UNSET,
 ) -> Config | HTTPValidationError | None:
     """Find One
 
     Args:
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        config_type (Union[ConfigType, None, Unset]):
+        name (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        Union[Config, HTTPValidationError]
     """
 
     return sync_detailed(
@@ -138,20 +136,20 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    name: None | Unset | str = UNSET,
 ) -> Response[Config | HTTPValidationError]:
     """Find One
 
     Args:
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        config_type (Union[ConfigType, None, Unset]):
+        name (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[Union[Config, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -168,20 +166,20 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    name: None | Unset | str = UNSET,
 ) -> Config | HTTPValidationError | None:
     """Find One
 
     Args:
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        config_type (Union[ConfigType, None, Unset]):
+        name (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        Union[Config, HTTPValidationError]
     """
 
     return (

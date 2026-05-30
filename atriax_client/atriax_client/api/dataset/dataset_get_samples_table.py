@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -18,13 +17,13 @@ def _get_kwargs(
     config: str,
     split: str,
     *,
-    page: int | Unset = 0,
-    page_size: int | Unset = 1,
-    paginated: bool | Unset = True,
-    order_by: str | Unset = "index",
-    order: str | Unset = "asc",
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    page: Unset | int = 0,
+    page_size: Unset | int = 1,
+    paginated: Unset | bool = True,
+    order_by: Unset | str = "index",
+    order: Unset | str = "asc",
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -38,14 +37,14 @@ def _get_kwargs(
 
     params["order"] = order
 
-    json_search: None | str | Unset
+    json_search: None | Unset | str
     if isinstance(search, Unset):
         json_search = UNSET
     else:
         json_search = search
     params["search"] = json_search
 
-    json_search_by: None | str | Unset
+    json_search_by: None | Unset | str
     if isinstance(search_by, Unset):
         json_search_by = UNSET
     else:
@@ -56,12 +55,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/table/{branch}/{config}/{split}".format(
-            id=quote(str(id), safe=""),
-            branch=quote(str(branch), safe=""),
-            config=quote(str(config), safe=""),
-            split=quote(str(split), safe=""),
-        ),
+        "url": f"/api/v1/dataset/{id}/table/{branch}/{config}/{split}",
         "params": params,
     }
 
@@ -75,12 +69,10 @@ def _parse_response(
         response_200 = DatasetSamplesPage.from_dict(response.json())
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -105,13 +97,13 @@ def sync_detailed(
     split: str,
     *,
     client: AuthenticatedClient,
-    page: int | Unset = 0,
-    page_size: int | Unset = 1,
-    paginated: bool | Unset = True,
-    order_by: str | Unset = "index",
-    order: str | Unset = "asc",
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    page: Unset | int = 0,
+    page_size: Unset | int = 1,
+    paginated: Unset | bool = True,
+    order_by: Unset | str = "index",
+    order: Unset | str = "asc",
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> Response[DatasetSamplesPage | HTTPValidationError]:
     """Get Samples Table
 
@@ -120,20 +112,20 @@ def sync_detailed(
         branch (str):
         config (str):
         split (str):
-        page (int | Unset):  Default: 0.
-        page_size (int | Unset):  Default: 1.
-        paginated (bool | Unset):  Default: True.
-        order_by (str | Unset):  Default: 'index'.
-        order (str | Unset):  Default: 'asc'.
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        page (Union[Unset, int]):  Default: 0.
+        page_size (Union[Unset, int]):  Default: 1.
+        paginated (Union[Unset, bool]):  Default: True.
+        order_by (Union[Unset, str]):  Default: 'index'.
+        order (Union[Unset, str]):  Default: 'asc'.
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[DatasetSamplesPage | HTTPValidationError]
+        Response[Union[DatasetSamplesPage, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -164,13 +156,13 @@ def sync(
     split: str,
     *,
     client: AuthenticatedClient,
-    page: int | Unset = 0,
-    page_size: int | Unset = 1,
-    paginated: bool | Unset = True,
-    order_by: str | Unset = "index",
-    order: str | Unset = "asc",
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    page: Unset | int = 0,
+    page_size: Unset | int = 1,
+    paginated: Unset | bool = True,
+    order_by: Unset | str = "index",
+    order: Unset | str = "asc",
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> DatasetSamplesPage | HTTPValidationError | None:
     """Get Samples Table
 
@@ -179,20 +171,20 @@ def sync(
         branch (str):
         config (str):
         split (str):
-        page (int | Unset):  Default: 0.
-        page_size (int | Unset):  Default: 1.
-        paginated (bool | Unset):  Default: True.
-        order_by (str | Unset):  Default: 'index'.
-        order (str | Unset):  Default: 'asc'.
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        page (Union[Unset, int]):  Default: 0.
+        page_size (Union[Unset, int]):  Default: 1.
+        paginated (Union[Unset, bool]):  Default: True.
+        order_by (Union[Unset, str]):  Default: 'index'.
+        order (Union[Unset, str]):  Default: 'asc'.
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        DatasetSamplesPage | HTTPValidationError
+        Union[DatasetSamplesPage, HTTPValidationError]
     """
 
     return sync_detailed(
@@ -218,13 +210,13 @@ async def asyncio_detailed(
     split: str,
     *,
     client: AuthenticatedClient,
-    page: int | Unset = 0,
-    page_size: int | Unset = 1,
-    paginated: bool | Unset = True,
-    order_by: str | Unset = "index",
-    order: str | Unset = "asc",
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    page: Unset | int = 0,
+    page_size: Unset | int = 1,
+    paginated: Unset | bool = True,
+    order_by: Unset | str = "index",
+    order: Unset | str = "asc",
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> Response[DatasetSamplesPage | HTTPValidationError]:
     """Get Samples Table
 
@@ -233,20 +225,20 @@ async def asyncio_detailed(
         branch (str):
         config (str):
         split (str):
-        page (int | Unset):  Default: 0.
-        page_size (int | Unset):  Default: 1.
-        paginated (bool | Unset):  Default: True.
-        order_by (str | Unset):  Default: 'index'.
-        order (str | Unset):  Default: 'asc'.
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        page (Union[Unset, int]):  Default: 0.
+        page_size (Union[Unset, int]):  Default: 1.
+        paginated (Union[Unset, bool]):  Default: True.
+        order_by (Union[Unset, str]):  Default: 'index'.
+        order (Union[Unset, str]):  Default: 'asc'.
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[DatasetSamplesPage | HTTPValidationError]
+        Response[Union[DatasetSamplesPage, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -275,13 +267,13 @@ async def asyncio(
     split: str,
     *,
     client: AuthenticatedClient,
-    page: int | Unset = 0,
-    page_size: int | Unset = 1,
-    paginated: bool | Unset = True,
-    order_by: str | Unset = "index",
-    order: str | Unset = "asc",
-    search: None | str | Unset = UNSET,
-    search_by: None | str | Unset = UNSET,
+    page: Unset | int = 0,
+    page_size: Unset | int = 1,
+    paginated: Unset | bool = True,
+    order_by: Unset | str = "index",
+    order: Unset | str = "asc",
+    search: None | Unset | str = UNSET,
+    search_by: None | Unset | str = UNSET,
 ) -> DatasetSamplesPage | HTTPValidationError | None:
     """Get Samples Table
 
@@ -290,20 +282,20 @@ async def asyncio(
         branch (str):
         config (str):
         split (str):
-        page (int | Unset):  Default: 0.
-        page_size (int | Unset):  Default: 1.
-        paginated (bool | Unset):  Default: True.
-        order_by (str | Unset):  Default: 'index'.
-        order (str | Unset):  Default: 'asc'.
-        search (None | str | Unset):
-        search_by (None | str | Unset):
+        page (Union[Unset, int]):  Default: 0.
+        page_size (Union[Unset, int]):  Default: 1.
+        paginated (Union[Unset, bool]):  Default: True.
+        order_by (Union[Unset, str]):  Default: 'index'.
+        order (Union[Unset, str]):  Default: 'asc'.
+        search (Union[None, Unset, str]):
+        search_by (Union[None, Unset, str]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        DatasetSamplesPage | HTTPValidationError
+        Union[DatasetSamplesPage, HTTPValidationError]
     """
 
     return (

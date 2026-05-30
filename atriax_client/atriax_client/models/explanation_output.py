@@ -1,7 +1,5 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -24,12 +22,12 @@ class ExplanationOutput:
     Attributes:
         type_ (ExplanationOutputType):
         data (ExplanationOutputData):
-        metadata (ExplanationOutputMetadataType0 | None | Unset):
+        metadata (Union['ExplanationOutputMetadataType0', None, Unset]):
     """
 
     type_: ExplanationOutputType
-    data: ExplanationOutputData
-    metadata: ExplanationOutputMetadataType0 | None | Unset = UNSET
+    data: "ExplanationOutputData"
+    metadata: Union["ExplanationOutputMetadataType0", None, Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +37,7 @@ class ExplanationOutput:
 
         data = self.data.to_dict()
 
-        metadata: dict[str, Any] | None | Unset
+        metadata: None | Unset | dict[str, Any]
         if isinstance(self.metadata, Unset):
             metadata = UNSET
         elif isinstance(self.metadata, ExplanationOutputMetadataType0):
@@ -70,7 +68,7 @@ class ExplanationOutput:
 
         data = ExplanationOutputData.from_dict(d.pop("data"))
 
-        def _parse_metadata(data: object) -> ExplanationOutputMetadataType0 | None | Unset:
+        def _parse_metadata(data: object) -> Union["ExplanationOutputMetadataType0", None, Unset]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -81,9 +79,9 @@ class ExplanationOutput:
                 metadata_type_0 = ExplanationOutputMetadataType0.from_dict(data)
 
                 return metadata_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
+            except:  # noqa: E722
                 pass
-            return cast(ExplanationOutputMetadataType0 | None | Unset, data)
+            return cast(Union["ExplanationOutputMetadataType0", None, Unset], data)
 
         metadata = _parse_metadata(d.pop("metadata", UNSET))
 

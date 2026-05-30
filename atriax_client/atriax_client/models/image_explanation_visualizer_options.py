@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -17,16 +15,16 @@ class ImageExplanationVisualizerOptions:
     """Options specific to image explanation processing.
 
     Attributes:
-        normalization_type (NormalizationType | Unset):
-        outlier_perc (int | Unset):  Default: 2.
+        normalization_type (Union[Unset, NormalizationType]):
+        outlier_perc (Union[Unset, int]):  Default: 2.
     """
 
-    normalization_type: NormalizationType | Unset = UNSET
-    outlier_perc: int | Unset = 2
+    normalization_type: Unset | NormalizationType = UNSET
+    outlier_perc: Unset | int = 2
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        normalization_type: str | Unset = UNSET
+        normalization_type: Unset | str = UNSET
         if not isinstance(self.normalization_type, Unset):
             normalization_type = self.normalization_type.value
 
@@ -46,7 +44,7 @@ class ImageExplanationVisualizerOptions:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _normalization_type = d.pop("normalization_type", UNSET)
-        normalization_type: NormalizationType | Unset
+        normalization_type: Unset | NormalizationType
         if isinstance(_normalization_type, Unset):
             normalization_type = UNSET
         else:

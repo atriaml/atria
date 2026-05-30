@@ -1,47 +1,33 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="DatasetValidationConfig")
+T = TypeVar("T", bound="FinalizeDatasetTaskConfig")
 
 
 @_attrs_define
-class DatasetValidationConfig:
+class FinalizeDatasetTaskConfig:
     """Config for uploading raw images/PDFs and converting to DeltaLake.
 
     Attributes:
         dataset_id (str):
-        files (list[str]):
-        data_instance_type (str):
-        branch (str | Unset):  Default: 'main'.
-        split (str | Unset):  Default: 'train'.
-        config_name (str | Unset):  Default: 'default'.
+        branch (Union[Unset, str]):  Default: 'main'.
+        config_name (Union[Unset, str]):  Default: 'default'.
     """
 
     dataset_id: str
-    files: list[str]
-    data_instance_type: str
-    branch: str | Unset = "main"
-    split: str | Unset = "train"
-    config_name: str | Unset = "default"
+    branch: Unset | str = "main"
+    config_name: Unset | str = "default"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         dataset_id = self.dataset_id
 
-        files = self.files
-
-        data_instance_type = self.data_instance_type
-
         branch = self.branch
-
-        split = self.split
 
         config_name = self.config_name
 
@@ -50,14 +36,10 @@ class DatasetValidationConfig:
         field_dict.update(
             {
                 "dataset_id": dataset_id,
-                "files": files,
-                "data_instance_type": data_instance_type,
             }
         )
         if branch is not UNSET:
             field_dict["branch"] = branch
-        if split is not UNSET:
-            field_dict["split"] = split
         if config_name is not UNSET:
             field_dict["config_name"] = config_name
 
@@ -68,27 +50,18 @@ class DatasetValidationConfig:
         d = dict(src_dict)
         dataset_id = d.pop("dataset_id")
 
-        files = cast(list[str], d.pop("files"))
-
-        data_instance_type = d.pop("data_instance_type")
-
         branch = d.pop("branch", UNSET)
-
-        split = d.pop("split", UNSET)
 
         config_name = d.pop("config_name", UNSET)
 
-        dataset_validation_config = cls(
+        finalize_dataset_task_config = cls(
             dataset_id=dataset_id,
-            files=files,
-            data_instance_type=data_instance_type,
             branch=branch,
-            split=split,
             config_name=config_name,
         )
 
-        dataset_validation_config.additional_properties = d
-        return dataset_validation_config
+        finalize_dataset_task_config.additional_properties = d
+        return finalize_dataset_task_config
 
     @property
     def additional_keys(self) -> list[str]:

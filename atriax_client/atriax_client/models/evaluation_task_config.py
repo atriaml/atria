@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -22,12 +20,12 @@ class EvaluationTaskConfig:
     Attributes:
         dataset (DatasetConfig):
         model (ModelConfig):
-        is_metrics_computation_run (bool | Unset):  Default: False.
+        is_metrics_computation_run (Union[Unset, bool]):  Default: False.
     """
 
-    dataset: DatasetConfig
-    model: ModelConfig
-    is_metrics_computation_run: bool | Unset = False
+    dataset: "DatasetConfig"
+    model: "ModelConfig"
+    is_metrics_computation_run: Unset | bool = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

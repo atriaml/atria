@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar
 
@@ -18,19 +16,19 @@ class BodyDatasetCreate:
     Attributes:
         name (str):
         data_instance_type (DataInstanceType):
-        default_branch (str | Unset):  Default: 'main'.
-        description (str | Unset):  Default: 'A short description of the dataset, its intended use, and any other
+        default_branch (Union[Unset, str]):  Default: 'main'.
+        description (Union[Unset, str]):  Default: 'A short description of the dataset, its intended use, and any other
             relevant information.'.
-        is_public (bool | Unset):  Default: False.
+        is_public (Union[Unset, bool]):  Default: False.
     """
 
     name: str
     data_instance_type: DataInstanceType
-    default_branch: str | Unset = "main"
-    description: str | Unset = (
+    default_branch: Unset | str = "main"
+    description: Unset | str = (
         "A short description of the dataset, its intended use, and any other relevant information."
     )
-    is_public: bool | Unset = False
+    is_public: Unset | bool = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

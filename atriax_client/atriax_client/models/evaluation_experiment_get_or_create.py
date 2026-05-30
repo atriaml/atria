@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar
 from uuid import UUID
@@ -23,7 +21,7 @@ class EvaluationExperimentGetOrCreate:
         model_id (UUID):
         model_branch (str):
         model_config_name (str):
-        is_public (bool | Unset):  Default: False.
+        is_public (Union[Unset, bool]):  Default: False.
     """
 
     dataset_id: UUID
@@ -33,7 +31,7 @@ class EvaluationExperimentGetOrCreate:
     model_id: UUID
     model_branch: str
     model_config_name: str
-    is_public: bool | Unset = False
+    is_public: Unset | bool = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

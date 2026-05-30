@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from io import BytesIO
 from typing import Any, TypeVar, cast
@@ -21,7 +19,7 @@ class BodySampleExplanationsWrite:
         name (str):
         config (str):
         explanation_metadata (str):
-        explanation_file (File | None | Unset):
+        explanation_file (Union[File, None, Unset]):
     """
 
     sample_index: int
@@ -108,7 +106,7 @@ class BodySampleExplanationsWrite:
                 explanation_file_type_0 = File(payload=BytesIO(data))
 
                 return explanation_file_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
+            except:  # noqa: E722
                 pass
             return cast(File | None | Unset, data)
 

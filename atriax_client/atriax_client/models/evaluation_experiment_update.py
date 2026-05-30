@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -15,14 +13,14 @@ T = TypeVar("T", bound="EvaluationExperimentUpdate")
 class EvaluationExperimentUpdate:
     """
     Attributes:
-        is_public (bool | None | Unset):
+        is_public (Union[None, Unset, bool]):
     """
 
-    is_public: bool | None | Unset = UNSET
+    is_public: None | Unset | bool = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        is_public: bool | None | Unset
+        is_public: None | Unset | bool
         if isinstance(self.is_public, Unset):
             is_public = UNSET
         else:
@@ -40,12 +38,12 @@ class EvaluationExperimentUpdate:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_is_public(data: object) -> bool | None | Unset:
+        def _parse_is_public(data: object) -> None | Unset | bool:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(bool | None | Unset, data)
+            return cast(None | Unset | bool, data)
 
         is_public = _parse_is_public(d.pop("is_public", UNSET))
 

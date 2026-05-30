@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 from uuid import UUID
@@ -26,14 +24,14 @@ class DatasetConfig:
                 train (str): Represents the training split of the dataset.
                 test (str): Represents the testing split of the dataset.
                 validation (str): Represents the validation split of the dataset.
-        sample_indices (list[int] | None | Unset):
+        sample_indices (Union[None, Unset, list[int]]):
     """
 
     id: UUID
     config_name: str
     branch: str
     split: DatasetSplitType
-    sample_indices: list[int] | None | Unset = UNSET
+    sample_indices: None | Unset | list[int] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,7 +43,7 @@ class DatasetConfig:
 
         split = self.split.value
 
-        sample_indices: list[int] | None | Unset
+        sample_indices: None | Unset | list[int]
         if isinstance(self.sample_indices, Unset):
             sample_indices = UNSET
         elif isinstance(self.sample_indices, list):
@@ -80,7 +78,7 @@ class DatasetConfig:
 
         split = DatasetSplitType(d.pop("split"))
 
-        def _parse_sample_indices(data: object) -> list[int] | None | Unset:
+        def _parse_sample_indices(data: object) -> None | Unset | list[int]:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -91,9 +89,9 @@ class DatasetConfig:
                 sample_indices_type_0 = cast(list[int], data)
 
                 return sample_indices_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
+            except:  # noqa: E722
                 pass
-            return cast(list[int] | None | Unset, data)
+            return cast(None | Unset | list[int], data)
 
         sample_indices = _parse_sample_indices(d.pop("sample_indices", UNSET))
 

@@ -32,7 +32,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | list[Task] | None:
+) -> HTTPValidationError | list["Task"] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
@@ -42,12 +42,10 @@ def _parse_response(
             response_200.append(response_200_item)
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -56,7 +54,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | list[Task]]:
+) -> Response[HTTPValidationError | list["Task"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -69,7 +67,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: FilteredTaskBody,
-) -> Response[HTTPValidationError | list[Task]]:
+) -> Response[HTTPValidationError | list["Task"]]:
     """Filter Tasks
 
     Args:
@@ -80,7 +78,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[Task]]
+        Response[Union[HTTPValidationError, list['Task']]]
     """
 
     kwargs = _get_kwargs(
@@ -98,7 +96,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: FilteredTaskBody,
-) -> HTTPValidationError | list[Task] | None:
+) -> HTTPValidationError | list["Task"] | None:
     """Filter Tasks
 
     Args:
@@ -109,7 +107,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[Task]
+        Union[HTTPValidationError, list['Task']]
     """
 
     return sync_detailed(
@@ -122,7 +120,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: FilteredTaskBody,
-) -> Response[HTTPValidationError | list[Task]]:
+) -> Response[HTTPValidationError | list["Task"]]:
     """Filter Tasks
 
     Args:
@@ -133,7 +131,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[Task]]
+        Response[Union[HTTPValidationError, list['Task']]]
     """
 
     kwargs = _get_kwargs(
@@ -149,7 +147,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: FilteredTaskBody,
-) -> HTTPValidationError | list[Task] | None:
+) -> HTTPValidationError | list["Task"] | None:
     """Filter Tasks
 
     Args:
@@ -160,7 +158,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[Task]
+        Union[HTTPValidationError, list['Task']]
     """
 
     return (

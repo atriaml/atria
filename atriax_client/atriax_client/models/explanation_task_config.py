@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -24,9 +22,9 @@ class ExplanationTaskConfig:
         explainer_pipeline_config (ConfigBase):
     """
 
-    dataset: DatasetConfig
-    model: ModelConfig
-    explainer_pipeline_config: ConfigBase
+    dataset: "DatasetConfig"
+    model: "ModelConfig"
+    explainer_pipeline_config: "ConfigBase"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

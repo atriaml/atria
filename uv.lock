@@ -339,6 +339,7 @@ name = "atria-hub"
 version = "0.0.0"
 source = { editable = "atria_hub" }
 dependencies = [
+    { name = "atriax-client" },
     { name = "gotrue" },
     { name = "keyring" },
     { name = "lakefs" },
@@ -352,6 +353,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "atriax-client", editable = "atriax_client" },
     { name = "coverage", marker = "extra == 'test'" },
     { name = "gotrue", specifier = ">=2.12.3" },
     { name = "keyring", specifier = ">=25.6.0" },
@@ -734,6 +736,23 @@ dev = [
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "ruff", specifier = ">=0.14.6" },
     { name = "types-requests", specifier = ">=2.32.4.20250913" },
+]
+
+[[package]]
+name = "atriax-client"
+version = "0.1.0"
+source = { editable = "atriax_client" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+    { name = "python-dateutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "attrs", specifier = ">=22.2.0" },
+    { name = "httpx", specifier = ">=0.23.0,<0.29.0" },
+    { name = "python-dateutil", specifier = ">=2.8.0,<3.0.0" },
 ]
 
 [[package]]

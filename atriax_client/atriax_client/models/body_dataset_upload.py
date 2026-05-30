@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from io import BytesIO
 from typing import Any, TypeVar, cast
@@ -8,7 +6,7 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from .. import types
-from ..types import UNSET, File, Unset
+from ..types import File
 
 T = TypeVar("T", bound="BodyDatasetUpload")
 
@@ -19,16 +17,10 @@ class BodyDatasetUpload:
     Attributes:
         files (list[File]):
         paths (list[str]):
-        split (str | Unset):  Default: 'train'.
-        config (str | Unset):  Default: 'default'.
-        validate_dataset (bool | Unset):  Default: False.
     """
 
     files: list[File]
     paths: list[str]
-    split: str | Unset = "train"
-    config: str | Unset = "default"
-    validate_dataset: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -40,12 +32,6 @@ class BodyDatasetUpload:
 
         paths = self.paths
 
-        split = self.split
-
-        config = self.config
-
-        validate_dataset = self.validate_dataset
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -54,12 +40,6 @@ class BodyDatasetUpload:
                 "paths": paths,
             }
         )
-        if split is not UNSET:
-            field_dict["split"] = split
-        if config is not UNSET:
-            field_dict["config"] = config
-        if validate_dataset is not UNSET:
-            field_dict["validate_dataset"] = validate_dataset
 
         return field_dict
 
@@ -71,15 +51,6 @@ class BodyDatasetUpload:
 
         for paths_item_element in self.paths:
             files.append(("paths", (None, str(paths_item_element).encode(), "text/plain")))
-
-        if not isinstance(self.split, Unset):
-            files.append(("split", (None, str(self.split).encode(), "text/plain")))
-
-        if not isinstance(self.config, Unset):
-            files.append(("config", (None, str(self.config).encode(), "text/plain")))
-
-        if not isinstance(self.validate_dataset, Unset):
-            files.append(("validate_dataset", (None, str(self.validate_dataset).encode(), "text/plain")))
 
         for prop_name, prop in self.additional_properties.items():
             files.append((prop_name, (None, str(prop).encode(), "text/plain")))
@@ -98,18 +69,9 @@ class BodyDatasetUpload:
 
         paths = cast(list[str], d.pop("paths"))
 
-        split = d.pop("split", UNSET)
-
-        config = d.pop("config", UNSET)
-
-        validate_dataset = d.pop("validate_dataset", UNSET)
-
         body_dataset_upload = cls(
             files=files,
             paths=paths,
-            split=split,
-            config=config,
-            validate_dataset=validate_dataset,
         )
 
         body_dataset_upload.additional_properties = d

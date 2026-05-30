@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 
@@ -16,16 +14,16 @@ T = TypeVar("T", bound="TaskUpdate")
 class TaskUpdate:
     """
     Attributes:
-        status (None | TaskStatus | Unset):
-        error_message (None | str | Unset):
+        status (Union[None, TaskStatus, Unset]):
+        error_message (Union[None, Unset, str]):
     """
 
     status: None | TaskStatus | Unset = UNSET
-    error_message: None | str | Unset = UNSET
+    error_message: None | Unset | str = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        status: None | str | Unset
+        status: None | Unset | str
         if isinstance(self.status, Unset):
             status = UNSET
         elif isinstance(self.status, TaskStatus):
@@ -33,7 +31,7 @@ class TaskUpdate:
         else:
             status = self.status
 
-        error_message: None | str | Unset
+        error_message: None | Unset | str
         if isinstance(self.error_message, Unset):
             error_message = UNSET
         else:
@@ -64,18 +62,18 @@ class TaskUpdate:
                 status_type_0 = TaskStatus(data)
 
                 return status_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
+            except:  # noqa: E722
                 pass
             return cast(None | TaskStatus | Unset, data)
 
         status = _parse_status(d.pop("status", UNSET))
 
-        def _parse_error_message(data: object) -> None | str | Unset:
+        def _parse_error_message(data: object) -> None | Unset | str:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | str | Unset, data)
+            return cast(None | Unset | str, data)
 
         error_message = _parse_error_message(d.pop("error_message", UNSET))
 

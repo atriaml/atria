@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -15,12 +14,12 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     evaluation_experiment_id: UUID,
     *,
-    sample_explanation_id: None | Unset | UUID = UNSET,
-    sample_index: list[int] | None | Unset = UNSET,
+    sample_explanation_id: None | UUID | Unset = UNSET,
+    sample_index: None | Unset | list[int] = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_sample_explanation_id: None | str | Unset
+    json_sample_explanation_id: None | Unset | str
     if isinstance(sample_explanation_id, Unset):
         json_sample_explanation_id = UNSET
     elif isinstance(sample_explanation_id, UUID):
@@ -29,7 +28,7 @@ def _get_kwargs(
         json_sample_explanation_id = sample_explanation_id
     params["sample_explanation_id"] = json_sample_explanation_id
 
-    json_sample_index: list[int] | None | Unset
+    json_sample_index: None | Unset | list[int]
     if isinstance(sample_index, Unset):
         json_sample_index = UNSET
     elif isinstance(sample_index, list):
@@ -43,9 +42,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/evaluations/{evaluation_experiment_id}/sample_explanation_metrics/".format(
-            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
-        ),
+        "url": f"/api/v1/evaluations/{evaluation_experiment_id}/sample_explanation_metrics/",
         "params": params,
     }
 
@@ -54,7 +51,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | list[SampleExplanationMetric] | None:
+) -> HTTPValidationError | list["SampleExplanationMetric"] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
@@ -64,12 +61,10 @@ def _parse_response(
             response_200.append(response_200_item)
 
         return response_200
-
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -78,7 +73,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | list[SampleExplanationMetric]]:
+) -> Response[HTTPValidationError | list["SampleExplanationMetric"]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -91,22 +86,22 @@ def sync_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    sample_explanation_id: None | Unset | UUID = UNSET,
-    sample_index: list[int] | None | Unset = UNSET,
-) -> Response[HTTPValidationError | list[SampleExplanationMetric]]:
+    sample_explanation_id: None | UUID | Unset = UNSET,
+    sample_index: None | Unset | list[int] = UNSET,
+) -> Response[HTTPValidationError | list["SampleExplanationMetric"]]:
     """Read
 
     Args:
         evaluation_experiment_id (UUID):
-        sample_explanation_id (None | Unset | UUID):
-        sample_index (list[int] | None | Unset):
+        sample_explanation_id (Union[None, UUID, Unset]):
+        sample_index (Union[None, Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[SampleExplanationMetric]]
+        Response[Union[HTTPValidationError, list['SampleExplanationMetric']]]
     """
 
     kwargs = _get_kwargs(
@@ -126,22 +121,22 @@ def sync(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    sample_explanation_id: None | Unset | UUID = UNSET,
-    sample_index: list[int] | None | Unset = UNSET,
-) -> HTTPValidationError | list[SampleExplanationMetric] | None:
+    sample_explanation_id: None | UUID | Unset = UNSET,
+    sample_index: None | Unset | list[int] = UNSET,
+) -> HTTPValidationError | list["SampleExplanationMetric"] | None:
     """Read
 
     Args:
         evaluation_experiment_id (UUID):
-        sample_explanation_id (None | Unset | UUID):
-        sample_index (list[int] | None | Unset):
+        sample_explanation_id (Union[None, UUID, Unset]):
+        sample_index (Union[None, Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[SampleExplanationMetric]
+        Union[HTTPValidationError, list['SampleExplanationMetric']]
     """
 
     return sync_detailed(
@@ -156,22 +151,22 @@ async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    sample_explanation_id: None | Unset | UUID = UNSET,
-    sample_index: list[int] | None | Unset = UNSET,
-) -> Response[HTTPValidationError | list[SampleExplanationMetric]]:
+    sample_explanation_id: None | UUID | Unset = UNSET,
+    sample_index: None | Unset | list[int] = UNSET,
+) -> Response[HTTPValidationError | list["SampleExplanationMetric"]]:
     """Read
 
     Args:
         evaluation_experiment_id (UUID):
-        sample_explanation_id (None | Unset | UUID):
-        sample_index (list[int] | None | Unset):
+        sample_explanation_id (Union[None, UUID, Unset]):
+        sample_index (Union[None, Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[SampleExplanationMetric]]
+        Response[Union[HTTPValidationError, list['SampleExplanationMetric']]]
     """
 
     kwargs = _get_kwargs(
@@ -189,22 +184,22 @@ async def asyncio(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    sample_explanation_id: None | Unset | UUID = UNSET,
-    sample_index: list[int] | None | Unset = UNSET,
-) -> HTTPValidationError | list[SampleExplanationMetric] | None:
+    sample_explanation_id: None | UUID | Unset = UNSET,
+    sample_index: None | Unset | list[int] = UNSET,
+) -> HTTPValidationError | list["SampleExplanationMetric"] | None:
     """Read
 
     Args:
         evaluation_experiment_id (UUID):
-        sample_explanation_id (None | Unset | UUID):
-        sample_index (list[int] | None | Unset):
+        sample_explanation_id (Union[None, UUID, Unset]):
+        sample_index (Union[None, Unset, list[int]]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[SampleExplanationMetric]
+        Union[HTTPValidationError, list['SampleExplanationMetric']]
     """
 
     return (
