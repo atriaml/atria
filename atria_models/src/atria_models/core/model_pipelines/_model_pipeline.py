@@ -119,14 +119,11 @@ class ModelPipeline(
         )
 
     def state_dict(self) -> dict:
-        return {
-            "model_pipeline_config": self.config.model_dump(),
-            "model": self._model.state_dict(),
-        }
+        return {"config": self.config.to_dict(), "model": self._model.state_dict()}
 
     def load_state_dict(self, state_dict: dict) -> None:
-        if "model_pipeline_config" in state_dict:
-            self.config.model_validate(state_dict["model_pipeline_config"])
+        if "config" in state_dict:
+            self.config.model_validate(state_dict["config"])
         if "model" in state_dict:
             self._model.load_state_dict(state_dict["model"], strict=True)
 
@@ -139,12 +136,16 @@ class ModelPipeline(
         )
         self.load_state_dict(checkpoint["model_pipeline"])
 
-    def save_snapshot(
-        self, name: str | None = None, config_name: str = "default"
-    ) -> Path:
+    def save_snapshot(self, snapshot_dir: str | Path | None = None) -> Path:
         from atria_models.core.model_pipelines._hub_ops import ModelHubOps
 
-        return ModelHubOps(self).save_snapshot(name=name, config_name=config_name)
+        return ModelHubOps(self).save_snapshot(snapshot_dir=snapshot_dir)
+
+    @classmethod
+    def load_from_snapshot(cls, snapshot_dir: str | Path) -> ModelPipeline:
+        from atria_models.core.model_pipelines._hub_ops import ModelHubOps
+
+        return ModelHubOps.load_from_snapshot(Path(snapshot_dir))
 
     def upload_to_hub(
         self,
