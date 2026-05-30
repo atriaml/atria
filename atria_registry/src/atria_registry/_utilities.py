@@ -317,7 +317,7 @@ def to_instantiable_dict(obj: BaseModel):
     collect_targets(obj)
 
     # Second pass: dump model and assign targets
-    data = obj.model_dump()
+    data = obj.model_dump(mode="json")
 
     def assign_targets(current_data, path=""):
         if path in targets:

@@ -45,10 +45,8 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     def from_dict(cls, obj: dict) -> Self:
         """Create a ModuleConfig from a dict, resolving _target_ entries."""
         from hydra.utils import instantiate
-        from omegaconf import OmegaConf
 
-        omega_conf = OmegaConf.create(obj)
-        return instantiate(omega_conf)
+        return instantiate(obj)
 
     def to_dict(self) -> dict:
         """Convert the ModuleConfig to a dict suitable for Hydra instantiate."""
