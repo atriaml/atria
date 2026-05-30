@@ -21,7 +21,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "put",
-        "url": f"/api/v1/model/{id}",
+        "url": f"/api/v1/model/{id}/",
     }
 
     _kwargs["data"] = body.to_dict()

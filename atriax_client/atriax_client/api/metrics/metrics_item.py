@@ -17,7 +17,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/evaluation_experiments/{evaluation_experiment_id}/metrics/{key}",
+        "url": f"/api/v1/evaluation_experiments/{evaluation_experiment_id}/metrics/{key}/",
     }
 
     return _kwargs
@@ -55,7 +55,7 @@ def sync_detailed(
     evaluation_experiment_id: UUID,
     key: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[EvaluationMetric, HTTPValidationError]]:
     """Item
 
@@ -87,7 +87,7 @@ def sync(
     evaluation_experiment_id: UUID,
     key: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[EvaluationMetric, HTTPValidationError]]:
     """Item
 
@@ -114,7 +114,7 @@ async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     key: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[EvaluationMetric, HTTPValidationError]]:
     """Item
 
@@ -144,7 +144,7 @@ async def asyncio(
     evaluation_experiment_id: UUID,
     key: int,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[EvaluationMetric, HTTPValidationError]]:
     """Item
 

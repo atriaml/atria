@@ -16,7 +16,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/dataset/{id}",
+        "url": f"/api/v1/dataset/{id}/",
     }
 
     return _kwargs
@@ -53,7 +53,7 @@ def _build_response(
 def sync_detailed(
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[Dataset, HTTPValidationError]]:
     """Item
 
@@ -82,7 +82,7 @@ def sync_detailed(
 def sync(
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[Dataset, HTTPValidationError]]:
     """Item
 
@@ -106,7 +106,7 @@ def sync(
 async def asyncio_detailed(
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[Dataset, HTTPValidationError]]:
     """Item
 
@@ -133,7 +133,7 @@ async def asyncio_detailed(
 async def asyncio(
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[Dataset, HTTPValidationError]]:
     """Item
 

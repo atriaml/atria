@@ -85,7 +85,7 @@ def _build_response(
 def sync_detailed(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     sample_explanation_id: Union[None, UUID, Unset] = UNSET,
     sample_index: Union[None, Unset, list[int]] = UNSET,
 ) -> Response[Union[HTTPValidationError, list["SampleExplanationMetric"]]]:
@@ -120,7 +120,7 @@ def sync_detailed(
 def sync(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     sample_explanation_id: Union[None, UUID, Unset] = UNSET,
     sample_index: Union[None, Unset, list[int]] = UNSET,
 ) -> Optional[Union[HTTPValidationError, list["SampleExplanationMetric"]]]:
@@ -150,7 +150,7 @@ def sync(
 async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     sample_explanation_id: Union[None, UUID, Unset] = UNSET,
     sample_index: Union[None, Unset, list[int]] = UNSET,
 ) -> Response[Union[HTTPValidationError, list["SampleExplanationMetric"]]]:
@@ -183,7 +183,7 @@ async def asyncio_detailed(
 async def asyncio(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     sample_explanation_id: Union[None, UUID, Unset] = UNSET,
     sample_index: Union[None, Unset, list[int]] = UNSET,
 ) -> Optional[Union[HTTPValidationError, list["SampleExplanationMetric"]]]:

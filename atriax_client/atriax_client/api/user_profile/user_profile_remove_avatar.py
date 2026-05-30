@@ -24,7 +24,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
-        "url": "/api/v1/user_profile/remove_avatar",
+        "url": "/api/v1/user_profile/remove_avatar/",
         "params": params,
     }
 

@@ -15,27 +15,30 @@ class BodyDatasetCreate:
     """
     Attributes:
         name (str):
-        description (str):
         data_instance_type (DataInstanceType):
         default_branch (Union[Unset, str]):  Default: 'main'.
+        description (Union[Unset, str]):  Default: 'A short description of the dataset, its intended use, and any other
+            relevant information.'.
         is_public (Union[Unset, bool]):  Default: False.
     """
 
     name: str
-    description: str
     data_instance_type: DataInstanceType
     default_branch: Union[Unset, str] = "main"
+    description: Union[Unset, str] = (
+        "A short description of the dataset, its intended use, and any other relevant information."
+    )
     is_public: Union[Unset, bool] = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
 
-        description = self.description
-
         data_instance_type = self.data_instance_type.value
 
         default_branch = self.default_branch
+
+        description = self.description
 
         is_public = self.is_public
 
@@ -44,12 +47,13 @@ class BodyDatasetCreate:
         field_dict.update(
             {
                 "name": name,
-                "description": description,
                 "data_instance_type": data_instance_type,
             }
         )
         if default_branch is not UNSET:
             field_dict["default_branch"] = default_branch
+        if description is not UNSET:
+            field_dict["description"] = description
         if is_public is not UNSET:
             field_dict["is_public"] = is_public
 
@@ -60,19 +64,19 @@ class BodyDatasetCreate:
         d = dict(src_dict)
         name = d.pop("name")
 
-        description = d.pop("description")
-
         data_instance_type = DataInstanceType(d.pop("data_instance_type"))
 
         default_branch = d.pop("default_branch", UNSET)
+
+        description = d.pop("description", UNSET)
 
         is_public = d.pop("is_public", UNSET)
 
         body_dataset_create = cls(
             name=name,
-            description=description,
             data_instance_type=data_instance_type,
             default_branch=default_branch,
+            description=description,
             is_public=is_public,
         )
 

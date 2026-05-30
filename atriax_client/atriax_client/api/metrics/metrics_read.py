@@ -58,7 +58,7 @@ def _build_response(
 def sync_detailed(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[HTTPValidationError, list["EvaluationMetric"]]]:
     """Read
 
@@ -87,7 +87,7 @@ def sync_detailed(
 def sync(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[HTTPValidationError, list["EvaluationMetric"]]]:
     """Read
 
@@ -111,7 +111,7 @@ def sync(
 async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[HTTPValidationError, list["EvaluationMetric"]]]:
     """Read
 
@@ -138,7 +138,7 @@ async def asyncio_detailed(
 async def asyncio(
     evaluation_experiment_id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[HTTPValidationError, list["EvaluationMetric"]]]:
     """Read
 

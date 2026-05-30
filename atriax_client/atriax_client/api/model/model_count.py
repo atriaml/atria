@@ -26,7 +26,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/model/count",
+        "url": "/api/v1/model/count/",
         "params": params,
     }
 
@@ -62,7 +62,7 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, int]]:
     """Count
@@ -91,7 +91,7 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, int]]:
     """Count
@@ -115,7 +115,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, int]]:
     """Count
@@ -142,7 +142,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, int]]:
     """Count

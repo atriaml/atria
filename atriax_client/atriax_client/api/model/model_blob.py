@@ -17,7 +17,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/model/{id}/blob/{branch}/{path}",
+        "url": f"/api/v1/model/{id}/blob/{branch}/{path}/",
     }
 
     return _kwargs
@@ -55,7 +55,7 @@ def sync_detailed(
     branch: str,
     path: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[Any, HTTPValidationError]]:
     """Blob
 
@@ -90,7 +90,7 @@ def sync(
     branch: str,
     path: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[Any, HTTPValidationError]]:
     """Blob
 
@@ -120,7 +120,7 @@ async def asyncio_detailed(
     branch: str,
     path: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Response[Union[Any, HTTPValidationError]]:
     """Blob
 
@@ -153,7 +153,7 @@ async def asyncio(
     branch: str,
     path: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
 ) -> Optional[Union[Any, HTTPValidationError]]:
     """Blob
 

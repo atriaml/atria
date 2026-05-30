@@ -100,7 +100,7 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     page: Union[Unset, int] = 0,
     page_size: Union[Unset, int] = 100,
     paginated: Union[Unset, bool] = True,
@@ -150,7 +150,7 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     page: Union[Unset, int] = 0,
     page_size: Union[Unset, int] = 100,
     paginated: Union[Unset, bool] = True,
@@ -195,7 +195,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     page: Union[Unset, int] = 0,
     page_size: Union[Unset, int] = 100,
     paginated: Union[Unset, bool] = True,
@@ -243,7 +243,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     page: Union[Unset, int] = 0,
     page_size: Union[Unset, int] = 100,
     paginated: Union[Unset, bool] = True,

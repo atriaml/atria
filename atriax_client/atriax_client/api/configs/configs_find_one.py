@@ -75,7 +75,7 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     config_type: Union[ConfigType, None, Unset] = UNSET,
     name: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Config, HTTPValidationError]]:
@@ -107,7 +107,7 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     config_type: Union[ConfigType, None, Unset] = UNSET,
     name: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Config, HTTPValidationError]]:
@@ -134,7 +134,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     config_type: Union[ConfigType, None, Unset] = UNSET,
     name: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Config, HTTPValidationError]]:
@@ -164,7 +164,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     config_type: Union[ConfigType, None, Unset] = UNSET,
     name: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Config, HTTPValidationError]]:

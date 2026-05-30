@@ -14,19 +14,15 @@ class BodyDatasetUpdate:
     """
     Attributes:
         name (Union[Unset, str]):
-        description (Union[Unset, str]):
         is_public (Union[Unset, bool]):  Default: False.
     """
 
     name: Union[Unset, str] = UNSET
-    description: Union[Unset, str] = UNSET
     is_public: Union[Unset, bool] = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
-
-        description = self.description
 
         is_public = self.is_public
 
@@ -35,8 +31,6 @@ class BodyDatasetUpdate:
         field_dict.update({})
         if name is not UNSET:
             field_dict["name"] = name
-        if description is not UNSET:
-            field_dict["description"] = description
         if is_public is not UNSET:
             field_dict["is_public"] = is_public
 
@@ -47,13 +41,10 @@ class BodyDatasetUpdate:
         d = dict(src_dict)
         name = d.pop("name", UNSET)
 
-        description = d.pop("description", UNSET)
-
         is_public = d.pop("is_public", UNSET)
 
         body_dataset_update = cls(
             name=name,
-            description=description,
             is_public=is_public,
         )
 

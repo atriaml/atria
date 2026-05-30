@@ -7,7 +7,7 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...models.model import Model
+from ...models.task import Task
 from ...types import Response
 
 
@@ -15,8 +15,8 @@ def _get_kwargs(
     id: UUID,
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
-        "method": "get",
-        "url": f"/api/v1/model/{id}/",
+        "method": "post",
+        "url": f"/api/v1/tasks/{id}/reprocess/",
     }
 
     return _kwargs
@@ -24,9 +24,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, Model]]:
+) -> Optional[Union[HTTPValidationError, Task]]:
     if response.status_code == 200:
-        response_200 = Model.from_dict(response.json())
+        response_200 = Task.from_dict(response.json())
 
         return response_200
     if response.status_code == 422:
@@ -41,7 +41,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, Model]]:
+) -> Response[Union[HTTPValidationError, Task]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -54,8 +54,8 @@ def sync_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Response[Union[HTTPValidationError, Task]]:
+    """Reprocess Task
 
     Args:
         id (UUID):
@@ -65,7 +65,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[Union[HTTPValidationError, Task]]
     """
 
     kwargs = _get_kwargs(
@@ -83,8 +83,8 @@ def sync(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Optional[Union[HTTPValidationError, Task]]:
+    """Reprocess Task
 
     Args:
         id (UUID):
@@ -94,7 +94,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        Union[HTTPValidationError, Task]
     """
 
     return sync_detailed(
@@ -107,8 +107,8 @@ async def asyncio_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Response[Union[HTTPValidationError, Task]]:
+    """Reprocess Task
 
     Args:
         id (UUID):
@@ -118,7 +118,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[Union[HTTPValidationError, Task]]
     """
 
     kwargs = _get_kwargs(
@@ -134,8 +134,8 @@ async def asyncio(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Optional[Union[HTTPValidationError, Task]]:
+    """Reprocess Task
 
     Args:
         id (UUID):
@@ -145,7 +145,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        Union[HTTPValidationError, Task]
     """
 
     return (

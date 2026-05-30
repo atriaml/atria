@@ -39,7 +39,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/dataset/{id}/ids/{branch}/{config}/{split}",
+        "url": f"/api/v1/dataset/{id}/ids/{branch}/{config}/{split}/",
         "params": params,
     }
 
@@ -80,7 +80,7 @@ def sync_detailed(
     config: str,
     split: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     search: Union[None, Unset, str] = UNSET,
     search_by: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, list[int]]]:
@@ -124,7 +124,7 @@ def sync(
     config: str,
     split: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     search: Union[None, Unset, str] = UNSET,
     search_by: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, list[int]]]:
@@ -163,7 +163,7 @@ async def asyncio_detailed(
     config: str,
     split: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     search: Union[None, Unset, str] = UNSET,
     search_by: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[HTTPValidationError, list[int]]]:
@@ -205,7 +205,7 @@ async def asyncio(
     config: str,
     split: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     search: Union[None, Unset, str] = UNSET,
     search_by: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[HTTPValidationError, list[int]]]:

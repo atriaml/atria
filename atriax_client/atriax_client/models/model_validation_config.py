@@ -1,54 +1,58 @@
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="BodyDatasetGenerateUploadUrls")
+from ..types import UNSET, Unset
+
+T = TypeVar("T", bound="ModelValidationConfig")
 
 
 @_attrs_define
-class BodyDatasetGenerateUploadUrls:
-    """
+class ModelValidationConfig:
+    """Config for validating a model snapshot staged in LakeFS.
+
     Attributes:
-        paths (list[str]):
-        content_types (list[str]):
+        model_id (str):
+        branch (Union[Unset, str]):  Default: 'main'.
     """
 
-    paths: list[str]
-    content_types: list[str]
+    model_id: str
+    branch: Union[Unset, str] = "main"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        paths = self.paths
+        model_id = self.model_id
 
-        content_types = self.content_types
+        branch = self.branch
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "paths": paths,
-                "content_types": content_types,
+                "model_id": model_id,
             }
         )
+        if branch is not UNSET:
+            field_dict["branch"] = branch
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        paths = cast(list[str], d.pop("paths"))
+        model_id = d.pop("model_id")
 
-        content_types = cast(list[str], d.pop("content_types"))
+        branch = d.pop("branch", UNSET)
 
-        body_dataset_generate_upload_urls = cls(
-            paths=paths,
-            content_types=content_types,
+        model_validation_config = cls(
+            model_id=model_id,
+            branch=branch,
         )
 
-        body_dataset_generate_upload_urls.additional_properties = d
-        return body_dataset_generate_upload_urls
+        model_validation_config.additional_properties = d
+        return model_validation_config
 
     @property
     def additional_keys(self) -> list[str]:

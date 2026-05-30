@@ -22,7 +22,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": f"/api/v1/evaluations/{evaluation_experiment_id}/sample_explanations/{id}/viz_data",
+        "url": f"/api/v1/evaluations/{evaluation_experiment_id}/sample_explanations/{id}/viz_data/",
     }
 
     _kwargs["json"]: Union[None, dict[str, Any]]
@@ -69,7 +69,7 @@ def sync_detailed(
     evaluation_experiment_id: UUID,
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: Union["ImageExplanationVisualizerOptions", None],
 ) -> Response[Union[ExplanationVisualizationData, HTTPValidationError]]:
     """Viz Data
@@ -104,7 +104,7 @@ def sync(
     evaluation_experiment_id: UUID,
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: Union["ImageExplanationVisualizerOptions", None],
 ) -> Optional[Union[ExplanationVisualizationData, HTTPValidationError]]:
     """Viz Data
@@ -134,7 +134,7 @@ async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: Union["ImageExplanationVisualizerOptions", None],
 ) -> Response[Union[ExplanationVisualizationData, HTTPValidationError]]:
     """Viz Data
@@ -167,7 +167,7 @@ async def asyncio(
     evaluation_experiment_id: UUID,
     id: UUID,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     body: Union["ImageExplanationVisualizerOptions", None],
 ) -> Optional[Union[ExplanationVisualizationData, HTTPValidationError]]:
     """Viz Data

@@ -42,7 +42,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/model/{id}/tree/{branch}/{prefix}",
+        "url": f"/api/v1/model/{id}/tree/{branch}/{prefix}/",
         "params": params,
     }
 
@@ -82,7 +82,7 @@ def sync_detailed(
     branch: str,
     prefix: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     after: Union[None, Unset, str] = UNSET,
     pattern: Union[None, Unset, str] = UNSET,
     max_amount: Union[Unset, int] = 100,
@@ -126,7 +126,7 @@ def sync(
     branch: str,
     prefix: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     after: Union[None, Unset, str] = UNSET,
     pattern: Union[None, Unset, str] = UNSET,
     max_amount: Union[Unset, int] = 100,
@@ -165,7 +165,7 @@ async def asyncio_detailed(
     branch: str,
     prefix: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     after: Union[None, Unset, str] = UNSET,
     pattern: Union[None, Unset, str] = UNSET,
     max_amount: Union[Unset, int] = 100,
@@ -207,7 +207,7 @@ async def asyncio(
     branch: str,
     prefix: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     after: Union[None, Unset, str] = UNSET,
     pattern: Union[None, Unset, str] = UNSET,
     max_amount: Union[Unset, int] = 100,

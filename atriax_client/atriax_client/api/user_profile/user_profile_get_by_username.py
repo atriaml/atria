@@ -22,7 +22,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/user_profile/get_by_username",
+        "url": "/api/v1/user_profile/get_by_username/",
         "params": params,
     }
 
@@ -59,7 +59,7 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: str,
 ) -> Response[Union[HTTPValidationError, UserProfile]]:
     """Get By Username
@@ -88,7 +88,7 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: str,
 ) -> Optional[Union[HTTPValidationError, UserProfile]]:
     """Get By Username
@@ -112,7 +112,7 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: str,
 ) -> Response[Union[HTTPValidationError, UserProfile]]:
     """Get By Username
@@ -139,7 +139,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient,
     username: str,
 ) -> Optional[Union[HTTPValidationError, UserProfile]]:
     """Get By Username

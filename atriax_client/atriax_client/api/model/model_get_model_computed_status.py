@@ -7,7 +7,6 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...models.model import Model
 from ...types import Response
 
 
@@ -16,7 +15,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/model/{id}/",
+        "url": f"/api/v1/model/{id}/status/",
     }
 
     return _kwargs
@@ -24,10 +23,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, Model]]:
+) -> Optional[Union[Any, HTTPValidationError]]:
     if response.status_code == 200:
-        response_200 = Model.from_dict(response.json())
-
+        response_200 = response.json()
         return response_200
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
@@ -41,7 +39,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, Model]]:
+) -> Response[Union[Any, HTTPValidationError]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -54,8 +52,10 @@ def sync_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Response[Union[Any, HTTPValidationError]]:
+    """Get Model Computed Status
+
+     Return computed status for a model based on its latest task.
 
     Args:
         id (UUID):
@@ -65,7 +65,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[Union[Any, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -83,8 +83,10 @@ def sync(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Optional[Union[Any, HTTPValidationError]]:
+    """Get Model Computed Status
+
+     Return computed status for a model based on its latest task.
 
     Args:
         id (UUID):
@@ -94,7 +96,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        Union[Any, HTTPValidationError]
     """
 
     return sync_detailed(
@@ -107,8 +109,10 @@ async def asyncio_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Response[Union[Any, HTTPValidationError]]:
+    """Get Model Computed Status
+
+     Return computed status for a model based on its latest task.
 
     Args:
         id (UUID):
@@ -118,7 +122,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[Union[Any, HTTPValidationError]]
     """
 
     kwargs = _get_kwargs(
@@ -134,8 +138,10 @@ async def asyncio(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
-    """Item
+) -> Optional[Union[Any, HTTPValidationError]]:
+    """Get Model Computed Status
+
+     Return computed status for a model based on its latest task.
 
     Args:
         id (UUID):
@@ -145,7 +151,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        Union[Any, HTTPValidationError]
     """
 
     return (

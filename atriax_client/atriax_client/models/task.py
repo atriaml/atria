@@ -28,6 +28,7 @@ class Task:
         user_id (UUID):
         status (Union[Unset, TaskStatus]):
         error_message (Union[None, Unset, str]):
+        resource_id (Union[None, UUID, Unset]):
     """
 
     id: UUID
@@ -38,6 +39,7 @@ class Task:
     user_id: UUID
     status: Union[Unset, TaskStatus] = UNSET
     error_message: Union[None, Unset, str] = UNSET
+    resource_id: Union[None, UUID, Unset] = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -63,6 +65,14 @@ class Task:
         else:
             error_message = self.error_message
 
+        resource_id: Union[None, Unset, str]
+        if isinstance(self.resource_id, Unset):
+            resource_id = UNSET
+        elif isinstance(self.resource_id, UUID):
+            resource_id = str(self.resource_id)
+        else:
+            resource_id = self.resource_id
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -79,6 +89,8 @@ class Task:
             field_dict["status"] = status
         if error_message is not UNSET:
             field_dict["error_message"] = error_message
+        if resource_id is not UNSET:
+            field_dict["resource_id"] = resource_id
 
         return field_dict
 
@@ -115,6 +127,23 @@ class Task:
 
         error_message = _parse_error_message(d.pop("error_message", UNSET))
 
+        def _parse_resource_id(data: object) -> Union[None, UUID, Unset]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                resource_id_type_0 = UUID(data)
+
+                return resource_id_type_0
+            except:  # noqa: E722
+                pass
+            return cast(Union[None, UUID, Unset], data)
+
+        resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
+
         task = cls(
             id=id,
             created_at=created_at,
@@ -124,6 +153,7 @@ class Task:
             user_id=user_id,
             status=status,
             error_message=error_message,
+            resource_id=resource_id,
         )
 
         task.additional_properties = d

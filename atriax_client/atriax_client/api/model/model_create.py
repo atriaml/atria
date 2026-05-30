@@ -22,7 +22,9 @@ def _get_kwargs(
         "url": "/api/v1/model/",
     }
 
-    _kwargs["files"] = body.to_multipart()
+    _kwargs["data"] = body.to_dict()
+
+    headers["Content-Type"] = "application/x-www-form-urlencoded"
 
     _kwargs["headers"] = headers
     return _kwargs
