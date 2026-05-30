@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -16,16 +18,16 @@ class BodyModelCreate:
     Attributes:
         name (str):
         task_type (TaskType):
-        default_branch (Union[Unset, str]):  Default: 'main'.
-        description (Union[Unset, str]):
-        is_public (Union[Unset, bool]):  Default: False.
+        default_branch (str | Unset):  Default: 'main'.
+        description (str | Unset):
+        is_public (bool | Unset):  Default: False.
     """
 
     name: str
     task_type: TaskType
-    default_branch: Union[Unset, str] = "main"
-    description: Union[Unset, str] = UNSET
-    is_public: Union[Unset, bool] = False
+    default_branch: str | Unset = "main"
+    description: str | Unset = UNSET
+    is_public: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

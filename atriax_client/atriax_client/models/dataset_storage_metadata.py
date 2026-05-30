@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -20,15 +22,15 @@ class DatasetStorageMetadata:
     """
     Attributes:
         main_branch (str):
-        branches (list['LakeFSBranchSummary']):
-        configs (Union[Unset, DatasetStorageMetadataConfigs]):
-        splits (Union[Unset, DatasetStorageMetadataSplits]):
+        branches (list[LakeFSBranchSummary]):
+        configs (DatasetStorageMetadataConfigs | Unset):
+        splits (DatasetStorageMetadataSplits | Unset):
     """
 
     main_branch: str
-    branches: list["LakeFSBranchSummary"]
-    configs: Union[Unset, "DatasetStorageMetadataConfigs"] = UNSET
-    splits: Union[Unset, "DatasetStorageMetadataSplits"] = UNSET
+    branches: list[LakeFSBranchSummary]
+    configs: DatasetStorageMetadataConfigs | Unset = UNSET
+    splits: DatasetStorageMetadataSplits | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,11 +41,11 @@ class DatasetStorageMetadata:
             branches_item = branches_item_data.to_dict()
             branches.append(branches_item)
 
-        configs: Union[Unset, dict[str, Any]] = UNSET
+        configs: dict[str, Any] | Unset = UNSET
         if not isinstance(self.configs, Unset):
             configs = self.configs.to_dict()
 
-        splits: Union[Unset, dict[str, Any]] = UNSET
+        splits: dict[str, Any] | Unset = UNSET
         if not isinstance(self.splits, Unset):
             splits = self.splits.to_dict()
 
@@ -79,14 +81,14 @@ class DatasetStorageMetadata:
             branches.append(branches_item)
 
         _configs = d.pop("configs", UNSET)
-        configs: Union[Unset, DatasetStorageMetadataConfigs]
+        configs: DatasetStorageMetadataConfigs | Unset
         if isinstance(_configs, Unset):
             configs = UNSET
         else:
             configs = DatasetStorageMetadataConfigs.from_dict(_configs)
 
         _splits = d.pop("splits", UNSET)
-        splits: Union[Unset, DatasetStorageMetadataSplits]
+        splits: DatasetStorageMetadataSplits | Unset
         if isinstance(_splits, Unset):
             splits = UNSET
         else:

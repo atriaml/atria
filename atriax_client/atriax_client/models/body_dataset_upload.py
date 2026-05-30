@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from io import BytesIO
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -17,16 +19,16 @@ class BodyDatasetUpload:
     Attributes:
         files (list[File]):
         paths (list[str]):
-        split (Union[Unset, str]):  Default: 'train'.
-        config (Union[Unset, str]):  Default: 'default'.
-        validate_dataset (Union[Unset, bool]):  Default: False.
+        split (str | Unset):  Default: 'train'.
+        config (str | Unset):  Default: 'default'.
+        validate_dataset (bool | Unset):  Default: False.
     """
 
     files: list[File]
     paths: list[str]
-    split: Union[Unset, str] = "train"
-    config: Union[Unset, str] = "default"
-    validate_dataset: Union[Unset, bool] = False
+    split: str | Unset = "train"
+    config: str | Unset = "default"
+    validate_dataset: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

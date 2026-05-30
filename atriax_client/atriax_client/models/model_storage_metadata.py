@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -19,13 +21,13 @@ class ModelStorageMetadata:
     """
     Attributes:
         main_branch (str):
-        branches (list['LakeFSBranchSummary']):
-        configs (Union[Unset, ModelStorageMetadataConfigs]):
+        branches (list[LakeFSBranchSummary]):
+        configs (ModelStorageMetadataConfigs | Unset):
     """
 
     main_branch: str
-    branches: list["LakeFSBranchSummary"]
-    configs: Union[Unset, "ModelStorageMetadataConfigs"] = UNSET
+    branches: list[LakeFSBranchSummary]
+    configs: ModelStorageMetadataConfigs | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,7 +38,7 @@ class ModelStorageMetadata:
             branches_item = branches_item_data.to_dict()
             branches.append(branches_item)
 
-        configs: Union[Unset, dict[str, Any]] = UNSET
+        configs: dict[str, Any] | Unset = UNSET
         if not isinstance(self.configs, Unset):
             configs = self.configs.to_dict()
 
@@ -69,7 +71,7 @@ class ModelStorageMetadata:
             branches.append(branches_item)
 
         _configs = d.pop("configs", UNSET)
-        configs: Union[Unset, ModelStorageMetadataConfigs]
+        configs: ModelStorageMetadataConfigs | Unset
         if isinstance(_configs, Unset):
             configs = UNSET
         else:

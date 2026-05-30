@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -13,30 +15,30 @@ T = TypeVar("T", bound="BodyModelUpdate")
 class BodyModelUpdate:
     """
     Attributes:
-        name (Union[None, Unset, str]):
-        description (Union[None, Unset, str]):
-        is_public (Union[None, Unset, bool]):
+        name (None | str | Unset):
+        description (None | str | Unset):
+        is_public (bool | None | Unset):
     """
 
-    name: Union[None, Unset, str] = UNSET
-    description: Union[None, Unset, str] = UNSET
-    is_public: Union[None, Unset, bool] = UNSET
+    name: None | str | Unset = UNSET
+    description: None | str | Unset = UNSET
+    is_public: bool | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        name: Union[None, Unset, str]
+        name: None | str | Unset
         if isinstance(self.name, Unset):
             name = UNSET
         else:
             name = self.name
 
-        description: Union[None, Unset, str]
+        description: None | str | Unset
         if isinstance(self.description, Unset):
             description = UNSET
         else:
             description = self.description
 
-        is_public: Union[None, Unset, bool]
+        is_public: bool | None | Unset
         if isinstance(self.is_public, Unset):
             is_public = UNSET
         else:
@@ -58,30 +60,30 @@ class BodyModelUpdate:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_name(data: object) -> Union[None, Unset, str]:
+        def _parse_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         name = _parse_name(d.pop("name", UNSET))
 
-        def _parse_description(data: object) -> Union[None, Unset, str]:
+        def _parse_description(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         description = _parse_description(d.pop("description", UNSET))
 
-        def _parse_is_public(data: object) -> Union[None, Unset, bool]:
+        def _parse_is_public(data: object) -> bool | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, bool], data)
+            return cast(bool | None | Unset, data)
 
         is_public = _parse_is_public(d.pop("is_public", UNSET))
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from io import BytesIO
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -19,14 +21,14 @@ class BodySampleExplanationsWrite:
         name (str):
         config (str):
         explanation_metadata (str):
-        explanation_file (Union[File, None, Unset]):
+        explanation_file (File | None | Unset):
     """
 
     sample_index: int
     name: str
     config: str
     explanation_metadata: str
-    explanation_file: Union[File, None, Unset] = UNSET
+    explanation_file: File | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,7 +40,7 @@ class BodySampleExplanationsWrite:
 
         explanation_metadata = self.explanation_metadata
 
-        explanation_file: Union[FileTypes, None, Unset]
+        explanation_file: FileTypes | None | Unset
         if isinstance(self.explanation_file, Unset):
             explanation_file = UNSET
         elif isinstance(self.explanation_file, File):
@@ -95,7 +97,7 @@ class BodySampleExplanationsWrite:
 
         explanation_metadata = d.pop("explanation_metadata")
 
-        def _parse_explanation_file(data: object) -> Union[File, None, Unset]:
+        def _parse_explanation_file(data: object) -> File | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -106,9 +108,9 @@ class BodySampleExplanationsWrite:
                 explanation_file_type_0 = File(payload=BytesIO(data))
 
                 return explanation_file_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union[File, None, Unset], data)
+            return cast(File | None | Unset, data)
 
         explanation_file = _parse_explanation_file(d.pop("explanation_file", UNSET))
 

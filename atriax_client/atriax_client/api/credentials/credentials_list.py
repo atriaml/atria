@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -18,22 +18,19 @@ def _get_kwargs() -> dict[str, Any]:
     return _kwargs
 
 
-def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[CredentialsList]:
+def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> CredentialsList | None:
     if response.status_code == 200:
         response_200 = CredentialsList.from_dict(response.json())
 
         return response_200
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
         return None
 
 
-def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[CredentialsList]:
+def _build_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Response[CredentialsList]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,7 +65,7 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-) -> Optional[CredentialsList]:
+) -> CredentialsList | None:
     """List
 
     Raises:
@@ -108,7 +105,7 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-) -> Optional[CredentialsList]:
+) -> CredentialsList | None:
     """List
 
     Raises:

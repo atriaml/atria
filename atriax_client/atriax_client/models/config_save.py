@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -22,15 +24,15 @@ class ConfigSave:
         config_type (ConfigType):
         name (str):
         variant (str):
-        params (Union['ConfigSaveParamsType0', None, Unset]):
-        children (Union['ConfigSaveChildrenType0', None, Unset]):
+        params (ConfigSaveParamsType0 | None | Unset):
+        children (ConfigSaveChildrenType0 | None | Unset):
     """
 
     config_type: ConfigType
     name: str
     variant: str
-    params: Union["ConfigSaveParamsType0", None, Unset] = UNSET
-    children: Union["ConfigSaveChildrenType0", None, Unset] = UNSET
+    params: ConfigSaveParamsType0 | None | Unset = UNSET
+    children: ConfigSaveChildrenType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -43,7 +45,7 @@ class ConfigSave:
 
         variant = self.variant
 
-        params: Union[None, Unset, dict[str, Any]]
+        params: dict[str, Any] | None | Unset
         if isinstance(self.params, Unset):
             params = UNSET
         elif isinstance(self.params, ConfigSaveParamsType0):
@@ -51,7 +53,7 @@ class ConfigSave:
         else:
             params = self.params
 
-        children: Union[None, Unset, dict[str, Any]]
+        children: dict[str, Any] | None | Unset
         if isinstance(self.children, Unset):
             children = UNSET
         elif isinstance(self.children, ConfigSaveChildrenType0):
@@ -87,7 +89,7 @@ class ConfigSave:
 
         variant = d.pop("variant")
 
-        def _parse_params(data: object) -> Union["ConfigSaveParamsType0", None, Unset]:
+        def _parse_params(data: object) -> ConfigSaveParamsType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -98,13 +100,13 @@ class ConfigSave:
                 params_type_0 = ConfigSaveParamsType0.from_dict(data)
 
                 return params_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ConfigSaveParamsType0", None, Unset], data)
+            return cast(ConfigSaveParamsType0 | None | Unset, data)
 
         params = _parse_params(d.pop("params", UNSET))
 
-        def _parse_children(data: object) -> Union["ConfigSaveChildrenType0", None, Unset]:
+        def _parse_children(data: object) -> ConfigSaveChildrenType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -115,9 +117,9 @@ class ConfigSave:
                 children_type_0 = ConfigSaveChildrenType0.from_dict(data)
 
                 return children_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ConfigSaveChildrenType0", None, Unset], data)
+            return cast(ConfigSaveChildrenType0 | None | Unset, data)
 
         children = _parse_children(d.pop("children", UNSET))
 

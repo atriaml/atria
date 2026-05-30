@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -15,16 +16,17 @@ from ...types import Response
 def _get_kwargs(
     evaluation_experiment_id: UUID,
     *,
-    body: Union["EvaluationMetricCreate", list["EvaluationMetricCreate"]],
+    body: EvaluationMetricCreate | list[EvaluationMetricCreate],
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": f"/api/v1/evaluation_experiments/{evaluation_experiment_id}/metrics/",
+        "url": "/api/v1/evaluation_experiments/{evaluation_experiment_id}/metrics/".format(
+            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
+        ),
     }
 
-    _kwargs["json"]: Union[dict[str, Any], list[dict[str, Any]]]
     if isinstance(body, list):
         _kwargs["json"] = []
         for body_type_0_item_data in body:
@@ -41,11 +43,11 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> EvaluationMetric | list[EvaluationMetric] | HTTPValidationError | None:
     if response.status_code == 200:
 
-        def _parse_response_200(data: object) -> Union["EvaluationMetric", list["EvaluationMetric"]]:
+        def _parse_response_200(data: object) -> EvaluationMetric | list[EvaluationMetric]:
             try:
                 if not isinstance(data, list):
                     raise TypeError()
@@ -57,7 +59,7 @@ def _parse_response(
                     response_200_type_0.append(response_200_type_0_item)
 
                 return response_200_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
@@ -68,10 +70,12 @@ def _parse_response(
         response_200 = _parse_response_200(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -79,8 +83,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[EvaluationMetric | list[EvaluationMetric] | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -93,20 +97,20 @@ def sync_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    body: Union["EvaluationMetricCreate", list["EvaluationMetricCreate"]],
-) -> Response[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    body: EvaluationMetricCreate | list[EvaluationMetricCreate],
+) -> Response[EvaluationMetric | list[EvaluationMetric] | HTTPValidationError]:
     """Write
 
     Args:
         evaluation_experiment_id (UUID):
-        body (Union['EvaluationMetricCreate', list['EvaluationMetricCreate']]):
+        body (EvaluationMetricCreate | list[EvaluationMetricCreate]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['EvaluationMetric', list['EvaluationMetric']]]]
+        Response[EvaluationMetric | list[EvaluationMetric] | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -125,20 +129,20 @@ def sync(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    body: Union["EvaluationMetricCreate", list["EvaluationMetricCreate"]],
-) -> Optional[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    body: EvaluationMetricCreate | list[EvaluationMetricCreate],
+) -> EvaluationMetric | list[EvaluationMetric] | HTTPValidationError | None:
     """Write
 
     Args:
         evaluation_experiment_id (UUID):
-        body (Union['EvaluationMetricCreate', list['EvaluationMetricCreate']]):
+        body (EvaluationMetricCreate | list[EvaluationMetricCreate]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['EvaluationMetric', list['EvaluationMetric']]]
+        EvaluationMetric | list[EvaluationMetric] | HTTPValidationError
     """
 
     return sync_detailed(
@@ -152,20 +156,20 @@ async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    body: Union["EvaluationMetricCreate", list["EvaluationMetricCreate"]],
-) -> Response[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    body: EvaluationMetricCreate | list[EvaluationMetricCreate],
+) -> Response[EvaluationMetric | list[EvaluationMetric] | HTTPValidationError]:
     """Write
 
     Args:
         evaluation_experiment_id (UUID):
-        body (Union['EvaluationMetricCreate', list['EvaluationMetricCreate']]):
+        body (EvaluationMetricCreate | list[EvaluationMetricCreate]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['EvaluationMetric', list['EvaluationMetric']]]]
+        Response[EvaluationMetric | list[EvaluationMetric] | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -182,20 +186,20 @@ async def asyncio(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-    body: Union["EvaluationMetricCreate", list["EvaluationMetricCreate"]],
-) -> Optional[Union[HTTPValidationError, Union["EvaluationMetric", list["EvaluationMetric"]]]]:
+    body: EvaluationMetricCreate | list[EvaluationMetricCreate],
+) -> EvaluationMetric | list[EvaluationMetric] | HTTPValidationError | None:
     """Write
 
     Args:
         evaluation_experiment_id (UUID):
-        body (Union['EvaluationMetricCreate', list['EvaluationMetricCreate']]):
+        body (EvaluationMetricCreate | list[EvaluationMetricCreate]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['EvaluationMetric', list['EvaluationMetric']]]
+        EvaluationMetric | list[EvaluationMetric] | HTTPValidationError
     """
 
     return (

@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -31,16 +31,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[EvaluationExperiment, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> EvaluationExperiment | HTTPValidationError | None:
     if response.status_code == 200:
         response_200 = EvaluationExperiment.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -48,8 +50,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[EvaluationExperiment, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[EvaluationExperiment | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -62,7 +64,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: EvaluationExperimentGetOrCreate,
-) -> Response[Union[EvaluationExperiment, HTTPValidationError]]:
+) -> Response[EvaluationExperiment | HTTPValidationError]:
     """Get Or Create
 
     Args:
@@ -73,7 +75,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[EvaluationExperiment, HTTPValidationError]]
+        Response[EvaluationExperiment | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -91,7 +93,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: EvaluationExperimentGetOrCreate,
-) -> Optional[Union[EvaluationExperiment, HTTPValidationError]]:
+) -> EvaluationExperiment | HTTPValidationError | None:
     """Get Or Create
 
     Args:
@@ -102,7 +104,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[EvaluationExperiment, HTTPValidationError]
+        EvaluationExperiment | HTTPValidationError
     """
 
     return sync_detailed(
@@ -115,7 +117,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: EvaluationExperimentGetOrCreate,
-) -> Response[Union[EvaluationExperiment, HTTPValidationError]]:
+) -> Response[EvaluationExperiment | HTTPValidationError]:
     """Get Or Create
 
     Args:
@@ -126,7 +128,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[EvaluationExperiment, HTTPValidationError]]
+        Response[EvaluationExperiment | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -142,7 +144,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: EvaluationExperimentGetOrCreate,
-) -> Optional[Union[EvaluationExperiment, HTTPValidationError]]:
+) -> EvaluationExperiment | HTTPValidationError | None:
     """Get Or Create
 
     Args:
@@ -153,7 +155,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[EvaluationExperiment, HTTPValidationError]
+        EvaluationExperiment | HTTPValidationError
     """
 
     return (

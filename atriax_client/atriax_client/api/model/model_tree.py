@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -16,20 +17,20 @@ def _get_kwargs(
     branch: str,
     prefix: str,
     *,
-    after: Union[None, Unset, str] = UNSET,
-    pattern: Union[None, Unset, str] = UNSET,
-    max_amount: Union[Unset, int] = 100,
+    after: None | str | Unset = UNSET,
+    pattern: None | str | Unset = UNSET,
+    max_amount: int | Unset = 100,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_after: Union[None, Unset, str]
+    json_after: None | str | Unset
     if isinstance(after, Unset):
         json_after = UNSET
     else:
         json_after = after
     params["after"] = json_after
 
-    json_pattern: Union[None, Unset, str]
+    json_pattern: None | str | Unset
     if isinstance(pattern, Unset):
         json_pattern = UNSET
     else:
@@ -42,7 +43,11 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/model/{id}/tree/{branch}/{prefix}/",
+        "url": "/api/v1/model/{id}/tree/{branch}/{prefix}/".format(
+            id=quote(str(id), safe=""),
+            branch=quote(str(branch), safe=""),
+            prefix=quote(str(prefix), safe=""),
+        ),
         "params": params,
     }
 
@@ -50,16 +55,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> HTTPValidationError | LakeFSStoragePaginatedObjects | None:
     if response.status_code == 200:
         response_200 = LakeFSStoragePaginatedObjects.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -67,8 +74,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[HTTPValidationError | LakeFSStoragePaginatedObjects]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -83,26 +90,26 @@ def sync_detailed(
     prefix: str,
     *,
     client: AuthenticatedClient,
-    after: Union[None, Unset, str] = UNSET,
-    pattern: Union[None, Unset, str] = UNSET,
-    max_amount: Union[Unset, int] = 100,
-) -> Response[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    after: None | str | Unset = UNSET,
+    pattern: None | str | Unset = UNSET,
+    max_amount: int | Unset = 100,
+) -> Response[HTTPValidationError | LakeFSStoragePaginatedObjects]:
     """Tree
 
     Args:
         id (UUID):
         branch (str):
         prefix (str):
-        after (Union[None, Unset, str]):
-        pattern (Union[None, Unset, str]):
-        max_amount (Union[Unset, int]):  Default: 100.
+        after (None | str | Unset):
+        pattern (None | str | Unset):
+        max_amount (int | Unset):  Default: 100.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]
+        Response[HTTPValidationError | LakeFSStoragePaginatedObjects]
     """
 
     kwargs = _get_kwargs(
@@ -127,26 +134,26 @@ def sync(
     prefix: str,
     *,
     client: AuthenticatedClient,
-    after: Union[None, Unset, str] = UNSET,
-    pattern: Union[None, Unset, str] = UNSET,
-    max_amount: Union[Unset, int] = 100,
-) -> Optional[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    after: None | str | Unset = UNSET,
+    pattern: None | str | Unset = UNSET,
+    max_amount: int | Unset = 100,
+) -> HTTPValidationError | LakeFSStoragePaginatedObjects | None:
     """Tree
 
     Args:
         id (UUID):
         branch (str):
         prefix (str):
-        after (Union[None, Unset, str]):
-        pattern (Union[None, Unset, str]):
-        max_amount (Union[Unset, int]):  Default: 100.
+        after (None | str | Unset):
+        pattern (None | str | Unset):
+        max_amount (int | Unset):  Default: 100.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, LakeFSStoragePaginatedObjects]
+        HTTPValidationError | LakeFSStoragePaginatedObjects
     """
 
     return sync_detailed(
@@ -166,26 +173,26 @@ async def asyncio_detailed(
     prefix: str,
     *,
     client: AuthenticatedClient,
-    after: Union[None, Unset, str] = UNSET,
-    pattern: Union[None, Unset, str] = UNSET,
-    max_amount: Union[Unset, int] = 100,
-) -> Response[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    after: None | str | Unset = UNSET,
+    pattern: None | str | Unset = UNSET,
+    max_amount: int | Unset = 100,
+) -> Response[HTTPValidationError | LakeFSStoragePaginatedObjects]:
     """Tree
 
     Args:
         id (UUID):
         branch (str):
         prefix (str):
-        after (Union[None, Unset, str]):
-        pattern (Union[None, Unset, str]):
-        max_amount (Union[Unset, int]):  Default: 100.
+        after (None | str | Unset):
+        pattern (None | str | Unset):
+        max_amount (int | Unset):  Default: 100.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]
+        Response[HTTPValidationError | LakeFSStoragePaginatedObjects]
     """
 
     kwargs = _get_kwargs(
@@ -208,26 +215,26 @@ async def asyncio(
     prefix: str,
     *,
     client: AuthenticatedClient,
-    after: Union[None, Unset, str] = UNSET,
-    pattern: Union[None, Unset, str] = UNSET,
-    max_amount: Union[Unset, int] = 100,
-) -> Optional[Union[HTTPValidationError, LakeFSStoragePaginatedObjects]]:
+    after: None | str | Unset = UNSET,
+    pattern: None | str | Unset = UNSET,
+    max_amount: int | Unset = 100,
+) -> HTTPValidationError | LakeFSStoragePaginatedObjects | None:
     """Tree
 
     Args:
         id (UUID):
         branch (str):
         prefix (str):
-        after (Union[None, Unset, str]):
-        pattern (Union[None, Unset, str]):
-        max_amount (Union[Unset, int]):  Default: 100.
+        after (None | str | Unset):
+        pattern (None | str | Unset):
+        max_amount (int | Unset):  Default: 100.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, LakeFSStoragePaginatedObjects]
+        HTTPValidationError | LakeFSStoragePaginatedObjects
     """
 
     return (

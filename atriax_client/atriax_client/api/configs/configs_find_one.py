@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -13,12 +13,12 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    config_type: Union[ConfigType, None, Unset] = UNSET,
-    name: Union[None, Unset, str] = UNSET,
+    config_type: ConfigType | None | Unset = UNSET,
+    name: None | str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_config_type: Union[None, Unset, str]
+    json_config_type: None | str | Unset
     if isinstance(config_type, Unset):
         json_config_type = UNSET
     elif isinstance(config_type, ConfigType):
@@ -27,7 +27,7 @@ def _get_kwargs(
         json_config_type = config_type
     params["config_type"] = json_config_type
 
-    json_name: Union[None, Unset, str]
+    json_name: None | str | Unset
     if isinstance(name, Unset):
         json_name = UNSET
     else:
@@ -46,16 +46,18 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Config, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Config | HTTPValidationError | None:
     if response.status_code == 200:
         response_200 = Config.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -63,8 +65,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Config, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Config | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -76,21 +78,21 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    config_type: Union[ConfigType, None, Unset] = UNSET,
-    name: Union[None, Unset, str] = UNSET,
-) -> Response[Union[Config, HTTPValidationError]]:
+    config_type: ConfigType | None | Unset = UNSET,
+    name: None | str | Unset = UNSET,
+) -> Response[Config | HTTPValidationError]:
     """Find One
 
     Args:
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Config, HTTPValidationError]]
+        Response[Config | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -108,21 +110,21 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    config_type: Union[ConfigType, None, Unset] = UNSET,
-    name: Union[None, Unset, str] = UNSET,
-) -> Optional[Union[Config, HTTPValidationError]]:
+    config_type: ConfigType | None | Unset = UNSET,
+    name: None | str | Unset = UNSET,
+) -> Config | HTTPValidationError | None:
     """Find One
 
     Args:
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Config, HTTPValidationError]
+        Config | HTTPValidationError
     """
 
     return sync_detailed(
@@ -135,21 +137,21 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    config_type: Union[ConfigType, None, Unset] = UNSET,
-    name: Union[None, Unset, str] = UNSET,
-) -> Response[Union[Config, HTTPValidationError]]:
+    config_type: ConfigType | None | Unset = UNSET,
+    name: None | str | Unset = UNSET,
+) -> Response[Config | HTTPValidationError]:
     """Find One
 
     Args:
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Config, HTTPValidationError]]
+        Response[Config | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -165,21 +167,21 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    config_type: Union[ConfigType, None, Unset] = UNSET,
-    name: Union[None, Unset, str] = UNSET,
-) -> Optional[Union[Config, HTTPValidationError]]:
+    config_type: ConfigType | None | Unset = UNSET,
+    name: None | str | Unset = UNSET,
+) -> Config | HTTPValidationError | None:
     """Find One
 
     Args:
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Config, HTTPValidationError]
+        Config | HTTPValidationError
     """
 
     return (

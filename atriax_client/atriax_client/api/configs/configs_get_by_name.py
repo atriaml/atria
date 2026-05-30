@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -18,23 +19,29 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/configs/{config_type}/{name}/{variant}/",
+        "url": "/api/v1/configs/{config_type}/{name}/{variant}/".format(
+            config_type=quote(str(config_type), safe=""),
+            name=quote(str(name), safe=""),
+            variant=quote(str(variant), safe=""),
+        ),
     }
 
     return _kwargs
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Config, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Config | HTTPValidationError | None:
     if response.status_code == 200:
         response_200 = Config.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -42,8 +49,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Config, HTTPValidationError]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Config | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -58,7 +65,7 @@ def sync_detailed(
     variant: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Config, HTTPValidationError]]:
+) -> Response[Config | HTTPValidationError]:
     """Get By Name
 
     Args:
@@ -71,7 +78,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Config, HTTPValidationError]]
+        Response[Config | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -93,7 +100,7 @@ def sync(
     variant: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Config, HTTPValidationError]]:
+) -> Config | HTTPValidationError | None:
     """Get By Name
 
     Args:
@@ -106,7 +113,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Config, HTTPValidationError]
+        Config | HTTPValidationError
     """
 
     return sync_detailed(
@@ -123,7 +130,7 @@ async def asyncio_detailed(
     variant: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[Config, HTTPValidationError]]:
+) -> Response[Config | HTTPValidationError]:
     """Get By Name
 
     Args:
@@ -136,7 +143,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Config, HTTPValidationError]]
+        Response[Config | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
@@ -156,7 +163,7 @@ async def asyncio(
     variant: str,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[Config, HTTPValidationError]]:
+) -> Config | HTTPValidationError | None:
     """Get By Name
 
     Args:
@@ -169,7 +176,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Config, HTTPValidationError]
+        Config | HTTPValidationError
     """
 
     return (

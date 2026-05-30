@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -22,21 +24,21 @@ class ConfigBase:
         config_type (ConfigType):
         name (str):
         module_path (str):
-        variant (Union[Unset, str]):  Default: 'default'.
-        hash_ (Union[None, Unset, str]):
-        hash_fields (Union[Unset, list[str]]):
-        params (Union['ConfigBaseParamsType0', None, Unset]):
-        children (Union['ConfigBaseChildrenType0', None, Unset]):
+        variant (str | Unset):  Default: 'default'.
+        hash_ (None | str | Unset):
+        hash_fields (list[str] | Unset):
+        params (ConfigBaseParamsType0 | None | Unset):
+        children (ConfigBaseChildrenType0 | None | Unset):
     """
 
     config_type: ConfigType
     name: str
     module_path: str
-    variant: Union[Unset, str] = "default"
-    hash_: Union[None, Unset, str] = UNSET
-    hash_fields: Union[Unset, list[str]] = UNSET
-    params: Union["ConfigBaseParamsType0", None, Unset] = UNSET
-    children: Union["ConfigBaseChildrenType0", None, Unset] = UNSET
+    variant: str | Unset = "default"
+    hash_: None | str | Unset = UNSET
+    hash_fields: list[str] | Unset = UNSET
+    params: ConfigBaseParamsType0 | None | Unset = UNSET
+    children: ConfigBaseChildrenType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,17 +53,17 @@ class ConfigBase:
 
         variant = self.variant
 
-        hash_: Union[None, Unset, str]
+        hash_: None | str | Unset
         if isinstance(self.hash_, Unset):
             hash_ = UNSET
         else:
             hash_ = self.hash_
 
-        hash_fields: Union[Unset, list[str]] = UNSET
+        hash_fields: list[str] | Unset = UNSET
         if not isinstance(self.hash_fields, Unset):
             hash_fields = self.hash_fields
 
-        params: Union[None, Unset, dict[str, Any]]
+        params: dict[str, Any] | None | Unset
         if isinstance(self.params, Unset):
             params = UNSET
         elif isinstance(self.params, ConfigBaseParamsType0):
@@ -69,7 +71,7 @@ class ConfigBase:
         else:
             params = self.params
 
-        children: Union[None, Unset, dict[str, Any]]
+        children: dict[str, Any] | None | Unset
         if isinstance(self.children, Unset):
             children = UNSET
         elif isinstance(self.children, ConfigBaseChildrenType0):
@@ -113,18 +115,18 @@ class ConfigBase:
 
         variant = d.pop("variant", UNSET)
 
-        def _parse_hash_(data: object) -> Union[None, Unset, str]:
+        def _parse_hash_(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         hash_ = _parse_hash_(d.pop("hash", UNSET))
 
         hash_fields = cast(list[str], d.pop("hash_fields", UNSET))
 
-        def _parse_params(data: object) -> Union["ConfigBaseParamsType0", None, Unset]:
+        def _parse_params(data: object) -> ConfigBaseParamsType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -135,13 +137,13 @@ class ConfigBase:
                 params_type_0 = ConfigBaseParamsType0.from_dict(data)
 
                 return params_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ConfigBaseParamsType0", None, Unset], data)
+            return cast(ConfigBaseParamsType0 | None | Unset, data)
 
         params = _parse_params(d.pop("params", UNSET))
 
-        def _parse_children(data: object) -> Union["ConfigBaseChildrenType0", None, Unset]:
+        def _parse_children(data: object) -> ConfigBaseChildrenType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -152,9 +154,9 @@ class ConfigBase:
                 children_type_0 = ConfigBaseChildrenType0.from_dict(data)
 
                 return children_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ConfigBaseChildrenType0", None, Unset], data)
+            return cast(ConfigBaseChildrenType0 | None | Unset, data)
 
         children = _parse_children(d.pop("children", UNSET))
 

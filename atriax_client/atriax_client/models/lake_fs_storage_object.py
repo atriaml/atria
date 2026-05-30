@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -15,20 +17,20 @@ class LakeFSStorageObject:
     Attributes:
         object_key (str):
         ext (str):
-        physical_address (Union[None, Unset, str]):
-        presigned_url (Union[None, Unset, str]):
-        size (Union[Unset, int]):  Default: 0.
-        modified (Union[Unset, int]):  Default: 0.
-        type_ (Union[Unset, str]):  Default: 'file'.
+        physical_address (None | str | Unset):
+        presigned_url (None | str | Unset):
+        size (int | Unset):  Default: 0.
+        modified (int | Unset):  Default: 0.
+        type_ (str | Unset):  Default: 'file'.
     """
 
     object_key: str
     ext: str
-    physical_address: Union[None, Unset, str] = UNSET
-    presigned_url: Union[None, Unset, str] = UNSET
-    size: Union[Unset, int] = 0
-    modified: Union[Unset, int] = 0
-    type_: Union[Unset, str] = "file"
+    physical_address: None | str | Unset = UNSET
+    presigned_url: None | str | Unset = UNSET
+    size: int | Unset = 0
+    modified: int | Unset = 0
+    type_: str | Unset = "file"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,13 +38,13 @@ class LakeFSStorageObject:
 
         ext = self.ext
 
-        physical_address: Union[None, Unset, str]
+        physical_address: None | str | Unset
         if isinstance(self.physical_address, Unset):
             physical_address = UNSET
         else:
             physical_address = self.physical_address
 
-        presigned_url: Union[None, Unset, str]
+        presigned_url: None | str | Unset
         if isinstance(self.presigned_url, Unset):
             presigned_url = UNSET
         else:
@@ -82,21 +84,21 @@ class LakeFSStorageObject:
 
         ext = d.pop("ext")
 
-        def _parse_physical_address(data: object) -> Union[None, Unset, str]:
+        def _parse_physical_address(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         physical_address = _parse_physical_address(d.pop("physical_address", UNSET))
 
-        def _parse_presigned_url(data: object) -> Union[None, Unset, str]:
+        def _parse_presigned_url(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         presigned_url = _parse_presigned_url(d.pop("presigned_url", UNSET))
 

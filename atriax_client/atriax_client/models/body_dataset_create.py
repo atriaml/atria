@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -16,19 +18,19 @@ class BodyDatasetCreate:
     Attributes:
         name (str):
         data_instance_type (DataInstanceType):
-        default_branch (Union[Unset, str]):  Default: 'main'.
-        description (Union[Unset, str]):  Default: 'A short description of the dataset, its intended use, and any other
+        default_branch (str | Unset):  Default: 'main'.
+        description (str | Unset):  Default: 'A short description of the dataset, its intended use, and any other
             relevant information.'.
-        is_public (Union[Unset, bool]):  Default: False.
+        is_public (bool | Unset):  Default: False.
     """
 
     name: str
     data_instance_type: DataInstanceType
-    default_branch: Union[Unset, str] = "main"
-    description: Union[Unset, str] = (
+    default_branch: str | Unset = "main"
+    description: str | Unset = (
         "A short description of the dataset, its intended use, and any other relevant information."
     )
-    is_public: Union[Unset, bool] = False
+    is_public: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

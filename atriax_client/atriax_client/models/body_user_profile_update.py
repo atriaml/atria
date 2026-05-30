@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from io import BytesIO
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -15,46 +17,46 @@ T = TypeVar("T", bound="BodyUserProfileUpdate")
 class BodyUserProfileUpdate:
     """
     Attributes:
-        full_name (Union[None, Unset, str]):
-        bio (Union[None, Unset, str]):
-        location (Union[None, Unset, str]):
-        website (Union[None, Unset, str]):
-        avatar_file (Union[File, None, Unset]):
+        full_name (None | str | Unset):
+        bio (None | str | Unset):
+        location (None | str | Unset):
+        website (None | str | Unset):
+        avatar_file (File | None | Unset):
     """
 
-    full_name: Union[None, Unset, str] = UNSET
-    bio: Union[None, Unset, str] = UNSET
-    location: Union[None, Unset, str] = UNSET
-    website: Union[None, Unset, str] = UNSET
-    avatar_file: Union[File, None, Unset] = UNSET
+    full_name: None | str | Unset = UNSET
+    bio: None | str | Unset = UNSET
+    location: None | str | Unset = UNSET
+    website: None | str | Unset = UNSET
+    avatar_file: File | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        full_name: Union[None, Unset, str]
+        full_name: None | str | Unset
         if isinstance(self.full_name, Unset):
             full_name = UNSET
         else:
             full_name = self.full_name
 
-        bio: Union[None, Unset, str]
+        bio: None | str | Unset
         if isinstance(self.bio, Unset):
             bio = UNSET
         else:
             bio = self.bio
 
-        location: Union[None, Unset, str]
+        location: None | str | Unset
         if isinstance(self.location, Unset):
             location = UNSET
         else:
             location = self.location
 
-        website: Union[None, Unset, str]
+        website: None | str | Unset
         if isinstance(self.website, Unset):
             website = UNSET
         else:
             website = self.website
 
-        avatar_file: Union[FileTypes, None, Unset]
+        avatar_file: FileTypes | None | Unset
         if isinstance(self.avatar_file, Unset):
             avatar_file = UNSET
         elif isinstance(self.avatar_file, File):
@@ -121,43 +123,43 @@ class BodyUserProfileUpdate:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_full_name(data: object) -> Union[None, Unset, str]:
+        def _parse_full_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         full_name = _parse_full_name(d.pop("full_name", UNSET))
 
-        def _parse_bio(data: object) -> Union[None, Unset, str]:
+        def _parse_bio(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         bio = _parse_bio(d.pop("bio", UNSET))
 
-        def _parse_location(data: object) -> Union[None, Unset, str]:
+        def _parse_location(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         location = _parse_location(d.pop("location", UNSET))
 
-        def _parse_website(data: object) -> Union[None, Unset, str]:
+        def _parse_website(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         website = _parse_website(d.pop("website", UNSET))
 
-        def _parse_avatar_file(data: object) -> Union[File, None, Unset]:
+        def _parse_avatar_file(data: object) -> File | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -168,9 +170,9 @@ class BodyUserProfileUpdate:
                 avatar_file_type_0 = File(payload=BytesIO(data))
 
                 return avatar_file_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union[File, None, Unset], data)
+            return cast(File | None | Unset, data)
 
         avatar_file = _parse_avatar_file(d.pop("avatar_file", UNSET))
 

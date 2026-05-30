@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
 from attrs import define as _attrs_define
@@ -26,20 +28,20 @@ class Task:
         type_ (UserTaskType):
         config (TaskConfig):
         user_id (UUID):
-        status (Union[Unset, TaskStatus]):
-        error_message (Union[None, Unset, str]):
-        resource_id (Union[None, UUID, Unset]):
+        status (TaskStatus | Unset):
+        error_message (None | str | Unset):
+        resource_id (None | Unset | UUID):
     """
 
     id: UUID
     created_at: str
     updated_at: str
     type_: UserTaskType
-    config: "TaskConfig"
+    config: TaskConfig
     user_id: UUID
-    status: Union[Unset, TaskStatus] = UNSET
-    error_message: Union[None, Unset, str] = UNSET
-    resource_id: Union[None, UUID, Unset] = UNSET
+    status: TaskStatus | Unset = UNSET
+    error_message: None | str | Unset = UNSET
+    resource_id: None | Unset | UUID = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -55,17 +57,17 @@ class Task:
 
         user_id = str(self.user_id)
 
-        status: Union[Unset, str] = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
-        error_message: Union[None, Unset, str]
+        error_message: None | str | Unset
         if isinstance(self.error_message, Unset):
             error_message = UNSET
         else:
             error_message = self.error_message
 
-        resource_id: Union[None, Unset, str]
+        resource_id: None | str | Unset
         if isinstance(self.resource_id, Unset):
             resource_id = UNSET
         elif isinstance(self.resource_id, UUID):
@@ -112,22 +114,22 @@ class Task:
         user_id = UUID(d.pop("user_id"))
 
         _status = d.pop("status", UNSET)
-        status: Union[Unset, TaskStatus]
+        status: TaskStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
             status = TaskStatus(_status)
 
-        def _parse_error_message(data: object) -> Union[None, Unset, str]:
+        def _parse_error_message(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         error_message = _parse_error_message(d.pop("error_message", UNSET))
 
-        def _parse_resource_id(data: object) -> Union[None, UUID, Unset]:
+        def _parse_resource_id(data: object) -> None | Unset | UUID:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -138,9 +140,9 @@ class Task:
                 resource_id_type_0 = UUID(data)
 
                 return resource_id_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union[None, UUID, Unset], data)
+            return cast(None | Unset | UUID, data)
 
         resource_id = _parse_resource_id(d.pop("resource_id", UNSET))
 

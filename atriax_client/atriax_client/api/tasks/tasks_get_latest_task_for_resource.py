@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -16,18 +17,20 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/tasks/latest/{resource_id}/",
+        "url": "/api/v1/tasks/latest/{resource_id}/".format(
+            resource_id=quote(str(resource_id), safe=""),
+        ),
     }
 
     return _kwargs
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, Union["Task", None]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> HTTPValidationError | None | Task | None:
     if response.status_code == 200:
 
-        def _parse_response_200(data: object) -> Union["Task", None]:
+        def _parse_response_200(data: object) -> None | Task:
             if data is None:
                 return data
             try:
@@ -36,17 +39,19 @@ def _parse_response(
                 response_200_type_0 = Task.from_dict(data)
 
                 return response_200_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["Task", None], data)
+            return cast(None | Task, data)
 
         response_200 = _parse_response_200(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -54,8 +59,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, Union["Task", None]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[HTTPValidationError | None | Task]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -68,7 +73,7 @@ def sync_detailed(
     resource_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Union["Task", None]]]:
+) -> Response[HTTPValidationError | None | Task]:
     """Get Latest Task For Resource
 
     Args:
@@ -79,7 +84,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['Task', None]]]
+        Response[HTTPValidationError | None | Task]
     """
 
     kwargs = _get_kwargs(
@@ -97,7 +102,7 @@ def sync(
     resource_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Union["Task", None]]]:
+) -> HTTPValidationError | None | Task | None:
     """Get Latest Task For Resource
 
     Args:
@@ -108,7 +113,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['Task', None]]
+        HTTPValidationError | None | Task
     """
 
     return sync_detailed(
@@ -121,7 +126,7 @@ async def asyncio_detailed(
     resource_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Union["Task", None]]]:
+) -> Response[HTTPValidationError | None | Task]:
     """Get Latest Task For Resource
 
     Args:
@@ -132,7 +137,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['Task', None]]]
+        Response[HTTPValidationError | None | Task]
     """
 
     kwargs = _get_kwargs(
@@ -148,7 +153,7 @@ async def asyncio(
     resource_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Union["Task", None]]]:
+) -> HTTPValidationError | None | Task | None:
     """Get Latest Task For Resource
 
     Args:
@@ -159,7 +164,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['Task', None]]
+        HTTPValidationError | None | Task
     """
 
     return (

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -17,17 +19,17 @@ class DatasetValidationConfig:
         dataset_id (str):
         files (list[str]):
         data_instance_type (str):
-        branch (Union[Unset, str]):  Default: 'main'.
-        split (Union[Unset, str]):  Default: 'train'.
-        config_name (Union[Unset, str]):  Default: 'default'.
+        branch (str | Unset):  Default: 'main'.
+        split (str | Unset):  Default: 'train'.
+        config_name (str | Unset):  Default: 'default'.
     """
 
     dataset_id: str
     files: list[str]
     data_instance_type: str
-    branch: Union[Unset, str] = "main"
-    split: Union[Unset, str] = "train"
-    config_name: Union[Unset, str] = "default"
+    branch: str | Unset = "main"
+    split: str | Unset = "train"
+    config_name: str | Unset = "default"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

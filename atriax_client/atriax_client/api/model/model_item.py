@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union
+from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -16,23 +17,27 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/model/{id}/",
+        "url": "/api/v1/model/id/{id}/".format(
+            id=quote(str(id), safe=""),
+        ),
     }
 
     return _kwargs
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, Model]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> HTTPValidationError | Model | None:
     if response.status_code == 200:
         response_200 = Model.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -40,8 +45,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, Model]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[HTTPValidationError | Model]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -54,7 +59,7 @@ def sync_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
+) -> Response[HTTPValidationError | Model]:
     """Item
 
     Args:
@@ -65,7 +70,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[HTTPValidationError | Model]
     """
 
     kwargs = _get_kwargs(
@@ -83,7 +88,7 @@ def sync(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
+) -> HTTPValidationError | Model | None:
     """Item
 
     Args:
@@ -94,7 +99,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        HTTPValidationError | Model
     """
 
     return sync_detailed(
@@ -107,7 +112,7 @@ async def asyncio_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, Model]]:
+) -> Response[HTTPValidationError | Model]:
     """Item
 
     Args:
@@ -118,7 +123,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Model]]
+        Response[HTTPValidationError | Model]
     """
 
     kwargs = _get_kwargs(
@@ -134,7 +139,7 @@ async def asyncio(
     id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, Model]]:
+) -> HTTPValidationError | Model | None:
     """Item
 
     Args:
@@ -145,7 +150,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Model]
+        HTTPValidationError | Model
     """
 
     return (

@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -15,23 +16,27 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": f"/api/v1/evaluation_experiments/{evaluation_experiment_id}/sample_evaluations/indices/",
+        "url": "/api/v1/evaluation_experiments/{evaluation_experiment_id}/sample_evaluations/indices/".format(
+            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
+        ),
     }
 
     return _kwargs
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[HTTPValidationError, list[int]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> HTTPValidationError | list[int] | None:
     if response.status_code == 200:
         response_200 = cast(list[int], response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -39,8 +44,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[HTTPValidationError, list[int]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[HTTPValidationError | list[int]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -53,7 +58,7 @@ def sync_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, list[int]]]:
+) -> Response[HTTPValidationError | list[int]]:
     """List Indices
 
     Args:
@@ -64,7 +69,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, list[int]]]
+        Response[HTTPValidationError | list[int]]
     """
 
     kwargs = _get_kwargs(
@@ -82,7 +87,7 @@ def sync(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, list[int]]]:
+) -> HTTPValidationError | list[int] | None:
     """List Indices
 
     Args:
@@ -93,7 +98,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, list[int]]
+        HTTPValidationError | list[int]
     """
 
     return sync_detailed(
@@ -106,7 +111,7 @@ async def asyncio_detailed(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[Union[HTTPValidationError, list[int]]]:
+) -> Response[HTTPValidationError | list[int]]:
     """List Indices
 
     Args:
@@ -117,7 +122,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, list[int]]]
+        Response[HTTPValidationError | list[int]]
     """
 
     kwargs = _get_kwargs(
@@ -133,7 +138,7 @@ async def asyncio(
     evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Optional[Union[HTTPValidationError, list[int]]]:
+) -> HTTPValidationError | list[int] | None:
     """List Indices
 
     Args:
@@ -144,7 +149,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, list[int]]
+        HTTPValidationError | list[int]
     """
 
     return (
