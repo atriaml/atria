@@ -13,11 +13,13 @@ from ...types import Response
 
 def _get_kwargs(
     id: UUID,
+    branch: str,
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/status/".format(
+        "url": "/api/v1/dataset/{id}/status/{branch}/".format(
             id=quote(str(id), safe=""),
+            branch=quote(str(branch), safe=""),
         ),
     }
 
@@ -55,15 +57,17 @@ def _build_response(
 
 def sync_detailed(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
 ) -> Response[Any | HTTPValidationError]:
-    """Get Dataset Computed Status
+    """Get Dataset Status
 
-     Return computed status for a dataset based on its latest task.
+     Read dataset processing status from the .status file stored in LakeFS.
 
     Args:
         id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -75,6 +79,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        branch=branch,
     )
 
     response = client.get_httpx_client().request(
@@ -86,15 +91,17 @@ def sync_detailed(
 
 def sync(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
 ) -> Any | HTTPValidationError | None:
-    """Get Dataset Computed Status
+    """Get Dataset Status
 
-     Return computed status for a dataset based on its latest task.
+     Read dataset processing status from the .status file stored in LakeFS.
 
     Args:
         id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -106,21 +113,24 @@ def sync(
 
     return sync_detailed(
         id=id,
+        branch=branch,
         client=client,
     ).parsed
 
 
 async def asyncio_detailed(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
 ) -> Response[Any | HTTPValidationError]:
-    """Get Dataset Computed Status
+    """Get Dataset Status
 
-     Return computed status for a dataset based on its latest task.
+     Read dataset processing status from the .status file stored in LakeFS.
 
     Args:
         id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,6 +142,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        branch=branch,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -141,15 +152,17 @@ async def asyncio_detailed(
 
 async def asyncio(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
 ) -> Any | HTTPValidationError | None:
-    """Get Dataset Computed Status
+    """Get Dataset Status
 
-     Return computed status for a dataset based on its latest task.
+     Read dataset processing status from the .status file stored in LakeFS.
 
     Args:
         id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -162,6 +175,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             id=id,
+            branch=branch,
             client=client,
         )
     ).parsed

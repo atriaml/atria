@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -23,11 +23,13 @@ class DatasetStorageMetadata:
         main_branch (str):
         branches (list[LakeFSBranchSummary]):
         splits (DatasetStorageMetadataSplits | Unset):
+        status (None | str | Unset):
     """
 
     main_branch: str
     branches: list[LakeFSBranchSummary]
     splits: DatasetStorageMetadataSplits | Unset = UNSET
+    status: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -42,6 +44,12 @@ class DatasetStorageMetadata:
         if not isinstance(self.splits, Unset):
             splits = self.splits.to_dict()
 
+        status: None | str | Unset
+        if isinstance(self.status, Unset):
+            status = UNSET
+        else:
+            status = self.status
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -52,6 +60,8 @@ class DatasetStorageMetadata:
         )
         if splits is not UNSET:
             field_dict["splits"] = splits
+        if status is not UNSET:
+            field_dict["status"] = status
 
         return field_dict
 
@@ -77,10 +87,20 @@ class DatasetStorageMetadata:
         else:
             splits = DatasetStorageMetadataSplits.from_dict(_splits)
 
+        def _parse_status(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        status = _parse_status(d.pop("status", UNSET))
+
         dataset_storage_metadata = cls(
             main_branch=main_branch,
             branches=branches,
             splits=splits,
+            status=status,
         )
 
         dataset_storage_metadata.additional_properties = d

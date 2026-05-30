@@ -30,7 +30,6 @@ from .dataset_list_item import DatasetListItem
 from .dataset_samples_page import DatasetSamplesPage
 from .dataset_samples_page_items_item import DatasetSamplesPageItemsItem
 from .dataset_split_type import DatasetSplitType
-from .dataset_status import DatasetStatus
 from .dataset_storage_metadata import DatasetStorageMetadata
 from .dataset_storage_metadata_splits import DatasetStorageMetadataSplits
 from .evaluation_experiment import EvaluationExperiment
@@ -113,7 +112,6 @@ __all__ = (
     "DatasetSamplesPage",
     "DatasetSamplesPageItemsItem",
     "DatasetSplitType",
-    "DatasetStatus",
     "DatasetStorageMetadata",
     "DatasetStorageMetadataSplits",
     "EvaluationExperiment",

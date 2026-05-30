@@ -8,7 +8,6 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 from ..models.data_instance_type import DataInstanceType
-from ..models.dataset_status import DatasetStatus
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -33,7 +32,6 @@ class DatasetListItem:
         data_instance_type (DataInstanceType):
         default_branch (str | Unset):  Default: 'main'.
         is_public (bool | Unset):  Default: False.
-        status (DatasetStatus | Unset):
     """
 
     id: UUID
@@ -47,7 +45,6 @@ class DatasetListItem:
     data_instance_type: DataInstanceType
     default_branch: str | Unset = "main"
     is_public: bool | Unset = False
-    status: DatasetStatus | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -73,10 +70,6 @@ class DatasetListItem:
 
         is_public = self.is_public
 
-        status: str | Unset = UNSET
-        if not isinstance(self.status, Unset):
-            status = self.status.value
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -96,8 +89,6 @@ class DatasetListItem:
             field_dict["default_branch"] = default_branch
         if is_public is not UNSET:
             field_dict["is_public"] = is_public
-        if status is not UNSET:
-            field_dict["status"] = status
 
         return field_dict
 
@@ -128,13 +119,6 @@ class DatasetListItem:
 
         is_public = d.pop("is_public", UNSET)
 
-        _status = d.pop("status", UNSET)
-        status: DatasetStatus | Unset
-        if isinstance(_status, Unset):
-            status = UNSET
-        else:
-            status = DatasetStatus(_status)
-
         dataset_list_item = cls(
             id=id,
             created_at=created_at,
@@ -147,7 +131,6 @@ class DatasetListItem:
             data_instance_type=data_instance_type,
             default_branch=default_branch,
             is_public=is_public,
-            status=status,
         )
 
         dataset_list_item.additional_properties = d

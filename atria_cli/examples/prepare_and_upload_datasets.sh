@@ -3,8 +3,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 declare -a datasets=(
-    "cifar10/1k"
-    # "tobacco3482/image_with_ocr"
+    # "cifar10/1k"
+    "tobacco3482/image_with_ocr"
     # "cord"
     # "funsd"
     # "sroie"
