@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar
 from uuid import UUID
@@ -25,7 +27,7 @@ class EvaluationExperiment:
         model_branch_commit_sha (str):
         model_config_name (str):
         user_id (UUID):
-        is_public (Union[Unset, bool]):  Default: False.
+        is_public (bool | Unset):  Default: False.
     """
 
     id: UUID
@@ -39,7 +41,7 @@ class EvaluationExperiment:
     model_branch_commit_sha: str
     model_config_name: str
     user_id: UUID
-    is_public: Unset | bool = False
+    is_public: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

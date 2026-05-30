@@ -11,11 +11,11 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    username: None | Unset | str = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_username: None | Unset | str
+    json_username: None | str | Unset
     if isinstance(username, Unset):
         json_username = UNSET
     else:
@@ -39,10 +39,12 @@ def _parse_response(
     if response.status_code == 200:
         response_200 = cast(int, response.json())
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -63,19 +65,19 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    username: None | Unset | str = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | int]:
     """Count
 
     Args:
-        username (Union[None, Unset, str]):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, int]]
+        Response[HTTPValidationError | int]
     """
 
     kwargs = _get_kwargs(
@@ -92,19 +94,19 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    username: None | Unset | str = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> HTTPValidationError | int | None:
     """Count
 
     Args:
-        username (Union[None, Unset, str]):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, int]
+        HTTPValidationError | int
     """
 
     return sync_detailed(
@@ -116,19 +118,19 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    username: None | Unset | str = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | int]:
     """Count
 
     Args:
-        username (Union[None, Unset, str]):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, int]]
+        Response[HTTPValidationError | int]
     """
 
     kwargs = _get_kwargs(
@@ -143,19 +145,19 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    username: None | Unset | str = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> HTTPValidationError | int | None:
     """Count
 
     Args:
-        username (Union[None, Unset, str]):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, int]
+        HTTPValidationError | int
     """
 
     return (

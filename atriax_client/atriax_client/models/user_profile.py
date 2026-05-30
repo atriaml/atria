@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any, TypeVar, cast
 from uuid import UUID
@@ -20,11 +22,11 @@ class UserProfile:
         username (str):
         email (str): Email address of the user
         user_id (UUID):
-        full_name (Union[None, Unset, str]): Full name of the user
-        bio (Union[None, Unset, str]): Short biography of the user
-        location (Union[None, Unset, str]): Location of the user
-        website (Union[None, Unset, str]): URL of the user's personal or professional website
-        avatar_url (Union[None, Unset, str]): URL of the user's avatar image
+        full_name (None | str | Unset): Full name of the user
+        bio (None | str | Unset): Short biography of the user
+        location (None | str | Unset): Location of the user
+        website (None | str | Unset): URL of the user's personal or professional website
+        avatar_url (None | str | Unset): URL of the user's avatar image
     """
 
     id: UUID
@@ -33,11 +35,11 @@ class UserProfile:
     username: str
     email: str
     user_id: UUID
-    full_name: None | Unset | str = UNSET
-    bio: None | Unset | str = UNSET
-    location: None | Unset | str = UNSET
-    website: None | Unset | str = UNSET
-    avatar_url: None | Unset | str = UNSET
+    full_name: None | str | Unset = UNSET
+    bio: None | str | Unset = UNSET
+    location: None | str | Unset = UNSET
+    website: None | str | Unset = UNSET
+    avatar_url: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,31 +55,31 @@ class UserProfile:
 
         user_id = str(self.user_id)
 
-        full_name: None | Unset | str
+        full_name: None | str | Unset
         if isinstance(self.full_name, Unset):
             full_name = UNSET
         else:
             full_name = self.full_name
 
-        bio: None | Unset | str
+        bio: None | str | Unset
         if isinstance(self.bio, Unset):
             bio = UNSET
         else:
             bio = self.bio
 
-        location: None | Unset | str
+        location: None | str | Unset
         if isinstance(self.location, Unset):
             location = UNSET
         else:
             location = self.location
 
-        website: None | Unset | str
+        website: None | str | Unset
         if isinstance(self.website, Unset):
             website = UNSET
         else:
             website = self.website
 
-        avatar_url: None | Unset | str
+        avatar_url: None | str | Unset
         if isinstance(self.avatar_url, Unset):
             avatar_url = UNSET
         else:
@@ -123,48 +125,48 @@ class UserProfile:
 
         user_id = UUID(d.pop("user_id"))
 
-        def _parse_full_name(data: object) -> None | Unset | str:
+        def _parse_full_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         full_name = _parse_full_name(d.pop("full_name", UNSET))
 
-        def _parse_bio(data: object) -> None | Unset | str:
+        def _parse_bio(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         bio = _parse_bio(d.pop("bio", UNSET))
 
-        def _parse_location(data: object) -> None | Unset | str:
+        def _parse_location(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         location = _parse_location(d.pop("location", UNSET))
 
-        def _parse_website(data: object) -> None | Unset | str:
+        def _parse_website(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         website = _parse_website(d.pop("website", UNSET))
 
-        def _parse_avatar_url(data: object) -> None | Unset | str:
+        def _parse_avatar_url(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         avatar_url = _parse_avatar_url(d.pop("avatar_url", UNSET))
 

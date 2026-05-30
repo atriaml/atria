@@ -186,6 +186,21 @@ class DatasetsApi(BaseApi):
             message=f"Upload dataset files for config {config_dir}",
         )
 
+    def finalize(self, dataset: Dataset, branch: str) -> dict:
+        """Retrieve a dataset from the hub by its name."""
+
+        from atriax_client.api.dataset import dataset_finalize
+
+        with self._client.protected_api_client as client:
+            response = dataset_finalize.sync_detailed(
+                client=client, id=dataset.id, branch=branch
+            )
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Failed to get dataset: {response.status_code} - {response.content.decode('utf-8')}"
+                )
+            return response.parsed
+
     def download_files(
         self, dataset_repo_id: str, branch: str, config_dir: str, destination_path: str
     ) -> None:

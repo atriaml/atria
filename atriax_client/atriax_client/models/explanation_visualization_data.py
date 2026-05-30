@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -22,13 +24,13 @@ class ExplanationVisualizationData:
 
     Attributes:
         explanation_type (str):
-        processing_options (Union['ExplanationVisualizationDataProcessingOptionsType0', None, Unset]):
-        outputs (Union['ExplanationVisualizationDataOutputsType0', None, Unset]):
+        processing_options (ExplanationVisualizationDataProcessingOptionsType0 | None | Unset):
+        outputs (ExplanationVisualizationDataOutputsType0 | None | Unset):
     """
 
     explanation_type: str
-    processing_options: Union["ExplanationVisualizationDataProcessingOptionsType0", None, Unset] = UNSET
-    outputs: Union["ExplanationVisualizationDataOutputsType0", None, Unset] = UNSET
+    processing_options: ExplanationVisualizationDataProcessingOptionsType0 | None | Unset = UNSET
+    outputs: ExplanationVisualizationDataOutputsType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +41,7 @@ class ExplanationVisualizationData:
 
         explanation_type = self.explanation_type
 
-        processing_options: None | Unset | dict[str, Any]
+        processing_options: dict[str, Any] | None | Unset
         if isinstance(self.processing_options, Unset):
             processing_options = UNSET
         elif isinstance(self.processing_options, ExplanationVisualizationDataProcessingOptionsType0):
@@ -47,7 +49,7 @@ class ExplanationVisualizationData:
         else:
             processing_options = self.processing_options
 
-        outputs: None | Unset | dict[str, Any]
+        outputs: dict[str, Any] | None | Unset
         if isinstance(self.outputs, Unset):
             outputs = UNSET
         elif isinstance(self.outputs, ExplanationVisualizationDataOutputsType0):
@@ -81,7 +83,7 @@ class ExplanationVisualizationData:
 
         def _parse_processing_options(
             data: object,
-        ) -> Union["ExplanationVisualizationDataProcessingOptionsType0", None, Unset]:
+        ) -> ExplanationVisualizationDataProcessingOptionsType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -92,13 +94,13 @@ class ExplanationVisualizationData:
                 processing_options_type_0 = ExplanationVisualizationDataProcessingOptionsType0.from_dict(data)
 
                 return processing_options_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ExplanationVisualizationDataProcessingOptionsType0", None, Unset], data)
+            return cast(ExplanationVisualizationDataProcessingOptionsType0 | None | Unset, data)
 
         processing_options = _parse_processing_options(d.pop("processing_options", UNSET))
 
-        def _parse_outputs(data: object) -> Union["ExplanationVisualizationDataOutputsType0", None, Unset]:
+        def _parse_outputs(data: object) -> ExplanationVisualizationDataOutputsType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -109,9 +111,9 @@ class ExplanationVisualizationData:
                 outputs_type_0 = ExplanationVisualizationDataOutputsType0.from_dict(data)
 
                 return outputs_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ExplanationVisualizationDataOutputsType0", None, Unset], data)
+            return cast(ExplanationVisualizationDataOutputsType0 | None | Unset, data)
 
         outputs = _parse_outputs(d.pop("outputs", UNSET))
 

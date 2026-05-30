@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from typing import Any, Union
+from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -21,7 +22,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": f"/api/v1/evaluations/{evaluation_experiment_id}/sample_explanations/",
+        "url": "/api/v1/evaluations/{evaluation_experiment_id}/sample_explanations/".format(
+            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
+        ),
     }
 
     _kwargs["files"] = body.to_multipart()
@@ -32,12 +35,10 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]] | None:
+) -> HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse | None:
     if response.status_code == 200:
 
-        def _parse_response_200(
-            data: object,
-        ) -> Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]]:
+        def _parse_response_200(data: object) -> list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse:
             try:
                 if not isinstance(data, list):
                     raise TypeError()
@@ -49,7 +50,7 @@ def _parse_response(
                     response_200_type_0.append(response_200_type_0_item)
 
                 return response_200_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             if not isinstance(data, dict):
                 raise TypeError()
@@ -60,10 +61,12 @@ def _parse_response(
         response_200 = _parse_response_200(response.json())
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -72,7 +75,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]]]:
+) -> Response[HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -86,7 +89,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: BodySampleExplanationsWrite,
-) -> Response[HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]]]:
+) -> Response[HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse]:
     """Write
 
     Args:
@@ -98,7 +101,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['SampleExplanationWriteResponse', list['SampleExplanationWriteResponse']]]]
+        Response[HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse]
     """
 
     kwargs = _get_kwargs(
@@ -118,7 +121,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: BodySampleExplanationsWrite,
-) -> HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]] | None:
+) -> HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse | None:
     """Write
 
     Args:
@@ -130,7 +133,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['SampleExplanationWriteResponse', list['SampleExplanationWriteResponse']]]
+        HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse
     """
 
     return sync_detailed(
@@ -145,7 +148,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: BodySampleExplanationsWrite,
-) -> Response[HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]]]:
+) -> Response[HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse]:
     """Write
 
     Args:
@@ -157,7 +160,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Union['SampleExplanationWriteResponse', list['SampleExplanationWriteResponse']]]]
+        Response[HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse]
     """
 
     kwargs = _get_kwargs(
@@ -175,7 +178,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: BodySampleExplanationsWrite,
-) -> HTTPValidationError | Union["SampleExplanationWriteResponse", list["SampleExplanationWriteResponse"]] | None:
+) -> HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse | None:
     """Write
 
     Args:
@@ -187,7 +190,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Union['SampleExplanationWriteResponse', list['SampleExplanationWriteResponse']]]
+        HTTPValidationError | list[SampleExplanationWriteResponse] | SampleExplanationWriteResponse
     """
 
     return (

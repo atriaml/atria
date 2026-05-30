@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -17,11 +19,11 @@ class CredentialsList:
     """
     Attributes:
         pagination (Pagination):
-        results (list['Credentials']):
+        results (list[Credentials]):
     """
 
-    pagination: "Pagination"
-    results: list["Credentials"]
+    pagination: Pagination
+    results: list[Credentials]
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

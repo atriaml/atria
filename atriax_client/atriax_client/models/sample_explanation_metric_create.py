@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -21,13 +23,13 @@ class SampleExplanationMetricCreate:
         name (str):
         config (ConfigBase):
         data (SampleExplanationMetricCreateData):
-        config_hash (Union[None, Unset, str]):
+        config_hash (None | str | Unset):
     """
 
     name: str
-    config: "ConfigBase"
-    data: "SampleExplanationMetricCreateData"
-    config_hash: None | Unset | str = UNSET
+    config: ConfigBase
+    data: SampleExplanationMetricCreateData
+    config_hash: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,7 +39,7 @@ class SampleExplanationMetricCreate:
 
         data = self.data.to_dict()
 
-        config_hash: None | Unset | str
+        config_hash: None | str | Unset
         if isinstance(self.config_hash, Unset):
             config_hash = UNSET
         else:
@@ -69,12 +71,12 @@ class SampleExplanationMetricCreate:
 
         data = SampleExplanationMetricCreateData.from_dict(d.pop("data"))
 
-        def _parse_config_hash(data: object) -> None | Unset | str:
+        def _parse_config_hash(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(None | Unset | str, data)
+            return cast(None | str | Unset, data)
 
         config_hash = _parse_config_hash(d.pop("config_hash", UNSET))
 

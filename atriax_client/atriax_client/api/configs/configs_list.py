@@ -13,15 +13,15 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    page: Unset | int = 0,
-    page_size: Unset | int = 100,
-    paginated: Unset | bool = True,
-    order_by: Unset | str = "created_at",
-    order: Unset | str = "desc",
-    search: None | Unset | str = UNSET,
-    search_by: None | Unset | str = UNSET,
+    page: int | Unset = 0,
+    page_size: int | Unset = 100,
+    paginated: bool | Unset = True,
+    order_by: str | Unset = "created_at",
+    order: str | Unset = "desc",
+    search: None | str | Unset = UNSET,
+    search_by: None | str | Unset = UNSET,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | Unset | str = UNSET,
+    name: None | str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -35,21 +35,21 @@ def _get_kwargs(
 
     params["order"] = order
 
-    json_search: None | Unset | str
+    json_search: None | str | Unset
     if isinstance(search, Unset):
         json_search = UNSET
     else:
         json_search = search
     params["search"] = json_search
 
-    json_search_by: None | Unset | str
+    json_search_by: None | str | Unset
     if isinstance(search_by, Unset):
         json_search_by = UNSET
     else:
         json_search_by = search_by
     params["search_by"] = json_search_by
 
-    json_config_type: None | Unset | str
+    json_config_type: None | str | Unset
     if isinstance(config_type, Unset):
         json_config_type = UNSET
     elif isinstance(config_type, ConfigType):
@@ -58,7 +58,7 @@ def _get_kwargs(
         json_config_type = config_type
     params["config_type"] = json_config_type
 
-    json_name: None | Unset | str
+    json_name: None | str | Unset
     if isinstance(name, Unset):
         json_name = UNSET
     else:
@@ -78,7 +78,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | list["Config"] | None:
+) -> HTTPValidationError | list[Config] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
@@ -88,10 +88,12 @@ def _parse_response(
             response_200.append(response_200_item)
 
         return response_200
+
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -100,7 +102,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | list["Config"]]:
+) -> Response[HTTPValidationError | list[Config]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -112,35 +114,35 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient,
-    page: Unset | int = 0,
-    page_size: Unset | int = 100,
-    paginated: Unset | bool = True,
-    order_by: Unset | str = "created_at",
-    order: Unset | str = "desc",
-    search: None | Unset | str = UNSET,
-    search_by: None | Unset | str = UNSET,
+    page: int | Unset = 0,
+    page_size: int | Unset = 100,
+    paginated: bool | Unset = True,
+    order_by: str | Unset = "created_at",
+    order: str | Unset = "desc",
+    search: None | str | Unset = UNSET,
+    search_by: None | str | Unset = UNSET,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | Unset | str = UNSET,
-) -> Response[HTTPValidationError | list["Config"]]:
+    name: None | str | Unset = UNSET,
+) -> Response[HTTPValidationError | list[Config]]:
     """List
 
     Args:
-        page (Union[Unset, int]):  Default: 0.
-        page_size (Union[Unset, int]):  Default: 100.
-        paginated (Union[Unset, bool]):  Default: True.
-        order_by (Union[Unset, str]):  Default: 'created_at'.
-        order (Union[Unset, str]):  Default: 'desc'.
-        search (Union[None, Unset, str]):
-        search_by (Union[None, Unset, str]):
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        page (int | Unset):  Default: 0.
+        page_size (int | Unset):  Default: 100.
+        paginated (bool | Unset):  Default: True.
+        order_by (str | Unset):  Default: 'created_at'.
+        order (str | Unset):  Default: 'desc'.
+        search (None | str | Unset):
+        search_by (None | str | Unset):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, list['Config']]]
+        Response[HTTPValidationError | list[Config]]
     """
 
     kwargs = _get_kwargs(
@@ -165,35 +167,35 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient,
-    page: Unset | int = 0,
-    page_size: Unset | int = 100,
-    paginated: Unset | bool = True,
-    order_by: Unset | str = "created_at",
-    order: Unset | str = "desc",
-    search: None | Unset | str = UNSET,
-    search_by: None | Unset | str = UNSET,
+    page: int | Unset = 0,
+    page_size: int | Unset = 100,
+    paginated: bool | Unset = True,
+    order_by: str | Unset = "created_at",
+    order: str | Unset = "desc",
+    search: None | str | Unset = UNSET,
+    search_by: None | str | Unset = UNSET,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | Unset | str = UNSET,
-) -> HTTPValidationError | list["Config"] | None:
+    name: None | str | Unset = UNSET,
+) -> HTTPValidationError | list[Config] | None:
     """List
 
     Args:
-        page (Union[Unset, int]):  Default: 0.
-        page_size (Union[Unset, int]):  Default: 100.
-        paginated (Union[Unset, bool]):  Default: True.
-        order_by (Union[Unset, str]):  Default: 'created_at'.
-        order (Union[Unset, str]):  Default: 'desc'.
-        search (Union[None, Unset, str]):
-        search_by (Union[None, Unset, str]):
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        page (int | Unset):  Default: 0.
+        page_size (int | Unset):  Default: 100.
+        paginated (bool | Unset):  Default: True.
+        order_by (str | Unset):  Default: 'created_at'.
+        order (str | Unset):  Default: 'desc'.
+        search (None | str | Unset):
+        search_by (None | str | Unset):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, list['Config']]
+        HTTPValidationError | list[Config]
     """
 
     return sync_detailed(
@@ -213,35 +215,35 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
-    page: Unset | int = 0,
-    page_size: Unset | int = 100,
-    paginated: Unset | bool = True,
-    order_by: Unset | str = "created_at",
-    order: Unset | str = "desc",
-    search: None | Unset | str = UNSET,
-    search_by: None | Unset | str = UNSET,
+    page: int | Unset = 0,
+    page_size: int | Unset = 100,
+    paginated: bool | Unset = True,
+    order_by: str | Unset = "created_at",
+    order: str | Unset = "desc",
+    search: None | str | Unset = UNSET,
+    search_by: None | str | Unset = UNSET,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | Unset | str = UNSET,
-) -> Response[HTTPValidationError | list["Config"]]:
+    name: None | str | Unset = UNSET,
+) -> Response[HTTPValidationError | list[Config]]:
     """List
 
     Args:
-        page (Union[Unset, int]):  Default: 0.
-        page_size (Union[Unset, int]):  Default: 100.
-        paginated (Union[Unset, bool]):  Default: True.
-        order_by (Union[Unset, str]):  Default: 'created_at'.
-        order (Union[Unset, str]):  Default: 'desc'.
-        search (Union[None, Unset, str]):
-        search_by (Union[None, Unset, str]):
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        page (int | Unset):  Default: 0.
+        page_size (int | Unset):  Default: 100.
+        paginated (bool | Unset):  Default: True.
+        order_by (str | Unset):  Default: 'created_at'.
+        order (str | Unset):  Default: 'desc'.
+        search (None | str | Unset):
+        search_by (None | str | Unset):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, list['Config']]]
+        Response[HTTPValidationError | list[Config]]
     """
 
     kwargs = _get_kwargs(
@@ -264,35 +266,35 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient,
-    page: Unset | int = 0,
-    page_size: Unset | int = 100,
-    paginated: Unset | bool = True,
-    order_by: Unset | str = "created_at",
-    order: Unset | str = "desc",
-    search: None | Unset | str = UNSET,
-    search_by: None | Unset | str = UNSET,
+    page: int | Unset = 0,
+    page_size: int | Unset = 100,
+    paginated: bool | Unset = True,
+    order_by: str | Unset = "created_at",
+    order: str | Unset = "desc",
+    search: None | str | Unset = UNSET,
+    search_by: None | str | Unset = UNSET,
     config_type: ConfigType | None | Unset = UNSET,
-    name: None | Unset | str = UNSET,
-) -> HTTPValidationError | list["Config"] | None:
+    name: None | str | Unset = UNSET,
+) -> HTTPValidationError | list[Config] | None:
     """List
 
     Args:
-        page (Union[Unset, int]):  Default: 0.
-        page_size (Union[Unset, int]):  Default: 100.
-        paginated (Union[Unset, bool]):  Default: True.
-        order_by (Union[Unset, str]):  Default: 'created_at'.
-        order (Union[Unset, str]):  Default: 'desc'.
-        search (Union[None, Unset, str]):
-        search_by (Union[None, Unset, str]):
-        config_type (Union[ConfigType, None, Unset]):
-        name (Union[None, Unset, str]):
+        page (int | Unset):  Default: 0.
+        page_size (int | Unset):  Default: 100.
+        paginated (bool | Unset):  Default: True.
+        order_by (str | Unset):  Default: 'created_at'.
+        order (str | Unset):  Default: 'desc'.
+        search (None | str | Unset):
+        search_by (None | str | Unset):
+        config_type (ConfigType | None | Unset):
+        name (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, list['Config']]
+        HTTPValidationError | list[Config]
     """
 
     return (

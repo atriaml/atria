@@ -54,4 +54,13 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "python.analysis.extraPaths": [
+        "atria_cli/src",
+        "atria_hub/src",
+        "atria_datasets/src",
+        "atria_metrics/src",
+        "atria_models/src",
+        "atria_ml/src",
+        "atria_types/src",
+    ]
 }

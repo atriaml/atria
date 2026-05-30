@@ -1,46 +1,43 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...models.model_validation_config import ModelValidationConfig
-from ...models.task import Task
 from ...types import Response
 
 
 def _get_kwargs(
-    *,
-    body: ModelValidationConfig,
+    id: UUID,
+    branch: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": "/api/v1/tasks/model-validation/",
+        "url": "/api/v1/model/{id}/finalize/{branch}/".format(
+            id=quote(str(id), safe=""),
+            branch=quote(str(branch), safe=""),
+        ),
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | Task | None:
-    if response.status_code == 200:
-        response_200 = Task.from_dict(response.json())
+) -> Any | HTTPValidationError | None:
+    if response.status_code == 202:
+        response_202 = response.json()
+        return response_202
 
-        return response_200
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
 
         return response_422
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -49,7 +46,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | Task]:
+) -> Response[Any | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -59,25 +56,28 @@ def _build_response(
 
 
 def sync_detailed(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ModelValidationConfig,
-) -> Response[HTTPValidationError | Task]:
-    """Publish Model Validation Task
+) -> Response[Any | HTTPValidationError]:
+    """Finalize
 
     Args:
-        body (ModelValidationConfig): Config for validating a model snapshot staged in LakeFS.
+        id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Task]]
+        Response[Any | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        id=id,
+        branch=branch,
     )
 
     response = client.get_httpx_client().request(
@@ -88,49 +88,55 @@ def sync_detailed(
 
 
 def sync(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ModelValidationConfig,
-) -> HTTPValidationError | Task | None:
-    """Publish Model Validation Task
+) -> Any | HTTPValidationError | None:
+    """Finalize
 
     Args:
-        body (ModelValidationConfig): Config for validating a model snapshot staged in LakeFS.
+        id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Task]
+        Any | HTTPValidationError
     """
 
     return sync_detailed(
+        id=id,
+        branch=branch,
         client=client,
-        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ModelValidationConfig,
-) -> Response[HTTPValidationError | Task]:
-    """Publish Model Validation Task
+) -> Response[Any | HTTPValidationError]:
+    """Finalize
 
     Args:
-        body (ModelValidationConfig): Config for validating a model snapshot staged in LakeFS.
+        id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[HTTPValidationError, Task]]
+        Response[Any | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        id=id,
+        branch=branch,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -139,26 +145,29 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ModelValidationConfig,
-) -> HTTPValidationError | Task | None:
-    """Publish Model Validation Task
+) -> Any | HTTPValidationError | None:
+    """Finalize
 
     Args:
-        body (ModelValidationConfig): Config for validating a model snapshot staged in LakeFS.
+        id (UUID):
+        branch (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[HTTPValidationError, Task]
+        Any | HTTPValidationError
     """
 
     return (
         await asyncio_detailed(
+            id=id,
+            branch=branch,
             client=client,
-            body=body,
         )
     ).parsed

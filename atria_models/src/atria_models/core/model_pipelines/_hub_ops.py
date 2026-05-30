@@ -137,6 +137,7 @@ class ModelHubOps:
                 },
                 overwrite_existing=overwrite_existing,
             )
+            hub.models.finalize(model=model_info, branch=branch)
 
             logger.info(
                 f"Model '{hub_name}' uploaded successfully to branch '{branch}'."

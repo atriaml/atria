@@ -144,6 +144,21 @@ class ModelsApi(BaseApi):
             message=f"Upload model snapshot for config {config_name}",
         )
 
+    def finalize(self, model: Model, branch: str) -> None:
+        """Finalize a model in the hub."""
+
+        from atriax_client.api.model import model_finalize
+
+        with self._client.protected_api_client as client:
+            response = model_finalize.sync_detailed(
+                client=client, id=model.id, branch=branch
+            )
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Failed to finalize model: {response.status_code} - {response.content.decode('utf-8')}"
+                )
+            return response.parsed
+
     def upload_files(
         self,
         model: Model,

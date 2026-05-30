@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from uuid import UUID
 
 from attrs import define as _attrs_define
@@ -21,13 +23,13 @@ class ModelConfig:
         id (UUID):
         config_name (str):
         branch (str):
-        override_config (Union['ModelConfigOverrideConfigType0', None, Unset]):
+        override_config (ModelConfigOverrideConfigType0 | None | Unset):
     """
 
     id: UUID
     config_name: str
     branch: str
-    override_config: Union["ModelConfigOverrideConfigType0", None, Unset] = UNSET
+    override_config: ModelConfigOverrideConfigType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,7 +41,7 @@ class ModelConfig:
 
         branch = self.branch
 
-        override_config: None | Unset | dict[str, Any]
+        override_config: dict[str, Any] | None | Unset
         if isinstance(self.override_config, Unset):
             override_config = UNSET
         elif isinstance(self.override_config, ModelConfigOverrideConfigType0):
@@ -72,7 +74,7 @@ class ModelConfig:
 
         branch = d.pop("branch")
 
-        def _parse_override_config(data: object) -> Union["ModelConfigOverrideConfigType0", None, Unset]:
+        def _parse_override_config(data: object) -> ModelConfigOverrideConfigType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -83,9 +85,9 @@ class ModelConfig:
                 override_config_type_0 = ModelConfigOverrideConfigType0.from_dict(data)
 
                 return override_config_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(Union["ModelConfigOverrideConfigType0", None, Unset], data)
+            return cast(ModelConfigOverrideConfigType0 | None | Unset, data)
 
         override_config = _parse_override_config(d.pop("override_config", UNSET))
 

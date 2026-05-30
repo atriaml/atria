@@ -108,6 +108,7 @@ class DatasetHubOps:
                 logger.info(
                     f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
                 )
+                hub.datasets.finalize(dataset=dataset_info, branch=branch)
             except FilesExistError:
                 logger.warning(
                     f"Files already exist in dataset '{hub_name}' on branch '{branch}'. "

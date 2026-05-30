@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
@@ -28,7 +30,7 @@ class SampleEvaluation:
     created_at: str
     updated_at: str
     sample_index: int
-    data: "SampleEvaluationData"
+    data: SampleEvaluationData
     evaluation_experiment_id: UUID
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 

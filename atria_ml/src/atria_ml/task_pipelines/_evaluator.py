@@ -14,7 +14,11 @@ from omegaconf import OmegaConf
 
 from atria_ml.configs._task import EvaluationTaskConfig
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
-from atria_ml.task_pipelines._utilities import _get_env_info, _initialize_torch
+from atria_ml.task_pipelines._utilities import (
+    MODEL_PIPELINE_CHECKPOINT_KEY,
+    _get_env_info,
+    _initialize_torch,
+)
 from atria_ml.training.engines._test_engine import (
     TestEngine,
     TestEngineConfig,
@@ -148,6 +152,23 @@ class Evaluator:
         # build data pipeline
         data_pipeline = DataPipeline(dataset=dataset)
 
+        # load model checkpoint
+        if self._config.eval_checkpoint is not None:
+            import torch
+            from ignite.handlers.checkpoint import Checkpoint
+
+            if not Path(self._config.eval_checkpoint).exists():
+                raise FileNotFoundError(
+                    f"Checkpoint file not found: {self._config.eval_checkpoint}"
+                )
+            checkpoint = torch.load(self._config.eval_checkpoint, map_location="cpu")
+
+            Checkpoint.load_objects(
+                to_load={MODEL_PIPELINE_CHECKPOINT_KEY: model_pipeline},
+                checkpoint=checkpoint,
+                strict=True,
+            )
+
         return EvaluatorState(
             data_pipeline=data_pipeline,
             model_pipeline=model_pipeline,
@@ -156,7 +177,7 @@ class Evaluator:
 
     def run(self) -> dict:
         test_engine = self._build_test_engine()
-        state = test_engine.run(checkpoint_path=self._config.eval_checkpoint)
+        state = test_engine.run()
         metrics = _format_metrics_for_logging(state.metrics)
         logger.info("Test metrics:")
         logger.info(metrics)

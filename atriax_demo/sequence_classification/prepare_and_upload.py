@@ -1,6 +1,6 @@
+from pathlib import Path
 from typing import Literal
 
-from anyio import Path
 from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_ml.configs import (
@@ -121,7 +121,8 @@ def main(
         do_test=True,
     )
 
-    if run_eval:
+    snapshot_dir = Path(config.env.run_dir) / "model_snapshot"
+    if run_eval or not snapshot_dir.exists():
         evaluator = Evaluator(
             config=EvaluationTaskConfig.from_training_config(
                 training_config=config, eval_checkpoint=eval_checkpoint
@@ -130,11 +131,9 @@ def main(
         evaluator.run()
 
         model_pipeline = evaluator._state.model_pipeline
-        snapshot_dir = model_pipeline.save_snapshot(
-            snapshot_dir=Path(config.env.run_dir) / "model_snapshot"
-        )
 
-        return
+        # save snapshot locally
+        model_pipeline.save_snapshot(snapshot_dir=snapshot_dir)
 
     loaded_pipeline = ModelPipeline.load_from_snapshot(
         Path(config.env.run_dir) / "model_snapshot"
@@ -151,7 +150,7 @@ def main(
 
 
 if __name__ == "__main__":
-    BASE_DIR = "../docxeval_data/experiment_00_seq_cls_v3/"
+    BASE_DIR = "../../docxeval_data/experiment_00_seq_cls_v3/"
     CONFIGS = [
         {
             "dataset_name": "tobacco3482/image_with_ocr",

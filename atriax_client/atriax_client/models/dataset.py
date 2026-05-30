@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
@@ -29,9 +31,9 @@ class Dataset:
         user_id (UUID):
         storage_metadata (DatasetStorageMetadata):
         data_instance_type (DataInstanceType):
-        default_branch (Union[Unset, str]):  Default: 'main'.
-        is_public (Union[Unset, bool]):  Default: False.
-        status (Union[Unset, DatasetStatus]):
+        default_branch (str | Unset):  Default: 'main'.
+        is_public (bool | Unset):  Default: False.
+        status (DatasetStatus | Unset):
     """
 
     id: UUID
@@ -42,11 +44,11 @@ class Dataset:
     type_: str
     repo_id: str
     user_id: UUID
-    storage_metadata: "DatasetStorageMetadata"
+    storage_metadata: DatasetStorageMetadata
     data_instance_type: DataInstanceType
-    default_branch: Unset | str = "main"
-    is_public: Unset | bool = False
-    status: Unset | DatasetStatus = UNSET
+    default_branch: str | Unset = "main"
+    is_public: bool | Unset = False
+    status: DatasetStatus | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         id = str(self.id)
@@ -73,7 +75,7 @@ class Dataset:
 
         is_public = self.is_public
 
-        status: Unset | str = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -132,7 +134,7 @@ class Dataset:
         is_public = d.pop("is_public", UNSET)
 
         _status = d.pop("status", UNSET)
-        status: Unset | DatasetStatus
+        status: DatasetStatus | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:
