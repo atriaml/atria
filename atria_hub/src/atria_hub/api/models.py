@@ -98,6 +98,52 @@ class ModelsApi(BaseApi):
                 )
             )
 
+    def upload_snapshot(
+        self,
+        model: Model,
+        branch: str,
+        config_name: str,
+        files: dict[str, bytes],
+        overwrite_existing: bool = False,
+    ) -> None:
+        import mimetypes
+
+        import lakefs
+        import tqdm
+
+        print("model", model)
+        print("lakefs client", self._client.lakefs_client, model.repo_id)
+        lk_branch: lakefs.Branch = (
+            lakefs.repository(model.repo_id, client=self._client.lakefs_client)
+            .branch(branch)
+            .create(source_reference=model.default_branch, exist_ok=True)
+        )
+
+        # check for existing snapshot directory
+        self._client.fs.source_branch = lk_branch.id
+        model_dir = f"{model.repo_id}/{lk_branch.id}/{config_name}/"
+
+        if self._client.fs.exists(model_dir) and not overwrite_existing:
+            raise RuntimeError(
+                f"Model snapshot '{model_dir}' already exists. "
+                "Set overwrite_existing=True to overwrite."
+            )
+
+        for file_tgt, content in tqdm.tqdm(files.items(), desc="Uploading"):
+            content_type = (
+                mimetypes.guess_type(file_tgt)[0] or "application/octet-stream"
+            )
+
+            lk_branch.object(f"{config_name}/{file_tgt}").upload(
+                content, content_type=content_type
+            )
+
+        self._commit_changes(
+            repo_id=str(model.repo_id),
+            branch=lk_branch.id,
+            message=f"Upload model snapshot for config {config_name}",
+        )
+
     def upload_files(
         self,
         model: Model,
