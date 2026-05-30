@@ -43,7 +43,7 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/model/{id}/tree/{branch}/{prefix}/".format(
+        "url": "/api/v1/model/{id}/tree/{branch}/{prefix}".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
             prefix=quote(str(prefix), safe=""),

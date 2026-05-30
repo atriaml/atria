@@ -8,17 +8,28 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...types import Response
+from ...models.model_status import ModelStatus
+from ...types import UNSET, Response
 
 
 def _get_kwargs(
     id: UUID,
+    *,
+    status: ModelStatus,
 ) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+
+    json_status = status.value
+    params["status"] = json_status
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
+
     _kwargs: dict[str, Any] = {
-        "method": "get",
+        "method": "patch",
         "url": "/api/v1/model/{id}/status/".format(
             id=quote(str(id), safe=""),
         ),
+        "params": params,
     }
 
     return _kwargs
@@ -57,13 +68,15 @@ def sync_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
+    status: ModelStatus,
 ) -> Response[Any | HTTPValidationError]:
-    """Get Model Computed Status
+    """Update Model Status
 
-     Return computed status for a model based on its latest task.
+     Internal endpoint for task agents — writes .status file to LakeFS.
 
     Args:
         id (UUID):
+        status (ModelStatus):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -75,6 +88,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        status=status,
     )
 
     response = client.get_httpx_client().request(
@@ -88,13 +102,15 @@ def sync(
     id: UUID,
     *,
     client: AuthenticatedClient,
+    status: ModelStatus,
 ) -> Any | HTTPValidationError | None:
-    """Get Model Computed Status
+    """Update Model Status
 
-     Return computed status for a model based on its latest task.
+     Internal endpoint for task agents — writes .status file to LakeFS.
 
     Args:
         id (UUID):
+        status (ModelStatus):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -107,6 +123,7 @@ def sync(
     return sync_detailed(
         id=id,
         client=client,
+        status=status,
     ).parsed
 
 
@@ -114,13 +131,15 @@ async def asyncio_detailed(
     id: UUID,
     *,
     client: AuthenticatedClient,
+    status: ModelStatus,
 ) -> Response[Any | HTTPValidationError]:
-    """Get Model Computed Status
+    """Update Model Status
 
-     Return computed status for a model based on its latest task.
+     Internal endpoint for task agents — writes .status file to LakeFS.
 
     Args:
         id (UUID):
+        status (ModelStatus):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,6 +151,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        status=status,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -143,13 +163,15 @@ async def asyncio(
     id: UUID,
     *,
     client: AuthenticatedClient,
+    status: ModelStatus,
 ) -> Any | HTTPValidationError | None:
-    """Get Model Computed Status
+    """Update Model Status
 
-     Return computed status for a model based on its latest task.
+     Internal endpoint for task agents — writes .status file to LakeFS.
 
     Args:
         id (UUID):
+        status (ModelStatus):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -163,5 +185,6 @@ async def asyncio(
         await asyncio_detailed(
             id=id,
             client=client,
+            status=status,
         )
     ).parsed

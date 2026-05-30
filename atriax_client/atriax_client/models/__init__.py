@@ -6,6 +6,7 @@ from .body_dataset_upload import BodyDatasetUpload
 from .body_model_create import BodyModelCreate
 from .body_model_update import BodyModelUpdate
 from .body_model_upload import BodyModelUpload
+from .body_model_upload_card import BodyModelUploadCard
 from .body_sample_explanations_write import BodySampleExplanationsWrite
 from .body_user_profile_update import BodyUserProfileUpdate
 from .config import Config
@@ -57,6 +58,7 @@ from .model import Model
 from .model_config import ModelConfig
 from .model_config_override_config_type_0 import ModelConfigOverrideConfigType0
 from .model_list_item import ModelListItem
+from .model_status import ModelStatus
 from .model_storage_metadata import ModelStorageMetadata
 from .model_storage_metadata_configs import ModelStorageMetadataConfigs
 from .normalization_type import NormalizationType
@@ -89,6 +91,7 @@ __all__ = (
     "BodyModelCreate",
     "BodyModelUpdate",
     "BodyModelUpload",
+    "BodyModelUploadCard",
     "BodySampleExplanationsWrite",
     "BodyUserProfileUpdate",
     "Config",
@@ -140,6 +143,7 @@ __all__ = (
     "ModelConfig",
     "ModelConfigOverrideConfigType0",
     "ModelListItem",
+    "ModelStatus",
     "ModelStorageMetadata",
     "ModelStorageMetadataConfigs",
     "NormalizationType",

@@ -7,6 +7,7 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.body_model_upload_card import BodyModelUploadCard
 from ...models.http_validation_error import HTTPValidationError
 from ...types import Response
 
@@ -14,15 +15,22 @@ from ...types import Response
 def _get_kwargs(
     id: UUID,
     branch: str,
+    *,
+    body: BodyModelUploadCard,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": "/api/v1/model/{id}/finalize/{branch}/".format(
+        "url": "/api/v1/model/{id}/upload-card/{branch}/".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
         ),
     }
 
+    _kwargs["files"] = body.to_multipart()
+
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -60,12 +68,16 @@ def sync_detailed(
     branch: str,
     *,
     client: AuthenticatedClient,
+    body: BodyModelUploadCard,
 ) -> Response[Any | HTTPValidationError]:
-    """Finalize
+    """Upload Card
+
+     Upload (or replace) the model card file (card.md) for a given branch.
 
     Args:
         id (UUID):
         branch (str):
+        body (BodyModelUploadCard):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -78,6 +90,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -92,12 +105,16 @@ def sync(
     branch: str,
     *,
     client: AuthenticatedClient,
+    body: BodyModelUploadCard,
 ) -> Any | HTTPValidationError | None:
-    """Finalize
+    """Upload Card
+
+     Upload (or replace) the model card file (card.md) for a given branch.
 
     Args:
         id (UUID):
         branch (str):
+        body (BodyModelUploadCard):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,6 +128,7 @@ def sync(
         id=id,
         branch=branch,
         client=client,
+        body=body,
     ).parsed
 
 
@@ -119,12 +137,16 @@ async def asyncio_detailed(
     branch: str,
     *,
     client: AuthenticatedClient,
+    body: BodyModelUploadCard,
 ) -> Response[Any | HTTPValidationError]:
-    """Finalize
+    """Upload Card
+
+     Upload (or replace) the model card file (card.md) for a given branch.
 
     Args:
         id (UUID):
         branch (str):
+        body (BodyModelUploadCard):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -137,6 +159,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -149,12 +172,16 @@ async def asyncio(
     branch: str,
     *,
     client: AuthenticatedClient,
+    body: BodyModelUploadCard,
 ) -> Any | HTTPValidationError | None:
-    """Finalize
+    """Upload Card
+
+     Upload (or replace) the model card file (card.md) for a given branch.
 
     Args:
         id (UUID):
         branch (str):
+        body (BodyModelUploadCard):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,5 +196,6 @@ async def asyncio(
             id=id,
             branch=branch,
             client=client,
+            body=body,
         )
     ).parsed
