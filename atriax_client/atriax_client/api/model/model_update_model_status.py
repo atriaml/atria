@@ -14,6 +14,7 @@ from ...types import UNSET, Response
 
 def _get_kwargs(
     id: UUID,
+    branch: str,
     *,
     status: ModelStatus,
 ) -> dict[str, Any]:
@@ -26,8 +27,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "patch",
-        "url": "/api/v1/model/{id}/status/".format(
+        "url": "/api/v1/model/{id}/status/{branch}/".format(
             id=quote(str(id), safe=""),
+            branch=quote(str(branch), safe=""),
         ),
         "params": params,
     }
@@ -66,6 +68,7 @@ def _build_response(
 
 def sync_detailed(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
     status: ModelStatus,
@@ -76,6 +79,7 @@ def sync_detailed(
 
     Args:
         id (UUID):
+        branch (str):
         status (ModelStatus):
 
     Raises:
@@ -88,6 +92,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        branch=branch,
         status=status,
     )
 
@@ -100,6 +105,7 @@ def sync_detailed(
 
 def sync(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
     status: ModelStatus,
@@ -110,6 +116,7 @@ def sync(
 
     Args:
         id (UUID):
+        branch (str):
         status (ModelStatus):
 
     Raises:
@@ -122,6 +129,7 @@ def sync(
 
     return sync_detailed(
         id=id,
+        branch=branch,
         client=client,
         status=status,
     ).parsed
@@ -129,6 +137,7 @@ def sync(
 
 async def asyncio_detailed(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
     status: ModelStatus,
@@ -139,6 +148,7 @@ async def asyncio_detailed(
 
     Args:
         id (UUID):
+        branch (str):
         status (ModelStatus):
 
     Raises:
@@ -151,6 +161,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         id=id,
+        branch=branch,
         status=status,
     )
 
@@ -161,6 +172,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
     status: ModelStatus,
@@ -171,6 +183,7 @@ async def asyncio(
 
     Args:
         id (UUID):
+        branch (str):
         status (ModelStatus):
 
     Raises:
@@ -184,6 +197,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             id=id,
+            branch=branch,
             client=client,
             status=status,
         )

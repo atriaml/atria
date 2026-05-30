@@ -35,17 +35,10 @@ def upload(
         logger.exception("Failed to upload model:", exc_info=e)
 
 
-def download(
-    name: str,
-    config_name: str = "default",
-    branch: str = "main",
-    download_dir: str | None = None,
-):
+def download(name: str, branch: str = "main", download_dir: str | None = None):
     """
     Downloads a model snapshot from Atria Hub and loads it as a ModelPipeline.
     """
     from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
-    ModelPipeline.load_from_hub(
-        name=name, branch=branch, config_name=config_name, download_dir=download_dir
-    )
+    ModelPipeline.load_from_hub(name=name, branch=branch, download_dir=download_dir)

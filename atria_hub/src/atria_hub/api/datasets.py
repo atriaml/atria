@@ -124,7 +124,6 @@ class DatasetsApi(BaseApi):
         self,
         dataset: Dataset,
         branch: str,
-        config_dir: str,
         dataset_files: list[tuple[str, str]],
         overwrite_existing: bool = False,
     ) -> None:
@@ -144,7 +143,7 @@ class DatasetsApi(BaseApi):
         tgt = f"{dataset.repo_id}/{branch}/"
 
         # first verify that delta directory already does not exist
-        deltadir = f"{tgt}{config_dir}/delta/"
+        deltadir = f"{tgt}/delta/"
         if self._client.fs.exists(deltadir) and not overwrite_existing:
             raise FilesExistError(
                 f"Delta directory {deltadir} already exists. "
@@ -160,7 +159,7 @@ class DatasetsApi(BaseApi):
         from rich.pretty import pretty_repr
 
         logger.info(
-            f"Files to be uploaded:\n{pretty_repr(dataset_files, max_length=4)}, dataset.repo_id={dataset.repo_id}, branch={branch}, config_dir={config_dir}"
+            f"Files to be uploaded:\n{pretty_repr(dataset_files, max_length=4)}, dataset.repo_id={dataset.repo_id}, branch={branch}"
         )
         for file in tqdm.tqdm(dataset_files, desc="Uploading"):
             # if it is a yaml file, we need to set the content type
@@ -183,7 +182,7 @@ class DatasetsApi(BaseApi):
         self.commit_changes(
             dataset_repo_id=dataset.repo_id,
             branch=branch,
-            message=f"Upload dataset files for config {config_dir}",
+            message="Upload dataset files.",
         )
 
     def finalize(self, dataset: Dataset, branch: str) -> dict:
@@ -202,15 +201,15 @@ class DatasetsApi(BaseApi):
             return response.parsed
 
     def download_files(
-        self, dataset_repo_id: str, branch: str, config_dir: str, destination_path: str
+        self, dataset_repo_id: str, branch: str, destination_path: str
     ) -> None:
         """Download files from a dataset."""
         from pathlib import Path
 
         from fsspec.callbacks import TqdmCallback
 
-        src = f"{dataset_repo_id}/{branch}/{config_dir}/"
-        tgt = str(Path(destination_path) / config_dir)
+        src = f"{dataset_repo_id}/{branch}/"
+        tgt = str(Path(destination_path))
         self._client.fs.get(
             src,
             tgt,
@@ -218,13 +217,11 @@ class DatasetsApi(BaseApi):
             callback=TqdmCallback(tqdm_kwargs={"desc": "Downloading files"}),
         )
 
-    def get_splits(
-        self, dataset_repo_id: str, branch: str, config_name: str
-    ) -> list[DatasetSplitType]:
+    def get_splits(self, dataset_repo_id: str, branch: str) -> list[DatasetSplitType]:
         from pathlib import Path
 
         # get target repository path
-        tgt = f"{dataset_repo_id}/{branch}/{config_name}/delta/"
+        tgt = f"{dataset_repo_id}/{branch}/delta/"
 
         # first verify that delta directory already does not exist
         dir_ls = self._client.fs.ls(tgt)
@@ -234,44 +231,20 @@ class DatasetsApi(BaseApi):
             if Path(x["name"]).name in DatasetSplitType.__members__
         ]
 
-    def get_available_configs(self, dataset_repo_id: str, branch: str) -> bool:
-        """Check if a configuration exists in the dataset."""
-        from pathlib import Path
-
-        dir_ls = self._client.fs.ls(f"{dataset_repo_id}/{branch}/")
-        # find all dirs
-        configs = [
-            Path(x["name"]).name
-            for x in dir_ls
-            if x["type"] == "directory" and Path(x["name"]).name != "conf"
-        ]
-        return configs
-
-    def get_config(self, dataset_repo_id: str, branch: str, config_name: str) -> dict:
-        from pathlib import Path
-
+    def get_config(self, dataset_repo_id: str, branch: str) -> dict:
         import lakefs
         import yaml
 
-        # list all configs in the branch
-        dir_ls = self._client.fs.ls(f"{dataset_repo_id}/{branch}/conf/dataset/")
-        if not any(Path(x["name"]).name == f"{config_name}.yaml" for x in dir_ls):
-            raise RuntimeError(
-                f"Configuration '{config_name}' not found in the dataset on branch {branch}."
-                f"Available configurations: {[Path(x['name']).name.replace('.yaml', '') for x in dir_ls]}"
-            )
         branch: lakefs.Branch = lakefs.repository(
             dataset_repo_id, client=self._client.lakefs_client
         ).branch(branch)
-        with branch.object(f"conf/dataset/{config_name}.yaml").reader(
-            pre_sign=True
-        ) as f:
+        with branch.object("conf/dataset/config.yaml").reader(pre_sign=True) as f:
             config = yaml.safe_load(f.read().decode("utf-8"))
-        if not isinstance(config, dict):
-            raise RuntimeError(
-                f"The dataset configuration {config_name} is not a valid dictionary. "
-            )
-        return config
+            if not isinstance(config, dict):
+                raise RuntimeError(
+                    "The dataset configuration config.yaml is not a valid dictionary. "
+                )
+            return config
 
     def get_metadata(self, dataset_repo_id: str, branch: str) -> dict:
         import lakefs
@@ -281,20 +254,39 @@ class DatasetsApi(BaseApi):
             dataset_repo_id, client=self._client.lakefs_client
         ).branch(branch)
         with branch.object("metadata.yaml").reader(pre_sign=True) as f:
-            config = yaml.safe_load(f.read().decode("utf-8"))
-        if not isinstance(config, dict):
-            raise ValueError(
-                "The dataset metadata is not a valid dictionary. "
-                "Please ensure the dataset was saved with the metadata."
-            )
-        return config
+            metadata = yaml.safe_load(f.read().decode("utf-8"))
+            if not isinstance(metadata, dict):
+                raise ValueError(
+                    "The dataset metadata is not a valid dictionary. "
+                    "Please ensure the dataset was saved with the metadata."
+                )
+            return metadata
 
-    def read_dataset_info(self, dataset_repo_id: str, branch: str) -> tuple[dict, dict]:
+    def get_snapshot(self, dataset_repo_id: str, branch: str) -> dict:
+        import lakefs
+        import yaml
+
+        branch: lakefs.Branch = lakefs.repository(
+            dataset_repo_id, client=self._client.lakefs_client
+        ).branch(branch)
+        with branch.object("snapshot.yaml").reader(pre_sign=True) as f:
+            snapshot = yaml.safe_load(f.read().decode("utf-8"))
+            if not isinstance(snapshot, dict):
+                raise ValueError(
+                    "The dataset snapshot is not a valid dictionary. "
+                    "Please ensure the dataset was saved with the snapshot."
+                )
+            return snapshot
+
+    def read_dataset_info(
+        self, dataset_repo_id: str, branch: str
+    ) -> tuple[dict, dict, dict]:
         """Read dataset info from the hub."""
 
         config = self.get_config(dataset_repo_id, branch)
         metadata = self.get_metadata(dataset_repo_id, branch)
-        return config, metadata
+        snapshot = self.get_snapshot(dataset_repo_id, branch)
+        return config, metadata, snapshot
 
     def commit_changes(self, dataset_repo_id: str, branch: str, message: str) -> None:
         """Commit changes to the dataset."""
@@ -309,10 +301,8 @@ class DatasetsApi(BaseApi):
             return
         return branch.commit(message=message)
 
-    def dataset_table_path(
-        self, dataset_repo_id: str, branch: str, config_name: str, split: str
-    ) -> str:
-        return f"lakefs://{dataset_repo_id}/{branch}/{config_name}/delta/{split}/"
+    def dataset_table_path(self, dataset_repo_id: str, branch: str, split: str) -> str:
+        return f"lakefs://{dataset_repo_id}/{branch}/delta/{split}/"
 
     def get_or_create_eval_branch(
         self, dataset_repo_id: str, dataset_branch: str
@@ -327,48 +317,31 @@ class DatasetsApi(BaseApi):
         return eval_branch
 
     def eval_base_path(
-        self,
-        dataset_repo_id: str,
-        eval_branch: str,
-        config_name: str,
-        split: str,
-        output_path: str,
+        self, dataset_repo_id: str, eval_branch: str, split: str, output_path: str
     ):
-        return f"lakefs://{dataset_repo_id}/{eval_branch}/{config_name}/eval/{split}/{output_path}"
+        return f"lakefs://{dataset_repo_id}/{eval_branch}/eval/{split}/{output_path}"
 
     def eval_table_path(
-        self,
-        dataset_repo_id: str,
-        eval_branch: str,
-        config_name: str,
-        split: str,
-        output_path: str,
+        self, dataset_repo_id: str, eval_branch: str, split: str, output_path: str
     ) -> str:
         return (
             self.eval_base_path(
                 dataset_repo_id=dataset_repo_id,
                 eval_branch=eval_branch,
                 split=split,
-                config_name=config_name,
                 output_path=output_path,
             )
             + "/delta"
         )
 
     def eval_metrics_path(
-        self,
-        dataset_repo_id: str,
-        eval_branch: str,
-        config_name: str,
-        split: str,
-        output_path: str,
+        self, dataset_repo_id: str, eval_branch: str, split: str, output_path: str
     ) -> str:
         return (
             self.eval_base_path(
                 dataset_repo_id=dataset_repo_id,
                 eval_branch=eval_branch,
                 split=split,
-                config_name=config_name,
                 output_path=output_path,
             )
             + "/metrics.json"
@@ -378,7 +351,6 @@ class DatasetsApi(BaseApi):
         self,
         dataset_repo_id: str,
         eval_branch: str,
-        config_name: str,
         split: str,
         output_path: str,
         data: dict,
@@ -394,7 +366,6 @@ class DatasetsApi(BaseApi):
         eval_metrics_path = self.eval_metrics_path(
             dataset_repo_id=dataset_repo_id,
             eval_branch=eval_branch.id,
-            config_name=config_name,
             split=split,
             output_path=output_path,
         )
@@ -406,12 +377,7 @@ class DatasetsApi(BaseApi):
         return eval_metrics_path
 
     def read_eval_metrics(
-        self,
-        dataset_repo_id: str,
-        eval_branch: str,
-        config_name: str,
-        split: str,
-        output_path: str,
+        self, dataset_repo_id: str, eval_branch: str, split: str, output_path: str
     ) -> tuple[str, dict]:
         import lakefs
         from lakefs.branch import Branch
@@ -424,7 +390,6 @@ class DatasetsApi(BaseApi):
             dataset_repo_id=dataset_repo_id,
             eval_branch=eval_branch.id,
             split=split,
-            config_name=config_name,
             output_path=output_path,
         )
 

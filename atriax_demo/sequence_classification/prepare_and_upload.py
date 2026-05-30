@@ -157,14 +157,14 @@ if __name__ == "__main__":
             "model_name": "bert-base-uncased",
             "tokenizer_name": "bert-base-uncased",
             "eval_checkpoint": f"{BASE_DIR}/tobacco3482_image_with_ocr/bert-base-uncased/checkpoints/best_checkpoint_11_validation-accuracy=0.8638.pt",
-            "upload_name": "tobacco3482-bert-base-uncased",
+            "upload_name": "tobacco3482-bert-base-uncased2",
         },
         {
             "dataset_name": "tobacco3482/image_with_ocr",
             "model_name": "layoutlmv3-base",
             "tokenizer_name": "microsoft/layoutlmv3-base",
             "eval_checkpoint": f"{BASE_DIR}/tobacco3482_image_with_ocr/layoutlmv3-base/checkpoints/best_checkpoint_11_validation-accuracy=0.9427.pt",
-            "upload_name": "tobacco3482-layoutlmv3-base",
+            "upload_name": "tobacco3482-layoutlmv3-base2",
         },
     ]
     for config in CONFIGS:

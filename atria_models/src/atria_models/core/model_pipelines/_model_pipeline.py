@@ -261,14 +261,10 @@ class ModelPipeline(
 
     @classmethod
     def load_from_hub(
-        cls,
-        name: str,
-        branch: str = "main",
-        config_name: str = "default",
-        download_dir=None,
+        cls, name: str, branch: str = "main", download_dir=None
     ) -> ModelPipeline:
         from atria_models.core.model_pipelines._hub_ops import ModelHubOps
 
         return ModelHubOps.load_from_hub(
-            name=name, branch=branch, config_name=config_name, download_dir=download_dir
+            name=name, branch=branch, download_dir=download_dir
         )

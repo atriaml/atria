@@ -6,7 +6,7 @@ from .body_dataset_upload import BodyDatasetUpload
 from .body_model_create import BodyModelCreate
 from .body_model_update import BodyModelUpdate
 from .body_model_upload import BodyModelUpload
-from .body_model_upload_card import BodyModelUploadCard
+from .body_model_upload_data import BodyModelUploadData
 from .body_sample_explanations_write import BodySampleExplanationsWrite
 from .body_user_profile_update import BodyUserProfileUpdate
 from .config import Config
@@ -32,7 +32,6 @@ from .dataset_samples_page_items_item import DatasetSamplesPageItemsItem
 from .dataset_split_type import DatasetSplitType
 from .dataset_status import DatasetStatus
 from .dataset_storage_metadata import DatasetStorageMetadata
-from .dataset_storage_metadata_configs import DatasetStorageMetadataConfigs
 from .dataset_storage_metadata_splits import DatasetStorageMetadataSplits
 from .evaluation_experiment import EvaluationExperiment
 from .evaluation_experiment_get_or_create import EvaluationExperimentGetOrCreate
@@ -60,7 +59,6 @@ from .model_config_override_config_type_0 import ModelConfigOverrideConfigType0
 from .model_list_item import ModelListItem
 from .model_status import ModelStatus
 from .model_storage_metadata import ModelStorageMetadata
-from .model_storage_metadata_configs import ModelStorageMetadataConfigs
 from .normalization_type import NormalizationType
 from .pagination import Pagination
 from .sample_evaluation import SampleEvaluation
@@ -91,7 +89,7 @@ __all__ = (
     "BodyModelCreate",
     "BodyModelUpdate",
     "BodyModelUpload",
-    "BodyModelUploadCard",
+    "BodyModelUploadData",
     "BodySampleExplanationsWrite",
     "BodyUserProfileUpdate",
     "Config",
@@ -117,7 +115,6 @@ __all__ = (
     "DatasetSplitType",
     "DatasetStatus",
     "DatasetStorageMetadata",
-    "DatasetStorageMetadataConfigs",
     "DatasetStorageMetadataSplits",
     "EvaluationExperiment",
     "EvaluationExperimentGetOrCreate",
@@ -145,7 +142,6 @@ __all__ = (
     "ModelListItem",
     "ModelStatus",
     "ModelStorageMetadata",
-    "ModelStorageMetadataConfigs",
     "NormalizationType",
     "Pagination",
     "SampleEvaluation",

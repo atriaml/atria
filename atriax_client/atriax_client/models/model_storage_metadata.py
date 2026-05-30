@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -10,7 +10,6 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.lake_fs_branch_summary import LakeFSBranchSummary
-    from ..models.model_storage_metadata_configs import ModelStorageMetadataConfigs
 
 
 T = TypeVar("T", bound="ModelStorageMetadata")
@@ -22,12 +21,12 @@ class ModelStorageMetadata:
     Attributes:
         main_branch (str):
         branches (list[LakeFSBranchSummary]):
-        configs (ModelStorageMetadataConfigs | Unset):
+        task_type (None | str | Unset):
     """
 
     main_branch: str
     branches: list[LakeFSBranchSummary]
-    configs: ModelStorageMetadataConfigs | Unset = UNSET
+    task_type: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -38,9 +37,11 @@ class ModelStorageMetadata:
             branches_item = branches_item_data.to_dict()
             branches.append(branches_item)
 
-        configs: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.configs, Unset):
-            configs = self.configs.to_dict()
+        task_type: None | str | Unset
+        if isinstance(self.task_type, Unset):
+            task_type = UNSET
+        else:
+            task_type = self.task_type
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -50,15 +51,14 @@ class ModelStorageMetadata:
                 "branches": branches,
             }
         )
-        if configs is not UNSET:
-            field_dict["configs"] = configs
+        if task_type is not UNSET:
+            field_dict["task_type"] = task_type
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.lake_fs_branch_summary import LakeFSBranchSummary
-        from ..models.model_storage_metadata_configs import ModelStorageMetadataConfigs
 
         d = dict(src_dict)
         main_branch = d.pop("main_branch")
@@ -70,17 +70,19 @@ class ModelStorageMetadata:
 
             branches.append(branches_item)
 
-        _configs = d.pop("configs", UNSET)
-        configs: ModelStorageMetadataConfigs | Unset
-        if isinstance(_configs, Unset):
-            configs = UNSET
-        else:
-            configs = ModelStorageMetadataConfigs.from_dict(_configs)
+        def _parse_task_type(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        task_type = _parse_task_type(d.pop("task_type", UNSET))
 
         model_storage_metadata = cls(
             main_branch=main_branch,
             branches=branches,
-            configs=configs,
+            task_type=task_type,
         )
 
         model_storage_metadata.additional_properties = d

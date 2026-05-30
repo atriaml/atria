@@ -58,9 +58,7 @@ class DatasetHubOps:
                 "Build the dataset first using cache()."
             )
         return [
-            (str(f), str(f.relative_to(path.parent)))
-            for f in path.rglob("*")
-            if f.is_file()
+            (str(f), str(f.relative_to(path))) for f in path.rglob("*") if f.is_file()
         ]
 
     def upload_to_hub(
@@ -101,7 +99,6 @@ class DatasetHubOps:
                 hub.datasets.upload_files(
                     dataset=dataset_info,
                     branch=branch,
-                    config_dir=self._dataset._path.name,
                     dataset_files=self.prepare_dataset_files_from_dir(),
                     overwrite_existing=overwrite_existing,
                 )
@@ -184,7 +181,6 @@ class DatasetHubOps:
         name: str,
         username: str | None = None,
         branch: str = "main",
-        config_name: str | None = None,
         download_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
@@ -194,8 +190,6 @@ class DatasetHubOps:
             name: Dataset name in format 'dataset_name' or 'username/dataset_name'.
             username: Dataset owner username when `name` does not include a username.
             branch: Hub branch to download from.
-            config_name: Frozen cached configuration name on the hub.
-                If omitted and exactly one config exists, that config is used.
             download_dir: Local storage directory where the config directory should be placed.
                 Defaults to '~/.cache/atria/datasets/<dataset_name>/storage'.
             overwrite_existing: Overwrite an already downloaded local snapshot.
@@ -228,14 +222,8 @@ class DatasetHubOps:
                 f"Failed to resolve dataset '{owner}/{dataset_name}' from the hub."
             )
         dataset_repo_id = str(cast(Any, dataset_info).repo_id)
-
-        resolved_config_dir = cls._resolve_config_name(
-            hub=hub,
-            dataset_repo_id=dataset_repo_id,
-            branch=branch,
-            config_name=config_name,
-        )
-
+        snapshot = hub.datasets.get_snapshot(dataset_repo_id, branch=branch)
+        config_dir = snapshot.get("config_name", "")
         base_storage_dir = (
             Path(download_dir) / dataset_name
             if download_dir is not None
@@ -245,7 +233,7 @@ class DatasetHubOps:
                 / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
             )
         )
-        target_path = base_storage_dir / resolved_config_dir
+        target_path = base_storage_dir / config_dir
 
         if target_path.exists():
             if not overwrite_existing:
@@ -257,12 +245,11 @@ class DatasetHubOps:
             logger.warning(f"Overwriting existing cached dataset at '{target_path}'.")
             shutil.rmtree(target_path)
 
-        base_storage_dir.mkdir(parents=True, exist_ok=True)
+        target_path.mkdir(parents=True, exist_ok=True)
         hub.datasets.download_files(
             dataset_repo_id=dataset_repo_id,
             branch=branch,
-            config_dir=resolved_config_dir,
-            destination_path=str(base_storage_dir),
+            destination_path=str(target_path),
         )
 
         if not target_path.exists():

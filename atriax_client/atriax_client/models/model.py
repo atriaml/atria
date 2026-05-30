@@ -6,7 +6,6 @@ from uuid import UUID
 
 from attrs import define as _attrs_define
 
-from ..models.task_type import TaskType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -29,7 +28,6 @@ class Model:
         repo_id (str):
         user_id (UUID):
         storage_metadata (ModelStorageMetadata):
-        task_type (TaskType):
         default_branch (str | Unset):  Default: 'main'.
         is_public (bool | Unset):  Default: False.
     """
@@ -43,7 +41,6 @@ class Model:
     repo_id: str
     user_id: UUID
     storage_metadata: ModelStorageMetadata
-    task_type: TaskType
     default_branch: str | Unset = "main"
     is_public: bool | Unset = False
 
@@ -66,8 +63,6 @@ class Model:
 
         storage_metadata = self.storage_metadata.to_dict()
 
-        task_type = self.task_type.value
-
         default_branch = self.default_branch
 
         is_public = self.is_public
@@ -85,7 +80,6 @@ class Model:
                 "repo_id": repo_id,
                 "user_id": user_id,
                 "storage_metadata": storage_metadata,
-                "task_type": task_type,
             }
         )
         if default_branch is not UNSET:
@@ -118,8 +112,6 @@ class Model:
 
         storage_metadata = ModelStorageMetadata.from_dict(d.pop("storage_metadata"))
 
-        task_type = TaskType(d.pop("task_type"))
-
         default_branch = d.pop("default_branch", UNSET)
 
         is_public = d.pop("is_public", UNSET)
@@ -134,7 +126,6 @@ class Model:
             repo_id=repo_id,
             user_id=user_id,
             storage_metadata=storage_metadata,
-            task_type=task_type,
             default_branch=default_branch,
             is_public=is_public,
         )

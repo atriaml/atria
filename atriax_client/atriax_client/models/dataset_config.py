@@ -18,7 +18,6 @@ class DatasetConfig:
     """
     Attributes:
         id (UUID):
-        config_name (str):
         branch (str):
         split (DatasetSplitType): An enumeration representing the dataset splits.
 
@@ -30,7 +29,6 @@ class DatasetConfig:
     """
 
     id: UUID
-    config_name: str
     branch: str
     split: DatasetSplitType
     sample_indices: list[int] | None | Unset = UNSET
@@ -38,8 +36,6 @@ class DatasetConfig:
 
     def to_dict(self) -> dict[str, Any]:
         id = str(self.id)
-
-        config_name = self.config_name
 
         branch = self.branch
 
@@ -59,7 +55,6 @@ class DatasetConfig:
         field_dict.update(
             {
                 "id": id,
-                "config_name": config_name,
                 "branch": branch,
                 "split": split,
             }
@@ -73,8 +68,6 @@ class DatasetConfig:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         id = UUID(d.pop("id"))
-
-        config_name = d.pop("config_name")
 
         branch = d.pop("branch")
 
@@ -99,7 +92,6 @@ class DatasetConfig:
 
         dataset_config = cls(
             id=id,
-            config_name=config_name,
             branch=branch,
             split=split,
             sample_indices=sample_indices,

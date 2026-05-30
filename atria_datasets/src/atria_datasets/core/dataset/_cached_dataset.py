@@ -105,7 +105,6 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         name: str,
         username: str | None = None,
         branch: str = "main",
-        config_name: str | None = None,
         download_dir: str | Path | None = None,
         overwrite_existing: bool = False,
     ) -> CachedDataset:
@@ -116,7 +115,6 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
             name=name,
             username=username,
             branch=branch,
-            config_name=config_name,
             download_dir=download_dir,
             overwrite_existing=overwrite_existing,
         )

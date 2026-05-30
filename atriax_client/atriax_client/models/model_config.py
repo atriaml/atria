@@ -21,13 +21,11 @@ class ModelConfig:
     """
     Attributes:
         id (UUID):
-        config_name (str):
         branch (str):
         override_config (ModelConfigOverrideConfigType0 | None | Unset):
     """
 
     id: UUID
-    config_name: str
     branch: str
     override_config: ModelConfigOverrideConfigType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -36,8 +34,6 @@ class ModelConfig:
         from ..models.model_config_override_config_type_0 import ModelConfigOverrideConfigType0
 
         id = str(self.id)
-
-        config_name = self.config_name
 
         branch = self.branch
 
@@ -54,7 +50,6 @@ class ModelConfig:
         field_dict.update(
             {
                 "id": id,
-                "config_name": config_name,
                 "branch": branch,
             }
         )
@@ -69,8 +64,6 @@ class ModelConfig:
 
         d = dict(src_dict)
         id = UUID(d.pop("id"))
-
-        config_name = d.pop("config_name")
 
         branch = d.pop("branch")
 
@@ -93,7 +86,6 @@ class ModelConfig:
 
         model_config = cls(
             id=id,
-            config_name=config_name,
             branch=branch,
             override_config=override_config,
         )

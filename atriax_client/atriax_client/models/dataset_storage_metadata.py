@@ -9,7 +9,6 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.dataset_storage_metadata_configs import DatasetStorageMetadataConfigs
     from ..models.dataset_storage_metadata_splits import DatasetStorageMetadataSplits
     from ..models.lake_fs_branch_summary import LakeFSBranchSummary
 
@@ -23,13 +22,11 @@ class DatasetStorageMetadata:
     Attributes:
         main_branch (str):
         branches (list[LakeFSBranchSummary]):
-        configs (DatasetStorageMetadataConfigs | Unset):
         splits (DatasetStorageMetadataSplits | Unset):
     """
 
     main_branch: str
     branches: list[LakeFSBranchSummary]
-    configs: DatasetStorageMetadataConfigs | Unset = UNSET
     splits: DatasetStorageMetadataSplits | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -40,10 +37,6 @@ class DatasetStorageMetadata:
         for branches_item_data in self.branches:
             branches_item = branches_item_data.to_dict()
             branches.append(branches_item)
-
-        configs: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.configs, Unset):
-            configs = self.configs.to_dict()
 
         splits: dict[str, Any] | Unset = UNSET
         if not isinstance(self.splits, Unset):
@@ -57,8 +50,6 @@ class DatasetStorageMetadata:
                 "branches": branches,
             }
         )
-        if configs is not UNSET:
-            field_dict["configs"] = configs
         if splits is not UNSET:
             field_dict["splits"] = splits
 
@@ -66,7 +57,6 @@ class DatasetStorageMetadata:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.dataset_storage_metadata_configs import DatasetStorageMetadataConfigs
         from ..models.dataset_storage_metadata_splits import DatasetStorageMetadataSplits
         from ..models.lake_fs_branch_summary import LakeFSBranchSummary
 
@@ -80,13 +70,6 @@ class DatasetStorageMetadata:
 
             branches.append(branches_item)
 
-        _configs = d.pop("configs", UNSET)
-        configs: DatasetStorageMetadataConfigs | Unset
-        if isinstance(_configs, Unset):
-            configs = UNSET
-        else:
-            configs = DatasetStorageMetadataConfigs.from_dict(_configs)
-
         _splits = d.pop("splits", UNSET)
         splits: DatasetStorageMetadataSplits | Unset
         if isinstance(_splits, Unset):
@@ -97,7 +80,6 @@ class DatasetStorageMetadata:
         dataset_storage_metadata = cls(
             main_branch=main_branch,
             branches=branches,
-            configs=configs,
             splits=splits,
         )
 

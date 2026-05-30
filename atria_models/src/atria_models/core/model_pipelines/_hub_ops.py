@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 import yaml
 from atria_hub.hub import AtriaHubConnectionError
 from atria_logger import get_logger
-from atriax_client.models.task_type import TaskType
 
 from atria_models.core.model_pipelines.constants import (
     _DEFAULT_ATRIA_MODELS_STORAGE_SUBDIR,
@@ -65,16 +64,12 @@ class ModelHubOps:
             hub = AtriaHub().initialize()
 
             model_info = hub.models.get_or_create(
-                username=str(hub.auth.username),
-                name=hub_name,
-                task_type=TaskType(self._pipeline.__pipeline_name__),
-                is_public=is_public,
+                username=str(hub.auth.username), name=hub_name, is_public=is_public
             )
 
             hub.models.upload_snapshot(
                 model=model_info,
                 branch=branch,
-                config_name="default",
                 files={
                     _DEFAULT_MODEL_WEIGHTS_PATH: snapshot.weights,
                     _DEFAULT_MODEL_METADATA_PATH: snapshot.metadata,
@@ -118,11 +113,7 @@ class ModelHubOps:
 
     @classmethod
     def load_from_hub(
-        cls,
-        name: str,
-        branch: str = "main",
-        config_name: str = "default",
-        download_dir: str | Path | None = None,
+        cls, name: str, branch: str = "main", download_dir: str | Path | None = None
     ) -> ModelPipeline:
         from atria_hub.hub import AtriaHub
 
@@ -142,7 +133,7 @@ class ModelHubOps:
             / _DEFAULT_ATRIA_MODELS_STORAGE_SUBDIR
         )
 
-        target_path = dest / config_name
+        target_path = dest
 
         if target_path.exists():
             logger.info(
@@ -154,7 +145,6 @@ class ModelHubOps:
             hub.models.download_files(
                 model_repo_id=str(model_info.repo_id),
                 branch=branch,
-                config_name=config_name,
                 destination_path=str(dest),
             )
 

@@ -7,7 +7,6 @@ from uuid import UUID
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.task_type import TaskType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
@@ -29,7 +28,6 @@ class ModelListItem:
         type_ (str):
         user_id (UUID):
         storage_metadata (ModelStorageMetadata):
-        task_type (TaskType):
         default_branch (str | Unset):  Default: 'main'.
         is_public (bool | Unset):  Default: False.
     """
@@ -42,7 +40,6 @@ class ModelListItem:
     type_: str
     user_id: UUID
     storage_metadata: ModelStorageMetadata
-    task_type: TaskType
     default_branch: str | Unset = "main"
     is_public: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -64,8 +61,6 @@ class ModelListItem:
 
         storage_metadata = self.storage_metadata.to_dict()
 
-        task_type = self.task_type.value
-
         default_branch = self.default_branch
 
         is_public = self.is_public
@@ -82,7 +77,6 @@ class ModelListItem:
                 "type": type_,
                 "user_id": user_id,
                 "storage_metadata": storage_metadata,
-                "task_type": task_type,
             }
         )
         if default_branch is not UNSET:
@@ -113,8 +107,6 @@ class ModelListItem:
 
         storage_metadata = ModelStorageMetadata.from_dict(d.pop("storage_metadata"))
 
-        task_type = TaskType(d.pop("task_type"))
-
         default_branch = d.pop("default_branch", UNSET)
 
         is_public = d.pop("is_public", UNSET)
@@ -128,7 +120,6 @@ class ModelListItem:
             type_=type_,
             user_id=user_id,
             storage_metadata=storage_metadata,
-            task_type=task_type,
             default_branch=default_branch,
             is_public=is_public,
         )

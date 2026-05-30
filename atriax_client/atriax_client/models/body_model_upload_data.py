@@ -10,11 +10,11 @@ from attrs import field as _attrs_field
 from .. import types
 from ..types import File
 
-T = TypeVar("T", bound="BodyModelUploadCard")
+T = TypeVar("T", bound="BodyModelUploadData")
 
 
 @_attrs_define
-class BodyModelUploadCard:
+class BodyModelUploadData:
     """
     Attributes:
         file (File):
@@ -51,12 +51,12 @@ class BodyModelUploadCard:
         d = dict(src_dict)
         file = File(payload=BytesIO(d.pop("file")))
 
-        body_model_upload_card = cls(
+        body_model_upload_data = cls(
             file=file,
         )
 
-        body_model_upload_card.additional_properties = d
-        return body_model_upload_card
+        body_model_upload_data.additional_properties = d
+        return body_model_upload_data
 
     @property
     def additional_keys(self) -> list[str]:

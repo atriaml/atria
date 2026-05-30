@@ -37,9 +37,9 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> Any | HTTPValidationError | None:
-    if response.status_code == 202:
-        response_202 = response.json()
-        return response_202
+    if response.status_code == 200:
+        response_200 = response.json()
+        return response_200
 
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
@@ -71,6 +71,8 @@ def sync_detailed(
     body: BodyModelUpload,
 ) -> Response[Any | HTTPValidationError]:
     """Upload
+
+     Generic file upload — writes one or more files to LakeFS and commits.
 
     Args:
         id (UUID):
@@ -107,6 +109,8 @@ def sync(
 ) -> Any | HTTPValidationError | None:
     """Upload
 
+     Generic file upload — writes one or more files to LakeFS and commits.
+
     Args:
         id (UUID):
         branch (str):
@@ -136,6 +140,8 @@ async def asyncio_detailed(
     body: BodyModelUpload,
 ) -> Response[Any | HTTPValidationError]:
     """Upload
+
+     Generic file upload — writes one or more files to LakeFS and commits.
 
     Args:
         id (UUID):
@@ -169,6 +175,8 @@ async def asyncio(
     body: BodyModelUpload,
 ) -> Any | HTTPValidationError | None:
     """Upload
+
+     Generic file upload — writes one or more files to LakeFS and commits.
 
     Args:
         id (UUID):

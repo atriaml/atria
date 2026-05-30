@@ -22,9 +22,7 @@ def _get_kwargs(
         "url": "/api/v1/model/",
     }
 
-    _kwargs["data"] = body.to_dict()
-
-    headers["Content-Type"] = "application/x-www-form-urlencoded"
+    _kwargs["files"] = body.to_multipart()
 
     _kwargs["headers"] = headers
     return _kwargs
@@ -33,10 +31,10 @@ def _get_kwargs(
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
 ) -> HTTPValidationError | Model | None:
-    if response.status_code == 200:
-        response_200 = Model.from_dict(response.json())
+    if response.status_code == 201:
+        response_201 = Model.from_dict(response.json())
 
-        return response_200
+        return response_201
 
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
