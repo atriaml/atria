@@ -1,5 +1,7 @@
 import fire
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
+from atria_ml.configs._task import EvaluationTaskConfig
+from atria_ml.task_pipelines._evaluator import Evaluator
 
 
 def main(
@@ -17,6 +19,7 @@ def main(
     seed: int = 42,
     optim: str = "adamw",
     lr: float = 0.001,
+    eval_checkpoint: str | None = None,
 ):
     from atria_datasets.api.datasets import load_dataset_config
     from atria_ml.configs import (
@@ -73,10 +76,18 @@ def main(
                 lr=lr,
             ),
         ),
-        do_train=True,
-        do_validation=True,
+        do_train=not eval_checkpoint,
+        do_validation=not eval_checkpoint,
         do_test=True,
     )
+
+    if eval_checkpoint:
+        return Evaluator(
+            config=EvaluationTaskConfig.from_training_config(
+                training_config=config, eval_checkpoint=eval_checkpoint
+            )
+        ).run()
+
     trainer = Trainer(config=config)
     trainer.run()
 

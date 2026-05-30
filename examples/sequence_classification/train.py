@@ -10,7 +10,9 @@ from atria_ml.configs import (
     TrainingTaskConfig,
     WarmupConfig,
 )
+from atria_ml.configs._task import EvaluationTaskConfig
 from atria_ml.optimizers._api import load_optimizer_config
+from atria_ml.task_pipelines._evaluator import Evaluator
 from atria_ml.task_pipelines._trainer import Trainer
 from atria_ml.training._configs import EarlyStoppingConfig, ModelCheckpointConfig
 from atria_models.api.models import load_model_pipeline_config
@@ -41,6 +43,7 @@ def main(
     warmup_steps: int = 1000,
     splitting_enabled: bool = True,
     split_ratio: float = 0.95,
+    eval_checkpoint: str | None = None,
 ):
     config = TrainingTaskConfig(
         env=RuntimeEnvConfig(
@@ -113,6 +116,15 @@ def main(
         do_validation=True,
         do_test=True,
     )
+    print(config)
+    exit()
+
+    if eval_checkpoint:
+        return Evaluator(
+            config=EvaluationTaskConfig.from_training_config(
+                training_config=config, eval_checkpoint=eval_checkpoint
+            )
+        ).run()
     trainer = Trainer(config=config)
     trainer.run()
 
