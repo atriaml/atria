@@ -59,7 +59,9 @@ class AtriaHubClient:
     @property
     def api_client(self) -> AtriaxClient:
         """Return the HTTP client for REST API calls."""
-        return self._api_client
+        return self._api_client.with_headers(
+            {**self._auth_headers, "apiKey": settings.ATRIAX_ANON_KEY}
+        )
 
     @property
     def protected_api_client(self) -> AuthenticatedAtriaxClient:
@@ -100,4 +102,7 @@ class AtriaHubClient:
         session = self._auth_client.auth.get_session()
         if not session:
             raise RuntimeError("No active session. Please authenticate.")
-        return {"Authorization": f"Bearer {session.access_token}"}
+        return {
+            "Authorization": f"Bearer {session.access_token}",
+            "apiKey": settings.ATRIAX_ANON_KEY,
+        }
