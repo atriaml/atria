@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import typing
 
 from atria_registry import RegistryGroup
@@ -15,6 +14,10 @@ class ExplainableModelPipelineRegistryGroup(
         self, module_path: str, **kwargs
     ) -> T_ExplainableModelPipelineConfig:
         """Dynamically load all registered modules in the registry group."""
+        from atria_insights.model_pipelines._common import (
+            T_ExplainableModelPipelineConfig,
+        )
+
         config = typing.cast(
             T_ExplainableModelPipelineConfig,
             super().load_module_config(module_path, **kwargs),

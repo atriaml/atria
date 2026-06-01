@@ -29,6 +29,8 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     __version__ = "0.0.0"
     __builds_with_kwargs__ = False
     __hash_exclude__: ClassVar[set[str]] = set()
+    __schema_exclude__: ClassVar[set[str]] = set()
+
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
     module_path: str | None = None
 
@@ -47,6 +49,13 @@ class ModuleConfig(RepresentationMixin, BaseModel):
         from hydra.utils import instantiate
 
         return instantiate(obj)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, source, handler):
+        schema = handler(source)
+        for field in cls.__schema_exclude__:
+            schema.get("properties", {}).pop(field, None)
+        return schema
 
     def to_dict(self) -> dict:
         """Convert the ModuleConfig to a dict suitable for Hydra instantiate."""

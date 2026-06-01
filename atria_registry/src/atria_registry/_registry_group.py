@@ -22,12 +22,52 @@ from atria_registry._module_base import (
 
 logger = get_logger(__name__)
 
-_BUILD_REGISTRY = os.environ.get("ATRIA_BUILD_REGISTRY", "false").lower() == "true"
+_BUILD_REGISTRY = os.environ.get("ATRIA_BUILD_REGISTRY", "true").lower() == "true"
 
 
 class ConfigSpec(BaseModel):
     hash: str
     config: dict[str, Any]
+
+
+def sanitize_schema(schema: dict) -> dict:
+    """Recursively sanitize a JSON Schema. Add/remove rules as needed."""
+    if not isinstance(schema, dict):
+        return schema
+
+    # --- field-level drops ---
+    drop_fields = {"module_path"}
+
+    # --- hide const discriminator fields from editable properties ---
+    if "properties" in schema:
+        schema["properties"] = {
+            k: sanitize_schema(v)
+            for k, v in schema["properties"].items()
+            if k not in drop_fields and "const" not in v  # ← skip const fields
+        }
+
+    # --- unwrap anyOf nulls: anyOf[{type: X}, {type: null}] → {type: X} ---
+    if "anyOf" in schema:
+        non_null = [s for s in schema["anyOf"] if s != {"type": "null"}]
+        if len(non_null) == 1:
+            # merge the unwrapped type back into this level
+            rest = {k: v for k, v in schema.items() if k != "anyOf"}
+            schema = {**rest, **non_null[0]}
+        else:
+            schema["anyOf"] = [sanitize_schema(s) for s in non_null]
+
+    # --- recurse into nested structures ---
+    for key in ("properties", "$defs", "items"):
+        if key in schema and isinstance(schema[key], dict):
+            schema[key] = {k: sanitize_schema(v) for k, v in schema[key].items()}
+
+    if "oneOf" in schema:
+        schema["oneOf"] = [sanitize_schema(s) for s in schema["oneOf"]]
+
+    if "items" in schema and isinstance(schema["items"], list):
+        schema["items"] = [sanitize_schema(s) for s in schema["items"]]
+
+    return schema
 
 
 class RegistryGroup(Generic[T_ModuleConfig]):
@@ -367,38 +407,63 @@ class RegistryGroup(Generic[T_ModuleConfig]):
     def _schema_db_path(self) -> Path:
         return self._package_dir() / "schema.db"
 
-    def dump_schema(self, path: Path | None = None, refresh: bool = False) -> Path:
+    def dump_schema(
+        self, path: Path | None = None, refresh: bool = False, to_json: bool = False
+    ) -> Path:
         """Dump JSON schemas for all registered configs into a schema.db SQLite database."""
-        db_path = path or self._schema_db_path()
-        conn = sqlite3.connect(str(db_path))
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS schema (
-                group_name TEXT NOT NULL,
-                path       TEXT NOT NULL,
-                schema     TEXT NOT NULL,
-                PRIMARY KEY (group_name, path)
-            )
-        """)
-        if refresh:
-            conn.execute("DELETE FROM schema WHERE group_name=?", (self._name,))
+        if to_json:
+            json_path = Path("tree.json")
 
-        for module_path in self.list_all_modules():
-            try:
+            schema = {}
+            if json_path.exists():
+                with open(json_path, "rb") as f:
+                    schema = json.load(f)
+
+            if refresh or self._name not in schema:
+                schema[self._name] = {}
+            for module_path in self.list_all_modules():
                 cfg = self.load_module_config(module_path)
                 if isinstance(cfg, ModuleConfig):
-                    schema = json.dumps(type(cfg).model_json_schema())
-                    conn.execute(
-                        "INSERT OR REPLACE INTO schema VALUES (?,?,?)",
-                        (self._name, module_path, schema),
-                    )
-            except Exception as e:
-                logger.warning(f"Skipping schema for '{module_path}': {e}")
+                    form_schema = type(cfg).model_json_schema()
+                    form_schema = sanitize_schema(form_schema)
+                    schema[self._name][module_path] = form_schema
+            with open(json_path, "w") as f:
+                json.dump(schema, f, indent=4)
+            logger.info(f"Schema dump complete for '{self._name}' → {json_path}")
+            return json_path
+        else:
+            db_path = path or self._schema_db_path()
+            conn = sqlite3.connect(str(db_path))
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS schema (
+                    group_name TEXT NOT NULL,
+                    path       TEXT NOT NULL,
+                    schema     TEXT NOT NULL,
+                    PRIMARY KEY (group_name, path)
+                )
+            """)
+            if refresh:
+                conn.execute("DELETE FROM schema WHERE group_name=?", (self._name,))
 
-        conn.commit()
-        conn.close()
-        logger.info(f"Schema dump complete for '{self._name}' → {db_path}")
-        return db_path
+            for module_path in self.list_all_modules():
+                try:
+                    cfg = self.load_module_config(module_path)
+                    if isinstance(cfg, ModuleConfig):
+                        form_schema = type(cfg).model_json_schema()
+                        form_schema = sanitize_schema(form_schema)
+                        form_schema = json.dumps(form_schema)
+                        conn.execute(
+                            "INSERT OR REPLACE INTO schema VALUES (?,?,?)",
+                            (self._name, module_path, form_schema),
+                        )
+                except Exception as e:
+                    logger.warning(f"Skipping schema for '{module_path}': {e}")
+
+            conn.commit()
+            conn.close()
+            logger.info(f"Schema dump complete for '{self._name}' → {db_path}")
+            return db_path
 
     def load(self) -> None:
         """Load all entries from SQLite into the in-memory store."""

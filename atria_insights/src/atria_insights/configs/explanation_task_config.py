@@ -13,7 +13,7 @@ from pydantic import ConfigDict
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
-from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
+from atria_insights.explainability_metrics import ExplainabilityMetricConfigType
 from atria_insights.explainers._torchxai import (
     ExplainerConfigType,
     SaliencyExplainerConfig,
@@ -50,7 +50,7 @@ class ExplanationTaskConfig(TaskConfigBase):
         feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig(),
         baseline_generator: BaselineGeneratorConfigType = SimpleBaselineGeneratorConfig(),
         explainer: ExplainerConfigType = SaliencyExplainerConfig(),
-        explainability_metrics: dict[str, ExplainabilityMetricConfig] | None = None,
+        explainability_metrics: dict[str, ExplainabilityMetricConfigType] | None = None,
         explanation_target_strategy: ExplanationTargetStrategy = (
             ExplanationTargetStrategy.predicted
         ),

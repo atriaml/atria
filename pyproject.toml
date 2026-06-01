@@ -19,7 +19,10 @@ dependencies = [
     "fire>=0.7.1",
     "h5typer>=0.2.0",
     "joblib>=1.5.2",
+    "jsonref>=1.1.0",
     "jupytext>=1.18.1",
+    "pydantic-settings>=2.14.1",
+    "streamlit-pydantic>=0.6.0",
     "tuna>=0.5.11",
 ]
 

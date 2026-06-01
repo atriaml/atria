@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
 from atria_models import ModelPipelineConfig
 from atria_registry import ModuleConfig
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGeneratorConfig,
 )
 from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
-from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
+from atria_insights.explainability_metrics import ExplainabilityMetricConfigType
 from atria_insights.explainers._torchxai import (
     ExplainerConfigType,
     SaliencyExplainerConfig,
@@ -32,6 +32,11 @@ class ExplanationTargetStrategy(str, enum.Enum):
     all = "all"
 
 
+class SlidingWindowShape(BaseModel):
+    key: str = "image"
+    shape: list[int] = [3, 16, 16]
+
+
 class ExplainableModelPipelineConfig(ModuleConfig):
     __hash_exclude__: ClassVar[set[str]] = {
         "explainability_metrics",
@@ -41,6 +46,12 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         "throw_on_load_mismatch",
         "profile_time",
     }
+    __schema_exclude__: ClassVar[set[str]] = {
+        "model_pipeline",
+        "throw_on_load_mismatch",
+        "profile_time",
+        "metric_baseline_generator",
+    }
     model_pipeline: ModelPipelineConfig
     feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig()
     baseline_generator: BaselineGeneratorConfigType = SimpleBaselineGeneratorConfig()
@@ -48,14 +59,16 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         SimpleBaselineGeneratorConfig()
     )
     # only for occlusion explainer
-    sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
-        default_factory=lambda: {"image": (3, 16, 16)}
+    sliding_window_shapes_map: list[SlidingWindowShape] = Field(
+        default_factory=lambda: [SlidingWindowShape(key="image", shape=[3, 16, 16])],
+        json_schema_extra={"default": [{"key": "image", "shape": [3, 16, 16]}]},
     )
-    strides_map: dict[str, tuple[int, ...]] | None = Field(
-        default_factory=lambda: {"image": (3, 8, 8)}
+    strides_map: list[SlidingWindowShape] = Field(
+        default_factory=lambda: [SlidingWindowShape(key="image", shape=[3, 8, 8])],
+        json_schema_extra={"default": [{"key": "image", "shape": [3, 8, 8]}]},
     )
     explainer: ExplainerConfigType = SaliencyExplainerConfig()
-    explainability_metrics: dict[str, ExplainabilityMetricConfig] | None = None  #
+    explainability_metrics: dict[str, ExplainabilityMetricConfigType] | None = None  #
     explanation_target_strategy: ExplanationTargetStrategy = (
         ExplanationTargetStrategy.predicted
     )

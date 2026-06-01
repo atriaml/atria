@@ -48,6 +48,13 @@ logger = get_logger(__name__)
 
 
 class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
+    __schema_exclude__: ClassVar[set[str]] = {
+        "model_pipeline",
+        "throw_on_load_mismatch",
+        "profile_time",
+        "metric_baseline_generator",
+        "ignored_feature_ids",
+    }
     feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
         SequenceFeatureMaskSegmentorConfig()
     )

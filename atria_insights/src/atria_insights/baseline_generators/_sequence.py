@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 
 class SequenceBaselineGeneratorConfig(ModuleConfig):
+    __schema_exclude__ = {"image_mean", "image_std"}
     module_path: str | None = (
         "atria_insights.baseline_generators._sequence.SequenceBaselineGenerator"
     )
