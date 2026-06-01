@@ -11,8 +11,12 @@ from atria_insights.model_pipelines._sequence_pipeline import *  # noqa
 
 def main():
     EXPLAINABLE_MODEL_PIPELINES.dump(refresh=True)
-    EXPLAINERS.dump()
-    EXPLAINABILITY_METRICS.dump()
+    EXPLAINERS.dump(refresh=True)
+    EXPLAINABILITY_METRICS.dump(refresh=True)
+
+    EXPLAINABLE_MODEL_PIPELINES.dump_schema(refresh=True)
+    EXPLAINERS.dump_schema(refresh=True)
+    EXPLAINABILITY_METRICS.dump_schema(refresh=True)
 
 
 if __name__ == "__main__":

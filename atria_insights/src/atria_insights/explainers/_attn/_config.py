@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, TypeVar
+from typing import Annotated, Any, Literal, TypeVar
 
 from atria_registry import ModuleConfig
 from pydantic import Field
-from traitlets import Any
 
+from atria_insights.explainers._base import ExplainerConfig
 from atria_insights.explainers._registry_group import EXPLAINERS
 
 
-class AttnExplainerConfig(ModuleConfig):
+class AttnExplainerConfig(ExplainerConfig):
     __builds_with_kwargs__: bool = True
     head_reduction: Literal["mean", "max", "min", "sum"] = "mean"
 

@@ -52,6 +52,9 @@ class AttnExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig)
     feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
         SequenceFeatureMaskSegmentorConfig()
     )
+    baseline_generator: SequenceBaselineGeneratorConfig = (
+        SequenceBaselineGeneratorConfig()
+    )
     metric_baseline_generator: SequenceBaselineGeneratorConfig = (
         SequenceBaselineGeneratorConfig()
     )

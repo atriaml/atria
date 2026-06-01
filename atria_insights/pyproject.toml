@@ -21,6 +21,7 @@ dependencies = [
     "atria-transforms",
     "atria-models",
     "atria-metrics",
+    "atria-datasets",
 ]
 
 [project.optional-dependencies]
@@ -124,3 +125,4 @@ atria-transforms = { path = "../atria_transforms", editable = true }
 atria-models = { path = "../atria_models", editable = true }
 atria-metrics = { path = "../atria_metrics", editable = true }
 torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }
+atria-datasets = { path = "../atria_datasets" }

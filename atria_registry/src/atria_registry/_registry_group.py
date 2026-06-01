@@ -364,6 +364,42 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         )
         return db_path
 
+    def _schema_db_path(self) -> Path:
+        return self._package_dir() / "schema.db"
+
+    def dump_schema(self, path: Path | None = None, refresh: bool = False) -> Path:
+        """Dump JSON schemas for all registered configs into a schema.db SQLite database."""
+        db_path = path or self._schema_db_path()
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema (
+                group_name TEXT NOT NULL,
+                path       TEXT NOT NULL,
+                schema     TEXT NOT NULL,
+                PRIMARY KEY (group_name, path)
+            )
+        """)
+        if refresh:
+            conn.execute("DELETE FROM schema WHERE group_name=?", (self._name,))
+
+        for module_path in self.list_all_modules():
+            try:
+                cfg = self.load_module_config(module_path)
+                if isinstance(cfg, ModuleConfig):
+                    schema = json.dumps(type(cfg).model_json_schema())
+                    conn.execute(
+                        "INSERT OR REPLACE INTO schema VALUES (?,?,?)",
+                        (self._name, module_path, schema),
+                    )
+            except Exception as e:
+                logger.warning(f"Skipping schema for '{module_path}': {e}")
+
+        conn.commit()
+        conn.close()
+        logger.info(f"Schema dump complete for '{self._name}' → {db_path}")
+        return db_path
+
     def load(self) -> None:
         """Load all entries from SQLite into the in-memory store."""
         db_path = self._db_path()
