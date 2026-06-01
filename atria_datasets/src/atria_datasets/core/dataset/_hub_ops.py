@@ -105,12 +105,12 @@ class DatasetHubOps:
                 logger.info(
                     f"Dataset '{hub_name}' uploaded successfully to branch '{branch}'."
                 )
-                hub.datasets.finalize(dataset=dataset_info, branch=branch)
             except FilesExistError:
                 logger.warning(
                     f"Files already exist in dataset '{hub_name}' on branch '{branch}'. "
                     "Set overwrite_existing=True to overwrite existing files."
                 )
+            hub.datasets.finalize(dataset=dataset_info, branch=branch)
             return {"username": hub.auth.username, "name": hub_name, "branch": branch}
         except AtriaHubConnectionError:
             logger.error(

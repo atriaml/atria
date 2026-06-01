@@ -143,7 +143,7 @@ class DatasetsApi(BaseApi):
         tgt = f"{dataset.repo_id}/{branch}/"
 
         # first verify that delta directory already does not exist
-        deltadir = f"{tgt}/delta/"
+        deltadir = f"{tgt}delta/"
         if self._client.fs.exists(deltadir) and not overwrite_existing:
             raise FilesExistError(
                 f"Delta directory {deltadir} already exists. "
