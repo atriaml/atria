@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Generic, Literal, Self
 
@@ -9,7 +10,6 @@ from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule, ModuleConfig
 from atria_transforms.core._data_types._base import TensorDataModel
 from atria_types._datasets import DatasetLabels
-from realtime import dataclass
 
 from atria_models.core.model_pipelines._common import T_ModelPipelineConfig
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
@@ -148,6 +148,7 @@ class ModelPipeline(
 
         metadata = yaml.dump(
             {
+                "pipeline_name": self.__pipeline_name__,
                 "config": config,
                 "labels": (labels.model_dump() if labels is not None else None),
             }
