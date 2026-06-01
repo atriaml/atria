@@ -9,7 +9,7 @@
         "**/**atria.egg-info": true,
         "**/**.pytest_cache": true,
         "**/**.mypy_cache": true,
-        "**/**.venv": false,
+        "**/**.venv": true,
         "**/**.htmlcov": true,
         "**/**.ruff_cache": true,
         "**/**.coverage": true,

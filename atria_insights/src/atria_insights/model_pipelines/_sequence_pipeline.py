@@ -34,6 +34,7 @@ from atria_insights.feature_segmentors._sequence import (
 from atria_insights.model_pipelines._common import (
     ExplainableModelPipelineConfig,
     ExplanationTargetStrategy,
+    SlidingWindowConfig,
 )
 from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
     ExplainableQuestionAnsweringModelForwardWrapper,
@@ -45,6 +46,13 @@ from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PI
 from atria_insights.model_pipelines._utilities import _generate_word_level_targets
 
 logger = get_logger(__name__)
+
+
+class SequenceSlidingWindowConfig(SlidingWindowConfig):
+    token_ids: int = 8
+    position_ids: int = 8
+    token_type_ids: int = 8
+    layout_ids: int = 8
 
 
 class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
@@ -66,24 +74,10 @@ class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
     )
 
     # only for occlusion explainer
-    sliding_window_shapes_map: dict[str, tuple[int, ...]] | None = Field(
-        default_factory=lambda: {
-            "token_ids": (8,),
-            "position_ids": (8,),
-            "token_type_ids": (8,),
-            "layout_ids": (8,),
-            "image": (3, 16, 16),
-        }
+    sliding_window_shapes_map: SequenceSlidingWindowConfig = (
+        SequenceSlidingWindowConfig()
     )
-    strides_map: dict[str, tuple[int, ...]] | None = Field(
-        default_factory=lambda: {
-            "token_ids": (4,),
-            "position_ids": (4,),
-            "token_type_ids": (4,),
-            "layout_ids": (4,),
-            "image": (3, 8, 8),
-        }
-    )
+    strides_map: SequenceSlidingWindowConfig = SequenceSlidingWindowConfig()
     ignored_feature_ids: list[str] = Field(default_factory=lambda: ["token_type_ids"])
 
     @model_validator(mode="after")

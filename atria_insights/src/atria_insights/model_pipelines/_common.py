@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
 from atria_models import ModelPipelineConfig
 from atria_registry import ModuleConfig
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._feature_based import (
@@ -32,9 +32,10 @@ class ExplanationTargetStrategy(str, enum.Enum):
     all = "all"
 
 
-class SlidingWindowShape(BaseModel):
-    key: str = "image"
-    shape: list[int] = [3, 16, 16]
+class SlidingWindowConfig(ModuleConfig):
+    image_c: int = Field(default=3, ge=1, le=3)
+    image_h: int = Field(default=16, ge=1, le=256)
+    image_w: int = Field(default=16, ge=1, le=256)
 
 
 class ExplainableModelPipelineConfig(ModuleConfig):
@@ -59,16 +60,10 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         SimpleBaselineGeneratorConfig()
     )
     # only for occlusion explainer
-    sliding_window_shapes_map: list[SlidingWindowShape] = Field(
-        default_factory=lambda: [SlidingWindowShape(key="image", shape=[3, 16, 16])],
-        json_schema_extra={"default": [{"key": "image", "shape": [3, 16, 16]}]},
-    )
-    strides_map: list[SlidingWindowShape] = Field(
-        default_factory=lambda: [SlidingWindowShape(key="image", shape=[3, 8, 8])],
-        json_schema_extra={"default": [{"key": "image", "shape": [3, 8, 8]}]},
-    )
+    sliding_window_shapes_map: SlidingWindowConfig = SlidingWindowConfig()
+    strides_map: SlidingWindowConfig = SlidingWindowConfig()
     explainer: ExplainerConfigType = SaliencyExplainerConfig()
-    explainability_metrics: dict[str, ExplainabilityMetricConfigType] | None = None  #
+    explainability_metrics: list[ExplainabilityMetricConfigType] | None = None  #
     explanation_target_strategy: ExplanationTargetStrategy = (
         ExplanationTargetStrategy.predicted
     )
