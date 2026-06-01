@@ -128,7 +128,9 @@ def main(
                 training_config=config, eval_checkpoint=eval_checkpoint
             )
         )
-        evaluator.run()
+
+        if run_eval:
+            evaluator.run()
 
         model_pipeline = evaluator._state.model_pipeline
 
