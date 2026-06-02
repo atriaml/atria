@@ -5,14 +5,38 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
 from atria_models import ModelPipelineConfig
 from atria_registry import ModuleConfig
-from pydantic import Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from atria_insights.baseline_generators import BaselineGeneratorConfigType
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGeneratorConfig,
 )
 from atria_insights.baseline_generators._simple import SimpleBaselineGeneratorConfig
-from atria_insights.explainability_metrics import ExplainabilityMetricConfigType
+from atria_insights.explainability_metrics._torchxai._axiomatic import (
+    CompletenessConfig,
+    InputInvarianceConfig,
+    MonotonicityCorrAndNonSensConfig,
+)
+from atria_insights.explainability_metrics._torchxai._complexity import (
+    ComplexityEntropyConfig,
+    ComplexitySConfig,
+    EffectiveComplexityConfig,
+    SparsenessConfig,
+)
+from atria_insights.explainability_metrics._torchxai._faithfulness import (
+    AOPCConfig,
+    FaithfulnessCorrelationConfig,
+    FaithfulnessEstimateConfig,
+    InfidelityConfig,
+    MonotonicityConfig,
+    SensitivityNConfig,
+)
+from atria_insights.explainability_metrics._torchxai._localization import (
+    AttrLocalizationConfig,
+)
+from atria_insights.explainability_metrics._torchxai._robustness import (
+    SensitivityMaxAvgConfig,
+)
 from atria_insights.explainers._torchxai import (
     ExplainerConfigType,
     SaliencyExplainerConfig,
@@ -32,10 +56,32 @@ class ExplanationTargetStrategy(str, enum.Enum):
     all = "all"
 
 
-class SlidingWindowConfig(ModuleConfig):
+class SlidingWindowConfig(BaseModel):
     image_c: int = Field(default=3, ge=1, le=3)
     image_h: int = Field(default=16, ge=1, le=256)
     image_w: int = Field(default=16, ge=1, le=256)
+
+
+class ExplainabilityMetrics(BaseModel):
+    completeness: CompletenessConfig = CompletenessConfig()
+    input_invariance: InputInvarianceConfig = InputInvarianceConfig()
+    monotonicity_corr_and_non_sens: MonotonicityCorrAndNonSensConfig = (
+        MonotonicityCorrAndNonSensConfig()
+    )
+    complexity_entropy: ComplexityEntropyConfig = ComplexityEntropyConfig()
+    complexity_s: ComplexitySConfig = ComplexitySConfig()
+    effective_complexity: EffectiveComplexityConfig = EffectiveComplexityConfig()
+    sparseness: SparsenessConfig = SparsenessConfig()
+    aopc: AOPCConfig = AOPCConfig()
+    faithfulness_correlation: FaithfulnessCorrelationConfig = (
+        FaithfulnessCorrelationConfig()
+    )
+    faithfulness_estimate: FaithfulnessEstimateConfig = FaithfulnessEstimateConfig()
+    infidelity: InfidelityConfig = InfidelityConfig()
+    sensitivity_n: SensitivityNConfig = SensitivityNConfig()
+    monotonicity: MonotonicityConfig = MonotonicityConfig()
+    sensitivity_max_avg: SensitivityMaxAvgConfig = SensitivityMaxAvgConfig()
+    attr_localization: AttrLocalizationConfig = AttrLocalizationConfig()
 
 
 class ExplainableModelPipelineConfig(ModuleConfig):
@@ -63,7 +109,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
     sliding_window_shapes_map: SlidingWindowConfig = SlidingWindowConfig()
     strides_map: SlidingWindowConfig = SlidingWindowConfig()
     explainer: ExplainerConfigType = SaliencyExplainerConfig()
-    explainability_metrics: list[ExplainabilityMetricConfigType] | None = None  #
+    explainability_metrics: ExplainabilityMetrics = ExplainabilityMetrics()
     explanation_target_strategy: ExplanationTargetStrategy = (
         ExplanationTargetStrategy.predicted
     )

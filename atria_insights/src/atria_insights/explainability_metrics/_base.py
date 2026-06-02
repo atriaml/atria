@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 class ExplainabilityMetricConfig(ModuleConfig):
     type: str
+    enabled: bool = False
 
     def build(  # type: ignore
         self,
