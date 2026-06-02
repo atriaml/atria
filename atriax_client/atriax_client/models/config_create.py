@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
-from uuid import UUID
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -10,53 +9,37 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.config_params_type_0 import ConfigParamsType0
+    from ..models.config_create_params_type_0 import ConfigCreateParamsType0
 
 
-T = TypeVar("T", bound="Config")
+T = TypeVar("T", bound="ConfigCreate")
 
 
 @_attrs_define
-class Config:
+class ConfigCreate:
     """
     Attributes:
-        id (UUID):
-        created_at (str):
-        updated_at (str):
         schema_name (str):
         name (str):
-        user_id (UUID):
-        params (ConfigParamsType0 | None | Unset):
+        params (ConfigCreateParamsType0 | None | Unset):
     """
 
-    id: UUID
-    created_at: str
-    updated_at: str
     schema_name: str
     name: str
-    user_id: UUID
-    params: ConfigParamsType0 | None | Unset = UNSET
+    params: ConfigCreateParamsType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.config_params_type_0 import ConfigParamsType0
-
-        id = str(self.id)
-
-        created_at = self.created_at
-
-        updated_at = self.updated_at
+        from ..models.config_create_params_type_0 import ConfigCreateParamsType0
 
         schema_name = self.schema_name
 
         name = self.name
 
-        user_id = str(self.user_id)
-
         params: dict[str, Any] | None | Unset
         if isinstance(self.params, Unset):
             params = UNSET
-        elif isinstance(self.params, ConfigParamsType0):
+        elif isinstance(self.params, ConfigCreateParamsType0):
             params = self.params.to_dict()
         else:
             params = self.params
@@ -65,12 +48,8 @@ class Config:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "created_at": created_at,
-                "updated_at": updated_at,
                 "schema_name": schema_name,
                 "name": name,
-                "user_id": user_id,
             }
         )
         if params is not UNSET:
@@ -80,22 +59,14 @@ class Config:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.config_params_type_0 import ConfigParamsType0
+        from ..models.config_create_params_type_0 import ConfigCreateParamsType0
 
         d = dict(src_dict)
-        id = UUID(d.pop("id"))
-
-        created_at = d.pop("created_at")
-
-        updated_at = d.pop("updated_at")
-
         schema_name = d.pop("schema_name")
 
         name = d.pop("name")
 
-        user_id = UUID(d.pop("user_id"))
-
-        def _parse_params(data: object) -> ConfigParamsType0 | None | Unset:
+        def _parse_params(data: object) -> ConfigCreateParamsType0 | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -103,27 +74,23 @@ class Config:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                params_type_0 = ConfigParamsType0.from_dict(data)
+                params_type_0 = ConfigCreateParamsType0.from_dict(data)
 
                 return params_type_0
             except (TypeError, ValueError, AttributeError, KeyError):
                 pass
-            return cast(ConfigParamsType0 | None | Unset, data)
+            return cast(ConfigCreateParamsType0 | None | Unset, data)
 
         params = _parse_params(d.pop("params", UNSET))
 
-        config = cls(
-            id=id,
-            created_at=created_at,
-            updated_at=updated_at,
+        config_create = cls(
             schema_name=schema_name,
             name=name,
-            user_id=user_id,
             params=params,
         )
 
-        config.additional_properties = d
-        return config
+        config_create.additional_properties = d
+        return config_create
 
     @property
     def additional_keys(self) -> list[str]:

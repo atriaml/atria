@@ -18,7 +18,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/blob/{branch}/{path}/".format(
+        "url": "/api/v1/dataset/{id}/blob/{branch}/{path}".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
             path=quote(str(path), safe=""),

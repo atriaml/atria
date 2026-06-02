@@ -7,7 +7,6 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
 from ...models.model_list_item import ModelListItem
-from ...models.task_type import TaskType
 from ...types import UNSET, Response, Unset
 
 
@@ -21,7 +20,6 @@ def _get_kwargs(
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
     username: None | str | Unset = UNSET,
-    task_type: None | TaskType | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -55,15 +53,6 @@ def _get_kwargs(
     else:
         json_username = username
     params["username"] = json_username
-
-    json_task_type: None | str | Unset
-    if isinstance(task_type, Unset):
-        json_task_type = UNSET
-    elif isinstance(task_type, TaskType):
-        json_task_type = task_type.value
-    else:
-        json_task_type = task_type
-    params["task_type"] = json_task_type
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -122,7 +111,6 @@ def sync_detailed(
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
     username: None | str | Unset = UNSET,
-    task_type: None | TaskType | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[ModelListItem]]:
     """List
 
@@ -135,7 +123,6 @@ def sync_detailed(
         search (None | str | Unset):
         search_by (None | str | Unset):
         username (None | str | Unset):
-        task_type (None | TaskType | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -154,7 +141,6 @@ def sync_detailed(
         search=search,
         search_by=search_by,
         username=username,
-        task_type=task_type,
     )
 
     response = client.get_httpx_client().request(
@@ -175,7 +161,6 @@ def sync(
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
     username: None | str | Unset = UNSET,
-    task_type: None | TaskType | Unset = UNSET,
 ) -> HTTPValidationError | list[ModelListItem] | None:
     """List
 
@@ -188,7 +173,6 @@ def sync(
         search (None | str | Unset):
         search_by (None | str | Unset):
         username (None | str | Unset):
-        task_type (None | TaskType | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -208,7 +192,6 @@ def sync(
         search=search,
         search_by=search_by,
         username=username,
-        task_type=task_type,
     ).parsed
 
 
@@ -223,7 +206,6 @@ async def asyncio_detailed(
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
     username: None | str | Unset = UNSET,
-    task_type: None | TaskType | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[ModelListItem]]:
     """List
 
@@ -236,7 +218,6 @@ async def asyncio_detailed(
         search (None | str | Unset):
         search_by (None | str | Unset):
         username (None | str | Unset):
-        task_type (None | TaskType | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -255,7 +236,6 @@ async def asyncio_detailed(
         search=search,
         search_by=search_by,
         username=username,
-        task_type=task_type,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -274,7 +254,6 @@ async def asyncio(
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
     username: None | str | Unset = UNSET,
-    task_type: None | TaskType | Unset = UNSET,
 ) -> HTTPValidationError | list[ModelListItem] | None:
     """List
 
@@ -287,7 +266,6 @@ async def asyncio(
         search (None | str | Unset):
         search_by (None | str | Unset):
         username (None | str | Unset):
-        task_type (None | TaskType | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -308,6 +286,5 @@ async def asyncio(
             search=search,
             search_by=search_by,
             username=username,
-            task_type=task_type,
         )
     ).parsed

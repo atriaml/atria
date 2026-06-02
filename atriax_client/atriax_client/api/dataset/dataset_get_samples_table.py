@@ -15,7 +15,6 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     page: int | Unset = 0,
@@ -56,10 +55,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/table/{branch}/{config}/{split}".format(
+        "url": "/api/v1/dataset/{id}/table/{branch}/{split}/".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
-            config=quote(str(config), safe=""),
             split=quote(str(split), safe=""),
         ),
         "params": params,
@@ -101,7 +99,6 @@ def _build_response(
 def sync_detailed(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -118,7 +115,6 @@ def sync_detailed(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 1.
@@ -139,7 +135,6 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         page=page,
         page_size=page_size,
@@ -160,7 +155,6 @@ def sync_detailed(
 def sync(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -177,7 +171,6 @@ def sync(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 1.
@@ -198,7 +191,6 @@ def sync(
     return sync_detailed(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         client=client,
         page=page,
@@ -214,7 +206,6 @@ def sync(
 async def asyncio_detailed(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -231,7 +222,6 @@ async def asyncio_detailed(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 1.
@@ -252,7 +242,6 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         page=page,
         page_size=page_size,
@@ -271,7 +260,6 @@ async def asyncio_detailed(
 async def asyncio(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -288,7 +276,6 @@ async def asyncio(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 1.
@@ -310,7 +297,6 @@ async def asyncio(
         await asyncio_detailed(
             id=id,
             branch=branch,
-            config=config,
             split=split,
             client=client,
             page=page,

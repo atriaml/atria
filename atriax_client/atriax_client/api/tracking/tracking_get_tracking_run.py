@@ -1,29 +1,34 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.config import Config
-from ...models.config_type import ConfigType
 from ...models.http_validation_error import HTTPValidationError
-from ...types import Response
+from ...models.tracking_get_tracking_run_response_tracking_get_tracking_run import (
+    TrackingGetTrackingRunResponseTrackingGetTrackingRun,
+)
+from ...types import UNSET, Response
 
 
 def _get_kwargs(
-    config_type: ConfigType,
-    name: str,
-    variant: str,
+    *,
+    experiment_name: str,
+    run_name: str,
 ) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+
+    params["experiment_name"] = experiment_name
+
+    params["run_name"] = run_name
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
+
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/configs/{config_type}/{name}/{variant}/".format(
-            config_type=quote(str(config_type), safe=""),
-            name=quote(str(name), safe=""),
-            variant=quote(str(variant), safe=""),
-        ),
+        "url": "/api/v1/tracking/run",
+        "params": params,
     }
 
     return _kwargs
@@ -31,9 +36,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Config | HTTPValidationError | None:
+) -> HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun | None:
     if response.status_code == 200:
-        response_200 = Config.from_dict(response.json())
+        response_200 = TrackingGetTrackingRunResponseTrackingGetTrackingRun.from_dict(response.json())
 
         return response_200
 
@@ -50,7 +55,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Config | HTTPValidationError]:
+) -> Response[HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -60,31 +65,28 @@ def _build_response(
 
 
 def sync_detailed(
-    config_type: ConfigType,
-    name: str,
-    variant: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Config | HTTPValidationError]:
-    """Get By Name
+    experiment_name: str,
+    run_name: str,
+) -> Response[HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun]:
+    """Get Tracking Run
 
     Args:
-        config_type (ConfigType):
-        name (str):
-        variant (str):
+        experiment_name (str):
+        run_name (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun]
     """
 
     kwargs = _get_kwargs(
-        config_type=config_type,
-        name=name,
-        variant=variant,
+        experiment_name=experiment_name,
+        run_name=run_name,
     )
 
     response = client.get_httpx_client().request(
@@ -95,61 +97,55 @@ def sync_detailed(
 
 
 def sync(
-    config_type: ConfigType,
-    name: str,
-    variant: str,
     *,
     client: AuthenticatedClient,
-) -> Config | HTTPValidationError | None:
-    """Get By Name
+    experiment_name: str,
+    run_name: str,
+) -> HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun | None:
+    """Get Tracking Run
 
     Args:
-        config_type (ConfigType):
-        name (str):
-        variant (str):
+        experiment_name (str):
+        run_name (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun
     """
 
     return sync_detailed(
-        config_type=config_type,
-        name=name,
-        variant=variant,
         client=client,
+        experiment_name=experiment_name,
+        run_name=run_name,
     ).parsed
 
 
 async def asyncio_detailed(
-    config_type: ConfigType,
-    name: str,
-    variant: str,
     *,
     client: AuthenticatedClient,
-) -> Response[Config | HTTPValidationError]:
-    """Get By Name
+    experiment_name: str,
+    run_name: str,
+) -> Response[HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun]:
+    """Get Tracking Run
 
     Args:
-        config_type (ConfigType):
-        name (str):
-        variant (str):
+        experiment_name (str):
+        run_name (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun]
     """
 
     kwargs = _get_kwargs(
-        config_type=config_type,
-        name=name,
-        variant=variant,
+        experiment_name=experiment_name,
+        run_name=run_name,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -158,32 +154,29 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    config_type: ConfigType,
-    name: str,
-    variant: str,
     *,
     client: AuthenticatedClient,
-) -> Config | HTTPValidationError | None:
-    """Get By Name
+    experiment_name: str,
+    run_name: str,
+) -> HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun | None:
+    """Get Tracking Run
 
     Args:
-        config_type (ConfigType):
-        name (str):
-        variant (str):
+        experiment_name (str):
+        run_name (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        HTTPValidationError | TrackingGetTrackingRunResponseTrackingGetTrackingRun
     """
 
     return (
         await asyncio_detailed(
-            config_type=config_type,
-            name=name,
-            variant=variant,
             client=client,
+            experiment_name=experiment_name,
+            run_name=run_name,
         )
     ).parsed

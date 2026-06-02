@@ -1,30 +1,34 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.config import Config
-from ...models.config_save import ConfigSave
+from ...models.body_dataset_upload_data import BodyDatasetUploadData
 from ...models.http_validation_error import HTTPValidationError
 from ...types import Response
 
 
 def _get_kwargs(
+    id: UUID,
+    branch: str,
     *,
-    body: ConfigSave,
+    body: BodyDatasetUploadData,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": "/api/v1/configs/",
+        "url": "/api/v1/dataset/{id}/upload-data/{branch}/".format(
+            id=quote(str(id), safe=""),
+            branch=quote(str(branch), safe=""),
+        ),
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
+    _kwargs["files"] = body.to_multipart()
 
     _kwargs["headers"] = headers
     return _kwargs
@@ -32,11 +36,10 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Config | HTTPValidationError | None:
-    if response.status_code == 200:
-        response_200 = Config.from_dict(response.json())
-
-        return response_200
+) -> Any | HTTPValidationError | None:
+    if response.status_code == 202:
+        response_202 = response.json()
+        return response_202
 
     if response.status_code == 422:
         response_422 = HTTPValidationError.from_dict(response.json())
@@ -51,7 +54,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Config | HTTPValidationError]:
+) -> Response[Any | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -61,24 +64,33 @@ def _build_response(
 
 
 def sync_detailed(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ConfigSave,
-) -> Response[Config | HTTPValidationError]:
-    """Save
+    body: BodyDatasetUploadData,
+) -> Response[Any | HTTPValidationError]:
+    """Upload Data
+
+     Upload sample files and dispatch the preprocessing task. Paths are built automatically from dataset
+    type and split.
 
     Args:
-        body (ConfigSave):
+        id (UUID):
+        branch (str):
+        body (BodyDatasetUploadData):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[Any | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
+        id=id,
+        branch=branch,
         body=body,
     )
 
@@ -90,48 +102,66 @@ def sync_detailed(
 
 
 def sync(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ConfigSave,
-) -> Config | HTTPValidationError | None:
-    """Save
+    body: BodyDatasetUploadData,
+) -> Any | HTTPValidationError | None:
+    """Upload Data
+
+     Upload sample files and dispatch the preprocessing task. Paths are built automatically from dataset
+    type and split.
 
     Args:
-        body (ConfigSave):
+        id (UUID):
+        branch (str):
+        body (BodyDatasetUploadData):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        Any | HTTPValidationError
     """
 
     return sync_detailed(
+        id=id,
+        branch=branch,
         client=client,
         body=body,
     ).parsed
 
 
 async def asyncio_detailed(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ConfigSave,
-) -> Response[Config | HTTPValidationError]:
-    """Save
+    body: BodyDatasetUploadData,
+) -> Response[Any | HTTPValidationError]:
+    """Upload Data
+
+     Upload sample files and dispatch the preprocessing task. Paths are built automatically from dataset
+    type and split.
 
     Args:
-        body (ConfigSave):
+        id (UUID):
+        branch (str):
+        body (BodyDatasetUploadData):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[Any | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
+        id=id,
+        branch=branch,
         body=body,
     )
 
@@ -141,25 +171,34 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    id: UUID,
+    branch: str,
     *,
     client: AuthenticatedClient,
-    body: ConfigSave,
-) -> Config | HTTPValidationError | None:
-    """Save
+    body: BodyDatasetUploadData,
+) -> Any | HTTPValidationError | None:
+    """Upload Data
+
+     Upload sample files and dispatch the preprocessing task. Paths are built automatically from dataset
+    type and split.
 
     Args:
-        body (ConfigSave):
+        id (UUID):
+        branch (str):
+        body (BodyDatasetUploadData):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        Any | HTTPValidationError
     """
 
     return (
         await asyncio_detailed(
+            id=id,
+            branch=branch,
             client=client,
             body=body,
         )

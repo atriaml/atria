@@ -6,11 +6,9 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..models.config_type import ConfigType
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.config_base_children_type_0 import ConfigBaseChildrenType0
     from ..models.config_base_params_type_0 import ConfigBaseParamsType0
 
 
@@ -21,47 +19,22 @@ T = TypeVar("T", bound="ConfigBase")
 class ConfigBase:
     """
     Attributes:
-        config_type (ConfigType):
+        schema_name (str):
         name (str):
-        module_path (str):
-        variant (str | Unset):  Default: 'default'.
-        hash_ (None | str | Unset):
-        hash_fields (list[str] | Unset):
         params (ConfigBaseParamsType0 | None | Unset):
-        children (ConfigBaseChildrenType0 | None | Unset):
     """
 
-    config_type: ConfigType
+    schema_name: str
     name: str
-    module_path: str
-    variant: str | Unset = "default"
-    hash_: None | str | Unset = UNSET
-    hash_fields: list[str] | Unset = UNSET
     params: ConfigBaseParamsType0 | None | Unset = UNSET
-    children: ConfigBaseChildrenType0 | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.config_base_children_type_0 import ConfigBaseChildrenType0
         from ..models.config_base_params_type_0 import ConfigBaseParamsType0
 
-        config_type = self.config_type.value
+        schema_name = self.schema_name
 
         name = self.name
-
-        module_path = self.module_path
-
-        variant = self.variant
-
-        hash_: None | str | Unset
-        if isinstance(self.hash_, Unset):
-            hash_ = UNSET
-        else:
-            hash_ = self.hash_
-
-        hash_fields: list[str] | Unset = UNSET
-        if not isinstance(self.hash_fields, Unset):
-            hash_fields = self.hash_fields
 
         params: dict[str, Any] | None | Unset
         if isinstance(self.params, Unset):
@@ -71,60 +44,27 @@ class ConfigBase:
         else:
             params = self.params
 
-        children: dict[str, Any] | None | Unset
-        if isinstance(self.children, Unset):
-            children = UNSET
-        elif isinstance(self.children, ConfigBaseChildrenType0):
-            children = self.children.to_dict()
-        else:
-            children = self.children
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "config_type": config_type,
+                "schema_name": schema_name,
                 "name": name,
-                "module_path": module_path,
             }
         )
-        if variant is not UNSET:
-            field_dict["variant"] = variant
-        if hash_ is not UNSET:
-            field_dict["hash"] = hash_
-        if hash_fields is not UNSET:
-            field_dict["hash_fields"] = hash_fields
         if params is not UNSET:
             field_dict["params"] = params
-        if children is not UNSET:
-            field_dict["children"] = children
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.config_base_children_type_0 import ConfigBaseChildrenType0
         from ..models.config_base_params_type_0 import ConfigBaseParamsType0
 
         d = dict(src_dict)
-        config_type = ConfigType(d.pop("config_type"))
+        schema_name = d.pop("schema_name")
 
         name = d.pop("name")
-
-        module_path = d.pop("module_path")
-
-        variant = d.pop("variant", UNSET)
-
-        def _parse_hash_(data: object) -> None | str | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | str | Unset, data)
-
-        hash_ = _parse_hash_(d.pop("hash", UNSET))
-
-        hash_fields = cast(list[str], d.pop("hash_fields", UNSET))
 
         def _parse_params(data: object) -> ConfigBaseParamsType0 | None | Unset:
             if data is None:
@@ -143,32 +83,10 @@ class ConfigBase:
 
         params = _parse_params(d.pop("params", UNSET))
 
-        def _parse_children(data: object) -> ConfigBaseChildrenType0 | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, dict):
-                    raise TypeError()
-                children_type_0 = ConfigBaseChildrenType0.from_dict(data)
-
-                return children_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(ConfigBaseChildrenType0 | None | Unset, data)
-
-        children = _parse_children(d.pop("children", UNSET))
-
         config_base = cls(
-            config_type=config_type,
+            schema_name=schema_name,
             name=name,
-            module_path=module_path,
-            variant=variant,
-            hash_=hash_,
-            hash_fields=hash_fields,
             params=params,
-            children=children,
         )
 
         config_base.additional_properties = d

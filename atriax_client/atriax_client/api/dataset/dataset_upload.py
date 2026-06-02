@@ -72,6 +72,8 @@ def sync_detailed(
 ) -> Response[Any | HTTPValidationError]:
     """Upload
 
+     Generic file upload — writes files to LakeFS and commits. No task dispatched.
+
     Args:
         id (UUID):
         branch (str):
@@ -107,6 +109,8 @@ def sync(
 ) -> Any | HTTPValidationError | None:
     """Upload
 
+     Generic file upload — writes files to LakeFS and commits. No task dispatched.
+
     Args:
         id (UUID):
         branch (str):
@@ -136,6 +140,8 @@ async def asyncio_detailed(
     body: BodyDatasetUpload,
 ) -> Response[Any | HTTPValidationError]:
     """Upload
+
+     Generic file upload — writes files to LakeFS and commits. No task dispatched.
 
     Args:
         id (UUID):
@@ -169,6 +175,8 @@ async def asyncio(
     body: BodyDatasetUpload,
 ) -> Any | HTTPValidationError | None:
     """Upload
+
+     Generic file upload — writes files to LakeFS and commits. No task dispatched.
 
     Args:
         id (UUID):

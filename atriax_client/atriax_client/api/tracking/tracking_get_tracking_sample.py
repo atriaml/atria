@@ -1,33 +1,34 @@
 from http import HTTPStatus
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.config import Config
 from ...models.http_validation_error import HTTPValidationError
-from ...types import UNSET, Response, Unset
+from ...models.tracking_get_tracking_sample_response_tracking_get_tracking_sample import (
+    TrackingGetTrackingSampleResponseTrackingGetTrackingSample,
+)
+from ...types import UNSET, Response
 
 
 def _get_kwargs(
+    sample_index: int,
     *,
-    username: None | str | Unset = UNSET,
+    run_id: str,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
-    json_username: None | str | Unset
-    if isinstance(username, Unset):
-        json_username = UNSET
-    else:
-        json_username = username
-    params["username"] = json_username
+    params["run_id"] = run_id
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/configs/find_one/",
+        "url": "/api/v1/tracking/samples/{sample_index}".format(
+            sample_index=quote(str(sample_index), safe=""),
+        ),
         "params": params,
     }
 
@@ -36,9 +37,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Config | HTTPValidationError | None:
+) -> HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample | None:
     if response.status_code == 200:
-        response_200 = Config.from_dict(response.json())
+        response_200 = TrackingGetTrackingSampleResponseTrackingGetTrackingSample.from_dict(response.json())
 
         return response_200
 
@@ -55,7 +56,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Config | HTTPValidationError]:
+) -> Response[HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -65,25 +66,28 @@ def _build_response(
 
 
 def sync_detailed(
+    sample_index: int,
     *,
     client: AuthenticatedClient,
-    username: None | str | Unset = UNSET,
-) -> Response[Config | HTTPValidationError]:
-    """Find One
+    run_id: str,
+) -> Response[HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample]:
+    """Get Tracking Sample
 
     Args:
-        username (None | str | Unset):
+        sample_index (int):
+        run_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample]
     """
 
     kwargs = _get_kwargs(
-        username=username,
+        sample_index=sample_index,
+        run_id=run_id,
     )
 
     response = client.get_httpx_client().request(
@@ -94,49 +98,55 @@ def sync_detailed(
 
 
 def sync(
+    sample_index: int,
     *,
     client: AuthenticatedClient,
-    username: None | str | Unset = UNSET,
-) -> Config | HTTPValidationError | None:
-    """Find One
+    run_id: str,
+) -> HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample | None:
+    """Get Tracking Sample
 
     Args:
-        username (None | str | Unset):
+        sample_index (int):
+        run_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample
     """
 
     return sync_detailed(
+        sample_index=sample_index,
         client=client,
-        username=username,
+        run_id=run_id,
     ).parsed
 
 
 async def asyncio_detailed(
+    sample_index: int,
     *,
     client: AuthenticatedClient,
-    username: None | str | Unset = UNSET,
-) -> Response[Config | HTTPValidationError]:
-    """Find One
+    run_id: str,
+) -> Response[HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample]:
+    """Get Tracking Sample
 
     Args:
-        username (None | str | Unset):
+        sample_index (int):
+        run_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Config | HTTPValidationError]
+        Response[HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample]
     """
 
     kwargs = _get_kwargs(
-        username=username,
+        sample_index=sample_index,
+        run_id=run_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -145,26 +155,29 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    sample_index: int,
     *,
     client: AuthenticatedClient,
-    username: None | str | Unset = UNSET,
-) -> Config | HTTPValidationError | None:
-    """Find One
+    run_id: str,
+) -> HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample | None:
+    """Get Tracking Sample
 
     Args:
-        username (None | str | Unset):
+        sample_index (int):
+        run_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Config | HTTPValidationError
+        HTTPValidationError | TrackingGetTrackingSampleResponseTrackingGetTrackingSample
     """
 
     return (
         await asyncio_detailed(
+            sample_index=sample_index,
             client=client,
-            username=username,
+            run_id=run_id,
         )
     ).parsed

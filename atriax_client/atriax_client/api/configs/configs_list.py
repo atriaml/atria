@@ -6,7 +6,6 @@ import httpx
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.config import Config
-from ...models.config_type import ConfigType
 from ...models.http_validation_error import HTTPValidationError
 from ...types import UNSET, Response, Unset
 
@@ -20,8 +19,7 @@ def _get_kwargs(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -49,27 +47,18 @@ def _get_kwargs(
         json_search_by = search_by
     params["search_by"] = json_search_by
 
-    json_config_type: None | str | Unset
-    if isinstance(config_type, Unset):
-        json_config_type = UNSET
-    elif isinstance(config_type, ConfigType):
-        json_config_type = config_type.value
+    json_username: None | str | Unset
+    if isinstance(username, Unset):
+        json_username = UNSET
     else:
-        json_config_type = config_type
-    params["config_type"] = json_config_type
-
-    json_name: None | str | Unset
-    if isinstance(name, Unset):
-        json_name = UNSET
-    else:
-        json_name = name
-    params["name"] = json_name
+        json_username = username
+    params["username"] = json_username
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/configs/",
+        "url": "/api/v1/configs/list/",
         "params": params,
     }
 
@@ -121,8 +110,7 @@ def sync_detailed(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[Config]]:
     """List
 
@@ -134,8 +122,7 @@ def sync_detailed(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -153,8 +140,7 @@ def sync_detailed(
         order=order,
         search=search,
         search_by=search_by,
-        config_type=config_type,
-        name=name,
+        username=username,
     )
 
     response = client.get_httpx_client().request(
@@ -174,8 +160,7 @@ def sync(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> HTTPValidationError | list[Config] | None:
     """List
 
@@ -187,8 +172,7 @@ def sync(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -207,8 +191,7 @@ def sync(
         order=order,
         search=search,
         search_by=search_by,
-        config_type=config_type,
-        name=name,
+        username=username,
     ).parsed
 
 
@@ -222,8 +205,7 @@ async def asyncio_detailed(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[Config]]:
     """List
 
@@ -235,8 +217,7 @@ async def asyncio_detailed(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -254,8 +235,7 @@ async def asyncio_detailed(
         order=order,
         search=search,
         search_by=search_by,
-        config_type=config_type,
-        name=name,
+        username=username,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -273,8 +253,7 @@ async def asyncio(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    config_type: ConfigType | None | Unset = UNSET,
-    name: None | str | Unset = UNSET,
+    username: None | str | Unset = UNSET,
 ) -> HTTPValidationError | list[Config] | None:
     """List
 
@@ -286,8 +265,7 @@ async def asyncio(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        config_type (ConfigType | None | Unset):
-        name (None | str | Unset):
+        username (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -307,7 +285,6 @@ async def asyncio(
             order=order,
             search=search,
             search_by=search_by,
-            config_type=config_type,
-            name=name,
+            username=username,
         )
     ).parsed

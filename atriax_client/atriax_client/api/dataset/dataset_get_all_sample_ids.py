@@ -14,7 +14,6 @@ from ...types import UNSET, Response, Unset
 def _get_kwargs(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     search: None | str | Unset = UNSET,
@@ -40,10 +39,9 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/dataset/{id}/ids/{branch}/{config}/{split}/".format(
+        "url": "/api/v1/dataset/{id}/ids/{branch}/{split}/".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
-            config=quote(str(config), safe=""),
             split=quote(str(split), safe=""),
         ),
         "params": params,
@@ -85,7 +83,6 @@ def _build_response(
 def sync_detailed(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -97,7 +94,6 @@ def sync_detailed(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         search (None | str | Unset):
         search_by (None | str | Unset):
@@ -113,7 +109,6 @@ def sync_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         search=search,
         search_by=search_by,
@@ -129,7 +124,6 @@ def sync_detailed(
 def sync(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -141,7 +135,6 @@ def sync(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         search (None | str | Unset):
         search_by (None | str | Unset):
@@ -157,7 +150,6 @@ def sync(
     return sync_detailed(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         client=client,
         search=search,
@@ -168,7 +160,6 @@ def sync(
 async def asyncio_detailed(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -180,7 +171,6 @@ async def asyncio_detailed(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         search (None | str | Unset):
         search_by (None | str | Unset):
@@ -196,7 +186,6 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         id=id,
         branch=branch,
-        config=config,
         split=split,
         search=search,
         search_by=search_by,
@@ -210,7 +199,6 @@ async def asyncio_detailed(
 async def asyncio(
     id: UUID,
     branch: str,
-    config: str,
     split: str,
     *,
     client: AuthenticatedClient,
@@ -222,7 +210,6 @@ async def asyncio(
     Args:
         id (UUID):
         branch (str):
-        config (str):
         split (str):
         search (None | str | Unset):
         search_by (None | str | Unset):
@@ -239,7 +226,6 @@ async def asyncio(
         await asyncio_detailed(
             id=id,
             branch=branch,
-            config=config,
             split=split,
             client=client,
             search=search,

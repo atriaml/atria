@@ -1,23 +1,27 @@
 from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
-from uuid import UUID
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...models.config_schemas_get_config_schema_response_config_schemas_get_config_schema import (
+    ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema,
+)
 from ...models.http_validation_error import HTTPValidationError
 from ...types import Response
 
 
 def _get_kwargs(
-    id: UUID,
+    group_name: str,
+    path: str,
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
-        "method": "delete",
-        "url": "/api/v1/config_snapshots/{id}/".format(
-            id=quote(str(id), safe=""),
+        "method": "get",
+        "url": "/api/v1/config_schemas/{group_name}/{path}".format(
+            group_name=quote(str(group_name), safe=""),
+            path=quote(str(path), safe=""),
         ),
     }
 
@@ -26,9 +30,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | UUID | None:
+) -> ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError | None:
     if response.status_code == 200:
-        response_200 = UUID(response.json())
+        response_200 = ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema.from_dict(response.json())
 
         return response_200
 
@@ -45,7 +49,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | UUID]:
+) -> Response[ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -55,25 +59,28 @@ def _build_response(
 
 
 def sync_detailed(
-    id: UUID,
+    group_name: str,
+    path: str,
     *,
-    client: AuthenticatedClient,
-) -> Response[HTTPValidationError | UUID]:
-    """Delete
+    client: AuthenticatedClient | Client,
+) -> Response[ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError]:
+    """Get Config Schema
 
     Args:
-        id (UUID):
+        group_name (str):
+        path (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | UUID]
+        Response[ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
-        id=id,
+        group_name=group_name,
+        path=path,
     )
 
     response = client.get_httpx_client().request(
@@ -84,49 +91,55 @@ def sync_detailed(
 
 
 def sync(
-    id: UUID,
+    group_name: str,
+    path: str,
     *,
-    client: AuthenticatedClient,
-) -> HTTPValidationError | UUID | None:
-    """Delete
+    client: AuthenticatedClient | Client,
+) -> ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError | None:
+    """Get Config Schema
 
     Args:
-        id (UUID):
+        group_name (str):
+        path (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | UUID
+        ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError
     """
 
     return sync_detailed(
-        id=id,
+        group_name=group_name,
+        path=path,
         client=client,
     ).parsed
 
 
 async def asyncio_detailed(
-    id: UUID,
+    group_name: str,
+    path: str,
     *,
-    client: AuthenticatedClient,
-) -> Response[HTTPValidationError | UUID]:
-    """Delete
+    client: AuthenticatedClient | Client,
+) -> Response[ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError]:
+    """Get Config Schema
 
     Args:
-        id (UUID):
+        group_name (str):
+        path (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | UUID]
+        Response[ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError]
     """
 
     kwargs = _get_kwargs(
-        id=id,
+        group_name=group_name,
+        path=path,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -135,26 +148,29 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: UUID,
+    group_name: str,
+    path: str,
     *,
-    client: AuthenticatedClient,
-) -> HTTPValidationError | UUID | None:
-    """Delete
+    client: AuthenticatedClient | Client,
+) -> ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError | None:
+    """Get Config Schema
 
     Args:
-        id (UUID):
+        group_name (str):
+        path (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | UUID
+        ConfigSchemasGetConfigSchemaResponseConfigSchemasGetConfigSchema | HTTPValidationError
     """
 
     return (
         await asyncio_detailed(
-            id=id,
+            group_name=group_name,
+            path=path,
             client=client,
         )
     ).parsed

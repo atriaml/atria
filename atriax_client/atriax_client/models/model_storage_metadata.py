@@ -21,12 +21,12 @@ class ModelStorageMetadata:
     Attributes:
         main_branch (str):
         branches (list[LakeFSBranchSummary]):
-        task_type (None | str | Unset):
+        pipeline_name (None | str | Unset):
     """
 
     main_branch: str
     branches: list[LakeFSBranchSummary]
-    task_type: None | str | Unset = UNSET
+    pipeline_name: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -37,11 +37,11 @@ class ModelStorageMetadata:
             branches_item = branches_item_data.to_dict()
             branches.append(branches_item)
 
-        task_type: None | str | Unset
-        if isinstance(self.task_type, Unset):
-            task_type = UNSET
+        pipeline_name: None | str | Unset
+        if isinstance(self.pipeline_name, Unset):
+            pipeline_name = UNSET
         else:
-            task_type = self.task_type
+            pipeline_name = self.pipeline_name
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -51,8 +51,8 @@ class ModelStorageMetadata:
                 "branches": branches,
             }
         )
-        if task_type is not UNSET:
-            field_dict["task_type"] = task_type
+        if pipeline_name is not UNSET:
+            field_dict["pipeline_name"] = pipeline_name
 
         return field_dict
 
@@ -70,19 +70,19 @@ class ModelStorageMetadata:
 
             branches.append(branches_item)
 
-        def _parse_task_type(data: object) -> None | str | Unset:
+        def _parse_pipeline_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
             return cast(None | str | Unset, data)
 
-        task_type = _parse_task_type(d.pop("task_type", UNSET))
+        pipeline_name = _parse_pipeline_name(d.pop("pipeline_name", UNSET))
 
         model_storage_metadata = cls(
             main_branch=main_branch,
             branches=branches,
-            task_type=task_type,
+            pipeline_name=pipeline_name,
         )
 
         model_storage_metadata.additional_properties = d

@@ -1,27 +1,32 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
-from uuid import UUID
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.config import Config
+from ...models.config_create import ConfigCreate
 from ...models.http_validation_error import HTTPValidationError
 from ...types import Response
 
 
 def _get_kwargs(
-    id: UUID,
+    *,
+    body: ConfigCreate,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
     _kwargs: dict[str, Any] = {
-        "method": "get",
-        "url": "/api/v1/config_snapshots/id/{id}/".format(
-            id=quote(str(id), safe=""),
-        ),
+        "method": "post",
+        "url": "/api/v1/configs/",
     }
 
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -56,14 +61,14 @@ def _build_response(
 
 
 def sync_detailed(
-    id: UUID,
     *,
     client: AuthenticatedClient,
+    body: ConfigCreate,
 ) -> Response[Config | HTTPValidationError]:
-    """Item
+    """Create
 
     Args:
-        id (UUID):
+        body (ConfigCreate):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -74,7 +79,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        id=id,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -85,14 +90,14 @@ def sync_detailed(
 
 
 def sync(
-    id: UUID,
     *,
     client: AuthenticatedClient,
+    body: ConfigCreate,
 ) -> Config | HTTPValidationError | None:
-    """Item
+    """Create
 
     Args:
-        id (UUID):
+        body (ConfigCreate):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -103,20 +108,20 @@ def sync(
     """
 
     return sync_detailed(
-        id=id,
         client=client,
+        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
-    id: UUID,
     *,
     client: AuthenticatedClient,
+    body: ConfigCreate,
 ) -> Response[Config | HTTPValidationError]:
-    """Item
+    """Create
 
     Args:
-        id (UUID):
+        body (ConfigCreate):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -127,7 +132,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        id=id,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -136,14 +141,14 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    id: UUID,
     *,
     client: AuthenticatedClient,
+    body: ConfigCreate,
 ) -> Config | HTTPValidationError | None:
-    """Item
+    """Create
 
     Args:
-        id (UUID):
+        body (ConfigCreate):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -155,7 +160,7 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            id=id,
             client=client,
+            body=body,
         )
     ).parsed

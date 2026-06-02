@@ -22,9 +22,7 @@ def _get_kwargs(
         "url": "/api/v1/dataset/",
     }
 
-    _kwargs["data"] = body.to_dict()
-
-    headers["Content-Type"] = "application/x-www-form-urlencoded"
+    _kwargs["files"] = body.to_multipart()
 
     _kwargs["headers"] = headers
     return _kwargs

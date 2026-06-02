@@ -7,8 +7,8 @@ from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
 if TYPE_CHECKING:
-    from ..models.config_base import ConfigBase
     from ..models.dataset_config import DatasetConfig
+    from ..models.explainer_pipeline_config import ExplainerPipelineConfig
     from ..models.model_config import ModelConfig
 
 
@@ -21,12 +21,12 @@ class ExplanationTaskConfig:
     Attributes:
         dataset (DatasetConfig):
         model (ModelConfig):
-        explainer_pipeline_config (ConfigBase):
+        explainer_pipeline (ExplainerPipelineConfig):
     """
 
     dataset: DatasetConfig
     model: ModelConfig
-    explainer_pipeline_config: ConfigBase
+    explainer_pipeline: ExplainerPipelineConfig
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -34,7 +34,7 @@ class ExplanationTaskConfig:
 
         model = self.model.to_dict()
 
-        explainer_pipeline_config = self.explainer_pipeline_config.to_dict()
+        explainer_pipeline = self.explainer_pipeline.to_dict()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -42,7 +42,7 @@ class ExplanationTaskConfig:
             {
                 "dataset": dataset,
                 "model": model,
-                "explainer_pipeline_config": explainer_pipeline_config,
+                "explainer_pipeline": explainer_pipeline,
             }
         )
 
@@ -50,8 +50,8 @@ class ExplanationTaskConfig:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.config_base import ConfigBase
         from ..models.dataset_config import DatasetConfig
+        from ..models.explainer_pipeline_config import ExplainerPipelineConfig
         from ..models.model_config import ModelConfig
 
         d = dict(src_dict)
@@ -59,12 +59,12 @@ class ExplanationTaskConfig:
 
         model = ModelConfig.from_dict(d.pop("model"))
 
-        explainer_pipeline_config = ConfigBase.from_dict(d.pop("explainer_pipeline_config"))
+        explainer_pipeline = ExplainerPipelineConfig.from_dict(d.pop("explainer_pipeline"))
 
         explanation_task_config = cls(
             dataset=dataset,
             model=model,
-            explainer_pipeline_config=explainer_pipeline_config,
+            explainer_pipeline=explainer_pipeline,
         )
 
         explanation_task_config.additional_properties = d
