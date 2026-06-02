@@ -27,6 +27,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     """
 
     __version__ = "0.0.0"
+    __title__: ClassVar[str] | None = None
     __builds_with_kwargs__ = False
     __hash_exclude__: ClassVar[set[str]] = set()
     __schema_exclude__: ClassVar[set[str]] = set()
@@ -55,6 +56,20 @@ class ModuleConfig(RepresentationMixin, BaseModel):
         schema = handler(source)
         for field in cls.__schema_exclude__:
             schema.get("properties", {}).pop(field, None)
+
+        # update the module_path to be read-only and hidden from the form
+        if "module_path" in schema.get("properties", {}):
+            schema["properties"]["module_path"]["readOnly"] = True
+            schema["properties"]["module_path"]["ui"] = {"hidden": True}
+
+        # update title
+        if cls.__title__ is None:
+            title = cls.__name__.replace("Config", "")
+            # Insert spaces before capital letters
+            title = "".join(" " + c if c.isupper() else c for c in title).strip()
+            schema["title"] = title
+        else:
+            schema["title"] = cls.__title__
         return schema
 
     def to_dict(self) -> dict:

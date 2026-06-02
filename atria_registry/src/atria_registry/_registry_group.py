@@ -30,46 +30,6 @@ class ConfigSpec(BaseModel):
     config: dict[str, Any]
 
 
-def sanitize_schema(schema: dict) -> dict:
-    """Recursively sanitize a JSON Schema. Add/remove rules as needed."""
-    if not isinstance(schema, dict):
-        return schema
-
-    # --- field-level drops ---
-    drop_fields = {"module_path"}
-
-    # --- hide const discriminator fields from editable properties ---
-    if "properties" in schema:
-        schema["properties"] = {
-            k: sanitize_schema(v)
-            for k, v in schema["properties"].items()
-            if k not in drop_fields and "const" not in v  # ← skip const fields
-        }
-
-    # --- unwrap anyOf nulls: anyOf[{type: X}, {type: null}] → {type: X} ---
-    if "anyOf" in schema:
-        non_null = [s for s in schema["anyOf"] if s != {"type": "null"}]
-        if len(non_null) == 1:
-            # merge the unwrapped type back into this level
-            rest = {k: v for k, v in schema.items() if k != "anyOf"}
-            schema = {**rest, **non_null[0]}
-        else:
-            schema["anyOf"] = [sanitize_schema(s) for s in non_null]
-
-    # --- recurse into nested structures ---
-    for key in ("properties", "$defs", "items"):
-        if key in schema and isinstance(schema[key], dict):
-            schema[key] = {k: sanitize_schema(v) for k, v in schema[key].items()}
-
-    if "oneOf" in schema:
-        schema["oneOf"] = [sanitize_schema(s) for s in schema["oneOf"]]
-
-    if "items" in schema and isinstance(schema["items"], list):
-        schema["items"] = [sanitize_schema(s) for s in schema["items"]]
-
-    return schema
-
-
 class RegistryGroup(Generic[T_ModuleConfig]):
     def __init__(self, name: str, package: str):
         """
@@ -424,8 +384,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
             for module_path in self.list_all_modules():
                 cfg = self.load_module_config(module_path)
                 if isinstance(cfg, ModuleConfig):
-                    form_schema = type(cfg).model_json_schema()
-                    form_schema = sanitize_schema(form_schema)
+                    form_schema = cfg.model_json_schema()
                     schema[self._name][module_path] = form_schema
             with open(json_path, "w") as f:
                 json.dump(schema, f, indent=4)
@@ -450,8 +409,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 try:
                     cfg = self.load_module_config(module_path)
                     if isinstance(cfg, ModuleConfig):
-                        form_schema = type(cfg).model_json_schema()
-                        form_schema = sanitize_schema(form_schema)
+                        form_schema = cfg.model_json_schema()
                         form_schema = json.dumps(form_schema)
                         conn.execute(
                             "INSERT OR REPLACE INTO schema VALUES (?,?,?)",
