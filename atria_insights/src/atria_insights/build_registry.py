@@ -2,21 +2,21 @@ import argparse
 
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
 from atria_insights.explainers._registry_group import EXPLAINERS
-from atria_insights.model_pipelines._attn_sequence_pipeline import *  # noqa
-from atria_insights.model_pipelines._image_pipeline import *  # noqa
-from atria_insights.model_pipelines._registry_groups import (
-    EXPLAINABLE_MODEL_PIPELINES,
+from atria_insights.explanation_pipelines._attn_sequence_pipeline import *  # noqa
+from atria_insights.explanation_pipelines._image_pipeline import *  # noqa
+from atria_insights.explanation_pipelines._registry_groups import (
+    EXPLANATION_PIPELINES,
     # noqa
 )
-from atria_insights.model_pipelines._sequence_pipeline import *  # noqa
+from atria_insights.explanation_pipelines._sequence_pipeline import *  # noqa
 
 
 def main(to_json: bool = False):
-    EXPLAINABLE_MODEL_PIPELINES.dump(refresh=True)
+    EXPLANATION_PIPELINES.dump(refresh=True)
     EXPLAINERS.dump(refresh=True)
     EXPLAINABILITY_METRICS.dump(refresh=True)
 
-    EXPLAINABLE_MODEL_PIPELINES.dump_schema(refresh=True, to_json=to_json)
+    EXPLANATION_PIPELINES.dump_schema(refresh=True, to_json=to_json)
     EXPLAINERS.dump_schema(refresh=True, to_json=to_json)
     EXPLAINABILITY_METRICS.dump_schema(refresh=True, to_json=to_json)
 

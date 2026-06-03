@@ -14,7 +14,7 @@ from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._explanation_state import BatchExplanationState
 
 if TYPE_CHECKING:
-    from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
+    from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 
 
 logger = get_logger(__name__)
@@ -29,7 +29,7 @@ class ExplanationStepOutput(BaseModel):
 class ExplanationStep(EngineStep):
     def __init__(
         self,
-        x_model_pipeline: ExplainableModelPipeline,
+        x_model_pipeline: ExplanationPipeline,
         device: str | torch.device,
         test_run: bool = False,
     ):

@@ -12,8 +12,8 @@ from torchxai.explainers._explainer import Explainer
 
 from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
 from atria_insights.explainers._attn._utils import compute_flows
-from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
-    ExplainableSequenceModelForwardWrapper,
+from atria_insights.explanation_pipelines._forward_wrappers._sequence_forward_wrappers import (
+    SequenceModelExplanationForwardWrapper,
 )
 
 logger = get_logger(__name__)
@@ -26,7 +26,7 @@ class AttentionExplainer(Explainer):
 
     def __init__(
         self,
-        model: ExplainableSequenceModelForwardWrapper,
+        model: SequenceModelExplanationForwardWrapper,
         head_reduction: Literal["mean", "max", "min", "sum"] = "mean",
     ) -> None:
         self._model = model

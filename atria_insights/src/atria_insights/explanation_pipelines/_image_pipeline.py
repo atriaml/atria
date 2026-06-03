@@ -14,37 +14,37 @@ from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_types._datasets import DatasetLabels
 
 from atria_insights.data_types._targets import BatchExplanationTarget
-from atria_insights.model_pipelines._common import (
-    ExplainableModelPipelineConfig,
+from atria_insights.explanation_pipelines._common import (
+    ExplanationPipelineConfig,
     ExplanationTargetStrategy,
 )
-from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
-from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
+from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
 
 logger = get_logger(__name__)
 
 
-class ExplainableImageModelPipelineConfig(ExplainableModelPipelineConfig):
+class ImageModelExplanationPipelineConfig(ExplanationPipelineConfig):
     model_pipeline: ImageModelPipelineConfig
 
 
-T_ExplainableImageModelPipelineConfig = TypeVar(
-    "T_ExplainableImageModelPipelineConfig", bound="ExplainableImageModelPipelineConfig"
+T_ImageModelExplanationPipelineConfig = TypeVar(
+    "T_ImageModelExplanationPipelineConfig", bound="ImageModelExplanationPipelineConfig"
 )
 
 
-class ExplainableImageModelPipeline(
-    ExplainableModelPipeline[
-        ExplainableImageModelPipelineConfig,
+class ImageModelExplanationPipeline(
+    ExplanationPipeline[
+        ImageModelExplanationPipelineConfig,
         ImageTensorDataModel | DocumentTensorDataModel,
     ]
 ):
     __abstract__ = True
-    __config__ = ExplainableImageModelPipelineConfig
+    __config__ = ImageModelExplanationPipelineConfig
 
     def __init__(
         self,
-        config: ExplainableImageModelPipelineConfig,
+        config: ImageModelExplanationPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
@@ -107,7 +107,7 @@ class ExplainableImageModelPipeline(
         return {"image": batch.image}
 
 
-class ExplainableImageClassificationPipelineConfig(ExplainableImageModelPipelineConfig):
+class ImageClassificationExplanationPipelineConfig(ImageModelExplanationPipelineConfig):
     model_pipeline: ImageClassificationPipelineConfig = (
         ImageClassificationPipelineConfig()
     )
@@ -117,6 +117,6 @@ class ExplainableImageClassificationPipelineConfig(ExplainableImageModelPipeline
         return "image_classification"
 
 
-@EXPLAINABLE_MODEL_PIPELINES.register("image_classification")
-class ExplainableImageClassificationPipeline(ExplainableImageModelPipeline):
-    __config__ = ExplainableImageClassificationPipelineConfig
+@EXPLANATION_PIPELINES.register("image_classification")
+class ImageClassificationExplanationPipeline(ImageModelExplanationPipeline):
+    __config__ = ImageClassificationExplanationPipelineConfig

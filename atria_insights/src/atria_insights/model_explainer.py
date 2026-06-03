@@ -32,7 +32,7 @@ from atria_insights.engines._feature_generation_engine import (
     FeatureGenerationEngineConfig,
     FeatureGenerationEngineDependencies,
 )
-from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
+from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 
 if TYPE_CHECKING:
     from ignite.engine import State
@@ -44,7 +44,7 @@ logger = get_logger(__name__)
 @dataclass
 class ModelExplainerState:
     data_pipeline: DataPipeline
-    x_model_pipeline: ExplainableModelPipeline
+    x_model_pipeline: ExplanationPipeline
     tb_logger: TensorboardLogger | None = None
 
     @property
@@ -111,7 +111,7 @@ class ModelExplainer:
 
             explainer_dir = (
                 Path(self._run_dir)
-                / self._config.x_model_pipeline.explainer.type.split("/")[-1]
+                / self._config.explanation_pipeline.explainer.type.split("/")[-1]
             )
             if not explainer_dir.exists():
                 explainer_dir.mkdir(parents=True, exist_ok=True)
@@ -203,14 +203,14 @@ class ModelExplainer:
         logger.info(f"Dataset:\n{dataset}")
 
         # see if feature baseline generator is attached, then we updates its path
-        if self._config.x_model_pipeline.baseline_generator.type == "feature_based":
+        if self._config.explanation_pipeline.baseline_generator.type == "feature_based":
             # hard coded for now to the path where the features will be stored
-            self._config.x_model_pipeline.baseline_generator.unsafe_update(
+            self._config.explanation_pipeline.baseline_generator.unsafe_update(
                 features_path=str(Path(self._run_dir) / "features.hdf5")
             )
 
         # build model pipelines
-        x_model_pipeline = self._config.x_model_pipeline.build(
+        x_model_pipeline = self._config.explanation_pipeline.build(
             labels=labels, persist_to_disk=True, cache_dir=self._run_dir
         )
 

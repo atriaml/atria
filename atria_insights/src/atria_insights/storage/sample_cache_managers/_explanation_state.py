@@ -12,7 +12,7 @@ from atria_insights.data_types._explanation_state import (
 )
 from atria_insights.data_types._targets import SampleExplanationTarget
 from atria_insights.explainers._attn._target import SampleAttentionTokenTarget
-from atria_insights.model_pipelines._common import ExplainableModelPipelineConfig
+from atria_insights.explanation_pipelines._common import ExplanationPipelineConfig
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
 from atria_insights.utilities._common import (
@@ -27,7 +27,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
     def __init__(
         self,
         cache_dir: str | Path,
-        config: ExplainableModelPipelineConfig,
+        config: ExplanationPipelineConfig,
         load_existing: bool = False,
     ):
         # create a child cache dir for the given explainer

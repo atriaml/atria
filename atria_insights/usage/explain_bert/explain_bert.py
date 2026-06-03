@@ -1,5 +1,10 @@
 from atria_datasets.api.datasets import load_dataset_config  # noqa: F401
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
+from atria_insights.configs.explainer_config import (
+    DataConfig,  # noqa: F401
+    ExplanationTaskConfig,  # noqa: F401
+    RuntimeEnvConfig,  # noqa: F401
+)
 from atria_logger import get_logger
 from atria_models import MODEL_PIPELINES  # noqa: F401
 from atria_models.api.models import load_model_pipeline_config  # noqa: F401
@@ -7,15 +12,10 @@ from atria_models.core.model_builders._common import ModelBuilderType  # noqa: F
 from atria_models.core.model_pipelines._common import ModelConfig  # noqa: F401
 from atria_transforms.api.tfs import load_transform  # noqa: F401
 
-from atria_insights.configs.explainer_config import (
-    DataConfig,  # noqa: F401
-    ExplanationTaskConfig,  # noqa: F401
-    RuntimeEnvConfig,  # noqa: F401
+from atria_insights.explanation_pipelines._api import (
+    load_explanation_pipeline_config,  # noqa: F401
 )
 from atria_insights.model_explainer import ModelExplainer
-from atria_insights.model_pipelines._api import (
-    load_x_model_pipeline_config,  # noqa: F401
-)
 
 logger = get_logger(__name__)
 
@@ -58,7 +58,7 @@ data_config = DataConfig(
 
 config = ExplanationTaskConfig(
     env=env_config,
-    x_model_pipeline=load_x_model_pipeline_config(
+    x_model_pipeline=load_explanation_pipeline_config(
         task_type, model_pipeline_config=model_pipeline_config
     ),
     data=data_config,

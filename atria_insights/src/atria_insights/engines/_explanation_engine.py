@@ -10,7 +10,7 @@ from ignite.engine import Engine, Events
 
 from atria_insights.engines._events import MetricUpdateEvents
 from atria_insights.engines._explanation_step import ExplanationStep
-from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
+from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 
 if TYPE_CHECKING:
     from ignite.engine import Engine
@@ -24,7 +24,7 @@ class ExplanationEngineConfig(EngineConfig):
 
 
 class ExplanationEngineDependencies(EngineDependencies):
-    x_model_pipeline: ExplainableModelPipeline
+    x_model_pipeline: ExplanationPipeline
 
 
 class ExplanationEngine(
@@ -90,7 +90,8 @@ class ExplanationEngine(
 
         # initialize the progress bar
         progress_bar = ProgressBar(
-            desc=f"Stage [{self._engine_step.name}]", persist=True,
+            desc=f"Stage [{self._engine_step.name}]",
+            persist=True,
             file=open(os.devnull, "w"),
         )
 

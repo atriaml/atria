@@ -18,14 +18,14 @@ from atria_insights.explainers._torchxai import (
     ExplainerConfigType,
     SaliencyExplainerConfig,
 )
+from atria_insights.explanation_pipelines._api import load_explanation_pipeline_config
+from atria_insights.explanation_pipelines._common import (
+    ExplanationPipelineConfig,
+    ExplanationTargetStrategy,
+)
 from atria_insights.feature_segmentors import (
     FeatureSegmentorConfigType,
     NoOpSegmenterConfig,
-)
-from atria_insights.model_pipelines._api import load_x_model_pipeline_config
-from atria_insights.model_pipelines._common import (
-    ExplainableModelPipelineConfig,
-    ExplanationTargetStrategy,
 )
 
 logger = get_logger(__name__)
@@ -35,7 +35,7 @@ class ExplanationTaskConfig(TaskConfigBase):
     model_config = ConfigDict(
         arbitrary_types_allowed=True, frozen=True, use_enum_values=True
     )
-    x_model_pipeline: ExplainableModelPipelineConfig
+    explanation_pipeline: ExplanationPipelineConfig
     enable_outputs_caching: bool = False
     max_training_baseline_features: int = 100
 
@@ -88,7 +88,7 @@ class ExplanationTaskConfig(TaskConfigBase):
                 seed=training_task_config.env.seed,
             ),
             data=data,
-            x_model_pipeline=load_x_model_pipeline_config(
+            explanation_pipeline=load_explanation_pipeline_config(
                 training_task_config.model_pipeline.name,
                 model_pipeline=training_task_config.model_pipeline,
                 feature_segmentor=feature_segmentor,

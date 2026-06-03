@@ -47,7 +47,7 @@ from atria_insights.feature_segmentors import (
 )
 
 if TYPE_CHECKING:
-    from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
+    from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 
 
 class ExplanationTargetStrategy(str, enum.Enum):
@@ -84,7 +84,7 @@ class ExplainabilityMetrics(BaseModel):
     attr_localization: AttrLocalizationConfig = AttrLocalizationConfig()
 
 
-class ExplainableModelPipelineConfig(ModuleConfig):
+class ExplanationPipelineConfig(ModuleConfig):
     __hash_exclude__: ClassVar[set[str]] = {
         "explainability_metrics",
         "iterative_computation",
@@ -132,7 +132,7 @@ class ExplainableModelPipelineConfig(ModuleConfig):
 
         return self
 
-    def build(self, **kwargs: Any) -> ExplainableModelPipeline:
+    def build(self, **kwargs: Any) -> ExplanationPipeline:
         labels = kwargs.pop("labels")
         assert labels is not None, (
             "Labels must be provided to build the model pipeline."
@@ -140,6 +140,6 @@ class ExplainableModelPipelineConfig(ModuleConfig):
         return super().build(labels=labels, **kwargs)
 
 
-T_ExplainableModelPipelineConfig = TypeVar(
-    "T_ExplainableModelPipelineConfig", bound=ExplainableModelPipelineConfig
+T_ExplanationPipelineConfig = TypeVar(
+    "T_ExplanationPipelineConfig", bound=ExplanationPipelineConfig
 )

@@ -7,7 +7,6 @@ from typing import Any, ClassVar, TypeVar
 import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._sequence_pipeline import (
-    LayoutTokenClassificationPipelineConfig,
     QuestionAnsweringPipelineConfig,
     SequenceClassificationPipelineConfig,
     SequenceModelPipeline,
@@ -19,100 +18,79 @@ from atria_models.core.models.transformers._models._encoder_model import (
 )
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_types._datasets import DatasetLabels
-from pydantic import Field, model_validator
+from pydantic import model_validator
 
-from atria_insights.baseline_generators._feature_based import (
-    FeatureBasedBaselineGenerator,
-    FeatureBasedBaselineGeneratorConfig,
-)
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.explainers._attn._config import (
+    AttentionExplainerConfig,
+    AttnExplainerConfigType,
+)
+from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
+from atria_insights.explanation_pipelines._common import (
+    ExplanationPipelineConfig,
+    ExplanationTargetStrategy,
+)
+from atria_insights.explanation_pipelines._forward_wrappers._sequence_forward_wrappers import (
+    QuestionAnsweringModelExplanationForwardWrapper,
+    SequenceModelExplanationForwardWrapper,
+    TokenClassificationModelExplanationForwardWrapper,
+)
+from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
+from atria_insights.explanation_pipelines._utilities import _generate_word_level_targets
 from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
-from atria_insights.model_pipelines._common import (
-    ExplainableModelPipelineConfig,
-    ExplanationTargetStrategy,
-    SlidingWindowConfig,
-)
-from atria_insights.model_pipelines._forward_wrappers._sequence_forward_wrappers import (
-    ExplainableQuestionAnsweringModelForwardWrapper,
-    ExplainableSequenceModelForwardWrapper,
-    ExplainableTokenClassificationModelForwardWrapper,
-)
-from atria_insights.model_pipelines._model_pipeline import ExplainableModelPipeline
-from atria_insights.model_pipelines._registry_groups import EXPLAINABLE_MODEL_PIPELINES
-from atria_insights.model_pipelines._utilities import _generate_word_level_targets
 
 logger = get_logger(__name__)
 
 
-class SequenceSlidingWindowConfig(SlidingWindowConfig):
-    token_ids: int = 8
-    position_ids: int = 8
-    token_type_ids: int = 8
-    layout_ids: int = 8
-
-
-class ExplainableSequenceModelPipelineConfig(ExplainableModelPipelineConfig):
-    __schema_exclude__: ClassVar[set[str]] = {
-        "model_pipeline",
-        "throw_on_load_mismatch",
-        "profile_time",
-        "metric_baseline_generator",
-        "ignored_feature_ids",
-    }
+class SequenceModelAttnExplanationPipelineConfig(ExplanationPipelineConfig):
+    explainer: AttnExplainerConfigType = AttentionExplainerConfig()
     feature_segmentor: SequenceFeatureMaskSegmentorConfig = (
         SequenceFeatureMaskSegmentorConfig()
     )
-    baseline_generator: (
-        SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig
-    ) = SequenceBaselineGeneratorConfig()
+    baseline_generator: SequenceBaselineGeneratorConfig = (
+        SequenceBaselineGeneratorConfig()
+    )
     metric_baseline_generator: SequenceBaselineGeneratorConfig = (
         SequenceBaselineGeneratorConfig()
     )
 
-    # only for occlusion explainer
-    sliding_window_shapes_map: SequenceSlidingWindowConfig = (
-        SequenceSlidingWindowConfig()
-    )
-    strides_map: SequenceSlidingWindowConfig = SequenceSlidingWindowConfig()
-    ignored_feature_ids: list[str] = Field(default_factory=lambda: ["token_type_ids"])
-
     @model_validator(mode="after")
-    def validate_configs(self) -> ExplainableSequenceModelPipelineConfig:
+    def validate_configs(self) -> SequenceModelAttnExplanationPipelineConfig:
         if not isinstance(self.feature_segmentor, SequenceFeatureMaskSegmentorConfig):
             raise ValueError(
                 "feature_segmentor must be an instance of SequenceFeatureMaskSegmentorConfig"
             )
         if not isinstance(
-            self.baseline_generator,
-            SequenceBaselineGeneratorConfig | FeatureBasedBaselineGeneratorConfig,
+            self.metric_baseline_generator, SequenceBaselineGeneratorConfig
         ):
             raise ValueError(
-                "baseline_generator must be an instance of SequenceBaselineGeneratorConfig or FeatureBasedBaselineGeneratorConfig"
+                "metric_baseline_generator must be an instance of SequenceBaselineGeneratorConfig"
             )
 
         return self
 
 
-T_ExplainableSequenceModelPipelineConfig = TypeVar(
-    "T_ExplainableSequenceModelPipelineConfig",
-    bound="ExplainableSequenceModelPipelineConfig",
+T_SequenceModelAttnExplanationPipelineConfig = TypeVar(
+    "T_SequenceModelAttnExplanationPipelineConfig",
+    bound="SequenceModelAttnExplanationPipelineConfig",
 )
 
 
-class ExplainableSequenceModelPipeline(
-    ExplainableModelPipeline[
-        T_ExplainableSequenceModelPipelineConfig, DocumentTensorDataModel
+class SequenceModelAttnExplanationPipeline(
+    ExplanationPipeline[
+        T_SequenceModelAttnExplanationPipelineConfig, DocumentTensorDataModel
     ]
 ):
     __abstract__ = True
 
     def __init__(
         self,
-        config: ExplainableSequenceModelPipelineConfig,
+        config: SequenceModelAttnExplanationPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
@@ -136,17 +114,14 @@ class ExplainableSequenceModelPipeline(
                 self._model_id_to_embeddings_inputs_list.append(param.name)
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableSequenceModelForwardWrapper(model=model)
+        return SequenceModelExplanationForwardWrapper(model=model)
 
     def _validated_inputs(  # type: ignore[override]
         self,
         inputs: dict[str, torch.Tensor],
         additional_forward_kwargs: dict[str, Any] | None = None,
-        baselines: dict[str, torch.Tensor] | None = None,
         metric_baselines: dict[str, torch.Tensor] | None = None,
         feature_mask: dict[str, torch.Tensor] | None = None,
-        sliding_window_shapes: dict[str, tuple] | None = None,
-        strides: dict[str, tuple] | None = None,
     ) -> tuple:
         """
         Validate and map inputs to the model forward signature.
@@ -158,27 +133,10 @@ class ExplainableSequenceModelPipeline(
         additional_forward_kwargs = additional_forward_kwargs or {}
 
         # ---- inputs ----
-        baselines_tuple = None
         feature_mask_tuple = None
         metric_baselines_tuple = None
         feature_keys = tuple(inputs.keys())
         feature_values = tuple(inputs.values())
-        if baselines is not None:
-            assert isinstance(baselines, dict), (
-                "If inputs is an dict, baselines must also be an dict."
-            )
-
-            baselines_tuple = ()
-            for input_key, input_value in inputs.items():
-                baseline = baselines[input_key]
-
-                # assert shape matches
-                # Note: baseline batch size can be different due to multiple baselines
-                assert baseline.shape[1:] == input_value.shape[1:], (
-                    f"Baseline shape {baseline.shape} does not match input shape {input_value.shape} for key {input_key}"
-                )
-
-                baselines_tuple += (baseline,)  # type: ignore
 
         if metric_baselines is not None:
             assert isinstance(metric_baselines, dict), (
@@ -186,7 +144,7 @@ class ExplainableSequenceModelPipeline(
             )
             metric_baselines_tuple = ()
             for input_key, input_value in inputs.items():
-                baseline = metric_baselines[input_key]
+                baseline = metric_baselines[input_key.replace("_embeddings", "_ids")]
 
                 # assert shape matches
                 # Note: baseline batch size can be different due to multiple baselines
@@ -204,7 +162,7 @@ class ExplainableSequenceModelPipeline(
             # expand feature masks to match input shapes
             feature_mask_tuple = ()
             for input_key, input_value in inputs.items():
-                mask = feature_mask[input_key]
+                mask = feature_mask[input_key.replace("_embeddings", "_ids")]
 
                 # unsqueeze dims to match input shape
                 while len(mask.shape) < len(inputs[input_key].shape):
@@ -219,45 +177,6 @@ class ExplainableSequenceModelPipeline(
                 )
 
                 feature_mask_tuple += (mask,)  # type: ignore
-
-        sliding_window_shapes_tuple = None
-        if sliding_window_shapes is not None:
-            sliding_window_shapes = {
-                key: sliding_window_shapes[key] for key in feature_keys
-            }
-
-            # make sure the shape matches the input shape
-            sliding_window_shapes_tuple = ()
-            for input_key, input_value in inputs.items():
-                # we take the shape of the a single sample
-                single_input_shape = input_value.shape[1:]
-
-                # expand the shape of the sliding window to match the input shape
-                sliding_window_shape = sliding_window_shapes[input_key]
-                for dim in single_input_shape[len(sliding_window_shape) :]:
-                    sliding_window_shape += (dim,)  # type: ignore
-                sliding_window_shapes_tuple += (sliding_window_shape,)  # type: ignore
-
-        strides_tuple = None
-        if strides is not None:
-            strides = {key: strides[key] for key in feature_keys}
-            strides_tuple = ()
-            for input_key, input_value in inputs.items():
-                # we take the shape of the a single sample
-                single_input_shape = input_value.shape[1:]
-
-                # expand the shape of the sliding window to match the input shape
-                strides_shape = strides[input_key]
-                for dim in single_input_shape[len(strides_shape) :]:
-                    strides_shape += (dim,)
-                strides_tuple += (strides_shape,)  # type: ignore
-
-        # finally we remap the feature keys from ids to embeddings
-        feature_keys = tuple(key.replace("_ids", "_embeddings") for key in feature_keys)
-        if "token_type_ids" in additional_forward_kwargs:
-            additional_forward_kwargs["token_type_embeddings"] = (
-                additional_forward_kwargs.pop("token_type_ids")
-            )
 
         args_mapping = list(feature_keys) + list(additional_forward_kwargs.keys())
         bsz = feature_values[0].shape[0]
@@ -275,14 +194,30 @@ class ExplainableSequenceModelPipeline(
         return (
             feature_values,
             additional_forward_args,
-            baselines_tuple,
             metric_baselines_tuple,
             feature_mask_tuple,
-            sliding_window_shapes_tuple,
-            strides_tuple,
             feature_keys,
             args_mapping,
         )
+
+    def _build_explainer(self):
+        assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
+        # build model with wrapped forward
+        self._model_signature = inspect.signature(self._model_pipeline._model.forward)
+        self._wrapped_model = self._wrap_model_forward(self._model_pipeline._model)
+
+        # build explainer
+        self._explainer = self.config.explainer.build(model=self._wrapped_model)
+
+        # get possible explainer args
+        # filster args here so there is no error on fowrard
+        # verify that impossible args are not set
+        self._explainer_args = inspect.signature(
+            self._explainer.explain
+        ).parameters.keys()
+
+        # for attention explainers we need to get the feature ids from the model itself
+        self._attn_feature_ids = self._model_pipeline._model.attn_feature_ids()
 
     def _build_feature_segmentor(self):
         assert isinstance(self._model_pipeline._model, TransformersEncoderModel)
@@ -291,15 +226,6 @@ class ExplainableSequenceModelPipeline(
         )
 
     def _build_baseline_generator(self):
-        # build baselines generator
-        if isinstance(self.config.baseline_generator, SequenceBaselineGeneratorConfig):
-            self._baseline_generator = self.config.baseline_generator.build(
-                model=self._model_pipeline._model
-            )
-        else:
-            self._baseline_generator = self.config.baseline_generator.build()
-
-        # build metric baselines generator
         self._metric_baselines_generator = self.config.metric_baseline_generator.build(
             model=self._model_pipeline._model
         )
@@ -424,34 +350,12 @@ class ExplainableSequenceModelPipeline(
                 for label_index in range(total_labels)
             ]
 
-    def _baselines(  # type: ignore[override]
-        self, explained_inputs: dict[str, torch.Tensor], **kwargs
-    ) -> dict[str, torch.Tensor]:
-        """Generate baselines for the explainer."""
-        logger.debug(
-            "Generating baselines using baseline generator with config: %s",
-            self.config.baseline_generator,
-        )
-        baselines = self._baseline_generator(explained_inputs, **kwargs)
-
-        # if the baseline generator is feature based
-        if isinstance(self._baseline_generator, FeatureBasedBaselineGenerator):
-            # make sure we only return baselines for the input keys
-            sequence_baselines = self._model_pipeline._model.ids_to_embeddings(
-                **{k: v for k, v in baselines.items() if k != "image"}
-            ).to_id_map()
-            for key in baselines.keys():
-                if key in sequence_baselines:
-                    baselines[key] = sequence_baselines[key]
-
-        # filter out ignored feature ids from baselines
-        baselines = {
-            k: v
-            for k, v in baselines.items()
-            if k not in self.config.ignored_feature_ids
-        }
-
-        return baselines
+    def _attn_token_target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchAttentionTokenTarget:
+        # defaults to CLS token explanation target
+        batch_size = batch.token_ids.shape[0]
+        return BatchAttentionTokenTarget(indices=[[0] for _ in range(batch_size)])
 
     def _metric_baselines(self, explained_inputs: dict[str, torch.Tensor], **kwargs):
         """Generate baselines for the explainer."""
@@ -462,11 +366,7 @@ class ExplainableSequenceModelPipeline(
         baselines = self._metric_baselines_generator(explained_inputs, **kwargs)
 
         # filter out ignored feature ids from baselines
-        baselines = {
-            k: v
-            for k, v in baselines.items()
-            if k not in self.config.ignored_feature_ids
-        }
+        baselines = {k: v for k, v in baselines.items() if k in self._attn_feature_ids}
 
         return baselines
 
@@ -491,34 +391,12 @@ class ExplainableSequenceModelPipeline(
         )
         return feature_masks, frozen_features
 
-    def _sliding_window_shapes_and_strides(
-        self, input_feature_keys: tuple[str, ...]
-    ) -> tuple[dict[str, tuple] | None, dict[str, tuple] | None]:
-        if "sliding_window_shapes" not in self._explainer_args:
-            return None, None
-        if (
-            self.config.sliding_window_shapes_map is None
-            or self.config.strides_map is None
-        ):
-            raise ValueError(
-                f"sliding_window_shapes_map and strides_map must be defined in the config for {self._explainer.__class__.__name__}."
-            )
-        sliding_window_shapes_map = {}
-        strides = {}
-        for key in input_feature_keys:
-            if key in self.config.ignored_feature_ids:
-                continue
-            sliding_window_shapes_map[key] = self.config.sliding_window_shapes_map[key]
-            strides[key] = self.config.strides_map[key]
-
-        return sliding_window_shapes_map, strides
-
     def _prepare_sequence_feature_keys(
         self, explained_inputs: dict[str, torch.Tensor]
     ) -> list[str]:
         possible_feature_keys = []
         for key in ["token_ids", "position_ids", "layout_ids", "token_type_ids"]:
-            if key in explained_inputs and key not in self.config.ignored_feature_ids:
+            if key in explained_inputs and key in self._attn_feature_ids:
                 possible_feature_keys.append(key)
         return possible_feature_keys
 
@@ -542,9 +420,6 @@ class ExplainableSequenceModelPipeline(
                 self._additional_forward_kwargs(batch) or OrderedDict()
             )
 
-            # prepare baselines
-            baselines = self._baselines(inputs)
-
             # prepare baselines for metrics if needed
             metric_baselines = None
             if self.config.explainability_metrics is not None:
@@ -558,63 +433,46 @@ class ExplainableSequenceModelPipeline(
                 sequence_feature_keys=self._prepare_sequence_feature_keys(inputs),
             )
 
-            # prepare sliding window shapes map and strides map for occlusion explainer
-            sliding_window_shapes, strides = self._sliding_window_shapes_and_strides(
-                input_feature_keys=tuple(inputs.keys())
-            )
-
             # map inputs to embeddings
             input_embeddings = self._model_pipeline._model.ids_to_embeddings(
                 **{key: inputs[key] for key in self._model_id_to_embeddings_inputs_list}
             ).to_id_map()
 
-            # filter out ignored feature ids from input embeddings and add them to additional forward kwargs
-            for key in self.config.ignored_feature_ids:
-                embeddings = input_embeddings.pop(key)
-                additional_forward_kwargs = {
-                    key: embeddings,
-                    **additional_forward_kwargs,
-                }
-
-            # nowe remake inputs by replacing ids with embeddings
             finalized_inputs = {}
             for key in inputs.keys():
-                if key in self.config.ignored_feature_ids:
-                    continue
                 if key in input_embeddings:
-                    finalized_inputs[key] = input_embeddings[key]
+                    embedding_key = key.replace("_ids", "_embeddings")
+                    if key not in self._attn_feature_ids:
+                        additional_forward_kwargs[embedding_key] = input_embeddings[key]
+                    else:
+                        finalized_inputs[embedding_key] = input_embeddings[key]
                 else:
-                    finalized_inputs[key] = inputs[key]
+                    if key not in self._attn_feature_ids:
+                        additional_forward_kwargs[key] = inputs[key]
+                    else:
+                        finalized_inputs[key] = inputs[key]
+
             inputs = finalized_inputs
 
             # now log info
             log_tensor_info(inputs, name="inputs")
             log_tensor_info(additional_forward_kwargs, name="additional_forward_kwargs")
-            log_tensor_info(baselines, name="baselines")
             if metric_baselines is not None:
                 log_tensor_info(metric_baselines, name="metric_baselines")
             log_tensor_info(feature_mask, name="feature_mask")
-            log_tensor_info(sliding_window_shapes, name="sliding_window_shapes")
-            log_tensor_info(strides, name="strides")
 
             (
                 inputs_tuple,
                 additional_forward_args,
-                baselines_tuple,
                 metric_baselines_tuple,
                 feature_mask_tuple,
-                sliding_window_shapes_tuple,
-                strides_tuple,
                 feature_keys,
                 _,
             ) = self._validated_inputs(
                 inputs=inputs,
                 additional_forward_kwargs=additional_forward_kwargs,
-                baselines=baselines,
                 metric_baselines=metric_baselines,
                 feature_mask=feature_mask,
-                sliding_window_shapes=sliding_window_shapes,
-                strides=strides,
             )
 
             # forward pass
@@ -622,32 +480,79 @@ class ExplainableSequenceModelPipeline(
                 *(*inputs_tuple, *additional_forward_args)
             )
 
-            # prepare target
+            # prepare target this target is used to get probabilties, and is only used for downstream metric evals
+            # for attention, we need to separately prepare the attention target which is used to select the attention scores for the target tokens
             target = self._target(batch=batch, model_outputs=model_outputs)
+
+            # for attention explainers, we default to explaining the attention to the CLS token, so we prepare a separate target for that as well
+            attention_token_target = self._attn_token_target(
+                batch=batch, model_outputs=model_outputs
+            )
 
             # prepare explanation inputs
             return model_outputs, BatchExplanationInputs(
                 sample_id=batch.metadata.sample_id,
                 inputs=inputs_tuple,
                 additional_forward_args=additional_forward_args,
-                baselines=baselines_tuple
-                if "baselines" in self._explainer_args
-                else None,
                 metric_baselines=metric_baselines_tuple,
                 feature_mask=feature_mask_tuple
                 if "feature_mask" in self._explainer_args
                 else None,
                 metric_feature_mask=feature_mask_tuple,
                 target=target,
-                sliding_window_shapes=sliding_window_shapes_tuple,
-                strides=strides_tuple,
+                attention_token_target=attention_token_target,
                 frozen_features=frozen_features,
                 feature_keys=feature_keys,
             )
 
+    def explainer_forward(
+        self, explanation_inputs: BatchExplanationInputs
+    ) -> tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]:
+        # filster args here so there is no error on fowrard
+        # verify that impossible args are not set
+        kwargs = {}
+        for arg in self._explainer_args:
+            kwargs[arg] = getattr(explanation_inputs, arg)
 
-class ExplainableSequenceClassificationPipelineConfig(
-    ExplainableSequenceModelPipelineConfig
+        logger.debug(f"Running explainer {self._explainer} forward with inputs:")
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                logger.debug(
+                    f"  {k}: Tensor shape {v.shape}, dtype {v.dtype}, device {v.device}"
+                )
+            elif isinstance(v, tuple):
+                for idx, item in enumerate(v):
+                    if isinstance(item, torch.Tensor):
+                        logger.debug(
+                            f"  {k}.{idx}: Tensor shape {item.shape}, dtype {item.dtype}, device {item.device}"
+                        )
+                    else:
+                        logger.debug(f"  {k}.{idx}: {type(item)}")
+            else:
+                logger.debug(f"  {k}: {type(v)}")
+
+        explanations = self._explainer.explain(**kwargs)
+
+        # validated explanations
+        validated_explanations = []
+        if isinstance(explanations, tuple):
+            return explanations
+        elif isinstance(explanations, list):
+            for exp in explanations:
+                if not isinstance(exp, tuple):
+                    raise ValueError(
+                        "Explainer returned a list but elements are not tuples."
+                    )
+                validated_explanations.append(exp)
+            return validated_explanations
+        else:
+            raise ValueError(
+                "Explainer returned invalid type. Expected tuple or list of tuples."
+            )
+
+
+class SequenceClassificationAttnExplanationPipelineConfig(
+    SequenceModelAttnExplanationPipelineConfig
 ):
     model_pipeline: SequenceClassificationPipelineConfig = (
         SequenceClassificationPipelineConfig()
@@ -655,18 +560,20 @@ class ExplainableSequenceClassificationPipelineConfig(
 
     @property
     def name(self) -> str:
-        return "sequence_classification"
+        return "sequence_classification_attn"
 
 
-@EXPLAINABLE_MODEL_PIPELINES.register("sequence_classification")
-class ExplainableSequenceClassificationPipeline(
-    ExplainableSequenceModelPipeline[ExplainableSequenceClassificationPipelineConfig]
+@EXPLANATION_PIPELINES.register("sequence_classification_attn")
+class SequenceClassificationAttnExplanationPipeline(
+    SequenceModelAttnExplanationPipeline[
+        SequenceClassificationAttnExplanationPipelineConfig
+    ]
 ):
-    __config__ = ExplainableSequenceClassificationPipelineConfig
+    __config__ = SequenceClassificationAttnExplanationPipelineConfig
 
 
-class ExplainableTokenClassificationPipelineConfig(
-    ExplainableSequenceModelPipelineConfig
+class TokenClassificationAttnExplanationPipelineConfig(
+    SequenceModelAttnExplanationPipelineConfig
 ):
     __hash_exclude__: ClassVar[set[str]] = {
         "explainability_metrics",
@@ -686,14 +593,16 @@ class ExplainableTokenClassificationPipelineConfig(
 
     @property
     def name(self) -> str:
-        return "token_classification"
+        return "token_classification_attn"
 
 
-@EXPLAINABLE_MODEL_PIPELINES.register("token_classification")
-class ExplainableTokenClassificationPipeline(
-    ExplainableSequenceModelPipeline[ExplainableTokenClassificationPipelineConfig]
+@EXPLANATION_PIPELINES.register("token_classification_attn")
+class TokenClassificationAttnExplanationPipeline(
+    SequenceModelAttnExplanationPipeline[
+        TokenClassificationAttnExplanationPipelineConfig
+    ]
 ):
-    __config__ = ExplainableTokenClassificationPipelineConfig
+    __config__ = TokenClassificationAttnExplanationPipelineConfig
 
     def _target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
@@ -743,49 +652,11 @@ class ExplainableTokenClassificationPipeline(
                 for i in range(model_outputs.shape[1])
             ]
 
-    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableTokenClassificationModelForwardWrapper(model=model)
-
-
-class ExplainableLayoutTokenClassificationPipelineConfig(
-    ExplainableSequenceModelPipelineConfig
-):
-    model_pipeline: LayoutTokenClassificationPipelineConfig = (
-        LayoutTokenClassificationPipelineConfig()
-    )
-    use_word_level_targets: bool = True
-
-    @property
-    def name(self) -> str:
-        return "layout_token_classification"
-
-
-@EXPLAINABLE_MODEL_PIPELINES.register("layout_token_classification")
-class ExplainableLayoutTokenClassificationPipeline(
-    ExplainableSequenceModelPipeline[ExplainableLayoutTokenClassificationPipelineConfig]
-):
-    __config__ = ExplainableLayoutTokenClassificationPipelineConfig
-
-    def _target(
+    def _attn_token_target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
-    ) -> BatchExplanationTarget | list[BatchExplanationTarget]:
-        if self.config.explanation_target_strategy in [
-            ExplanationTargetStrategy.ground_truth,
-            ExplanationTargetStrategy.all,
-        ]:
-            # for token level tasks we do not support ground truth explanation targets
-            # as the forward wrapper returns per token predicted logits
-            raise ValueError(
-                "'ground_truth' and 'all' explanation target strategies are not supported for token classification tasks."
-            )
-
-        # the token classification forward wrapper always returns the per token predicted label logits
-        # so model_outputs is of shape [batch_size, seq_len] => a logit for each token
+    ) -> BatchAttentionTokenTarget:
         if self.config.use_word_level_targets:
-            # for word level targets per word instead of generating targets for each token,
-            # we get the word ids and generate targets per word since models are usually trained with only
-            # first token of each word having a label
-            batch_size = model_outputs.shape[0]
+            batch_size = batch.token_ids.shape[0]
             assert batch_size == 1, (
                 f"Word level targets are only supported for batch size of 1. Found {batch_size=}"
                 f"This is because word ids are different for each sample in the batch and results in varying target shapes "
@@ -794,37 +665,43 @@ class ExplainableLayoutTokenClassificationPipeline(
                 f"is introduced."
             )
             sample_word_ids = batch.word_ids[0]
-            return [
-                BatchExplanationTarget(value=[index], name=[str(index)])
-                for index in _generate_word_level_targets(sample_word_ids)
-            ]
+            token_labels = batch.token_labels[0]
+            target = BatchAttentionTokenTarget(
+                indices=[
+                    _generate_word_level_targets(
+                        word_ids_per_sample=sample_word_ids,
+                        token_labels_per_sample=token_labels,
+                        remove_other_labels=self.config.remove_other_labels,
+                    )
+                ]
+            )
+            return target
         else:
-            # otherwise we create explanation targets for each token
-            return [
-                BatchExplanationTarget(
-                    value=[i for _ in range(model_outputs.shape[0])],
-                    name=[str(i) for _ in range(model_outputs.shape[0])],
-                )
-                for i in range(model_outputs.shape[1])
-            ]
+            # default to CLS token explanation target
+            batch_size = batch.token_ids.shape[0]
+            return BatchAttentionTokenTarget(
+                indices=[
+                    list(range(batch.token_ids.shape[1])) for _ in range(batch_size)
+                ]
+            )
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableTokenClassificationModelForwardWrapper(model=model)
+        return TokenClassificationModelExplanationForwardWrapper(model=model)
 
 
-class ExplainableQuestionAnsweringPipelineConfig(
-    ExplainableSequenceModelPipelineConfig
+class QuestionAnsweringAttnExplanationPipelineConfig(
+    SequenceModelAttnExplanationPipelineConfig
 ):
     model_pipeline: QuestionAnsweringPipelineConfig = QuestionAnsweringPipelineConfig()
 
     @property
     def name(self) -> str:
-        return "question_answering"
+        return "question_answering_attn"
 
 
-@EXPLAINABLE_MODEL_PIPELINES.register("question_answering")
-class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
-    __config__ = ExplainableQuestionAnsweringPipelineConfig
+@EXPLANATION_PIPELINES.register("question_answering_attn")
+class QuestionAnsweringAttnExplanationPipeline(SequenceModelAttnExplanationPipeline):
+    __config__ = QuestionAnsweringAttnExplanationPipelineConfig
 
     def _target(
         self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
@@ -848,6 +725,7 @@ class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
         pred_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1).tolist()
         pred_start_token_indices = [(0, idx) for idx in pred_start_token_indices]
         pred_end_token_indices = [(1, idx) for idx in pred_end_token_indices]
+
         return [
             BatchExplanationTarget(
                 value=pred_start_token_indices,
@@ -858,5 +736,19 @@ class ExplainableQuestionAnsweringPipeline(ExplainableSequenceModelPipeline):
             ),
         ]
 
+    def _attn_token_target(
+        self, batch: DocumentTensorDataModel, model_outputs: torch.Tensor
+    ) -> BatchAttentionTokenTarget:
+        # for qa we need to keep attention targets for both start and end tokens
+        predicted_start_token_indices = model_outputs[:, 0, :].argmax(dim=-1)
+        predicted_end_token_indices = model_outputs[:, 1, :].argmax(dim=-1)
+        batch_size = batch.token_ids.shape[0]
+        return BatchAttentionTokenTarget(
+            indices=[
+                [predicted_start_token_indices[i], predicted_end_token_indices[i]]
+                for i in range(batch_size)
+            ]
+        )
+
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        return ExplainableQuestionAnsweringModelForwardWrapper(model=model)
+        return QuestionAnsweringModelExplanationForwardWrapper(model=model)

@@ -26,7 +26,7 @@ from atria_insights.data_types._explanation_state import (
 )
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.engines._explanation_step import ExplanationStepOutput
-from atria_insights.model_pipelines._common import T_ExplainableModelPipelineConfig
+from atria_insights.explanation_pipelines._common import T_ExplanationPipelineConfig
 from atria_insights.storage.sample_cache_managers._explanation_state import (
     ExplanationStateCacher,
 )
@@ -36,16 +36,16 @@ logger = get_logger(__name__)
 _DEFAULT_FEATURE_INPUT_KEY = "input_feature"
 
 
-class ExplainableModelPipeline(
-    ConfigurableModule[T_ExplainableModelPipelineConfig],
-    Generic[T_ExplainableModelPipelineConfig, T_TensorDataModel],
+class ExplanationPipeline(
+    ConfigurableModule[T_ExplanationPipelineConfig],
+    Generic[T_ExplanationPipelineConfig, T_TensorDataModel],
 ):
     __abstract__ = True
-    __config__: type[T_ExplainableModelPipelineConfig]
+    __config__: type[T_ExplanationPipelineConfig]
 
     def __init__(
         self,
-        config: T_ExplainableModelPipelineConfig,
+        config: T_ExplanationPipelineConfig,
         labels: DatasetLabels,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,

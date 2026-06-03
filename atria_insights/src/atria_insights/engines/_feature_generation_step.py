@@ -7,9 +7,9 @@ from atria_transforms.core._data_types._base import TensorDataModel
 from ignite.engine import Engine
 
 from atria_insights.data_types._features import BatchFeatures
-from atria_insights.model_pipelines._model_pipeline import (
+from atria_insights.explanation_pipelines._model_pipeline import (
     _DEFAULT_FEATURE_INPUT_KEY,
-    ExplainableModelPipeline,
+    ExplanationPipeline,
 )
 from atria_insights.storage.sample_cache_managers._features_cacher import FeaturesCacher
 
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class FeatureGenerationStep(EngineStep):
     def __init__(
         self,
-        x_model_pipeline: ExplainableModelPipeline,
+        x_model_pipeline: ExplanationPipeline,
         device: str | torch.device,
         with_amp: bool = False,
         cache_dir: str | Path | None = None,

@@ -16,7 +16,7 @@ from atria_models.core.models.transformers._outputs import (
 logger = get_logger(__name__)
 
 
-class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
+class SequenceModelExplanationForwardWrapper(torch.nn.Module):
     def __init__(
         self,
         model: TransformersEncoderModel,
@@ -111,8 +111,8 @@ class ExplainableSequenceModelForwardWrapper(torch.nn.Module):
         return probs
 
 
-class ExplainableTokenClassificationModelForwardWrapper(
-    ExplainableSequenceModelForwardWrapper
+class TokenClassificationModelExplanationForwardWrapper(
+    SequenceModelExplanationForwardWrapper
 ):
     def forward(self, *args) -> torch.Tensor:
         model_kwargs = self._sanitize_inputs(*args)
@@ -137,8 +137,8 @@ class ExplainableTokenClassificationModelForwardWrapper(
         return probs
 
 
-class ExplainableQuestionAnsweringModelForwardWrapper(
-    ExplainableSequenceModelForwardWrapper
+class QuestionAnsweringModelExplanationForwardWrapper(
+    SequenceModelExplanationForwardWrapper
 ):
     def forward(self, *args) -> torch.Tensor:
         model_kwargs = self._sanitize_inputs(*args)
