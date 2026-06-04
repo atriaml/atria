@@ -2,6 +2,7 @@ import os
 from collections.abc import Generator
 from pathlib import Path
 
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_logger import get_logger
 from atria_types import (
     DatasetLabels,
@@ -86,6 +87,26 @@ class SplitIterator:
         ]
         return len(xml_filenames)
 
+class InputTransform(DatasetInputTransform):
+    def __call__(self, inputs: tuple[Path, Path, Path]) -> DocumentInstance:
+        image_file_path, xml_filepath, word_file_path = inputs
+        image = Image(file_path=image_file_path).load()
+        annotated_objects = read_pascal_voc(
+            xml_filepath,
+            labels=_CLASSES,
+            image_width=image.width,
+            image_height=image.height,
+        )
+        text_elements = read_words_json(
+            word_file_path, image_width=image.width, image_height=image.height
+        )
+
+        return DocumentInstance(
+            sample_id=Path(image_file_path).name,
+            image=image,
+            content=DocumentContent(text_elements=text_elements),
+            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
+        )
 
 class ICDAR2013Config(DatasetConfig):
     dataset_name: str = "icdar2013"
@@ -94,6 +115,7 @@ class ICDAR2013Config(DatasetConfig):
 @DATASETS.register("icdar2013")
 class ICDAR2013(DocumentDataset):
     __config__ = ICDAR2013Config
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> list[str]:
         return _URLS
@@ -115,22 +137,3 @@ class ICDAR2013(DocumentDataset):
     ) -> Generator[DocumentInstance, None, None]:
         return SplitIterator(split=split, data_dir=data_dir)
 
-    def _input_transform(self, inputs: tuple[Path, Path, Path]) -> DocumentInstance:
-        image_file_path, xml_filepath, word_file_path = inputs
-        image = Image(file_path=image_file_path).load()
-        annotated_objects = read_pascal_voc(
-            xml_filepath,
-            labels=_CLASSES,
-            image_width=image.width,
-            image_height=image.height,
-        )
-        text_elements = read_words_json(
-            word_file_path, image_width=image.width, image_height=image.height
-        )
-
-        return DocumentInstance(
-            sample_id=Path(image_file_path).name,
-            image=image,
-            content=DocumentContent(text_elements=text_elements),
-            annotations=[LayoutAnalysisAnnotation(annotated_objects=annotated_objects)],
-        )

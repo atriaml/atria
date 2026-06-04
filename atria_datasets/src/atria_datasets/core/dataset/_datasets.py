@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, Callable, Generic
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
@@ -34,6 +34,23 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+class DatasetInputTransform(Generic[T_BaseDataInstance, T_DatasetConfig]):
+    def __init__(self, data_model: T_DatasetConfig, config: T_BaseDataInstance):
+        self.data_model = data_model
+        self.config = config
+
+    def __call__(self, *args, **kwargs):
+        assert len(args) == 1, "Expected a single positional argument 'sample'."
+        assert len(kwargs) == 0, "No keyword arguments expected."
+        sample = args[0]
+        if isinstance(sample, self.data_model):
+            return sample
+        elif isinstance(sample, dict):
+            return self.data_model(**sample)
+        else:
+            raise TypeError(
+                f"Cannot convert sample of type {type(sample)} to data model {self.data_model}"
+            )
 
 class Dataset(
     ConfigurableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
@@ -83,6 +100,7 @@ class Dataset(
     __requires_access_token__ = False
     __extract_downloads__ = True
     __data_model__: type[T_BaseDataInstance]
+    __input_transform__: type[DatasetInputTransform] = DatasetInputTransform
     __repr_fields__ = {"data_model", "data_dir", "split_iterators"}
     __config__: type[T_DatasetConfig]
 
@@ -384,6 +402,11 @@ class Dataset(
         return self.__data_model__
 
     @property
+    def input_transform(self) -> type[T_BaseDataInstance]:
+        """The data model class used for type validation and instantiation."""
+        return self.__input_transform__(self.data_model, self.config)
+
+    @property
     def train(self) -> SplitIterator[T_BaseDataInstance]:
         """Training split iterator. Returns None if training split is not available."""
         if DatasetSplitType.train not in self._split_iterators:
@@ -426,30 +449,6 @@ class Dataset(
         """Get all split iterators as a dictionary."""
         return self._split_iterators
 
-    def _input_transform(self, *args, **kwargs) -> T_BaseDataInstance:
-        """
-        Transform raw sample data into the dataset's data model.
-
-        Args:
-            sample: Raw sample data (dict, data model instance, or other format)
-
-        Returns:
-            Transformed sample as data model instance
-
-        Raises:
-            TypeError: If sample cannot be converted to the data model
-        """
-        assert len(args) == 1, "Expected a single positional argument 'sample'."
-        assert len(kwargs) == 0, "No keyword arguments expected."
-        sample = args[0]
-        if isinstance(sample, self.data_model):
-            return sample
-        elif isinstance(sample, dict):
-            return self.data_model(**sample)
-        else:
-            raise TypeError(
-                f"Cannot convert sample of type {type(sample)} to data model {self.data_model}"
-            )
 
     def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         """

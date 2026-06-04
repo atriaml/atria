@@ -222,7 +222,7 @@ def _prepare_split(
     return split_iterator_type(
         split=split,
         data_model=dataset.data_model,
-        input_transform=dataset._input_transform,
+        input_transform=dataset.input_transform,
         base_iterator=dataset._split_iterator(split, data_dir),  # type: ignore[arg-type]
         max_len=limits[split],
         output_transform=output_transform,

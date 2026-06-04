@@ -1,7 +1,9 @@
 from collections.abc import Iterable
 from pathlib import Path
 from random import shuffle
+from typing import Callable
 
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_types import (
     OCR,
     ClassificationAnnotation,
@@ -81,6 +83,22 @@ class SplitIterator:
     def __len__(self) -> int:
         return len(self.split_file_paths)
 
+class InputTransform(DatasetInputTransform):
+    def __call__(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
+        image_file_path, ocr_file_path, label_index = sample
+        return DocumentInstance(
+            sample_id=Path(image_file_path).name,
+            image=Image(file_path=str(image_file_path)),
+            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
+            if self.config.load_ocr
+            else None,
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(name=_CLASSES[label_index], value=label_index)
+                )
+            ],
+        )
+
 
 class Tobacco3482Config(DatasetConfig):
     dataset_name: str = "tobacco3482"
@@ -98,6 +116,7 @@ class Tobacco3482Config(DatasetConfig):
 )
 class Tobacco3482(DocumentDataset[Tobacco3482Config]):
     __config__ = Tobacco3482Config
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> list[str]:
         return _DATA_URLS
@@ -118,18 +137,3 @@ class Tobacco3482(DocumentDataset[Tobacco3482Config]):
         self, split: DatasetSplitType, data_dir: str
     ) -> Iterable[tuple[Path, Path, int]]:
         return SplitIterator(split=split, data_dir=data_dir)
-
-    def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
-        image_file_path, ocr_file_path, label_index = sample
-        return DocumentInstance(
-            sample_id=Path(image_file_path).name,
-            image=Image(file_path=str(image_file_path)),
-            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
-            if self.config.load_ocr
-            else None,
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(name=_CLASSES[label_index], value=label_index)
-                )
-            ],
-        )

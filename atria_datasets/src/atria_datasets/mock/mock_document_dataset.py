@@ -47,10 +47,6 @@ class MockDocumentDatasetMixin:
             SplitConfig(split=DatasetSplitType.validation),
         ]
 
-    def _input_transform(self, sample: DocumentInstance) -> DocumentInstance:
-        return sample
-
-
 class MockDocumentIndexableDataset(MockDocumentDatasetMixin, Dataset[DocumentInstance]):
     def _split_iterator(
         self, split: DatasetSplitType, **kwargs

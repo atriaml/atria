@@ -1,6 +1,7 @@
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Callable
 
+from atria_datasets.core.dataset._common import T_BaseDataInstance
 from atria_types import (
     AtriaDatasetConfig,
     BaseDataInstance,
@@ -16,6 +17,9 @@ DATASET_SIZE = 100
 NUM_LABELS = 10
 LABELS = [f"class_{idx}" for idx in range(NUM_LABELS)]
 
+class Transform:
+    def __call__(self, sample: dict[str, Any]) -> BaseDataInstance:
+        return BaseDataInstance(index=sample["index"])
 
 class MockAtriaIndexableDataset(Dataset[BaseDataInstance]):
     _REGISTRY_CONFIGS = [
@@ -48,8 +52,8 @@ class MockAtriaIndexableDataset(Dataset[BaseDataInstance]):
     def _split_iterator(self, split: DatasetSplitType, **kwargs):
         return [{"index": index} for index in range(DATASET_SIZE)]
 
-    def _input_transform(self, sample: dict[str, Any]) -> BaseDataInstance:
-        return BaseDataInstance(index=sample["index"])
+    def _input_transform(self) -> Callable[[object], T_BaseDataInstance]:
+        return Transform()
 
 
 class MockAtriaIterableDataset(Dataset[BaseDataInstance]):
@@ -85,5 +89,5 @@ class MockAtriaIterableDataset(Dataset[BaseDataInstance]):
         for index in range(DATASET_SIZE):
             yield {"index": index}
 
-    def _input_transform(self, sample: dict[str, Any]) -> BaseDataInstance:
-        return BaseDataInstance(index=sample["index"])
+    def _input_transform(self) -> Callable[[object], T_BaseDataInstance]:
+        return Transform()

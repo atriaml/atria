@@ -5,7 +5,9 @@ from __future__ import annotations
 import random
 from collections.abc import Generator, Iterable
 from pathlib import Path
+from typing import Callable
 
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_types import (
     OCR,
     ClassificationAnnotation,
@@ -110,6 +112,22 @@ class SplitIterator(Iterable[tuple[Path, Path, int]]):
     def __len__(self) -> int:
         return len(self.split_file_paths)
 
+class InputTransform(DatasetInputTransform):
+    def __call__(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
+        image_file_path, ocr_file_path, label = sample
+
+        return DocumentInstance(
+            sample_id=Path(image_file_path).name,
+            image=Image(file_path=str(image_file_path)),
+            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
+            if self.config.load_ocr
+            else None,
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(value=int(label), name=_CLASSES[int(label)])
+                )
+            ],
+        )
 
 class RvlCdipConfig(DatasetConfig):
     dataset_name: str = "rvlcdip"
@@ -134,6 +152,7 @@ class RvlCdip(DocumentDataset[RvlCdipConfig]):
     """Ryerson Vision Lab Complex Document Information Processing dataset."""
 
     __config__ = RvlCdipConfig
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> list[str]:
         if self.config.type in _METADATA_URLS:
@@ -163,19 +182,3 @@ class RvlCdip(DocumentDataset[RvlCdipConfig]):
         self, split: DatasetSplitType, data_dir: str
     ) -> Iterable[tuple[Path, Path, int]]:
         return SplitIterator(split=split, data_dir=data_dir, config=self.config)
-
-    def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
-        image_file_path, ocr_file_path, label = sample
-
-        return DocumentInstance(
-            sample_id=Path(image_file_path).name,
-            image=Image(file_path=str(image_file_path)),
-            ocr=OCR(file_path=str(ocr_file_path), type=OCRType.tesseract)
-            if self.config.load_ocr
-            else None,
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(value=int(label), name=_CLASSES[int(label)])
-                )
-            ],
-        )

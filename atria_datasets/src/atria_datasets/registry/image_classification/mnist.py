@@ -1,10 +1,27 @@
 from typing import Any
 
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
 from atria_datasets import DATASETS, HuggingfaceImageDataset
 from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
 
+
+class InputTransform(DatasetInputTransform):
+    def __call__(self, sample) -> ImageInstance:
+        return ImageInstance(
+            image=Image(content=sample["image"]),
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(
+                        value=sample["label"],
+                        name=self.metadata.dataset_labels.classification[
+                            sample["label"]
+                        ],
+                    )
+                )
+            ],
+        )
 
 @DATASETS.register(
     "mnist",
@@ -27,17 +44,4 @@ from atria_datasets.core.dataset._hf_datasets import HuggingfaceDatasetConfig
     },
 )
 class MNIST(HuggingfaceImageDataset):
-    def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:
-        return ImageInstance(
-            image=Image(content=sample["image"]),
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(
-                        value=sample["label"],
-                        name=self.metadata.dataset_labels.classification[
-                            sample["label"]
-                        ],
-                    )
-                )
-            ],
-        )
+    __input_transform__ = InputTransform

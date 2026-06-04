@@ -10,7 +10,7 @@ from atria_types import (
 
 from atria_datasets import DATASETS
 from atria_datasets.core.dataset._common import DatasetConfig
-from atria_datasets.core.dataset._datasets import ImageDataset
+from atria_datasets.core.dataset._datasets import DatasetInputTransform, ImageDataset
 
 _CLASSES = [
     "airplane",
@@ -25,6 +25,17 @@ _CLASSES = [
     "truck",
 ]
 
+class InputTransform(DatasetInputTransform):
+    def __call__(self, sample) -> ImageInstance:
+        image_instance = ImageInstance(
+            image=Image(content=sample[0]),
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(value=sample[1], name=_CLASSES[sample[1]])
+                )
+            ],
+        )
+        return image_instance
 
 @DATASETS.register(
     "cifar10",
@@ -41,6 +52,7 @@ _CLASSES = [
 )
 class Cifar10(ImageDataset):
     __config__ = DatasetConfig
+    __input_transform__ = InputTransform
 
     def _custom_download(self, data_dir: str, access_token: str | None = None) -> None:
         from torchvision.datasets import CIFAR10
@@ -64,13 +76,3 @@ class Cifar10(ImageDataset):
             root=data_dir, train=split == DatasetSplitType.train, download=False
         )
 
-    def _input_transform(self, sample) -> ImageInstance:
-        image_instance = ImageInstance(
-            image=Image(content=sample[0]),
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(value=sample[1], name=_CLASSES[sample[1]])
-                )
-            ],
-        )
-        return image_instance

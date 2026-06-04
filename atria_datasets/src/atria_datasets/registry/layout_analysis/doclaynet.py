@@ -4,6 +4,7 @@ import random
 from collections.abc import Iterable
 from pathlib import Path
 
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_types import (
     AnnotatedObject,
     BoundingBox,
@@ -105,6 +106,33 @@ class DocLayNetConfig(DatasetConfig):
     dataset_name: str = "doclaynet"
     load_ocr: bool = False
 
+class InputTransform(DatasetInputTransform):
+    def __call__(self, sample: tuple[dict, list[dict]]) -> DocumentInstance:
+        image_info, annotations = sample
+        annotated_objects = self._read_objects(
+            annotations, image_info["width"], image_info["height"]
+        )
+        pdf = PDF(file_path=image_info["pdf_path"]).load()
+        assert pdf.num_pages is not None and pdf.num_pages == 1, (
+            "Each PDF should have exactly one page."
+        )
+        text_elements = pdf.extract_text_elements(page_number=0)
+
+        return DocumentInstance(
+            sample_id=image_info["file_name"],
+            image=Image(file_path=image_info["image_path"]),
+            content=DocumentContent(text_elements=text_elements),
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(
+                        value=_DOC_CLASSES.index(image_info["doc_category"]),
+                        name=image_info["doc_category"],
+                    )
+                ),
+                LayoutAnalysisAnnotation(annotated_objects=annotated_objects),
+            ],
+        )
+
 
 @DATASETS.register(
     "doclaynet",
@@ -117,6 +145,7 @@ class DocLayNetConfig(DatasetConfig):
 )
 class DocLayNet(DocumentDataset[DocLayNetConfig]):
     __config__ = DocLayNetConfig
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> dict[str, tuple[str, str]] | dict[str, str] | list[str]:
         return _DATA_URLS
@@ -178,29 +207,3 @@ class DocLayNet(DocumentDataset[DocLayNetConfig]):
                 )
             )
         return objects
-
-    def _input_transform(self, sample: tuple[dict, list[dict]]) -> DocumentInstance:
-        image_info, annotations = sample
-        annotated_objects = self._read_objects(
-            annotations, image_info["width"], image_info["height"]
-        )
-        pdf = PDF(file_path=image_info["pdf_path"]).load()
-        assert pdf.num_pages is not None and pdf.num_pages == 1, (
-            "Each PDF should have exactly one page."
-        )
-        text_elements = pdf.extract_text_elements(page_number=0)
-
-        return DocumentInstance(
-            sample_id=image_info["file_name"],
-            image=Image(file_path=image_info["image_path"]),
-            content=DocumentContent(text_elements=text_elements),
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(
-                        value=_DOC_CLASSES.index(image_info["doc_category"]),
-                        name=image_info["doc_category"],
-                    )
-                ),
-                LayoutAnalysisAnnotation(annotated_objects=annotated_objects),
-            ],
-        )

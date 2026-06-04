@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import PIL
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 from atria_logger import get_logger
 from atria_types import (
     PDF,
@@ -301,49 +302,7 @@ class SplitIterator:
             if group_sampled is not None:
                 yield group_sampled
 
-
-@DATASETS.register(
-    "due_benchmark",
-    configs={
-        "DocVQA": DueBenchmarkConfig(config_name="DocVQA"),
-        "PWC": DueBenchmarkConfig(config_name="PWC", ocr_engine="tesseract"),
-        "DeepForm": DueBenchmarkConfig(config_name="DeepForm"),
-        "TabFact": DueBenchmarkConfig(config_name="TabFact", ocr_engine="tesseract"),
-        "WikiTableQuestions": DueBenchmarkConfig(config_name="WikiTableQuestions"),
-        "InfographicsVQA": DueBenchmarkConfig(config_name="InfographicsVQA"),
-        "KleisterCharity": DueBenchmarkConfig(config_name="KleisterCharity"),
-    },
-)
-class DueBenchmark(DocumentDataset):
-    __config__ = DueBenchmarkConfig
-
-    def _download_urls(self) -> dict[str, str]:
-        return {
-            f"{key}/{self.config.config_name}": url.format(
-                config_name=self.config.config_name
-            )
-            for key, url in _DATA_URLS.items()
-        }
-
-    def _metadata(self) -> DatasetMetadata:
-        return DatasetMetadata(
-            citation=_CITATION,
-            description=_DESCRIPTION,
-            homepage=_HOMEPAGE,
-            license=_LICENSE,
-            dataset_labels=DatasetLabels(),
-        )
-
-    def _available_splits(self):
-        return [
-            DatasetSplitType.train,
-            DatasetSplitType.test,
-            DatasetSplitType.validation,
-        ]
-
-    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
-        return SplitIterator(split=split, data_dir=data_dir, config=self.config)
-
+class InputTransform(DatasetInputTransform):
     # Load the specific page from PDF as image
     def _load_pdf_page_as_image(
         self,
@@ -370,7 +329,8 @@ class DueBenchmark(DocumentDataset):
             logger.error(f"Error loading page {page_number} from {pdf_path}: {e}")
             raise
 
-    def _input_transform(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
+
+    def __call__(self, sample: tuple[Path, Path, int]) -> DocumentInstance:
         # Load the PDF page as image
         page_image = self._load_pdf_page_as_image(
             sample["pdf_file_path"],
@@ -468,3 +428,47 @@ class DueBenchmark(DocumentDataset):
         # logger.info(f"Saved image with bounding boxes to {output_path}")
 
         return doc
+
+
+
+@DATASETS.register(
+    "due_benchmark",
+    configs={
+        "DocVQA": DueBenchmarkConfig(config_name="DocVQA"),
+        "PWC": DueBenchmarkConfig(config_name="PWC", ocr_engine="tesseract"),
+        "DeepForm": DueBenchmarkConfig(config_name="DeepForm"),
+        "TabFact": DueBenchmarkConfig(config_name="TabFact", ocr_engine="tesseract"),
+        "WikiTableQuestions": DueBenchmarkConfig(config_name="WikiTableQuestions"),
+        "InfographicsVQA": DueBenchmarkConfig(config_name="InfographicsVQA"),
+        "KleisterCharity": DueBenchmarkConfig(config_name="KleisterCharity"),
+    },
+)
+class DueBenchmark(DocumentDataset):
+    __config__ = DueBenchmarkConfig
+
+    def _download_urls(self) -> dict[str, str]:
+        return {
+            f"{key}/{self.config.config_name}": url.format(
+                config_name=self.config.config_name
+            )
+            for key, url in _DATA_URLS.items()
+        }
+
+    def _metadata(self) -> DatasetMetadata:
+        return DatasetMetadata(
+            citation=_CITATION,
+            description=_DESCRIPTION,
+            homepage=_HOMEPAGE,
+            license=_LICENSE,
+            dataset_labels=DatasetLabels(),
+        )
+
+    def _available_splits(self):
+        return [
+            DatasetSplitType.train,
+            DatasetSplitType.test,
+            DatasetSplitType.validation,
+        ]
+
+    def _split_iterator(self, split: DatasetSplitType, data_dir: str) -> Iterable:
+        return SplitIterator(split=split, data_dir=data_dir, config=self.config)

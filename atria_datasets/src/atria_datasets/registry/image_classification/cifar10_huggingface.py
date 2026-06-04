@@ -4,6 +4,21 @@ from atria_types import ClassificationAnnotation, Image, ImageInstance, Label
 
 from atria_datasets import DATASETS, HuggingfaceDatasetConfig, HuggingfaceImageDataset
 
+class InputTransform:
+    def __call__(self, sample: dict[str, Any]) -> ImageInstance:
+        return ImageInstance(
+            image=Image(content=sample["img"]),
+            annotations=[
+                ClassificationAnnotation(
+                    label=Label(
+                        value=sample["label"],
+                        name=self.metadata.dataset_labels.classification[
+                            sample["label"]
+                        ],
+                    )
+                )
+            ],
+        )
 
 @DATASETS.register(
     "huggingface_cifar10",
@@ -26,17 +41,4 @@ from atria_datasets import DATASETS, HuggingfaceDatasetConfig, HuggingfaceImageD
     },
 )
 class HuggingfaceCifar10(HuggingfaceImageDataset):
-    def _input_transform(self, sample: dict[str, Any]) -> ImageInstance:
-        return ImageInstance(
-            image=Image(content=sample["img"]),
-            annotations=[
-                ClassificationAnnotation(
-                    label=Label(
-                        value=sample["label"],
-                        name=self.metadata.dataset_labels.classification[
-                            sample["label"]
-                        ],
-                    )
-                )
-            ],
-        )
+    __input_transform__ = InputTransform
