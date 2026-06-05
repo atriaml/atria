@@ -17,8 +17,6 @@ dependencies = [
     "atria-logger",
     "atria-transforms",
     "diffusers>=0.34.0",
-    "mmcv==2.1.0",
-    "mmdet==3.3.0",
     "pytorch-ignite>=0.5.2",
     "timm>=1.0.17",
     "torchinfo>=1.8.0",
@@ -111,7 +109,6 @@ xfail_strict = true         # Treat tests that are marked as xfail but pass as t
 managed = true
 
 [tool.uv.sources]
-mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 atria-types = { path = "../atria_types", editable = true }
 atria-logger = { path = "../atria_logger" , editable = true }

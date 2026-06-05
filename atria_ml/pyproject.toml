@@ -13,8 +13,6 @@ authors = [{ name = "Saifullah", email = "saifullah.saifullah@dfki.de" }]
 dependencies = [
     "anls>=0.0.2",
     "diffusers>=0.34.0",
-    "mmcv==2.1.0",
-    "mmdet==3.3.0",
     "pytorch-ignite>=0.5.2",
     "textdistance>=4.2.0",
     "timm>=1.0.17",
@@ -126,7 +124,6 @@ torchvision = [
   { index = "pytorch-cpu", group = "torch-cpu"},
   { index = "pytorch-cu121", group = "torch-gpu" },
 ]
-mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 
 [[tool.uv.index]]

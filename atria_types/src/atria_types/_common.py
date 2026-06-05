@@ -57,7 +57,7 @@ class ModelType(str, enum.Enum):
     transformers_token_classification = "transformers/token_classification"
     transformers_question_answering = "transformers/question_answering"
     diffusers = "diffusers"
-    mmdet = "mmdet"
+    # mmdet = "mmdet"
 
 
 class ConfigType(str, enum.Enum):

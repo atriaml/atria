@@ -64,6 +64,7 @@ def main(
                 model_name_or_path=model_name,
                 builder_type=builder_type,
                 model_type="sequence_classification",
+                model_kwargs={'pretrained': False}
             ),
             train_transform=load_transform(
                 "document_processor/sequence_classification",

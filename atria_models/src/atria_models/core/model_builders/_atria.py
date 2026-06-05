@@ -61,7 +61,7 @@ class AtriaModelBuilder(ModelBuilder):
         return config.model_validate(config)
 
     def _build(
-        self, model_name_or_path: str, pretrained: bool = True, **kwargs
+        self, model_name_or_path: str, **kwargs
     ) -> Module:
         config = self.get_config(model_name_or_path=model_name_or_path, **kwargs)
         logger.info(

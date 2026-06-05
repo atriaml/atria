@@ -136,7 +136,6 @@ managed = true
 
 
 [tool.uv.sources]
-mmcv = { url = "https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/mmcv-2.1.0-cp311-cp311-manylinux1_x86_64.whl" }
 datadings = { git = "https://github.com/saifullah3396/datadings.git" }
 atria-types = { path = "../atria_types", editable = true }
 atria-logger = { path = "../atria_logger", editable = true }
