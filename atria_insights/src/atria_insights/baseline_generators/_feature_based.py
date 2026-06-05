@@ -18,9 +18,6 @@ logger = get_logger(__name__)
 
 class FeatureBasedBaselineGeneratorConfig(ModuleConfig):
     __schema_exclude__ = {"features_path"}
-    module_path: str | None = (
-        "atria_insights.baseline_generators._feature_based.FeatureBasedBaselineGenerator"
-    )
     type: Literal["feature_based"] = "feature_based"
     features_path: str | None = None
     num_baselines: int = 100

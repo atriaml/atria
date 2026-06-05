@@ -8,11 +8,11 @@ from typing import Any, Generic
 
 import torch
 from atria_logger import get_logger
+from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
 from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_registry._module_base import ConfigurableModule
 from atria_transforms.core._data_types._base import T_TensorDataModel
-from atria_types._datasets import DatasetLabels
 from ignite.metrics import Metric
 from torchxai.data_types._target import SingleTargetPerSample
 from tqdm import tqdm
@@ -36,7 +36,7 @@ logger = get_logger(__name__)
 _DEFAULT_FEATURE_INPUT_KEY = "input_feature"
 
 
-class ExplanationPipeline(
+class BaseExplanationPipeline(
     ConfigurableModule[T_ExplanationPipelineConfig],
     Generic[T_ExplanationPipelineConfig, T_TensorDataModel],
 ):
@@ -46,12 +46,12 @@ class ExplanationPipeline(
     def __init__(
         self,
         config: T_ExplanationPipelineConfig,
-        labels: DatasetLabels,
-        persist_to_disk: bool = True,
+        model_pipeline: ModelPipeline,
+        persist_to_disk: bool = False,
         cache_dir: str | None = None,
     ) -> None:
         super().__init__(config=config)
-        self._labels = labels
+        self._model_pipeline = model_pipeline
         self._persist_to_disk = persist_to_disk
         self._cache_dir = cache_dir
         self._build()
@@ -79,9 +79,6 @@ class ExplanationPipeline(
         with open(config_dir / "config.yaml", "w") as f:
             f.write(self._config.to_yaml())
             return self._config.model_dump()
-
-    def _build_model_pipeline(self):
-        self._model_pipeline = self.config.model_pipeline.build(labels=self._labels)
 
     def _build_explainer(self):
         # build model with wrapped forward
@@ -132,9 +129,6 @@ class ExplanationPipeline(
             logger.info(f"Storing outputs to file = {self._cacher.file_path}")
 
     def _build(self):
-        # build model pipeline
-        self._build_model_pipeline()
-
         # build explainer
         self._build_explainer()
 

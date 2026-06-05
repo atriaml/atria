@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import torch
 from torchxai.metrics.complexity.complexity_entropy import (
@@ -24,7 +24,6 @@ from atria_insights.explainability_metrics._torchxai._base import Explainability
 @EXPLAINABILITY_METRICS.register("complexity/complexity_entropy")
 class ComplexityEntropyConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/complexity_entropy"] = "complexity/complexity_entropy"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.ComplexityEntropy"
     group_features: bool = False
 
 
@@ -56,7 +55,6 @@ class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
 @EXPLAINABILITY_METRICS.register("complexity/complexity_s")
 class ComplexitySConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/complexity_s"] = "complexity/complexity_s"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.ComplexityS"
     group_features: bool = False
     eps: float = 0.00001
     normalize_attribution: bool = True
@@ -94,7 +92,6 @@ class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
 @EXPLAINABILITY_METRICS.register("complexity/sparseness")
 class SparsenessConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/sparseness"] = "complexity/sparseness"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.Sparseness"
     group_features: bool = False
 
 
@@ -127,9 +124,6 @@ class Sparseness(ExplainabilityMetric[SparsenessConfig]):
 class EffectiveComplexityConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/effective_complexity"] = (  # type: ignore
         "complexity/effective_complexity"
-    )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics.EffectiveComplexity"
     )
 
     n_perturbations_per_feature: int = 10

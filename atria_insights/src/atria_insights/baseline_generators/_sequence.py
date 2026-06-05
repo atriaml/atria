@@ -18,9 +18,6 @@ logger = get_logger(__name__)
 
 class SequenceBaselineGeneratorConfig(ModuleConfig):
     __schema_exclude__ = {"image_mean", "image_std"}
-    module_path: str | None = (
-        "atria_insights.baseline_generators._sequence.SequenceBaselineGenerator"
-    )
     type: Literal["sequence"] = "sequence"
     token_ids: Literal["zero", "mask_token_id", "pad_token_id", "none"] = "zero"
     token_type_ids: Literal["zero", "pad_token_id", "none"] = "zero"
@@ -223,9 +220,6 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
 
 
 class NoEmbedSequenceBaselineGeneratorConfig(SequenceBaselineGeneratorConfig):
-    module_path: str | None = (
-        "atria_insights.baseline_generators._sequence.NoEmbedSequenceBaselineGenerator"
-    )
     type: Literal["no_embed_sequence"] = "no_embed_sequence"
 
 

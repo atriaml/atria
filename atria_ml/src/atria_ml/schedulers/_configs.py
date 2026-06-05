@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from atria_ml.schedulers._base import LRSchedulerConfig
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class StepLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.StepLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.StepLR"
     step_size: int = 30
     gamma: float = 0.1
     last_epoch: int = -1
@@ -18,7 +18,7 @@ class StepLRSchedulerConfig(LRSchedulerConfig):
 
 
 class MultiStepLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.MultiStepLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.MultiStepLR"
     milestones: list[int] = [30, 80]
     gamma: float = 0.1
     last_epoch: int = -1
@@ -26,14 +26,14 @@ class MultiStepLRSchedulerConfig(LRSchedulerConfig):
 
 
 class ExponentialLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.ExponentialLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.ExponentialLR"
     gamma: float = 0.9
     last_epoch: int = -1
     verbose: bool = False
 
 
 class CyclicLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.CyclicLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.CyclicLR"
     base_lr: float = 0.001
     max_lr: float = 0.006
     step_size_up: int = 2000
@@ -49,7 +49,7 @@ class CyclicLRSchedulerConfig(LRSchedulerConfig):
 
 
 class ReduceLROnPlateauSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "ignite.handlers.ReduceLROnPlateauScheduler"
+    __module_path__: ClassVar[str] = "ignite.handlers.ReduceLROnPlateauScheduler"
     mode: str = "min"
     factor: float = 0.1
     patience: int = 10
@@ -62,7 +62,7 @@ class ReduceLROnPlateauSchedulerConfig(LRSchedulerConfig):
 
 
 class CosineAnnealingLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.CosineAnnealingLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.CosineAnnealingLR"
     eta_min: float = 0.0
     last_epoch: int = -1
     restarts: bool = False
@@ -94,7 +94,7 @@ class CosineAnnealingLRSchedulerConfig(LRSchedulerConfig):
 
 
 class LambdaLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = "torch.optim.lr_scheduler.LambdaLR"
+    __module_path__: ClassVar[str] = "torch.optim.lr_scheduler.LambdaLR"
     lambda_fn: str = "linear"
     last_epoch: int = -1
 
@@ -134,7 +134,7 @@ class LambdaLRSchedulerConfig(LRSchedulerConfig):
 
 
 class PolynomialDecayLRSchedulerConfig(LRSchedulerConfig):
-    module_path: str | None = (
+    __module_path__: ClassVar[str] = (
         "atria_ml.schedulers.polynomial_decay_lr.PolynomialDecayLR"
     )
     max_decay_steps: int = -1

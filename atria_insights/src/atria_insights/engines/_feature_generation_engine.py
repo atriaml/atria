@@ -8,7 +8,7 @@ from atria_ml.training.engine_steps._base import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
 
 from atria_insights.engines._feature_generation_step import FeatureGenerationStep
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 
 if TYPE_CHECKING:
     from ignite.engine import Engine, State
@@ -21,7 +21,7 @@ class FeatureGenerationEngineConfig(EngineConfig):
 
 
 class FeatureGenerationEngineDependencies(EngineDependencies):
-    x_model_pipeline: ExplanationPipeline
+    x_model_pipeline: BaseExplanationPipeline
     feature_file_name: str
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, TypeVar
+from typing import Annotated, Any, ClassVar, Literal, TypeVar
 
 from atria_registry import ModuleConfig
 from pydantic import Field
@@ -28,26 +28,26 @@ T_AttnExplainerConfig = TypeVar("T_AttnExplainerConfig", bound=AttnExplainerConf
 
 @EXPLAINERS.register("attn/raw_attention")
 class AttentionExplainerConfig(AttnExplainerConfig):
-    type: Literal["attn/raw_attention"] = "attn/raw_attention"
-    module_path: str | None = (
+    __module_path__: ClassVar[str] = (
         "atria_insights.explainers._attn._base_explainer.AttentionExplainer"
     )
+    type: Literal["attn/raw_attention"] = "attn/raw_attention"
 
 
 @EXPLAINERS.register("attn/attention_rollout")
 class AttentionRolloutExplainerConfig(AttnExplainerConfig):
-    type: Literal["attn/attention_rollout"] = "attn/attention_rollout"
-    module_path: str | None = (
+    __module_path__: ClassVar[str] = (
         "atria_insights.explainers._attn._base_explainer.AttentionRolloutExplainer"
     )
+    type: Literal["attn/attention_rollout"] = "attn/attention_rollout"
 
 
 @EXPLAINERS.register("attn/attention_flow")
 class AttentionFlowExplainerConfig(AttnExplainerConfig):
-    type: Literal["attn/attention_flow"] = "attn/attention_flow"
-    module_path: str | None = (
+    __module_path__: ClassVar[str] = (
         "atria_insights.explainers._attn._base_explainer.AttentionFlowExplainer"
     )
+    type: Literal["attn/attention_flow"] = "attn/attention_flow"
 
 
 AttnExplainerConfigType = Annotated[

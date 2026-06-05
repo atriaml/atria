@@ -11,9 +11,6 @@ from atria_insights.data_types._common import BaselineStrategy
 
 
 class SimpleBaselineGeneratorConfig(ModuleConfig):
-    module_path: str | None = (
-        "atria_insights.baseline_generators._simple.SimpleBaselineGenerator"
-    )
     type: Literal["simple"] = "simple"
     baseline_strategy: BaselineStrategy = BaselineStrategy.zeros
     baselines_fixed_value: float = 0.0

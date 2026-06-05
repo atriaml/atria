@@ -14,7 +14,6 @@ class SensitivityMaxAvgConfig(ExplainabilityMetricConfig):
     type: Literal["robustness/sensitivity_max_and_avg"] = (  # type: ignore
         "robustness/sensitivity_max_and_avg"
     )
-    module_path: str | None = "atria_insights.explainability_metrics.SensitivityMaxAvg"
     perturb_radius: float = 0.02
     n_perturb_samples: int = 10
     norm_ord: str = "fro"

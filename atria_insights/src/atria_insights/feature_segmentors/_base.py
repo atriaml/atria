@@ -6,14 +6,8 @@ from collections.abc import Callable
 from typing import Any, Generic, Literal
 
 import torch
-from atria_registry._module_base import ConfigurableModule, ModuleConfig, T_ModuleConfig
+from atria_registry._module_base import ConfigurableModule, T_ModuleConfig
 
-
-class NoOpSegmenterConfig(ModuleConfig):
-    type: Literal["noop"] = "noop"
-
-    def build(self, **kwargs: Any) -> Callable:
-        return lambda x: None
 
 
 class FeatureSegmentor(ConfigurableModule[T_ModuleConfig], Generic[T_ModuleConfig]):

@@ -10,7 +10,7 @@ from ignite.engine import Engine, Events
 
 from atria_insights.engines._events import MetricUpdateEvents
 from atria_insights.engines._explanation_step import ExplanationStep
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 
 if TYPE_CHECKING:
     from ignite.engine import Engine
@@ -24,7 +24,7 @@ class ExplanationEngineConfig(EngineConfig):
 
 
 class ExplanationEngineDependencies(EngineDependencies):
-    x_model_pipeline: ExplanationPipeline
+    x_model_pipeline: BaseExplanationPipeline
 
 
 class ExplanationEngine(

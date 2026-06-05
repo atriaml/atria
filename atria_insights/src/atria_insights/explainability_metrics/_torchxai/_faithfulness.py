@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import torch
 from torchxai.metrics import (
@@ -19,7 +19,6 @@ from atria_insights.explainability_metrics._torchxai._base import Explainability
 @EXPLAINABILITY_METRICS.register("faithfulness/aopc")
 class AOPCConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/aopc"] = "faithfulness/aopc"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.AOPC"
     max_features_processed_per_batch: int | None = 10
     total_feature_bins: int = 100
     n_random_perms: int = 10
@@ -66,9 +65,6 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
 class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/faithfulness_correlation"] = (  # type: ignore
         "faithfulness/faithfulness_correlation"
-    )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics.FaithfulnessCorrelation"
     )
     perturb_func: str = "fixed"
     n_perturb_samples: int = 10
@@ -127,9 +123,6 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/faithfulness_estimate"] = (  # type: ignore
         "faithfulness/faithfulness_estimate"
     )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics.FaithfulnessEstimate"
-    )
     max_features_processed_per_batch: int | None = 10
     percentage_feature_removal_per_step: float = 0.0
     show_progress: bool = True
@@ -173,7 +166,6 @@ class InfidelityConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/infidelity"] = (  # type: ignore
         "faithfulness/infidelity"
     )
-    module_path: str | None = "atria_insights.explainability_metrics.Infidelity"
     perturb_func: str = "default_infidelity_perturb_func"
     perturbation_noise_scale: float = 0.003
     n_perturb_samples: int = 10
@@ -224,7 +216,6 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/monotonicity"] = (  # type: ignore
         "faithfulness/monotonicity"
     )
-    module_path: str | None = "atria_insights.explainability_metrics.Monotonicity"
     max_features_processed_per_batch: int | None = None
     percentage_feature_removal_per_step: float = 0.01
     show_progress: bool = True
@@ -268,7 +259,6 @@ class SensitivityNConfig(ExplainabilityMetricConfig):
     type: Literal["faithfulness/sensitivity_n"] = (  # type: ignore
         "faithfulness/sensitivity_n"
     )
-    module_path: str | None = "atria_insights.explainability_metrics.SensitivityN"
     n_features_perturbed: int | float = 10
     n_perturb_samples: int = 10
     max_examples_per_batch: int | None = None

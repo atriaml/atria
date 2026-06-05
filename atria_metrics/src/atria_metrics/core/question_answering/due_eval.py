@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import due_evaluator
 from atria_logger import get_logger
@@ -167,10 +167,10 @@ class DueEvalMetric(Metric):
 
 
 class DueEvalMetricConfig(MetricConfig):
-    name: Literal["due_eval"] = "due_eval"
-    module_path: str | None = (
+    __module_path__: ClassVar[str] =  (
         "atria_metrics.core.question_answering.due_eval.DueEvalMetric"
     )
+    name: Literal["due_eval"] = "due_eval"
     dataset_name: str
     metric: str
     ignore_case: bool = True

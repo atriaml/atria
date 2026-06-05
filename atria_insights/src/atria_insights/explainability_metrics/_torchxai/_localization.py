@@ -13,7 +13,6 @@ from atria_insights.explainability_metrics._torchxai._base import Explainability
 @EXPLAINABILITY_METRICS.register("localization/attr_localization")
 class AttrLocalizationConfig(ExplainabilityMetricConfig):
     type: Literal["localization/attr_localization"] = "localization/attr_localization"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.AttrLocalization"
     positive_attributions: bool = True
     weighted: bool = False
     mask_h5_file_path: str | None = None

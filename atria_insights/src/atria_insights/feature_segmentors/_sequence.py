@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Literal
 
+from atria_insights.feature_segmentors._image import GridSegmenter, GridSegmenterConfig
 from atria_registry._module_base import ModuleConfig
 from pydantic import Field
 
 from atria_insights.feature_segmentors._base import (
     FeatureSegmentor,
-    NoOpSegmenterConfig,
 )
 from atria_insights.feature_segmentors._image import ImageSegmentorConfigType
 
@@ -17,13 +17,10 @@ if TYPE_CHECKING:
 
 
 class SequenceFeatureMaskSegmentorConfig(ModuleConfig):
-    module_path: str | None = (
-        "atria_insights.feature_segmentors._sequence.SequenceFeatureMaskSegmentor"
-    )
     type: Literal["sequence"] = "sequence"
     group_tokens_to_words: bool = True
     image_segmentor: ImageSegmentorConfigType = Field(
-        default_factory=lambda: NoOpSegmenterConfig()
+        default_factory=lambda: GridSegmenterConfig()
     )
 
     def build(self, **kwargs) -> Any:

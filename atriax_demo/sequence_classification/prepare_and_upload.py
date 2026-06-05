@@ -152,7 +152,7 @@ def main(
 
 
 if __name__ == "__main__":
-    BASE_DIR = "../../docxeval_data/experiment_00_seq_cls_v3/"
+    BASE_DIR = "/media/gladius/noel/phd-2026/atriax_project/docxeval_data/experiment_00_seq_cls_v3/"
     CONFIGS = [
         {
             "dataset_name": "tobacco3482/image_with_ocr",

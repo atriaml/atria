@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import torch
 from torchxai.metrics.axiomatic.completeness import completeness
@@ -17,7 +17,6 @@ from atria_insights.utilities._common import _get_first_layer
 @EXPLAINABILITY_METRICS.register("axiomatic/completeness")
 class CompletenessConfig(ExplainabilityMetricConfig):
     type: Literal["axiomatic/completeness"] = "axiomatic/completeness"  # type: ignore
-    module_path: str | None = "atria_insights.explainability_metrics.Completeness"
 
 
 class Completeness(ExplainabilityMetric[CompletenessConfig]):
@@ -47,7 +46,6 @@ class InputInvarianceConfig(ExplainabilityMetricConfig):
     type: Literal["axiomatic/input_invariance"] = (  # type: ignore
         "axiomatic/input_invariance"
     )
-    module_path: str | None = "atria_insights.explainability_metrics.InputInvariance"
     constant_shift_value: float = 1.0
 
 
@@ -113,9 +111,6 @@ class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
 class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
     type: Literal["axiomatic/monotonicity_corr_and_non_sens"] = (  # type: ignore
         "axiomatic/monotonicity_corr_and_non_sens"
-    )
-    module_path: str | None = (
-        "atria_insights.explainability_metrics.MonotonicityCorrAndNonSens"
     )
 
     n_perturbations_per_feature: int = 10

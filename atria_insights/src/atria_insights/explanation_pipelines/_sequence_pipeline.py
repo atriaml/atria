@@ -28,6 +28,7 @@ from atria_insights.baseline_generators._feature_based import (
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 from atria_insights.explanation_pipelines._common import (
     ExplanationPipelineConfig,
     ExplanationTargetStrategy,
@@ -38,7 +39,6 @@ from atria_insights.explanation_pipelines._forward_wrappers._sequence_forward_wr
     SequenceModelExplanationForwardWrapper,
     TokenClassificationModelExplanationForwardWrapper,
 )
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
 from atria_insights.explanation_pipelines._utilities import _generate_word_level_targets
 from atria_insights.feature_segmentors._sequence import (
@@ -57,7 +57,6 @@ class SequenceSlidingWindowConfig(SlidingWindowConfig):
 
 class SequenceModelExplanationPipelineConfig(ExplanationPipelineConfig):
     __schema_exclude__: ClassVar[set[str]] = {
-        "model_pipeline",
         "throw_on_load_mismatch",
         "profile_time",
         "metric_baseline_generator",
@@ -104,7 +103,7 @@ T_SequenceModelExplanationPipelineConfig = TypeVar(
 
 
 class SequenceModelExplanationPipeline(
-    ExplanationPipeline[
+    BaseExplanationPipeline[
         T_SequenceModelExplanationPipelineConfig, DocumentTensorDataModel
     ]
 ):
@@ -649,9 +648,6 @@ class SequenceModelExplanationPipeline(
 class SequenceClassificationExplanationPipelineConfig(
     SequenceModelExplanationPipelineConfig
 ):
-    model_pipeline: SequenceClassificationPipelineConfig = (
-        SequenceClassificationPipelineConfig()
-    )
 
     @property
     def name(self) -> str:
@@ -678,9 +674,6 @@ class TokenClassificationExplanationPipelineConfig(
         "profile_time",
     }
 
-    model_pipeline: TokenClassificationPipelineConfig = (
-        TokenClassificationPipelineConfig()
-    )
     use_word_level_targets: bool = True
     remove_other_labels: bool = False
 
@@ -750,9 +743,6 @@ class TokenClassificationExplanationPipeline(
 class LayoutTokenClassificationExplanationPipelineConfig(
     SequenceModelExplanationPipelineConfig
 ):
-    model_pipeline: LayoutTokenClassificationPipelineConfig = (
-        LayoutTokenClassificationPipelineConfig()
-    )
     use_word_level_targets: bool = True
 
     @property
@@ -815,8 +805,6 @@ class LayoutTokenClassificationExplanationPipeline(
 class QuestionAnsweringExplanationPipelineConfig(
     SequenceModelExplanationPipelineConfig
 ):
-    model_pipeline: QuestionAnsweringPipelineConfig = QuestionAnsweringPipelineConfig()
-
     @property
     def name(self) -> str:
         return "question_answering"

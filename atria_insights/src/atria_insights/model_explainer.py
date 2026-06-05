@@ -32,7 +32,7 @@ from atria_insights.engines._feature_generation_engine import (
     FeatureGenerationEngineConfig,
     FeatureGenerationEngineDependencies,
 )
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 
 if TYPE_CHECKING:
     from ignite.engine import State
@@ -44,7 +44,7 @@ logger = get_logger(__name__)
 @dataclass
 class ModelExplainerState:
     data_pipeline: DataPipeline
-    x_model_pipeline: ExplanationPipeline
+    x_model_pipeline: BaseExplanationPipeline
     tb_logger: TensorboardLogger | None = None
 
     @property

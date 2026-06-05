@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from atria_insights.feature_segmentors._base import NoOpSegmenterConfig
+from atria_insights.feature_segmentors._noop import NoOpSegmenterConfig
 from atria_insights.feature_segmentors._image import (
     FelzenszwalbImageSegmenterConfig,
     GridSegmenter,
@@ -18,7 +18,7 @@ from atria_insights.feature_segmentors._sequence import (
 )
 
 FeatureSegmentorConfigType = Annotated[
-    ImageSegmentorConfigType | SequenceFeatureMaskSegmentorConfig,
+    NoOpSegmenterConfig | ImageSegmentorConfigType | SequenceFeatureMaskSegmentorConfig,
     Field(discriminator="type"),
 ]
 __all__ = [

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, ClassVar, Literal
 
 from atria_registry._module_base import ModuleConfig
 from pydantic import Field
@@ -32,67 +32,67 @@ class GradExplainerConfig(ExplainerConfig):
 
 @EXPLAINERS.register("grad/saliency")
 class SaliencyExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.SaliencyExplainer"
     type: Literal["grad/saliency"] = "grad/saliency"
-    module_path: str | None = "torchxai.explainers.SaliencyExplainer"
 
 
 @EXPLAINERS.register("grad/integrated_gradients")
 class IntegratedGradientsExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.IntegratedGradientsExplainer"
     type: Literal["grad/integrated_gradients"] = "grad/integrated_gradients"
-    module_path: str | None = "torchxai.explainers.IntegratedGradientsExplainer"
     n_steps: int = 50
 
 
 @EXPLAINERS.register("grad/deeplift")
 class DeepLiftExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.DeepLiftExplainer"
     type: Literal["grad/deeplift"] = "grad/deeplift"
-    module_path: str | None = "torchxai.explainers.DeepLiftExplainer"
 
 
 @EXPLAINERS.register("grad/deeplift_shap")
 class DeepLiftShapExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.DeepLiftShapExplainer"
     type: Literal["grad/deeplift_shap"] = "grad/deeplift_shap"
-    module_path: str | None = "torchxai.explainers.DeepLiftShapExplainer"
 
 
 @EXPLAINERS.register("grad/gradient_shap")
 class GradientShapExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.GradientShapExplainer"
     type: Literal["grad/gradient_shap"] = "grad/gradient_shap"
-    module_path: str | None = "torchxai.explainers.GradientShapExplainer"
     n_samples: int = 25
 
 
 @EXPLAINERS.register("grad/guided_backprop")
 class GuidedBackpropExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.GuidedBackpropExplainer"
     type: Literal["grad/guided_backprop"] = "grad/guided_backprop"
-    module_path: str | None = "torchxai.explainers.GuidedBackpropExplainer"
 
 
 @EXPLAINERS.register("grad/input_x_gradient")
 class InputXGradientExplainerConfig(GradExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.InputXGradientExplainer"
     type: Literal["grad/input_x_gradient"] = "grad/input_x_gradient"
-    module_path: str | None = "torchxai.explainers.InputXGradientExplainer"
 
 
 @EXPLAINERS.register("perturbation/feature_ablation")
 class FeatureAblationExplainerConfig(ExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.FeatureAblationExplainer"
     type: Literal["perturbation/feature_ablation"] = "perturbation/feature_ablation"
-    module_path: str | None = "torchxai.explainers.FeatureAblationExplainer"
     weight_attributions: bool = True
 
 
 @EXPLAINERS.register("perturbation/kernel_shap")
 class KernelShapExplainerConfig(ExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.KernelShapExplainer"
     type: Literal["perturbation/kernel_shap"] = "perturbation/kernel_shap"
-    module_path: str | None = "torchxai.explainers.KernelShapExplainer"
     n_samples: int = 25
     weight_attributions: bool = True
 
 
 @EXPLAINERS.register("perturbation/lime")
 class LimeExplainerConfig(ExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.LimeExplainer"
     type: Literal["perturbation/lime"] = "perturbation/lime"
-    module_path: str | None = "torchxai.explainers.LimeExplainer"
     n_samples: int = 25
     alpha: float = 0.01
     weight_attributions: bool = True
@@ -100,14 +100,14 @@ class LimeExplainerConfig(ExplainerConfig):
 
 @EXPLAINERS.register("perturbation/occlusion")
 class OcclusionExplainerConfig(ExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.OcclusionExplainer"
     type: Literal["perturbation/occlusion"] = "perturbation/occlusion"
-    module_path: str | None = "torchxai.explainers.OcclusionExplainer"
 
 
 @EXPLAINERS.register("random")
 class RandomExplainerConfig(ExplainerConfig):
+    __module_path__: ClassVar[str] = "torchxai.explainers.RandomExplainer"
     type: Literal["random"] = "random"
-    module_path: str | None = "torchxai.explainers.RandomExplainer"
 
 
 ExplainerConfigType = Annotated[

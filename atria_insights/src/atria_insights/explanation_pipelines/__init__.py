@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from atria_insights.explanation_pipelines._image_pipeline import (
         ImageClassificationExplanationPipeline,
     )
-    from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+    from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
     from atria_insights.explanation_pipelines._registry_groups import (
         EXPLANATION_PIPELINES,
     )

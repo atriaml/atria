@@ -28,6 +28,7 @@ from atria_insights.explainers._attn._config import (
     AttnExplainerConfigType,
 )
 from atria_insights.explainers._attn._target import BatchAttentionTokenTarget
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 from atria_insights.explanation_pipelines._common import (
     ExplanationPipelineConfig,
     ExplanationTargetStrategy,
@@ -37,7 +38,6 @@ from atria_insights.explanation_pipelines._forward_wrappers._sequence_forward_wr
     SequenceModelExplanationForwardWrapper,
     TokenClassificationModelExplanationForwardWrapper,
 )
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
 from atria_insights.explanation_pipelines._utilities import _generate_word_level_targets
 from atria_insights.feature_segmentors._sequence import (
@@ -82,7 +82,7 @@ T_SequenceModelAttnExplanationPipelineConfig = TypeVar(
 
 
 class SequenceModelAttnExplanationPipeline(
-    ExplanationPipeline[
+    BaseExplanationPipeline[
         T_SequenceModelAttnExplanationPipelineConfig, DocumentTensorDataModel
     ]
 ):

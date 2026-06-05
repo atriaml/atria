@@ -205,11 +205,24 @@ class ModelPipeline(
         )
 
         target_dir.mkdir(parents=True, exist_ok=True)
-        with open(target_dir / _DEFAULT_MODEL_WEIGHTS_PATH, "wb") as f:
-            f.write(artifact.weights)
+        try:
+            with open(target_dir / _DEFAULT_MODEL_WEIGHTS_PATH, "wb") as f:
+                f.write(artifact.weights)
 
-        with open(target_dir / _DEFAULT_MODEL_METADATA_PATH, "wb") as f:
-            f.write(artifact.metadata)
+            with open(target_dir / _DEFAULT_MODEL_METADATA_PATH, "wb") as f:
+                f.write(artifact.metadata)
+        except Exception:
+            for path in [
+                target_dir / _DEFAULT_MODEL_WEIGHTS_PATH,
+                target_dir / _DEFAULT_MODEL_METADATA_PATH,
+            ]:
+                if path.exists():
+                    path.unlink()
+
+            if target_dir.exists() and not any(target_dir.iterdir()):
+                target_dir.rmdir()
+
+            raise
 
         logger.info(f"Saved model snapshot to '{target_dir}'.")
         return target_dir

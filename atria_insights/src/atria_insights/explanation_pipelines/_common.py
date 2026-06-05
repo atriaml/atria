@@ -3,7 +3,6 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
-from atria_models import ModelPipelineConfig
 from atria_registry import ModuleConfig
 from pydantic import BaseModel, Field, model_validator
 
@@ -47,7 +46,7 @@ from atria_insights.feature_segmentors import (
 )
 
 if TYPE_CHECKING:
-    from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
+    from atria_insights.explanation_pipelines._base import ExplanationPipeline
 
 
 class ExplanationTargetStrategy(str, enum.Enum):
@@ -94,12 +93,10 @@ class ExplanationPipelineConfig(ModuleConfig):
         "profile_time",
     }
     __schema_exclude__: ClassVar[set[str]] = {
-        "model_pipeline",
         "throw_on_load_mismatch",
         "profile_time",
         "metric_baseline_generator",
     }
-    model_pipeline: ModelPipelineConfig
     feature_segmentor: FeatureSegmentorConfigType = NoOpSegmenterConfig()
     baseline_generator: BaselineGeneratorConfigType = SimpleBaselineGeneratorConfig()
     metric_baseline_generator: BaselineGeneratorConfigType = (

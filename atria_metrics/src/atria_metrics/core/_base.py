@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class MetricConfig(ModuleConfig):
     @property
     def kwargs(self) -> dict[str, object]:
-        return self.model_dump(exclude={"module_path", "name"})
+        return self.model_dump(exclude={"name"})
 
     def build(  # type: ignore[return]
         self,

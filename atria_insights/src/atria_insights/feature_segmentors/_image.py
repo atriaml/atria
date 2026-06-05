@@ -8,7 +8,6 @@ from pydantic import Field
 
 from atria_insights.feature_segmentors._base import (
     FeatureSegmentor,
-    NoOpSegmenterConfig,
 )
 
 if TYPE_CHECKING:
@@ -16,15 +15,11 @@ if TYPE_CHECKING:
 
 
 class GridSegmenterConfig(ModuleConfig):
-    module_path: str | None = "atria_insights.feature_segmentors._image.GridSegmenter"
     type: Literal["grid"] = "grid"
     cell_size: int = 16
 
 
 class QuickshiftImageSegmenterConfig(ModuleConfig):
-    module_path: str | None = (
-        "atria_insights.feature_segmentors._image.QuickshiftImageSegmentor"
-    )
     type: Literal["quickshift"] = "quickshift"
     kernel_size: int = 4
     max_dist: int = 200
@@ -32,9 +27,6 @@ class QuickshiftImageSegmenterConfig(ModuleConfig):
 
 
 class FelzenszwalbImageSegmenterConfig(ModuleConfig):
-    module_path: str | None = (
-        "atria_insights.feature_segmentors._image.FelzenszwalbImageSegmentor"
-    )
     type: Literal["felzenszwalb"] = "felzenszwalb"
     scale: float = 100.0
     sigma: float = 0.5
@@ -42,9 +34,6 @@ class FelzenszwalbImageSegmenterConfig(ModuleConfig):
 
 
 class SlicImageSegmenterConfig(ModuleConfig):
-    module_path: str | None = (
-        "atria_insights.feature_segmentors._image.SlicImageSegmentor"
-    )
     type: Literal["slic"] = "slic"
     n_segments: int = 100
     compactness: float = 10.0
@@ -148,8 +137,7 @@ class QuickshiftImageSegmentor(ScikitImageSegmenter[QuickshiftImageSegmenterConf
 
 
 ImageSegmentorConfigType = Annotated[
-    NoOpSegmenterConfig
-    | GridSegmenterConfig
+    GridSegmenterConfig
     | QuickshiftImageSegmenterConfig
     | FelzenszwalbImageSegmenterConfig
     | SlicImageSegmenterConfig,

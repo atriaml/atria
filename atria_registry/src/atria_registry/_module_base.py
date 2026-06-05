@@ -31,9 +31,13 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     __builds_with_kwargs__ = False
     __hash_exclude__: ClassVar[set[str]] = set()
     __schema_exclude__: ClassVar[set[str]] = set()
+    __module_path__: ClassVar[str]
 
     model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
-    module_path: str | None = None
+
+    @property
+    def module_path(self):
+        return self.__module_path__
 
     @property
     def hash(self) -> str:
@@ -42,7 +46,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
 
     @property
     def kwargs(self) -> dict[str, Any]:
-        return self.model_dump(exclude={"module_path"})
+        return self.model_dump()
 
     @classmethod
     def from_dict(cls, obj: dict) -> Self:
@@ -125,7 +129,7 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
         """Get default config instance. Override in subclasses if needed."""
         return cast(
             T_ModuleConfig,
-            cls.__config__(module_path=cls.__module__ + "." + cls.__name__),
+            cls.__config__(),
         )
 
     @classmethod
@@ -150,6 +154,9 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
                 f"{cls.__name__}.__config__ must subclass ModuleConfig. "
                 f"Got {cls.__config__} instead."
             )
+
+        path = cls.__module__ + "." + cls.__qualname__
+        cls.__config__.__module_path__ = path
 
     @property
     def config(self) -> T_ModuleConfig:

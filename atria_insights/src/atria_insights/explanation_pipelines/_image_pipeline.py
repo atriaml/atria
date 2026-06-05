@@ -14,19 +14,18 @@ from atria_transforms.data_types._image import ImageTensorDataModel
 from atria_types._datasets import DatasetLabels
 
 from atria_insights.data_types._targets import BatchExplanationTarget
+from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 from atria_insights.explanation_pipelines._common import (
     ExplanationPipelineConfig,
     ExplanationTargetStrategy,
 )
-from atria_insights.explanation_pipelines._model_pipeline import ExplanationPipeline
 from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
 
 logger = get_logger(__name__)
 
 
 class ImageModelExplanationPipelineConfig(ExplanationPipelineConfig):
-    model_pipeline: ImageModelPipelineConfig
-
+    pass 
 
 T_ImageModelExplanationPipelineConfig = TypeVar(
     "T_ImageModelExplanationPipelineConfig", bound="ImageModelExplanationPipelineConfig"
@@ -34,7 +33,7 @@ T_ImageModelExplanationPipelineConfig = TypeVar(
 
 
 class ImageModelExplanationPipeline(
-    ExplanationPipeline[
+    BaseExplanationPipeline[
         ImageModelExplanationPipelineConfig,
         ImageTensorDataModel | DocumentTensorDataModel,
     ]
@@ -108,10 +107,6 @@ class ImageModelExplanationPipeline(
 
 
 class ImageClassificationExplanationPipelineConfig(ImageModelExplanationPipelineConfig):
-    model_pipeline: ImageClassificationPipelineConfig = (
-        ImageClassificationPipelineConfig()
-    )
-
     @property
     def name(self) -> str:
         return "image_classification"

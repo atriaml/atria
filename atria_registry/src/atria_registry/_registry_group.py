@@ -147,11 +147,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 config_hash = config.hash
                 config = config.to_dict()
 
-                if issubclass(module, ModuleConfig):
-                    assert config["module_path"] is not None, (
-                        f"{module} must have module_path defined."
-                    )
-
                 cur = self.get_store_value_at_path(module_name, load_from_db=False)
                 if cur is not None:
                     assert isinstance(cur, dict), (
@@ -252,19 +247,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         module_name: str,
         config: T_ModuleConfig | dict[str, Any],
     ):
-        # first make loadable module path
-        module_path = (
-            module.__module__ + "." + module.__name__
-            if module.__module__ != "__main__"
-            else module.__name__
-        )
-
-        # update module path in config
-        if isinstance(config, ModuleConfig):
-            config = config.model_copy(update={"module_path": module_path})
-        elif isinstance(config, dict):
-            config["module_path"] = module_path
-
         # get config hash
         config_hash = config.hash
         config = config.to_dict()
@@ -383,6 +365,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 schema[self._name] = {}
             for module_path in self.list_all_modules():
                 cfg = self.load_module_config(module_path)
+                cfg = cfg.model_copy(update={"explainability_metrics": None})
                 if isinstance(cfg, ModuleConfig):
                     form_schema = cfg.model_json_schema()
                     schema[self._name][module_path] = form_schema

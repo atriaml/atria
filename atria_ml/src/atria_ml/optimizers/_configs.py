@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import Field
 
@@ -8,8 +8,8 @@ from atria_ml.optimizers._registry_group import OPTIMIZERS
 
 @OPTIMIZERS.register("adam")
 class AdamOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.Adam"
     type: Literal["adam"] = "adam"
-    module_path: str | None = "torch.optim.Adam"
     betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-08
     weight_decay: float = 0.0
@@ -18,8 +18,8 @@ class AdamOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("adamw")
 class AdamWOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.AdamW"
     type: Literal["adamw"] = "adamw"
-    module_path: str | None = "torch.optim.AdamW"
     betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-08
     weight_decay: float = 0.0
@@ -28,8 +28,8 @@ class AdamWOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("adagrad")
 class AdagradOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.Adagrad"
     type: Literal["adagrad"] = "adagrad"
-    module_path: str | None = "torch.optim.Adagrad"
     lr_decay: float = 0.0
     weight_decay: float = 0.0
     initial_accumulator_value: float = 0.0
@@ -38,8 +38,8 @@ class AdagradOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("rmsprop")
 class RMSpropOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.RMSprop"
     type: Literal["rmsprop"] = "rmsprop"
-    module_path: str | None = "torch.optim.RMSprop"
     alpha: float = 0.99
     eps: float = 1e-08
     weight_decay: float = 0.0
@@ -49,8 +49,8 @@ class RMSpropOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("adadelta")
 class AdadeltaOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.Adadelta"
     type: Literal["adadelta"] = "adadelta"
-    module_path: str | None = "torch.optim.Adadelta"
     rho: float = 0.9
     eps: float = 1e-06
     weight_decay: float = 0.0
@@ -58,8 +58,8 @@ class AdadeltaOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("sgd")
 class SGDOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "torch.optim.SGD"
     type: Literal["sgd"] = "sgd"
-    module_path: str | None = "torch.optim.SGD"
     momentum: float = 0.0
     weight_decay: float = 0.0
     dampening: float = 0.0
@@ -68,8 +68,8 @@ class SGDOptimizerConfig(OptimizerConfig):
 
 @OPTIMIZERS.register("lars")
 class LARSOptimizerConfig(OptimizerConfig):
+    __module_path__: ClassVar[str] = "atria_ml.optimizers._lars.LARS"
     type: Literal["lars"] = "lars"
-    module_path: str | None = "atria_ml.optimizers._lars.LARS"
     momentum: float = 0.0
     weight_decay: float = 0.0
     dampening: float = 0.0
