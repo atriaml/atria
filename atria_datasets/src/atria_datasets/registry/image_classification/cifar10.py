@@ -37,11 +37,14 @@ class InputTransform(DatasetInputTransform):
         )
         return image_instance
 
+class Cifar10Config(DatasetConfig):
+    pass
+
 @DATASETS.register(
     "cifar10",
     configs={
-        "default": DatasetConfig(dataset_name="cifar10", config_name="default"),
-        "1k": DatasetConfig(
+        "default": Cifar10Config(dataset_name="cifar10", config_name="default"),
+        "1k": Cifar10Config(
             dataset_name="cifar10",
             config_name="1k",
             max_train_samples=1000,
@@ -51,7 +54,7 @@ class InputTransform(DatasetInputTransform):
     },
 )
 class Cifar10(ImageDataset):
-    __config__ = DatasetConfig
+    __config__ = Cifar10Config
     __input_transform__ = InputTransform
 
     def _custom_download(self, data_dir: str, access_token: str | None = None) -> None:

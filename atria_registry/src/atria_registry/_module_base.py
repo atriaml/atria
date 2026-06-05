@@ -61,10 +61,14 @@ class ModuleConfig(RepresentationMixin, BaseModel):
         for field in cls.__schema_exclude__:
             schema.get("properties", {}).pop(field, None)
 
-        # update the module_path to be read-only and hidden from the form
-        if "module_path" in schema.get("properties", {}):
-            schema["properties"]["module_path"]["readOnly"] = True
-            schema["properties"]["module_path"]["ui"] = {"hidden": True}
+        # Inject the config class path so the schema can reinstantiate itself.
+        config_path = cls.__module__ + "." + cls.__qualname__
+        schema.setdefault("properties", {})["_target_"] = {
+            "type": "string",
+            "const": config_path,
+            "readOnly": True,
+            "ui": {"hidden": True},
+        }
 
         # update title
         if cls.__title__ is None:

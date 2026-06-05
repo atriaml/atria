@@ -1,0 +1,185 @@
+{
+  "explainability_metric": {
+    "axiomatic/completeness": {
+      "hash": "4a17b556",
+      "config": {
+        "type": "axiomatic/completeness",
+        "enabled": false,
+        "_target_": "atria_insights.explainability_metrics._torchxai._axiomatic.CompletenessConfig"
+      }
+    },
+    "axiomatic/input_invariance": {
+      "hash": "e23a2783",
+      "config": {
+        "type": "axiomatic/input_invariance",
+        "enabled": false,
+        "constant_shift_value": 1.0,
+        "_target_": "atria_insights.explainability_metrics._torchxai._axiomatic.InputInvarianceConfig"
+      }
+    },
+    "axiomatic/monotonicity_corr_and_non_sens": {
+      "hash": "cc20fe53",
+      "config": {
+        "type": "axiomatic/monotonicity_corr_and_non_sens",
+        "enabled": false,
+        "n_perturbations_per_feature": 10,
+        "max_features_processed_per_batch": 40,
+        "percentage_feature_removal_per_step": 0.0,
+        "zero_attribution_threshold": 1e-05,
+        "zero_variance_threshold": 1e-05,
+        "use_percentage_attribution_threshold": false,
+        "perturb_func": "fixed",
+        "return_intermediate_results": true,
+        "show_progress": true,
+        "return_ratio": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._axiomatic.MonotonicityCorrAndNonSensConfig"
+      }
+    },
+    "complexity/complexity_entropy": {
+      "hash": "3d968840",
+      "config": {
+        "type": "complexity/complexity_entropy",
+        "enabled": false,
+        "group_features": false,
+        "_target_": "atria_insights.explainability_metrics._torchxai._complexity.ComplexityEntropyConfig"
+      }
+    },
+    "complexity/complexity_s": {
+      "hash": "1b996d46",
+      "config": {
+        "type": "complexity/complexity_s",
+        "enabled": false,
+        "group_features": false,
+        "eps": 1e-05,
+        "normalize_attribution": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._complexity.ComplexitySConfig"
+      }
+    },
+    "complexity/sparseness": {
+      "hash": "98970219",
+      "config": {
+        "type": "complexity/sparseness",
+        "enabled": false,
+        "group_features": false,
+        "_target_": "atria_insights.explainability_metrics._torchxai._complexity.SparsenessConfig"
+      }
+    },
+    "complexity/effective_complexity": {
+      "hash": "4d0338e9",
+      "config": {
+        "type": "complexity/effective_complexity",
+        "enabled": false,
+        "n_perturbations_per_feature": 10,
+        "max_features_processed_per_batch": 10,
+        "percentage_feature_removal_per_step": 0.0,
+        "zero_variance_threshold": 0.01,
+        "use_percentage_attribution_threshold": false,
+        "perturb_func": "fixed",
+        "return_intermediate_results": true,
+        "show_progress": true,
+        "return_ratio": false,
+        "_target_": "atria_insights.explainability_metrics._torchxai._complexity.EffectiveComplexityConfig"
+      }
+    },
+    "faithfulness/aopc": {
+      "hash": "79a50251",
+      "config": {
+        "type": "faithfulness/aopc",
+        "enabled": false,
+        "max_features_processed_per_batch": 10,
+        "total_feature_bins": 100,
+        "n_random_perms": 10,
+        "seed": null,
+        "show_progress": true,
+        "return_intermediate_results": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.AOPCConfig"
+      }
+    },
+    "faithfulness/faithfulness_correlation": {
+      "hash": "60acf3fd",
+      "config": {
+        "type": "faithfulness/faithfulness_correlation",
+        "enabled": false,
+        "perturb_func": "fixed",
+        "n_perturb_samples": 10,
+        "max_examples_per_batch": 10,
+        "percent_features_perturbed": 0.1,
+        "show_progress": true,
+        "return_intermediate_results": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.FaithfulnessCorrelationConfig"
+      }
+    },
+    "faithfulness/faithfulness_estimate": {
+      "hash": "e4383d27",
+      "config": {
+        "type": "faithfulness/faithfulness_estimate",
+        "enabled": false,
+        "max_features_processed_per_batch": 10,
+        "percentage_feature_removal_per_step": 0.0,
+        "show_progress": true,
+        "return_intermediate_results": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.FaithfulnessEstimateConfig"
+      }
+    },
+    "faithfulness/infidelity": {
+      "hash": "37863a14",
+      "config": {
+        "type": "faithfulness/infidelity",
+        "enabled": false,
+        "perturb_func": "default_infidelity_perturb_func",
+        "perturbation_noise_scale": 0.003,
+        "n_perturb_samples": 10,
+        "max_examples_per_batch": null,
+        "normalize": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.InfidelityConfig"
+      }
+    },
+    "faithfulness/monotonicity": {
+      "hash": "c94ef68f",
+      "config": {
+        "type": "faithfulness/monotonicity",
+        "enabled": false,
+        "max_features_processed_per_batch": null,
+        "percentage_feature_removal_per_step": 0.01,
+        "show_progress": true,
+        "return_intermediate_results": true,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.MonotonicityConfig"
+      }
+    },
+    "faithfulness/sensitivity_n": {
+      "hash": "a7002073",
+      "config": {
+        "type": "faithfulness/sensitivity_n",
+        "enabled": false,
+        "n_features_perturbed": 10,
+        "n_perturb_samples": 10,
+        "max_examples_per_batch": null,
+        "normalize": false,
+        "_target_": "atria_insights.explainability_metrics._torchxai._faithfulness.SensitivityNConfig"
+      }
+    },
+    "localization/attr_localization": {
+      "hash": "66214898",
+      "config": {
+        "type": "localization/attr_localization",
+        "enabled": false,
+        "positive_attributions": true,
+        "weighted": false,
+        "mask_h5_file_path": null,
+        "_target_": "atria_insights.explainability_metrics._torchxai._localization.AttrLocalizationConfig"
+      }
+    },
+    "robustness/sensitivity_max_and_avg": {
+      "hash": "23a36408",
+      "config": {
+        "type": "robustness/sensitivity_max_and_avg",
+        "enabled": false,
+        "perturb_radius": 0.02,
+        "n_perturb_samples": 10,
+        "norm_ord": "fro",
+        "max_examples_per_batch": null,
+        "_target_": "atria_insights.explainability_metrics._torchxai._robustness.SensitivityMaxAvgConfig"
+      }
+    }
+  }
+}

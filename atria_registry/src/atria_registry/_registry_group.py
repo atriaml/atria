@@ -308,7 +308,13 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         obj = instantiate(config)
         return obj
 
-    def dump(self, path: Path | None = None, refresh: bool = False) -> Path:
+    def dump(self, path: Path | None = None, refresh: bool = False, to_json: bool = False) -> Path:
+        """Dump the in-memory store into the SQLite registry database (or JSON if to_json=True)."""
+        if to_json:
+            return self._dump_json(path, refresh)
+        return self._dump_sqlite(path, refresh)
+
+    def _dump_sqlite(self, path: Path | None = None, refresh: bool = False) -> Path:
         """Dump the in-memory store into the SQLite registry database."""
         db_path = path or self._db_path()
         conn = sqlite3.connect(str(db_path))
@@ -324,7 +330,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         """)
         if refresh:
             conn.execute("DELETE FROM registry WHERE group_name=?", (self._name,))
-
         def _flatten(d: dict, prefix: str = "") -> None:
             for key, value in d.items():
                 p = f"{prefix}/{key}" if prefix else key
@@ -335,16 +340,45 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                     )
                 elif isinstance(value, dict):
                     _flatten(value, p)
-
         _flatten(self._store)
         conn.commit()
         conn.close()
         logger.debug(f"Dumped '{self._name}' group registry to {db_path}")
-
         logger.info(
             f"Registry dump complete. Registered modules:\n{self.list_all_modules()}"
         )
         return db_path
+
+    def _dump_json(self, path: Path | None = None, refresh: bool = False) -> Path:
+        """Dump the in-memory store into a JSON file."""
+        json_path = path or self._db_path().with_suffix(".json")
+
+        existing: dict = {}
+        if not refresh and json_path.exists():
+            with open(json_path, "r") as f:
+                existing = json.load(f)
+
+        entries = existing.get(self._name, {})
+
+        def _flatten(d: dict, prefix: str = "") -> None:
+            for key, value in d.items():
+                p = f"{prefix}/{key}" if prefix else key
+                if isinstance(value, dict) and "config" in value and "hash" in value:
+                    entries[p] = {"hash": value["hash"], "config": value["config"]}
+                elif isinstance(value, dict):
+                    _flatten(value, p)
+
+        _flatten(self._store)
+        existing[self._name] = entries
+
+        with open(json_path, "w") as f:
+            json.dump(existing, f, indent=2)
+
+        logger.debug(f"Dumped '{self._name}' group registry to {json_path}")
+        logger.info(
+            f"Registry dump complete. Registered modules:\n{self.list_all_modules()}"
+        )
+        return json_path
 
     def _schema_db_path(self) -> Path:
         return self._package_dir() / "schema.db"
