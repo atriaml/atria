@@ -308,7 +308,9 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         obj = instantiate(config)
         return obj
 
-    def dump(self, path: Path | None = None, refresh: bool = False, to_json: bool = False) -> Path:
+    def dump(
+        self, path: Path | None = None, refresh: bool = False, to_json: bool = False
+    ) -> Path:
         """Dump the in-memory store into the SQLite registry database (or JSON if to_json=True)."""
         if to_json:
             return self._dump_json(path, refresh)
@@ -330,6 +332,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         """)
         if refresh:
             conn.execute("DELETE FROM registry WHERE group_name=?", (self._name,))
+
         def _flatten(d: dict, prefix: str = "") -> None:
             for key, value in d.items():
                 p = f"{prefix}/{key}" if prefix else key
@@ -340,6 +343,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                     )
                 elif isinstance(value, dict):
                     _flatten(value, p)
+
         _flatten(self._store)
         conn.commit()
         conn.close()
@@ -355,7 +359,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
 
         existing: dict = {}
         if not refresh and json_path.exists():
-            with open(json_path, "r") as f:
+            with open(json_path) as f:
                 existing = json.load(f)
 
         entries = existing.get(self._name, {})
@@ -399,7 +403,6 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                 schema[self._name] = {}
             for module_path in self.list_all_modules():
                 cfg = self.load_module_config(module_path)
-                cfg = cfg.model_copy(update={"explainability_metrics": None})
                 if isinstance(cfg, ModuleConfig):
                     form_schema = cfg.model_json_schema()
                     schema[self._name][module_path] = form_schema
@@ -428,6 +431,7 @@ class RegistryGroup(Generic[T_ModuleConfig]):
                     if isinstance(cfg, ModuleConfig):
                         form_schema = cfg.model_json_schema()
                         form_schema = json.dumps(form_schema)
+                        print("form_schema", form_schema)
                         conn.execute(
                             "INSERT OR REPLACE INTO schema VALUES (?,?,?)",
                             (self._name, module_path, form_schema),

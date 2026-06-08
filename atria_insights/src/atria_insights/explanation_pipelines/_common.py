@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
+from typing import TYPE_CHECKING, ClassVar, Self, TypeVar
 
 from atria_registry import ModuleConfig
 from pydantic import BaseModel, Field, model_validator
@@ -46,7 +46,7 @@ from atria_insights.feature_segmentors import (
 )
 
 if TYPE_CHECKING:
-    from atria_insights.explanation_pipelines._base import ExplanationPipeline
+    pass
 
 
 class ExplanationTargetStrategy(str, enum.Enum):
@@ -128,13 +128,6 @@ class ExplanationPipelineConfig(ModuleConfig):
                 )
 
         return self
-
-    def build(self, **kwargs: Any) -> ExplanationPipeline:
-        labels = kwargs.pop("labels")
-        assert labels is not None, (
-            "Labels must be provided to build the model pipeline."
-        )
-        return super().build(labels=labels, **kwargs)
 
 
 T_ExplanationPipelineConfig = TypeVar(
