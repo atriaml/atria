@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import torch
+import yaml
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 
@@ -53,7 +54,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
     def _dump_config(self) -> dict:
         self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
         with open(self.file_path.with_suffix(".yaml"), "w") as f:
-            f.write(self._config.to_yaml())
+            yaml.safe_dump(self._config.to_dict(), f, sort_keys=False)
 
     def _serialize_type(self, data: SampleExplanationState) -> SerializableSampleData:
         if data.target is not None:

@@ -25,6 +25,22 @@ class AOPCConfig(ExplainabilityMetricConfig):
     seed: int | None = None
     show_progress: bool = True
     return_intermediate_results: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_features_processed_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+    }
+
+    @property
+    def name(self):
+        seed_part = f"/seed={self.seed}" if self.seed is not None else ""
+        return (
+            f"aopc"
+            f"/tfb={self.total_feature_bins}"
+            f"/nrp={self.n_random_perms}"
+            f"{seed_part}"
+        )
 
 
 class AOPC(ExplainabilityMetric[AOPCConfig]):
@@ -72,6 +88,21 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     percent_features_perturbed: float = 0.1
     show_progress: bool = True
     return_intermediate_results: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_examples_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+    }
+
+    @property
+    def name(self):
+        return (
+            f"faithfulness_correlation"
+            f"/pf={self.perturb_func}"
+            f"/nps={self.n_perturb_samples}"
+            f"/pfp={self.percent_features_perturbed}"
+        )
 
 
 class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig]):
@@ -127,6 +158,16 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
     percentage_feature_removal_per_step: float = 0.0
     show_progress: bool = True
     return_intermediate_results: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_features_processed_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+    }
+
+    @property
+    def name(self):
+        return f"faithfulness_estimate/pfrs={self.percentage_feature_removal_per_step}"
 
 
 class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
@@ -171,6 +212,17 @@ class InfidelityConfig(ExplainabilityMetricConfig):
     n_perturb_samples: int = 10
     max_examples_per_batch: int | None = None
     normalize: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {"enabled", "max_examples_per_batch"}
+
+    @property
+    def name(self):
+        return (
+            f"infidelity"
+            f"/pf={self.perturb_func}"
+            f"/pns={self.perturbation_noise_scale}"
+            f"/nps={self.n_perturb_samples}"
+            f"/norm={int(self.normalize)}"
+        )
 
 
 class Infidelity(ExplainabilityMetric[InfidelityConfig]):
@@ -220,6 +272,16 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
     percentage_feature_removal_per_step: float = 0.01
     show_progress: bool = True
     return_intermediate_results: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_features_processed_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+    }
+
+    @property
+    def name(self):
+        return f"monotonicity/pfrs={self.percentage_feature_removal_per_step}"
 
 
 class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
@@ -263,6 +325,16 @@ class SensitivityNConfig(ExplainabilityMetricConfig):
     n_perturb_samples: int = 10
     max_examples_per_batch: int | None = None
     normalize: bool = False
+    __hash_exclude__: ClassVar[set[str]] = {"enabled", "max_examples_per_batch"}
+
+    @property
+    def name(self):
+        return (
+            f"sensitivity_n"
+            f"/nfp={self.n_features_perturbed}"
+            f"/nps={self.n_perturb_samples}"
+            f"/norm={int(self.normalize)}"
+        )
 
 
 class SensitivityN(ExplainabilityMetric[SensitivityNConfig]):

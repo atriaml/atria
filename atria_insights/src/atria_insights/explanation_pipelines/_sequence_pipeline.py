@@ -6,19 +6,12 @@ from typing import Any, ClassVar, TypeVar
 
 import torch
 from atria_logger import get_logger
-from atria_models.core.model_pipelines._sequence_pipeline import (
-    LayoutTokenClassificationPipelineConfig,
-    QuestionAnsweringPipelineConfig,
-    SequenceClassificationPipelineConfig,
-    SequenceModelPipeline,
-    TokenClassificationPipelineConfig,
-)
+from atria_models.core.model_pipelines._sequence_pipeline import SequenceModelPipeline
 from atria_models.core.model_pipelines.utilities import log_tensor_info
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
 from atria_transforms.data_types._document import DocumentTensorDataModel
-from atria_types._datasets import DatasetLabels
 from pydantic import Field, model_validator
 
 from atria_insights.baseline_generators._feature_based import (
@@ -112,13 +105,13 @@ class SequenceModelExplanationPipeline(
     def __init__(
         self,
         config: SequenceModelExplanationPipelineConfig,
-        labels: DatasetLabels,
+        model_pipeline: SequenceModelPipeline,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
     ) -> None:
         super().__init__(
             config=config,
-            labels=labels,
+            model_pipeline=model_pipeline,
             persist_to_disk=persist_to_disk,
             cache_dir=cache_dir,
         )
@@ -507,8 +500,10 @@ class SequenceModelExplanationPipeline(
         for key in input_feature_keys:
             if key in self.config.ignored_feature_ids:
                 continue
-            sliding_window_shapes_map[key] = self.config.sliding_window_shapes_map[key]
-            strides[key] = self.config.strides_map[key]
+            sliding_window_shapes_map[key] = (
+                self.config.sliding_window_shapes_map.__dict__[key],
+            )
+            strides[key] = (self.config.strides_map.__dict__[key],)
 
         return sliding_window_shapes_map, strides
 
@@ -648,7 +643,6 @@ class SequenceModelExplanationPipeline(
 class SequenceClassificationExplanationPipelineConfig(
     SequenceModelExplanationPipelineConfig
 ):
-
     @property
     def name(self) -> str:
         return "sequence_classification"

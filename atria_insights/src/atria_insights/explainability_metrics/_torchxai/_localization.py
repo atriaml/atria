@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import h5py
 import torch
@@ -16,6 +16,15 @@ class AttrLocalizationConfig(ExplainabilityMetricConfig):
     positive_attributions: bool = True
     weighted: bool = False
     mask_h5_file_path: str | None = None
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return (
+            f"attr_localization"
+            f"/pa={int(self.positive_attributions)}"
+            f"/w={int(self.weighted)}"
+        )
 
 
 class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):

@@ -17,7 +17,7 @@ _REQUIRED_DEFAULT = "???"
 
 
 class ModelConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
+    model_config = ConfigDict(extra="ignore", frozen=True, use_enum_values=True)
 
     # builder type to use for model construction
     builder_type: ModelBuilderType = ModelBuilderType.timm

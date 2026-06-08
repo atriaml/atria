@@ -41,10 +41,10 @@ class SimpleBaselineGenerator(BaselineGenerator[SimpleBaselineGeneratorConfig]):
             )
 
     def __call__(  # type: ignore[override]
-        self, inputs: torch.Tensor | OrderedDict[str, torch.Tensor]
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
-        if isinstance(inputs, OrderedDict):
-            baselines = OrderedDict()
+        self, inputs: torch.Tensor | dict[str, torch.Tensor]
+    ) -> torch.Tensor | dict[str, torch.Tensor]:
+        if isinstance(inputs, dict):
+            baselines = dict()
             for key, tensor in inputs.items():
                 baselines[key] = self._prepare_baselines_from_type(
                     tensor,

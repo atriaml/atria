@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 import torch
 from torchxai.metrics import sensitivity_max_and_avg
@@ -18,6 +18,16 @@ class SensitivityMaxAvgConfig(ExplainabilityMetricConfig):
     n_perturb_samples: int = 10
     norm_ord: str = "fro"
     max_examples_per_batch: int | None = None
+    __hash_exclude__: ClassVar[set[str]] = {"enabled", "max_examples_per_batch"}
+
+    @property
+    def name(self):
+        return (
+            f"sensitivity_max_and_avg"
+            f"/pr={self.perturb_radius}"
+            f"/nps={self.n_perturb_samples}"
+            f"/no={self.norm_ord}"
+        )
 
 
 class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):

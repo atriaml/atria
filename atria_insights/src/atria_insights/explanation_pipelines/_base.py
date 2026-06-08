@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Generic
 
 import torch
+import yaml
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
@@ -76,9 +77,13 @@ class BaseExplanationPipeline(
 
     def _dump_config(self, config_dir: Path) -> dict:
         config_dir.mkdir(parents=True, exist_ok=True)
+
+        d = self._config.to_dict()
+
         with open(config_dir / "config.yaml", "w") as f:
-            f.write(self._config.to_yaml())
-            return self._config.model_dump()
+            yaml.safe_dump(d, f, sort_keys=False)
+
+        return d
 
     def _build_explainer(self):
         # build model with wrapped forward
@@ -142,27 +147,9 @@ class BaseExplanationPipeline(
         self._build_cacher()
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
-        class WrappedModel(torch.nn.Module):
-            def __init__(self, model: torch.nn.Module) -> None:
-                super().__init__()
-                self._model = model
-
-            def forward(self, *args: torch.Tensor) -> torch.Tensor:
-                # we need to wrap the model like  this since in captum all args are passed as
-                # *inputs + *additional_forward_args
-                # this means we always need to make sure the input sequence is preserved
-                from torch.nn.functional import softmax
-
-                model_outputs = self._model(*args)
-                if isinstance(model_outputs, dict):
-                    logits = model_outputs["logits"]
-                elif hasattr(model_outputs, "logits"):
-                    logits = model_outputs.logits
-                else:
-                    logits = model_outputs
-                return softmax(logits, dim=-1)
-
-        return WrappedModel(model)
+        raise NotImplementedError(
+            "Child class must implement a forward wrapper for the model"
+        )
 
     @abstractmethod
     def _target(
@@ -670,47 +657,6 @@ class BaseExplanationPipeline(
             "Feature keys do not match between loaded explanation states and explanation inputs."
             f" Found {explanation_state.feature_keys} =/= {explanation_inputs.feature_keys}"
         )
-        # assert (
-        #     explanation_state.sliding_window_shapes
-        #     == explanation_inputs.sliding_window_shapes
-        # ), (
-        #     "Sliding window shapes do not match between loaded explanation states and explanation inputs."
-        # )
-        # assert explanation_state.strides == explanation_inputs.strides, (
-        #     "Strides do not match between loaded explanation states and explanation inputs."
-        # )
-        # if (
-        #     explanation_state.feature_mask is not None
-        #     and explanation_inputs.feature_mask is not None
-        # ):
-        #     fm1 = (fm.detach().cpu() for fm in explanation_state.feature_mask)
-        #     fm2 = (fm.detach().cpu() for fm in explanation_inputs.feature_mask)
-        #     assert all(torch.equal(a, b) for a, b in zip(fm1, fm2, strict=True)), (
-        #         "Feature masks do not match between loaded explanation states and explanation inputs."
-        #         f" Found {fm1} =/= {fm2}"
-        #     )
-        # if (
-        #     explanation_state.frozen_features is not None
-        #     and explanation_inputs.frozen_features is not None
-        # ):
-        #     f1 = [x.detach().cpu() for x in explanation_state.frozen_features]
-        #     f2 = [x.detach().cpu() for x in explanation_inputs.frozen_features]
-        #     assert all(torch.equal(a, b) for a, b in zip(f1, f2, strict=True)), (
-        #         "Frozen features do not match between loaded explanation states and explanation inputs."
-        #         f" Found {f1} =/= {f2}"
-        #     )
-        # assert (
-        #     torch.mean(
-        #         torch.abs(
-        #             explanation_state.model_outputs.detach().cpu()
-        #             - model_outputs.detach().cpu()
-        #         )
-        #     ).item()
-        #     < 1e-3
-        # ), (
-        #     "Model outputs do not match between loaded explanation states and current model outputs."
-        #     f"Found {model_outputs.detach().cpu()} =/= {explanation_state.model_outputs.detach().cpu()}"
-        # )
 
         logger.info(
             "Loaded cached explanations for full batch of size %d.", len(model_outputs)
@@ -840,16 +786,17 @@ class BaseExplanationPipeline(
 
         # build explainer
         x_metrics = {}
-        for key, value in self.config.explainability_metrics.items():
+        for key, value in self.config.explainability_metrics.__dict__.items():
             logger.info(
                 "Building explainability metric '%s' with config: %s", key, value
             )
-            x_metrics[key] = value.build(
-                model=self._wrapped_model,
-                explainer=self._explainer,
-                device=device,
-                persist_to_disk=self._persist_to_disk,
-                cache_dir=self._explainer_dir,
-                metric_name=key,
-            )
+            if value.enabled:
+                x_metrics[key] = value.build(
+                    model=self._wrapped_model,
+                    explainer=self._explainer,
+                    device=device,
+                    persist_to_disk=self._persist_to_disk,
+                    cache_dir=self._explainer_dir,
+                    metric_name=key,
+                )
         return x_metrics

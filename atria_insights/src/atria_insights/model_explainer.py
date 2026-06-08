@@ -193,14 +193,27 @@ class ModelExplainer:
         # setup logging
         tb_logger = self._setup_logging()
 
+        # get model transforms
+        train_transform = self._config.model_pipeline.train_transform
+        eval_transform = self._config.model_pipeline.eval_transform
+
         # build dataset
         dataset = self._config.data.build_dataset()
+
+        # apply transforms
+        dataset.apply_transforms(
+            train_transform=train_transform, eval_transform=eval_transform
+        )
+
 
         # load labels
         labels = dataset.metadata.dataset_labels
 
         # log dataset info
         logger.info(f"Dataset:\n{dataset}")
+
+        # build model pipeline
+        model_pipeline = self._config.model_pipeline.build(labels=labels)
 
         # see if feature baseline generator is attached, then we updates its path
         if self._config.explanation_pipeline.baseline_generator.type == "feature_based":
@@ -211,23 +224,11 @@ class ModelExplainer:
 
         # build model pipelines
         x_model_pipeline = self._config.explanation_pipeline.build(
-            labels=labels, persist_to_disk=True, cache_dir=self._run_dir
+            model_pipeline=model_pipeline, persist_to_disk=True, cache_dir=self._run_dir
         )
 
         # log model pipeline
         logger.info(x_model_pipeline.summarize())
-
-        # get model transforms
-        train_transform = x_model_pipeline.config.model_pipeline.train_transform
-        eval_transform = x_model_pipeline.config.model_pipeline.eval_transform
-        try:
-            dataset.train.output_transform = train_transform
-            dataset.validation.output_transform = eval_transform
-            dataset.test.output_transform = eval_transform
-        except SplitNotFoundError:
-            logger.warning(
-                "One or more dataset splits not found while setting output transforms."
-            )
 
         # build data pipeline
         data_pipeline = DataPipeline(dataset=dataset)

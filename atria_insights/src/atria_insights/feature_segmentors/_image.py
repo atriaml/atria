@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from typing import TYPE_CHECKING, Annotated, Generic, Literal, TypeVar
 
 from atria_registry._module_base import ModuleConfig
@@ -76,10 +75,10 @@ class GridSegmenter(FeatureSegmentor[GridSegmenterConfig]):
         return torch.stack(feature_mask)
 
     def __call__(  # type: ignore[override]
-        self, images: torch.Tensor | OrderedDict[str, torch.Tensor]
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
-        if isinstance(images, OrderedDict):
-            return OrderedDict(
+        self, images: torch.Tensor | dict[str, torch.Tensor]
+    ) -> torch.Tensor | dict[str, torch.Tensor]:
+        if isinstance(images, dict):
+            return dict(
                 (key, self._image_batch_to_mask(imgs)) for key, imgs in images.items()
             )
         else:
@@ -112,10 +111,10 @@ class ScikitImageSegmenter(FeatureSegmentor, Generic[T_ScikitImageSegmenterConfi
         return torch.stack(feature_masks)
 
     def __call__(  # type: ignore[override]
-        self, images: torch.Tensor | OrderedDict[str, torch.Tensor]
-    ) -> torch.Tensor | OrderedDict[str, torch.Tensor]:
-        if isinstance(images, OrderedDict):
-            return OrderedDict(
+        self, images: torch.Tensor | dict[str, torch.Tensor]
+    ) -> torch.Tensor | dict[str, torch.Tensor]:
+        if isinstance(images, dict):
+            return dict(
                 (key, self._image_batch_to_mask(imgs)) for key, imgs in images.items()
             )
         else:

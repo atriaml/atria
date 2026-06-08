@@ -91,13 +91,13 @@ class SequenceModelAttnExplanationPipeline(
     def __init__(
         self,
         config: SequenceModelAttnExplanationPipelineConfig,
-        labels: DatasetLabels,
+        model_pipeline: SequenceModelPipeline,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
     ) -> None:
         super().__init__(
             config=config,
-            labels=labels,
+            model_pipeline=model_pipeline,
             persist_to_disk=persist_to_disk,
             cache_dir=cache_dir,
         )

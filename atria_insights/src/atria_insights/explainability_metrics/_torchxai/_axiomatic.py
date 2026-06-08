@@ -17,6 +17,11 @@ from atria_insights.utilities._common import _get_first_layer
 @EXPLAINABILITY_METRICS.register("axiomatic/completeness")
 class CompletenessConfig(ExplainabilityMetricConfig):
     type: Literal["axiomatic/completeness"] = "axiomatic/completeness"  # type: ignore
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return "completeness"
 
 
 class Completeness(ExplainabilityMetric[CompletenessConfig]):
@@ -47,6 +52,11 @@ class InputInvarianceConfig(ExplainabilityMetricConfig):
         "axiomatic/input_invariance"
     )
     constant_shift_value: float = 1.0
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return f"input_invariance/csv={self.constant_shift_value}"
 
 
 class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
@@ -123,6 +133,25 @@ class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
     return_intermediate_results: bool = True
     show_progress: bool = True
     return_ratio: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_features_processed_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+        "return_ratio",
+    }
+
+    @property
+    def name(self):
+        return (
+            f"monotonicity_corr_and_non_sens"
+            f"/npf={self.n_perturbations_per_feature}"
+            f"/pfrs={self.percentage_feature_removal_per_step}"
+            f"/zat={self.zero_attribution_threshold}"
+            f"/zvt={self.zero_variance_threshold}"
+            f"/upat={int(self.use_percentage_attribution_threshold)}"
+            f"/pf={self.perturb_func}"
+        )
 
 
 class MonotonicityCorrAndNonSens(

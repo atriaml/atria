@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TypeVar
 
+from atria_insights.explanation_pipelines._forward_wrappers._image_forward_wrappers import ImageModelExplanationForwardWrapper
 import torch
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._image_pipeline import (
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 
 
 class ImageModelExplanationPipelineConfig(ExplanationPipelineConfig):
-    pass 
+    pass
 
 T_ImageModelExplanationPipelineConfig = TypeVar(
     "T_ImageModelExplanationPipelineConfig", bound="ImageModelExplanationPipelineConfig"
@@ -44,19 +45,23 @@ class ImageModelExplanationPipeline(
     def __init__(
         self,
         config: ImageModelExplanationPipelineConfig,
-        labels: DatasetLabels,
+        model_pipeline: ImageModelPipeline,
         persist_to_disk: bool = True,
         cache_dir: str | None = None,
     ) -> None:
         super().__init__(
             config=config,
-            labels=labels,
+            model_pipeline=model_pipeline,
             persist_to_disk=persist_to_disk,
             cache_dir=cache_dir,
         )
         assert isinstance(self._model_pipeline, ImageModelPipeline), (
             f"{self.__class__.__name__} can only be used with ImageModelPipeline. Found {self._model_pipeline=}"
         )
+
+
+    def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
+        return ImageModelExplanationForwardWrapper(model=model)
 
     def _target(
         self,

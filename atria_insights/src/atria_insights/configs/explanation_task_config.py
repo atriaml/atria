@@ -28,6 +28,8 @@ from atria_insights.feature_segmentors import (
     NoOpSegmenterConfig,
 )
 
+from atria_models.core.model_pipelines._common import ModelPipelineConfig
+
 logger = get_logger(__name__)
 
 
@@ -35,6 +37,7 @@ class ExplanationTaskConfig(TaskConfigBase):
     model_config = ConfigDict(
         arbitrary_types_allowed=True, frozen=True, use_enum_values=True
     )
+    model_pipeline: ModelPipelineConfig
     explanation_pipeline: ExplanationPipelineConfig
     enable_outputs_caching: bool = False
     max_training_baseline_features: int = 100
@@ -42,6 +45,7 @@ class ExplanationTaskConfig(TaskConfigBase):
     @classmethod
     def from_training_task_config(
         cls,
+        explanation_pipeline_name: str,
         training_task_config: TrainingTaskConfig,
         dataset_name: str | None = None,
         exp_name: str = "img_cls_00",
@@ -88,9 +92,9 @@ class ExplanationTaskConfig(TaskConfigBase):
                 seed=training_task_config.env.seed,
             ),
             data=data,
+            model_pipeline=training_task_config.model_pipeline,
             explanation_pipeline=load_explanation_pipeline_config(
-                training_task_config.model_pipeline.name,
-                model_pipeline=training_task_config.model_pipeline,
+                explanation_pipeline_name,
                 feature_segmentor=feature_segmentor,
                 baseline_generator=baseline_generator,
                 explainer=explainer,

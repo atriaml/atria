@@ -25,6 +25,11 @@ from atria_insights.explainability_metrics._torchxai._base import Explainability
 class ComplexityEntropyConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/complexity_entropy"] = "complexity/complexity_entropy"  # type: ignore
     group_features: bool = False
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return f"complexity_entropy/gf={int(self.group_features)}"
 
 
 class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
@@ -58,6 +63,16 @@ class ComplexitySConfig(ExplainabilityMetricConfig):
     group_features: bool = False
     eps: float = 0.00001
     normalize_attribution: bool = True
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return (
+            f"complexity_s"
+            f"/gf={int(self.group_features)}"
+            f"/eps={self.eps}"
+            f"/na={int(self.normalize_attribution)}"
+        )
 
 
 class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
@@ -93,6 +108,11 @@ class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
 class SparsenessConfig(ExplainabilityMetricConfig):
     type: Literal["complexity/sparseness"] = "complexity/sparseness"  # type: ignore
     group_features: bool = False
+    __hash_exclude__: ClassVar[set[str]] = {"enabled"}
+
+    @property
+    def name(self):
+        return f"sparseness/gf={int(self.group_features)}"
 
 
 class Sparseness(ExplainabilityMetric[SparsenessConfig]):
@@ -135,6 +155,24 @@ class EffectiveComplexityConfig(ExplainabilityMetricConfig):
     return_intermediate_results: bool = True
     show_progress: bool = True
     return_ratio: bool = False
+    __hash_exclude__: ClassVar[set[str]] = {
+        "enabled",
+        "max_features_processed_per_batch",
+        "show_progress",
+        "return_intermediate_results",
+        "return_ratio",
+    }
+
+    @property
+    def name(self):
+        return (
+            f"effective_complexity"
+            f"/npf={self.n_perturbations_per_feature}"
+            f"/pfrs={self.percentage_feature_removal_per_step}"
+            f"/zvt={self.zero_variance_threshold}"
+            f"/upat={int(self.use_percentage_attribution_threshold)}"
+            f"/pf={self.perturb_func}"
+        )
 
 
 class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):

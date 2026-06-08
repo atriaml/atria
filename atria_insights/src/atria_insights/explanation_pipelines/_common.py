@@ -63,7 +63,7 @@ class SlidingWindowConfig(BaseModel):
 
 class ExplainabilityMetrics(BaseModel):
     completeness: CompletenessConfig = CompletenessConfig()
-    input_invariance: InputInvarianceConfig = InputInvarianceConfig()
+    input_invariance: InputInvarianceConfig = InputInvarianceConfig(enabled=False)
     monotonicity_corr_and_non_sens: MonotonicityCorrAndNonSensConfig = (
         MonotonicityCorrAndNonSensConfig()
     )
@@ -80,7 +80,7 @@ class ExplainabilityMetrics(BaseModel):
     sensitivity_n: SensitivityNConfig = SensitivityNConfig()
     monotonicity: MonotonicityConfig = MonotonicityConfig()
     sensitivity_max_avg: SensitivityMaxAvgConfig = SensitivityMaxAvgConfig()
-    attr_localization: AttrLocalizationConfig = AttrLocalizationConfig()
+    attr_localization: AttrLocalizationConfig = AttrLocalizationConfig(enabled=False)
 
 
 class ExplanationPipelineConfig(ModuleConfig):

@@ -91,8 +91,10 @@ def main(
         }
         logger.debug(f"Loaded explainability metrics: {explainability_metrics.keys()}")
 
+    training_task_config = _load_config_from_checkpoint(checkpoint_path)
     explanation_task_config = ExplanationTaskConfig.from_training_task_config(
-        training_task_config=_load_config_from_checkpoint(checkpoint_path),
+        explanation_pipeline_name='image_classification',
+        training_task_config=training_task_config,
         dataset_name=dataset_name,
         exp_name=exp_name,
         output_dir=output_dir,
@@ -104,8 +106,8 @@ def main(
         explainability_metrics=explainability_metrics,
         eval_batch_size=batch_size,
     )
-    model_explainer = ModelExplainer(config=explanation_task_config)
-    model_explainer.run(checkpoint_path=checkpoint_path, total_samples=100)
+    model_explainer = ModelExplainer(config=explanation_task_config, checkpoint_path=checkpoint_path)
+    model_explainer.run(total_samples=100)
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ class ModuleConfig(RepresentationMixin, BaseModel):
     __schema_exclude__: ClassVar[set[str]] = set()
     __module_path__: ClassVar[str]
 
-    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
+    model_config = ConfigDict(extra="ignore", frozen=True, use_enum_values=True)
 
     @property
     def module_path(self):
@@ -170,7 +170,7 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
 class PydanticConfigurableModule(RepresentationMixin, BaseModel):
     __version__ = "0.0.0"
     __hash_exclude__: ClassVar[set[str]] = set()
-    model_config = ConfigDict(extra="forbid", frozen=True, use_enum_values=True)
+    model_config = ConfigDict(extra="ignore", frozen=True, use_enum_values=True)
 
     @property
     def hash(self) -> str:

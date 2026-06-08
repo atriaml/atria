@@ -116,8 +116,6 @@ def main(
         do_validation=True,
         do_test=True,
     )
-    print(config)
-    exit()
 
     if eval_checkpoint:
         return Evaluator(

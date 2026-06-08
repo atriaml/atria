@@ -21,5 +21,5 @@ python train.py --dataset_name tobacco3482/image_with_ocr --model_name layoutlmv
 ## Explain the model predictions
 
 ```bash
-explain.py --dataset_name tobacco3482/image_with_ocr --checkpoint_path <path_to_trained_model_checkpoint> --explainer_name saliency --batch_size 32
+python explain.py --dataset_name tobacco3482/image_with_ocr --checkpoint_path <path_to_trained_model_checkpoint> --explainer_name grad/saliency --batch_size 32
 ```
