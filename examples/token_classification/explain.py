@@ -1,111 +1,299 @@
+# noqa
+from typing import Literal
+
 import fire
-from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
-from atria_insights.baseline_generators import (
+from atria_datasets.api.datasets import load_dataset_config
+from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGeneratorConfig,
-    SimpleBaselineGeneratorConfig,
 )
-from atria_insights.data_types._common import BaselineStrategy
-from atria_insights.explainability_metrics._api import load_explainability_metric_config
-from atria_insights.explainers._api import load_explainer_config
-from atria_insights.explainers._torchxai import (  # noqa
+from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
+from atria_insights.configs.explanation_task_config import (
+    ExplanationTaskConfig,
+    LoggingConfig,
+)
+from atria_insights.explainability_metrics import (  # noqa
+    AOPCConfig,  # noqa
+    CompletenessConfig,  # noqa
+    ComplexityEntropyConfig,  # noqa
+    ComplexitySConfig,  # noqa
+    EffectiveComplexityConfig,  # noqa
+    FaithfulnessCorrelationConfig,  # noqa
+    FaithfulnessEstimateConfig,  # noqa
+    InfidelityConfig,  # noqa
+    MonotonicityConfig,  # noqa
+    MonotonicityCorrAndNonSensConfig,  # noqa
+    SensitivityMaxAvgConfig,  # noqa
+    SensitivityNConfig,  # noqa
+    SparsenessConfig,  # noqa
+)
+from atria_insights.explainers import (
     DeepLiftExplainerConfig,
     DeepLiftShapExplainerConfig,
+    FeatureAblationExplainerConfig,
+    GradientShapExplainerConfig,
+    GuidedBackpropExplainerConfig,
+    InputXGradientExplainerConfig,
+    IntegratedGradientsExplainerConfig,
+    KernelShapExplainerConfig,
+    LimeExplainerConfig,
+    OcclusionExplainerConfig,
     SaliencyExplainerConfig,
 )
-from atria_insights.feature_segmentors import GridSegmenterConfig
-from atria_ml.configs._task import TrainingTaskConfig
+from atria_insights.explanation_pipelines._api import load_explanation_pipeline_config
+from atria_insights.explanation_pipelines._common import (
+    ExplainabilityMetrics,
+    ExplanationTargetStrategy,
+)
+from atria_insights.feature_segmentors._image import GridSegmenterConfig
+from atria_insights.feature_segmentors._sequence import (
+    SequenceFeatureMaskSegmentorConfig,
+)
+from atria_insights.model_explainer import ModelExplainer
+from atria_ml.configs import (
+    DataConfig,
+    RuntimeEnvConfig,
+)
+from atria_models.api.models import load_model_pipeline_config
+from atria_models.core.model_builders._common import ModelBuilderType
+from atria_models.core.model_pipelines._common import ModelConfig
+from atria_transforms.api.tfs import load_transform
+from atria_transforms.tfs._image_transforms import StandardImageTransform
 
-from atria_insights import ExplanationTaskConfig, ModelExplainer
 from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
-_EXPLAINERS = [
-    "grad/saliency",
-    "grad/integrated_gradients",
-    "grad/deeplift",
-    "grad/deeplift_shap",
-    "grad/gradient_shap",
-    "grad/guided_backprop",
-    "grad/input_x_gradient",
-    "perturbation/feature_ablation",
-    "perturbation/kernel_shap",
-    "perturbation/lime",
-    "perturbation/occlusion",
-    "random",
-]
+_EXPLAINERS = {
+    "grad/saliency": SaliencyExplainerConfig(),
+    "grad/integrated_gradients": IntegratedGradientsExplainerConfig(n_steps=200),
+    "grad/deeplift": DeepLiftExplainerConfig(),
+    "grad/deeplift_shap": DeepLiftShapExplainerConfig(),
+    "grad/gradient_shap": GradientShapExplainerConfig(n_samples=200),
+    "grad/guided_backprop": GuidedBackpropExplainerConfig(),
+    "grad/input_x_gradient": InputXGradientExplainerConfig(),
+    "perturbation/feature_ablation": FeatureAblationExplainerConfig(
+        weight_attributions=True
+    ),
+    "perturbation/kernel_shap": KernelShapExplainerConfig(
+        n_samples=200, weight_attributions=True
+    ),
+    "perturbation/lime": LimeExplainerConfig(
+        n_samples=200,
+        weight_attributions=True,
+    ),
+    "perturbation/occlusion": OcclusionExplainerConfig(),
+}
 
-_METRICS = [
-    "axiomatic/completeness",
-    "axiomatic/monotonicity_corr_and_non_sens",
-    "complexity/complexity_entropy",
-    "complexity/complexity_s",
-    "complexity/effective_complexity",
-    "complexity/sparseness",
-    "faithfulness/aopc",
-    "faithfulness/faithfulness_correlation",
-    "faithfulness/faithfulness_estimate",
-    "faithfulness/infidelity",
-    "faithfulness/monotonicity",
-    "faithfulness/sensitivity_n",
-    "robustness/sensitivity_max_and_avg",
-]
-
-_DEFAULT_BASELINES_GENERATOR_CONFIG = SimpleBaselineGeneratorConfig(
-    baseline_strategy=BaselineStrategy.fixed,
-    baselines_fixed_value=0.0,  # This corresponds to mean after normalization
-)
 _DEFAULT_DEEPSHAP_BASELINES_GENERATOR_CONFIG = FeatureBasedBaselineGeneratorConfig(
-    num_baselines=10
+    num_baselines=100
 )
 
-_DEFAULT_FEATURE_SEGMENTOR_CONFIG = GridSegmenterConfig(cell_size=16)
+_DEFAULT_FEATURE_SEGMENTOR_CONFIG = SequenceFeatureMaskSegmentorConfig(
+    image_segmentor=GridSegmenterConfig(cell_size=16)
+)
 
+_METRICS = ExplainabilityMetrics(
+    completeness=CompletenessConfig(),
+    monotonicity_corr_and_non_sens=MonotonicityCorrAndNonSensConfig(
+        n_perturbations_per_feature=1,
+        max_features_processed_per_batch=100,
+        percentage_feature_removal_per_step=0.01,  # 1% of the features will be removed together in each step
+        zero_attribution_threshold=1.0e-3,
+        zero_variance_threshold=1.0e-1,
+        use_percentage_attribution_threshold=True,
+        return_ratio=True,
+        show_progress=True,
+    ),
+    complexity_entropy=ComplexityEntropyConfig(group_features=True),
+    complexity_s=ComplexitySConfig(group_features=True, eps=1.0e-03),
+    effective_complexity=EffectiveComplexityConfig(
+        n_perturbations_per_feature=1,
+        max_features_processed_per_batch=100,
+        percentage_feature_removal_per_step=0.01,
+        zero_variance_threshold=1.0e-1,
+        return_ratio=True,
+        show_progress=True,
+    ),
+    sparseness=SparsenessConfig(group_features=True),
+    aopc=AOPCConfig(
+        total_feature_bins=200,
+        n_random_perms=3,
+        max_features_processed_per_batch=100,
+        show_progress=True,
+    ),
+    faithfulness_correlation=FaithfulnessCorrelationConfig(
+        n_perturb_samples=200,
+        max_examples_per_batch=100,
+        percent_features_perturbed=20 / 100,
+        show_progress=True,
+    ),
+    faithfulness_estimate=FaithfulnessEstimateConfig(
+        max_features_processed_per_batch=100,
+        percentage_feature_removal_per_step=0.01,
+        show_progress=True,
+    ),
+    infidelity=InfidelityConfig(
+        max_examples_per_batch=100,
+        n_perturb_samples=200,
+        perturbation_noise_scale=0.1,
+    ),
+    sensitivity_n=SensitivityNConfig(n_features_perturbed=0.2, enabled=True),
+    monotonicity=MonotonicityConfig(enabled=True),
+    sensitivity_max_avg=SensitivityMaxAvgConfig(
+        enabled=True,
+        max_examples_per_batch=1,
+    ),
+)
 
-def _load_config_from_checkpoint(checkpoint_path: str) -> TrainingTaskConfig:
-    import torch
-
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
-    assert "config" in checkpoint, "No config found in checkpoint."
-    return TrainingTaskConfig.from_dict(checkpoint["config"])
+# these are latest extracted by running analysis/task_wise_modality_rankings.py script
+_BASELINE_TYPES = {
+    "bert-base-uncased": {
+        "token_ids": "mask_token_id",
+        "token_type_ids": "zero",
+        "position_ids": "zero",
+    },
+    "roberta-base": {
+        "token_ids": "pad_token_id",
+        "token_type_ids": "zero",
+        "position_ids": "zero",
+    },
+    "lilt-roberta-base": {
+        "token_ids": "pad_token_id",
+        "token_type_ids": "zero",
+        "position_ids": "zero",
+        "layout_ids": "pad_token_id",
+    },
+    "layoutlmv3-base": {
+        "token_ids": "pad_token_id",
+        "token_type_ids": "zero",
+        "position_ids": "zero",
+        "layout_ids": "zero",
+        "image": "mean",
+    },
+}
 
 
 def main(
-    checkpoint_path: str,
-    dataset_name: str | None = None,
+    data_dir: str | None = None,
+    checkpoint_path: str | None = None,
+    project_name: str = "docxeval",
+    dataset_name: str = "funsd",
+    model_name: str = "bert-base-uncased",
+    tokenizer_name: str = "bert-base-uncased",
     explainer_name: str = "grad/saliency",
-    exp_name: str = "explain_img_cls_00",
+    builder_type: ModelBuilderType = ModelBuilderType.atria,
+    exp_name: str = "explain_token_cls_00",
     output_dir: str = "./outputs",
-    batch_size: int = 32,
+    stats: Literal["imagenet", "standard", "openai_clip", "custom"] = "standard",
+    image_size: int = 224,
+    train_batch_size: int = 1,
+    eval_batch_size: int = 1,
+    internal_batch_size: int = 4,
+    grad_batch_size: int = 4,
+    num_workers: int = 8,
+    seed: int = 42,
+    total_samples: int = 100,
+    compute_metrics: bool = True,
+    access_token: str | None = None,
+    use_segment_level_bboxes: bool = False,
+    compute_features_only: bool = False,
+    only_load_cached_explanations: bool = False,
+    overflow_strategy: str = "return_first",
+    remove_other_labels: bool = False,
+    profile_time: bool = False,
+    iterative_computation: bool = False,
 ):
     assert explainer_name in _EXPLAINERS, f"Explainer {explainer_name} not recognized."
 
-    baselines_generator = _DEFAULT_BASELINES_GENERATOR_CONFIG
-    if explainer_name in ["grad/deeplift_shap"]:
-        baselines_generator = _DEFAULT_DEEPSHAP_BASELINES_GENERATOR_CONFIG
-
-    explainability_metrics = None
-    if len(_METRICS) > 0:
-        explainability_metrics = {
-            key: load_explainability_metric_config(key) for key in _METRICS
-        }
-        logger.debug(f"Loaded explainability metrics: {explainability_metrics.keys()}")
-
-    explanation_task_config = ExplanationTaskConfig.from_training_task_config(
-        training_task_config=_load_config_from_checkpoint(checkpoint_path),
-        dataset_name=dataset_name,
-        exp_name=exp_name,
-        output_dir=output_dir,
-        explainer=load_explainer_config(explainer_name),
-        baseline_generator=baselines_generator,
-        feature_segmentor=_DEFAULT_FEATURE_SEGMENTOR_CONFIG,
-        internal_batch_size=4,
-        grad_batch_size=4,
-        explainability_metrics=explainability_metrics,
-        eval_batch_size=batch_size,
+    image_transform = StandardImageTransform(
+        stats=stats, resize_width=image_size, resize_height=image_size
     )
-    model_explainer = ModelExplainer(config=explanation_task_config)
-    model_explainer.run(checkpoint_path=checkpoint_path, total_samples=100)
+    mean, std = image_transform._get_stats()
+    explainer_baseline_generator = SequenceBaselineGeneratorConfig(
+        **_BASELINE_TYPES[model_name],  # type: ignore
+        image_mean=mean,
+        image_std=std,
+    )
+    metric_baseline_generator = SequenceBaselineGeneratorConfig(
+        **_BASELINE_TYPES[model_name],  # type: ignore
+        image_mean=mean,
+        image_std=std,
+    )
+
+    # for deeeplift shap, we use feature based baseline generator with multiple baselines
+    if explainer_name in ["grad/deeplift_shap"]:
+        explainer_baseline_generator = _DEFAULT_DEEPSHAP_BASELINES_GENERATOR_CONFIG
+
+    config = ExplanationTaskConfig(
+        env=RuntimeEnvConfig(
+            project_name=project_name,
+            exp_name=exp_name,
+            dataset_name=dataset_name.replace("/", "_"),
+            model_name=model_name,
+            output_dir=output_dir,
+            seed=seed,
+        ),
+        logging=LoggingConfig(logging_steps=1, refresh_rate=1),
+        data=DataConfig(
+            data_dir=data_dir,
+            access_token=access_token,
+            dataset_config=load_dataset_config(dataset_name),
+            num_workers=num_workers,
+            num_processes=num_workers,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
+            split_ratio=0.95,
+        ),
+        model_pipeline=load_model_pipeline_config(
+            "token_classification",
+            model=ModelConfig(
+                model_name_or_path=model_name,
+                builder_type=builder_type,
+                model_type="token_classification",
+            ),
+            train_transform=load_transform(
+                "document_processor/token_classification",
+                hf_processor={
+                    "tokenizer_name": tokenizer_name,
+                },
+                image_transform=image_transform,
+                overflow_strategy="return_random",
+                use_segment_level_bboxes=use_segment_level_bboxes,
+            ),
+            eval_transform=load_transform(
+                "document_processor/token_classification",
+                hf_processor={
+                    "tokenizer_name": tokenizer_name,
+                },
+                image_transform=image_transform,
+                # for explanation, we use first overflow only so that we just have one explanation per sample
+                overflow_strategy=overflow_strategy,
+                use_segment_level_bboxes=use_segment_level_bboxes,
+            ),
+        ),
+        explanation_pipeline=load_explanation_pipeline_config(
+            "token_classification",
+            feature_segmentor=_DEFAULT_FEATURE_SEGMENTOR_CONFIG,
+            baseline_generator=explainer_baseline_generator,
+            metric_baseline_generator=metric_baseline_generator,
+            explainer=_EXPLAINERS[explainer_name],
+            explainability_metrics=_METRICS,
+            explanation_target_strategy=ExplanationTargetStrategy.predicted,
+            iterative_computation=iterative_computation,
+            internal_batch_size=internal_batch_size,
+            grad_batch_size=grad_batch_size,
+            throw_on_load_mismatch=only_load_cached_explanations,
+            remove_other_labels=remove_other_labels,
+            profile_time=profile_time,
+        ),
+        enable_outputs_caching=True,
+    )
+    model_explainer = ModelExplainer(config=config, checkpoint_path=checkpoint_path)
+    model_explainer.run(
+        total_samples=total_samples,
+        compute_metrics=compute_metrics,
+        compute_features_only=compute_features_only,
+    )
 
 
 if __name__ == "__main__":

@@ -41,6 +41,12 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
         if explanation_inputs.is_multi_target:
             self._explainer.multi_target = True
 
+            # multi target currently only supports max_examples_per_batch = 1
+            # this is because we we have multiple targets per sample where each target
+            # is not expanded for repeated inputs in batch
+            max_examples_per_batch = 1
+        else:
+            max_examples_per_batch = self.config.max_examples_per_batch
         outputs = sensitivity_max_and_avg(
             explainer=self._explainer,
             # these are additionall explainer forward call args
@@ -58,7 +64,7 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
             perturb_radius=self.config.perturb_radius,
             n_perturb_samples=self.config.n_perturb_samples,
             norm_ord=self.config.norm_ord,
-            max_examples_per_batch=self.config.max_examples_per_batch,
+            max_examples_per_batch=max_examples_per_batch,
             multi_target=explanation_inputs.is_multi_target,
             attention_token_target=explanation_inputs.attention_token_target,  # needed for attention explainers with token targets
             feature_keys=explanation_inputs.feature_keys,  # needed for feature mask segmentors

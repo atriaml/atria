@@ -92,7 +92,7 @@ _DEFAULT_FEATURE_SEGMENTOR_CONFIG = SequenceFeatureMaskSegmentorConfig(
     image_segmentor=GridSegmenterConfig(cell_size=16)
 )
 
-metrics = ExplainabilityMetrics(
+_METRICS = ExplainabilityMetrics(
     completeness=CompletenessConfig(),
     monotonicity_corr_and_non_sens=MonotonicityCorrAndNonSensConfig(
         n_perturbations_per_feature=1,
@@ -268,7 +268,7 @@ def main(
             baseline_generator=explainer_baseline_generator,
             metric_baseline_generator=metric_baseline_generator,
             explainer=_EXPLAINERS[explainer_name],
-            explainability_metrics=metrics,
+            explainability_metrics=_METRICS,
             explanation_target_strategy=ExplanationTargetStrategy.predicted,
             iterative_computation=False,
             internal_batch_size=internal_batch_size,
