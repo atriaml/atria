@@ -110,7 +110,7 @@ class DatasetHubOps:
                     f"Files already exist in dataset '{hub_name}' on branch '{branch}'. "
                     "Set overwrite_existing=True to overwrite existing files."
                 )
-            hub.datasets.finalize(dataset=dataset_info, branch=branch)
+            hub.datasets.validate(dataset=dataset_info, branch=branch)
             return {"username": hub.auth.username, "name": hub_name, "branch": branch}
         except AtriaHubConnectionError:
             logger.error(

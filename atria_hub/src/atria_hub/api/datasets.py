@@ -185,13 +185,13 @@ class DatasetsApi(BaseApi):
             message="Upload dataset files.",
         )
 
-    def finalize(self, dataset: Dataset, branch: str) -> dict:
+    def validate(self, dataset: Dataset, branch: str) -> dict:
         """Retrieve a dataset from the hub by its name."""
 
-        from atriax_client.api.dataset import dataset_finalize
+        from atriax_client.api.dataset import dataset_validate
 
         with self._client.protected_api_client as client:
-            response = dataset_finalize.sync_detailed(
+            response = dataset_validate.sync_detailed(
                 client=client, id=dataset.id, branch=branch
             )
             if response.status_code != 200:

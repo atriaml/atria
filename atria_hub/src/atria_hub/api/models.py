@@ -136,13 +136,13 @@ class ModelsApi(BaseApi):
             message="Upload model snapshot.",
         )
 
-    def finalize(self, model: Model, branch: str) -> None:
+    def validate(self, model: Model, branch: str) -> None:
         """Finalize a model in the hub."""
 
-        from atriax_client.api.model import model_finalize
+        from atriax_client.api.model import model_validate
 
         with self._client.protected_api_client as client:
-            response = model_finalize.sync_detailed(
+            response = model_validate.sync_detailed(
                 client=client, id=model.id, branch=branch
             )
             if response.status_code != 200:

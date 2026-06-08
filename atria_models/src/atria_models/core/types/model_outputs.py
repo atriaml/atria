@@ -174,12 +174,12 @@ class QAModelOutput(ModelOutput):
         return None
 
 
-@dataclass(frozen=True)
-class MMDetEvaluationOutput(ModelOutput):
-    loss_dict: dict | None = None
-    det_data_samples: list[Any] | None = None
-    class_labels: list[str] | None = None
+# @dataclass(frozen=True)
+# class MMDetEvaluationOutput(ModelOutput):
+#     loss_dict: dict | None = None
+#     det_data_samples: list[Any] | None = None
+#     class_labels: list[str] | None = None
 
-    @property
-    def type(self) -> str:
-        return "layout"
+#     @property
+#     def type(self) -> str:
+#         return "layout"

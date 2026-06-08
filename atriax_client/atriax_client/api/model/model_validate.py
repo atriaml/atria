@@ -17,7 +17,7 @@ def _get_kwargs(
 ) -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": "/api/v1/dataset/{id}/finalize/{branch}/".format(
+        "url": "/api/v1/model/{id}/validate/{branch}/".format(
             id=quote(str(id), safe=""),
             branch=quote(str(branch), safe=""),
         ),
@@ -61,7 +61,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
 ) -> Response[Any | HTTPValidationError]:
-    """Finalize
+    """Validate
 
     Args:
         id (UUID):
@@ -93,7 +93,7 @@ def sync(
     *,
     client: AuthenticatedClient,
 ) -> Any | HTTPValidationError | None:
-    """Finalize
+    """Validate
 
     Args:
         id (UUID):
@@ -120,7 +120,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
 ) -> Response[Any | HTTPValidationError]:
-    """Finalize
+    """Validate
 
     Args:
         id (UUID):
@@ -150,7 +150,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
 ) -> Any | HTTPValidationError | None:
-    """Finalize
+    """Validate
 
     Args:
         id (UUID):
