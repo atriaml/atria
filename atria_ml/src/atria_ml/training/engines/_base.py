@@ -31,7 +31,7 @@ class EngineDependencies(BaseModel):
     model_pipeline: ModelPipeline[ModelPipelineConfig]
     dataloader: torch.utils.data.DataLoader
     device: str | torch.device
-    output_dir: str | Path
+    output_dir: str | Path | None = None
     tb_logger: TensorboardLogger | None = None
     event_handlers: list[tuple[Any, Callable]] | None = None
 
@@ -201,6 +201,8 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
     def _attach_profilers(self):
         if self._config.logging.profile_time:
+            assert self._deps.output_dir is not None, f"Output dir must be set to use profilers"
+
             from ignite.engine import Events
             from ignite.handlers import BasicTimeProfiler, HandlersTimeProfiler
 

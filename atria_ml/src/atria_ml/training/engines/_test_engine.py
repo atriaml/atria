@@ -44,12 +44,14 @@ class TestEngine(EngineBase[TestEngineConfig, TestEngineDependencies]):
         from atria_ml.training.utilities.model_output_saver import ModelOutputSaver
 
         if self._config.save_model_outputs_to_disk:
+            assert self._deps.output_dir is not None, f"Output directory must be set to use save_model_outputs_to_disk=True"
             self._engine.add_event_handler(
                 Events.ITERATION_COMPLETED,
                 ModelOutputSaver(output_dir=Path(self._deps.output_dir)),
             )
 
     def run_with_checkpoint_type(self, checkpoint_type: str) -> State | None:
+        assert self._deps.output_dir is not None, f"Output directory must be set to use run_with_checkpoint_type()"
         checkpoint_path = _find_checkpoint(
             output_dir=self._deps.output_dir, checkpoint_type=checkpoint_type
         )
