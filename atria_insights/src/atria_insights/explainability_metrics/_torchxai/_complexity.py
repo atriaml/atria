@@ -29,11 +29,12 @@ class ComplexityEntropyConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        return f"complexity_entropy/gf={int(self.group_features)}"
+        return f"complexity_entropy.gf_{int(self.group_features)}"
 
 
 class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
     __config__ = ComplexityEntropyConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -69,14 +70,15 @@ class ComplexitySConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"complexity_s"
-            f"/gf={int(self.group_features)}"
-            f"/eps={self.eps}"
-            f"/na={int(self.normalize_attribution)}"
+            f".gf_{int(self.group_features)}"
+            f".eps_{self.eps}"
+            f".na_{int(self.normalize_attribution)}"
         )
 
 
 class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
     __config__ = ComplexitySConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -112,11 +114,12 @@ class SparsenessConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        return f"sparseness/gf={int(self.group_features)}"
+        return f"sparseness.gf_{int(self.group_features)}"
 
 
 class Sparseness(ExplainabilityMetric[SparsenessConfig]):
     __config__ = SparsenessConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -167,16 +170,17 @@ class EffectiveComplexityConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"effective_complexity"
-            f"/npf={self.n_perturbations_per_feature}"
-            f"/pfrs={self.percentage_feature_removal_per_step}"
-            f"/zvt={self.zero_variance_threshold}"
-            f"/upat={int(self.use_percentage_attribution_threshold)}"
-            f"/pf={self.perturb_func}"
+            f".npf_{self.n_perturbations_per_feature}"
+            f".pfrs_{self.percentage_feature_removal_per_step}"
+            f".zvt_{self.zero_variance_threshold}"
+            f".upat_{int(self.use_percentage_attribution_threshold)}"
+            f".pf_{self.perturb_func}"
         )
 
 
 class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
     __config__ = EffectiveComplexityConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,

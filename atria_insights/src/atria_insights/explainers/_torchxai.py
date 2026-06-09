@@ -42,6 +42,10 @@ class IntegratedGradientsExplainerConfig(GradExplainerConfig):
     type: Literal["grad/integrated_gradients"] = "grad/integrated_gradients"
     n_steps: int = 50
 
+    @property
+    def name(self) -> str:
+        return f"grad.integrated_gradients.n_steps_{self.n_steps}"
+
 
 @EXPLAINERS.register("grad/deeplift")
 class DeepLiftExplainerConfig(GradExplainerConfig):
@@ -60,6 +64,10 @@ class GradientShapExplainerConfig(GradExplainerConfig):
     __module_path__: ClassVar[str] = "torchxai.explainers.GradientShapExplainer"
     type: Literal["grad/gradient_shap"] = "grad/gradient_shap"
     n_samples: int = 25
+
+    @property
+    def name(self) -> str:
+        return f"grad.gradient_shap.n_samples_{self.n_samples}"
 
 
 @EXPLAINERS.register("grad/guided_backprop")
@@ -80,6 +88,10 @@ class FeatureAblationExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/feature_ablation"] = "perturbation/feature_ablation"
     weight_attributions: bool = True
 
+    @property
+    def name(self) -> str:
+        return f"perturbation.feature_ablation.wa_{int(self.weight_attributions)}"
+
 
 @EXPLAINERS.register("perturbation/kernel_shap")
 class KernelShapExplainerConfig(ExplainerConfig):
@@ -87,6 +99,10 @@ class KernelShapExplainerConfig(ExplainerConfig):
     type: Literal["perturbation/kernel_shap"] = "perturbation/kernel_shap"
     n_samples: int = 25
     weight_attributions: bool = True
+
+    @property
+    def name(self) -> str:
+        return f"perturbation.kernel_shap.n_{self.n_samples}.wa_{int(self.weight_attributions)}"
 
 
 @EXPLAINERS.register("perturbation/lime")
@@ -96,6 +112,10 @@ class LimeExplainerConfig(ExplainerConfig):
     n_samples: int = 25
     alpha: float = 0.01
     weight_attributions: bool = True
+
+    @property
+    def name(self) -> str:
+        return f"perturbation.lime.n_{self.n_samples}.a_{self.alpha}.wa_{int(self.weight_attributions)}"
 
 
 @EXPLAINERS.register("perturbation/occlusion")

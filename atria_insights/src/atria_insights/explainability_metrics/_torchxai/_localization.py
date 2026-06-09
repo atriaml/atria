@@ -22,13 +22,14 @@ class AttrLocalizationConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"attr_localization"
-            f"/pa={int(self.positive_attributions)}"
-            f"/w={int(self.weighted)}"
+            f".pa_{int(self.positive_attributions)}"
+            f".w_{int(self.weighted)}"
         )
 
 
 class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):
     __config__ = AttrLocalizationConfig
+    _score_keys: ClassVar[list[str]] = ["attribution_localization_score"]
 
     def _update(
         self,

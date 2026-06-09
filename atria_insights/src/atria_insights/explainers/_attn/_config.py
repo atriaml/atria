@@ -14,6 +14,10 @@ class AttnExplainerConfig(ExplainerConfig):
     head_reduction: Literal["mean", "max", "min", "sum"] = "mean"
 
     @property
+    def name(self) -> str:
+        return f"{self.type.replace('/', '.')}.hr_{self.head_reduction}"
+
+    @property
     def kwargs(self) -> dict[str, Any]:
         return self.model_dump(exclude={"module_path", "type"})
 

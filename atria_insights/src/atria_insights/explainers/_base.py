@@ -13,6 +13,10 @@ class ExplainerConfig(ModuleConfig):
     __builds_with_kwargs__: bool = True
 
     @property
+    def name(self) -> str:
+        return self.type.replace("/", ".")
+
+    @property
     def kwargs(self) -> dict[str, Any]:
         return self.model_dump(exclude={"module_path", "type"})
 

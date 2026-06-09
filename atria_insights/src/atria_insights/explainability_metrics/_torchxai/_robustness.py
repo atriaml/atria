@@ -24,14 +24,15 @@ class SensitivityMaxAvgConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"sensitivity_max_and_avg"
-            f"/pr={self.perturb_radius}"
-            f"/nps={self.n_perturb_samples}"
-            f"/no={self.norm_ord}"
+            f".pr_{self.perturb_radius}"
+            f".nps_{self.n_perturb_samples}"
+            f".no_{self.norm_ord}"
         )
 
 
 class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
     __config__ = SensitivityMaxAvgConfig
+    _score_keys: ClassVar[list[str]] = ["sensitivity_max", "sensitivity_avg"]
 
     def _update(
         self,

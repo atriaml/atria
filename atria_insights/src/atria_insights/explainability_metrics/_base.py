@@ -24,13 +24,8 @@ class ExplainabilityMetricConfig(ModuleConfig):
         device: torch.device | str = "cpu",
         cacher: MetricDataCacher | None = None,
     ) -> Explainer:
-        name = self.type.split("/")[-1]
         return super().build(
-            model=model,
-            explainer=explainer,
-            device=device,
-            cacher=cacher,
-            metric_key="-".join([name, self.hash]),
+            model=model, explainer=explainer, device=device, cacher=cacher
         )
 
 

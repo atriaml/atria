@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import time
 from abc import abstractmethod
-from typing import Any, Generic
+from collections.abc import Mapping
+from typing import Any, ClassVar, Generic
 
 import torch
 from atria_logger import get_logger
@@ -35,6 +36,7 @@ class ExplainabilityMetric(
     Generic[T_ExplainabilityMetricConfig],
 ):
     __abstract__ = True
+    _score_keys: ClassVar[list[str]] = []
 
     @property
     def name(self):
@@ -47,7 +49,6 @@ class ExplainabilityMetric(
         config: T_ExplainabilityMetricConfig | None = None,
         device="cpu",
         cacher: MetricDataCacher | None = None,
-        metric_key: str | None = None,
     ):
         Metric.__init__(self, output_transform=lambda x: x, device=device)
         ConfigurableModule.__init__(self, config=config)
@@ -61,7 +62,8 @@ class ExplainabilityMetric(
         self._explainer = explainer
 
         # cache to disk
-        self._metric_key = metric_key
+        self._metric_unique_name = config.name
+        self._metric_key = config.name
         self._cacher = cacher
 
         # assert models match
@@ -276,10 +278,62 @@ class ExplainabilityMetric(
         self._num_examples += explanation_inputs.batch_size
         self._results.append(metric_data.data)
 
-    # -----------------------------------------------------------------
-    def compute(self):
-        """Compute final metric from accumulated state."""
-        return self._results
+    def compute(self) -> dict:
+        """Aggregate accumulated per-batch results into a summary dict.
+
+        For each key in _score_keys, concatenates values across all batches,
+        flattens (handling multi-target tensors), and returns nanmean.
+        """
+        if not self._results:
+            return {}
+
+        summary = {}
+        for key in self._score_keys:
+            values = []
+            for batch in self._results:
+                if key not in batch:
+                    continue
+                v = batch[key]
+                if isinstance(v, torch.Tensor):
+                    values.append(v.flatten().float())
+                elif isinstance(v, list):
+                    flat = []
+                    for item in v:
+                        if isinstance(item, list):
+                            flat.extend(item)
+                        else:
+                            flat.append(item)
+                    values.append(torch.tensor(flat, dtype=torch.float32))
+            summary[key] = (
+                torch.nanmean(torch.cat(values)).item() if values else float("nan")
+            )
+
+        exec_times = torch.cat(
+            [batch["sample_exec_time"].flatten().float() for batch in self._results]
+        )
+        summary["exec_time"] = torch.nanmean(exec_times).item()
+        return summary
+
+    def completed(self, engine: Engine, name: str) -> None:
+        result = self.compute()
+
+        # we ignore the name of the attachement
+        if isinstance(result, Mapping):
+            if name in result.keys():
+                raise ValueError(
+                    f"Argument name '{name}' is conflicting with mapping keys: {list(result.keys())}"
+                )
+
+            for key, value in result.items():
+                engine.state.metrics["/".join([self._metric_unique_name, key])] = value
+        else:
+            if isinstance(result, torch.Tensor):
+                if len(result.size()) == 0:
+                    result = result.item()
+                elif "cpu" not in result.device.type:
+                    result = result.cpu()
+
+            engine.state.metrics[self._metric_unique_name] = result
 
     def __str__(self):
         return f"{self.__class__.__name__}(config={self.config})"

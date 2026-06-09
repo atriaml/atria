@@ -34,17 +34,63 @@ class AOPCConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        seed_part = f"/seed={self.seed}" if self.seed is not None else ""
+        seed_part = f".seed_{self.seed}" if self.seed is not None else ""
         return (
             f"aopc"
-            f"/tfb={self.total_feature_bins}"
-            f"/nrp={self.n_random_perms}"
+            f".tfb_{self.total_feature_bins}"
+            f".nrp_{self.n_random_perms}"
             f"{seed_part}"
         )
 
 
 class AOPC(ExplainabilityMetric[AOPCConfig]):
     __config__ = AOPCConfig
+
+    def compute(self) -> dict:
+        if not self._results:
+            return {}
+
+        import numpy as np
+
+        def _resample(arr, n=101):
+            arr = np.asarray(arr, dtype=float)
+            m = len(arr)
+            if m < 2:
+                return np.full(n, arr[0])
+            return np.interp(np.linspace(0, 1, n), np.linspace(0, 1, m), arr)
+
+        def gather_curves(key, reduce_perms=False):
+            curves = []
+            for batch in self._results:
+                if key not in batch:
+                    continue
+                v = batch[key].cpu().float().numpy()
+                if reduce_perms:
+                    # [B, n_perms, n_bins] or [B, n_targets, n_perms, n_bins]
+                    v = v.mean(axis=-2)
+                # reshape to [N, n_bins], flattening batch and any target dims
+                v = v.reshape(-1, v.shape[-1])
+                for sample_curve in v:
+                    if not np.isnan(sample_curve).any():
+                        curves.append(_resample(sample_curve))
+            return np.stack(curves).mean(0) if curves else np.full(101, float("nan"))
+
+        desc_mean = gather_curves("desc")
+        asc_mean = gather_curves("asc")
+        rand_mean = gather_curves("rand", reduce_perms=True)
+
+        exec_times = torch.cat(
+            [batch["sample_exec_time"].flatten().float() for batch in self._results]
+        )
+        return {
+            "desc": desc_mean.tolist(),
+            "asc": asc_mean.tolist(),
+            "rand": rand_mean.tolist(),
+            "abpc": float((desc_mean - asc_mean)[-1]),
+            "desc_minus_rand": float((desc_mean - rand_mean)[-1]),
+            "asc_minus_rand": float((asc_mean - rand_mean)[-1]),
+            "exec_time": torch.nanmean(exec_times).item(),
+        }
 
     def _update(
         self,
@@ -99,14 +145,15 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"faithfulness_correlation"
-            f"/pf={self.perturb_func}"
-            f"/nps={self.n_perturb_samples}"
-            f"/pfp={self.percent_features_perturbed}"
+            f".pf_{self.perturb_func}"
+            f".nps_{self.n_perturb_samples}"
+            f".pfp_{self.percent_features_perturbed}"
         )
 
 
 class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig]):
     __config__ = FaithfulnessCorrelationConfig
+    _score_keys: ClassVar[list[str]] = ["faithfulness_corr_score"]
 
     def _update(
         self,
@@ -167,11 +214,12 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        return f"faithfulness_estimate/pfrs={self.percentage_feature_removal_per_step}"
+        return f"faithfulness_estimate.pfrs_{self.percentage_feature_removal_per_step}"
 
 
 class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
     __config__ = FaithfulnessEstimateConfig
+    _score_keys: ClassVar[list[str]] = ["faithfulness_estimate_score"]
 
     def _update(
         self,
@@ -218,15 +266,16 @@ class InfidelityConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"infidelity"
-            f"/pf={self.perturb_func}"
-            f"/pns={self.perturbation_noise_scale}"
-            f"/nps={self.n_perturb_samples}"
-            f"/norm={int(self.normalize)}"
+            f".pf_{self.perturb_func}"
+            f".pns_{self.perturbation_noise_scale}"
+            f".nps_{self.n_perturb_samples}"
+            f".norm_{int(self.normalize)}"
         )
 
 
 class Infidelity(ExplainabilityMetric[InfidelityConfig]):
     __config__ = InfidelityConfig
+    _score_keys: ClassVar[list[str]] = ["infidelity_score"]
 
     def _update(
         self,
@@ -281,11 +330,12 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        return f"monotonicity/pfrs={self.percentage_feature_removal_per_step}"
+        return f"monotonicity.pfrs_{self.percentage_feature_removal_per_step}"
 
 
 class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
     __config__ = MonotonicityConfig
+    _score_keys: ClassVar[list[str]] = ["monotonicity_score"]
 
     def _update(
         self,
@@ -331,14 +381,15 @@ class SensitivityNConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"sensitivity_n"
-            f"/nfp={self.n_features_perturbed}"
-            f"/nps={self.n_perturb_samples}"
-            f"/norm={int(self.normalize)}"
+            f".nfp_{self.n_features_perturbed}"
+            f".nps_{self.n_perturb_samples}"
+            f".norm_{int(self.normalize)}"
         )
 
 
 class SensitivityN(ExplainabilityMetric[SensitivityNConfig]):
     __config__ = SensitivityNConfig
+    _score_keys: ClassVar[list[str]] = ["sensitivity_n_score"]
 
     def _update(
         self,

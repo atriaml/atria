@@ -26,6 +26,7 @@ class CompletenessConfig(ExplainabilityMetricConfig):
 
 class Completeness(ExplainabilityMetric[CompletenessConfig]):
     __config__ = CompletenessConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -56,11 +57,12 @@ class InputInvarianceConfig(ExplainabilityMetricConfig):
 
     @property
     def name(self):
-        return f"input_invariance/csv={self.constant_shift_value}"
+        return f"input_invariance.csv_{self.constant_shift_value}"
 
 
 class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
     __config__ = InputInvarianceConfig
+    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _input_shifts(
         self, inputs: torch.Tensor | tuple[torch.Tensor, ...]
@@ -145,12 +147,12 @@ class MonotonicityCorrAndNonSensConfig(ExplainabilityMetricConfig):
     def name(self):
         return (
             f"monotonicity_corr_and_non_sens"
-            f"/npf={self.n_perturbations_per_feature}"
-            f"/pfrs={self.percentage_feature_removal_per_step}"
-            f"/zat={self.zero_attribution_threshold}"
-            f"/zvt={self.zero_variance_threshold}"
-            f"/upat={int(self.use_percentage_attribution_threshold)}"
-            f"/pf={self.perturb_func}"
+            f".npf_{self.n_perturbations_per_feature}"
+            f".pfrs_{self.percentage_feature_removal_per_step}"
+            f".zat_{self.zero_attribution_threshold}"
+            f".zvt_{self.zero_variance_threshold}"
+            f".upat_{int(self.use_percentage_attribution_threshold)}"
+            f".pf_{self.perturb_func}"
         )
 
 
@@ -158,6 +160,7 @@ class MonotonicityCorrAndNonSens(
     ExplainabilityMetric[MonotonicityCorrAndNonSensConfig]
 ):
     __config__ = MonotonicityCorrAndNonSensConfig
+    _score_keys: ClassVar[list[str]] = ["non_sensitivity", "monotonicity_corr"]
 
     def _update(
         self,
