@@ -173,7 +173,7 @@ _BASELINE_TYPES = {
 def main(
     data_dir: str | None = None,
     checkpoint_path: str | None = None,
-    project_name: str = "docxeval2",
+    project_name: str = "docxeval3",
     dataset_name: str = "tobacco3482/image_with_ocr",
     model_name: str = "bert-base-uncased",
     tokenizer_name: str = "bert-base-uncased",

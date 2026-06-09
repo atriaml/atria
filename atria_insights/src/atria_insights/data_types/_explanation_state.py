@@ -286,6 +286,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: BatchExplanation | MultiTargetBatchExplanation
     model_outputs: torch.Tensor
+    explanation_units: list[]
     compute_metrics: ComputeMetrics | None = None
 
     @property

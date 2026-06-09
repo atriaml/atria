@@ -37,6 +37,7 @@ from atria_insights.explanation_pipelines._utilities import _generate_word_level
 from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
+from atria_insights.utilities._explanation_units import _process_single_sample
 
 logger = get_logger(__name__)
 
@@ -631,6 +632,40 @@ class SequenceModelExplanationPipeline(
                 frozen_features=frozen_features,
                 feature_keys=feature_keys,
             )
+
+    def prepare_explanation_units(
+        self,
+        batch: DocumentTensorDataModel,
+        explanation_inputs: BatchExplanationInputs,
+        explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
+    ) -> list[list] | list[list[list]]:
+        with torch.no_grad():
+            batch_size = (
+                explanations[0].shape[0]
+                if isinstance(explanations, tuple)
+                else explanations[0][0].shape[0]
+            )
+
+            context_texts = [
+                q.split() if q is not None else None for q in batch.metadata.qa_question
+            ]
+
+            def _process_batch(batch_exp: tuple[torch.Tensor, ...]):
+                return [
+                    _process_single_sample(
+                        feature_keys=explanation_inputs.feature_keys,
+                        sample_explanations=tuple(exp[b] for exp in batch_exp),
+                        word_ids=batch.word_ids[b],
+                        sequence_ids=batch.sequence_ids[b],
+                        context_text=context_texts[b],
+                    )
+                    for b in range(batch_size)
+                ]
+
+            if isinstance(explanations, list):
+                return [_process_batch(target_exp) for target_exp in explanations]
+
+            return _process_batch(explanations)
 
 
 class SequenceClassificationExplanationPipelineConfig(

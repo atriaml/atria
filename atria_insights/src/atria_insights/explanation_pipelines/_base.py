@@ -32,6 +32,10 @@ from atria_insights.storage.sample_cache_managers._explanation_state import (
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
     MetricDataCacher,
 )
+from atria_insights.utilities._explanation_units import (
+    ImageExplanationUnit,
+    TextExplanationUnit,
+)
 
 logger = get_logger(__name__)
 
@@ -720,6 +724,13 @@ class BaseExplanationPipeline(
 
         assert explanation_inputs.feature_keys is not None, "feature_keys must be set."
 
+        # prepare reduced and normalized explanations
+        explanation_units = self.prepare_explanation_units(
+            batch=batch,
+            explanation_inputs=explanation_inputs,
+            explanations=explanations,
+        )
+
         # prepare explanation states
         explanation_state = BatchExplanationState(
             sample_id=explanation_inputs.sample_id,
@@ -736,6 +747,7 @@ class BaseExplanationPipeline(
             )
             if isinstance(explanations, list)
             else BatchExplanation(value=explanations),
+            explanation_units=explanation_units,
             compute_metrics=compute_metrics,
         )
 
@@ -747,6 +759,14 @@ class BaseExplanationPipeline(
         return ExplanationStepOutput(
             explanation_inputs=explanation_inputs, explanation_state=explanation_state
         )
+
+    def prepare_explanation_units(
+        self,
+        batch,
+        explanation_inputs: BatchExplanationInputs,
+        explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
+    ) -> list[TextExplanationUnit | ImageExplanationUnit]:
+        return {}
 
     def build_metrics(self, device: torch.device | str = "cpu") -> dict[str, Metric]:
         if self.config.explainability_metrics is None:
