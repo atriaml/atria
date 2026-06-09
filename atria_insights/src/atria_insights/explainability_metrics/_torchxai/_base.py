@@ -105,7 +105,7 @@ class ExplainabilityMetric(
         pass
 
     def _get_sample_key(self, sample_id: str):
-        return "-".join([self._metric_key, sample_id])
+        return "/".join([self._metric_key, sample_id])
 
     def _load_from_disk(self, sample_ids: list[str]) -> dict[str, torch.Tensor]:
         """Load metric data from disk cache."""
@@ -141,7 +141,7 @@ class ExplainabilityMetric(
             # check if full batch is already done
             is_batch_done = True
             for sample_id in explanation_step_output.explanation_inputs.sample_id:
-                if not self._cacher.sample_exists(sample_id):
+                if not self._cacher.sample_exists(self._get_sample_key(sample_id)):
                     is_batch_done = False
                     break
 

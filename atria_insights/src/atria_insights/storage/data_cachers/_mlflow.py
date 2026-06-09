@@ -88,23 +88,26 @@ class MLflowDataCacher:
         safe_key = self._safe_key(data.sample_id)
         base = f"{self._artifact_prefix}/{safe_key}"
 
-        # attrs → JSON via MlflowClient.log_dict (no active run required)
+        # Encode attrs as JSON bytes stored under a reserved __attrs__ key in the NPZ.
         meta: dict[str, Any] = {"sample_id": data.sample_id}
         if data.attrs:
             meta.update(data.attrs)
-        self._client.log_dict(self._run_id, meta, f"{base}/metadata.json")
+        attrs_bytes = json.dumps(meta).encode("utf-8")
 
-        # tensors → npz bytes via MlflowClient.log_stream
+        flat: dict[str, np.ndarray] = {
+            "__attrs__": np.frombuffer(attrs_bytes, dtype=np.uint8)
+        }
+
         if data.tensors:
-            flat = {}
             for k, v in data.tensors.items():
                 if v is None:
                     continue
                 flat.update(_flatten_tensors(v, prefix=k))
-            buf = io.BytesIO()
-            np.savez(buf, **flat)
-            buf.seek(0)
-            self._client.log_stream(self._run_id, buf, f"{base}/tensors.npz")
+
+        buf = io.BytesIO()
+        np.savez(buf, **flat)
+        buf.seek(0)
+        self._client.log_stream(self._run_id, buf, f"{base}/sample.npz")
 
         logger.debug(
             "Saved sample '%s' to run '%s' at '%s'.", data.sample_id, self._run_id, base
@@ -118,27 +121,16 @@ class MLflowDataCacher:
         safe_key = self._safe_key(sample_key)
         base = f"{self._artifact_prefix}/{safe_key}"
 
-        meta_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"runs:/{self._run_id}/{base}/metadata.json"
+        npz_path = mlflow.artifacts.download_artifacts(
+            artifact_uri=f"runs:/{self._run_id}/{base}/sample.npz"
         )
-        with open(meta_path) as f:
-            raw_attrs = json.load(f)
+        flat = dict(np.load(npz_path, allow_pickle=False))
 
-        # Keep sample_id in attrs too — HDF5DataCacher does the same
-        stored_id = raw_attrs.get("sample_id", sample_key)
-        attrs = raw_attrs
+        attrs_bytes = flat.pop("__attrs__").tobytes()
+        attrs = json.loads(attrs_bytes.decode("utf-8"))
+        stored_id = attrs.get("sample_id", sample_key)
 
-        tensors = None
-        if load_tensors:
-            # tensors file may not exist (e.g. summary cacher stores no tensors)
-            try:
-                npz_path = mlflow.artifacts.download_artifacts(
-                    artifact_uri=f"runs:/{self._run_id}/{base}/tensors.npz"
-                )
-                flat = dict(np.load(npz_path, allow_pickle=False))
-                tensors = _unflatten_tensors(flat)
-            except Exception:
-                tensors = None
+        tensors = _unflatten_tensors(flat) if load_tensors and flat else None
 
         return SerializableSampleData(sample_id=stored_id, attrs=attrs, tensors=tensors)
 
@@ -146,13 +138,15 @@ class MLflowDataCacher:
         import mlflow
 
         safe_key = self._safe_key(sample_key)
-        meta_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"runs:/{self._run_id}/{self._artifact_prefix}/{safe_key}/metadata.json"
+        base = f"{self._artifact_prefix}/{safe_key}"
+
+        npz_path = mlflow.artifacts.download_artifacts(
+            artifact_uri=f"runs:/{self._run_id}/{base}/sample.npz"
         )
-        with open(meta_path) as f:
-            raw = json.load(f)
-        raw.pop("sample_id", None)
-        return raw
+        flat = dict(np.load(npz_path, allow_pickle=False))
+        attrs = json.loads(flat["__attrs__"].tobytes().decode("utf-8"))
+        attrs.pop("sample_id", None)
+        return attrs
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -168,8 +162,12 @@ class MLflowDataCacher:
 
     @staticmethod
     def _safe_key(sample_key: str) -> str:
-        """Replace characters that are invalid in artifact paths."""
-        return sample_key.replace("/", "_").replace("\\", "_")
+        """Sanitise a sample key for use as an artifact path.
+
+        Forward slashes are intentional path separators (e.g. metric_key/sample_id)
+        and are preserved.  Only backslashes are replaced.
+        """
+        return sample_key.replace("\\", "_")
 
     def _get_or_create_run(self, experiment_name: str, run_name: str) -> str:
         import mlflow
