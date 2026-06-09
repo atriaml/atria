@@ -41,6 +41,8 @@ class ExplanationTaskConfig(TaskConfigBase):
     explanation_pipeline: ExplanationPipelineConfig
     enable_outputs_caching: bool = False
     max_training_baseline_features: int = 100
+    mlflow_tracking_uri: str | None = None
+    mlflow_experiment_name: str | None = None
 
     @classmethod
     def from_training_task_config(

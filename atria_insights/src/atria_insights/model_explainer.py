@@ -217,15 +217,39 @@ class ModelExplainer:
             model_pipeline=model_pipeline
         )
 
-        x_model_pipeline.attach_cachers(
-            cacher=H5ExplanationStateCacher(
+        if self._config.mlflow_tracking_uri is not None:
+            from atria_insights.storage.sample_cache_managers._explanation_state import (
+                MLFlowExplanationStateCacher,
+            )
+            from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
+                MLFlowMetricDataCacher,
+            )
+
+            experiment_name = (
+                self._config.mlflow_experiment_name or self._config.env.project_name
+            )
+            run_name = str(self._explainer_dir.name)
+            cacher = MLFlowExplanationStateCacher(
+                experiment_name=experiment_name,
+                tracking_uri=self._config.mlflow_tracking_uri,
+                run_name=run_name,
+                attrs={"config": self._config.explanation_pipeline.to_dict()},
+            )
+            metric_cacher = MLFlowMetricDataCacher(
+                experiment_name=experiment_name,
+                tracking_uri=self._config.mlflow_tracking_uri,
+                run_name=run_name,
+            )
+        else:
+            cacher = H5ExplanationStateCacher(
                 cache_dir=self._explainer_dir,
                 attrs={
                     "config": json.dumps(self._config.explanation_pipeline.to_dict())
                 },
-            ),
-            metric_cacher=H5MetricDataCacher(cache_dir=self._explainer_dir),
-        )
+            )
+            metric_cacher = H5MetricDataCacher(cache_dir=self._explainer_dir)
+
+        x_model_pipeline.attach_cachers(cacher=cacher, metric_cacher=metric_cacher)
 
         # log model pipeline
         logger.info(x_model_pipeline.summarize())

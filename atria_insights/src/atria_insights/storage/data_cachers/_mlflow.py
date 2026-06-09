@@ -64,38 +64,25 @@ class MLflowDataCacher:
             mlflow.set_tracking_uri(tracking_uri)
 
         self._client = MlflowClient()
-
-        if run_name:
-            self._run_id = run_name
-        else:
-            self._run_id = self._get_or_create_run(experiment_name, run_name)
+        self._run_id = self._get_or_create_run(experiment_name, run_name)
+        self._artifact_repo = self._build_artifact_repo()
 
     @property
     def run_id(self) -> str:
         return self._run_id
 
     def save_file_attrs(self, attrs: dict[str, Any]) -> None:
-        data = {k: v for k, v in attrs.items() if v is not None}
-        self._client.log_dict(
-            self._run_id, data, f"{self._artifact_prefix}/_run_metadata.json"
-        )
+        for key, data in attrs.items():
+            self._client.log_dict(self._run_id, data, f"{key}.json")
 
     def sample_exists(self, sample_key: str) -> bool:
         safe_key = self._safe_key(sample_key)
         prefix = f"{self._artifact_prefix}/{safe_key}"
-        artifacts = self._client.list_artifacts(self._run_id, path=prefix)
-        return len(artifacts) > 0
+        return len(self._artifact_repo.list_artifacts(prefix)) > 0
 
     def list_sample_keys(self) -> list[str]:
-        artifacts = self._client.list_artifacts(
-            self._run_id, path=self._artifact_prefix
-        )
-        keys = []
-        for a in artifacts:
-            # each entry is a directory named after the (safe) sample key
-            if a.is_dir:
-                keys.append(Path(a.path).name)
-        return keys
+        artifacts = self._artifact_repo.list_artifacts(self._artifact_prefix)
+        return [Path(a.path).name for a in artifacts if a.is_dir]
 
     def save_sample(self, data: SerializableSampleData) -> None:
         safe_key = self._safe_key(data.sample_id)
@@ -170,6 +157,14 @@ class MLflowDataCacher:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _build_artifact_repo(self):
+        from mlflow.store.artifact.artifact_repository_registry import (
+            get_artifact_repository,
+        )
+
+        artifact_uri = self._client.get_run(self._run_id).info.artifact_uri
+        return get_artifact_repository(artifact_uri)
 
     @staticmethod
     def _safe_key(sample_key: str) -> str:

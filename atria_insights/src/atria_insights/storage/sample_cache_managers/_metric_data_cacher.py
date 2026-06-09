@@ -57,7 +57,7 @@ class H5MetricDataCacher(MetricDataCacher):
         )
 
 
-class MLFlowFeaturesCacher(MetricDataCacher):
+class MLFlowMetricDataCacher(MetricDataCacher):
     def __init__(self, experiment_name: str, tracking_uri: str, run_name: str):
         from atria_insights.storage.data_cachers._mlflow import MLflowDataCacher
 

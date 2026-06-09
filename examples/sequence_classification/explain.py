@@ -3,6 +3,17 @@ from typing import Literal
 
 import fire
 from atria_datasets.api.datasets import load_dataset_config
+from atria_logger import get_logger
+from atria_ml.configs import (
+    DataConfig,
+    RuntimeEnvConfig,
+)
+from atria_models.api.models import load_model_pipeline_config
+from atria_models.core.model_builders._common import ModelBuilderType
+from atria_models.core.model_pipelines._common import ModelConfig
+from atria_transforms.api.tfs import load_transform
+from atria_transforms.tfs._image_transforms import StandardImageTransform
+
 from atria_insights.baseline_generators._feature_based import (
     FeatureBasedBaselineGeneratorConfig,
 )
@@ -49,17 +60,6 @@ from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
 from atria_insights.model_explainer import ModelExplainer
-from atria_ml.configs import (
-    DataConfig,
-    RuntimeEnvConfig,
-)
-from atria_models.api.models import load_model_pipeline_config
-from atria_models.core.model_builders._common import ModelBuilderType
-from atria_models.core.model_pipelines._common import ModelConfig
-from atria_transforms.api.tfs import load_transform
-from atria_transforms.tfs._image_transforms import StandardImageTransform
-
-from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -195,6 +195,8 @@ def main(
     use_segment_level_bboxes: bool = False,
     compute_features_only: bool = False,
     only_load_cached_explanations: bool = False,
+    mlflow_tracking_uri: str | None = "http://localhost:5000",
+    mlflow_experiment_name: str | None = None,
 ):
     assert explainer_name in _EXPLAINERS, f"Explainer {explainer_name} not recognized."
 
@@ -276,6 +278,8 @@ def main(
             throw_on_load_mismatch=only_load_cached_explanations,
         ),
         enable_outputs_caching=True,
+        mlflow_tracking_uri=mlflow_tracking_uri,
+        mlflow_experiment_name=mlflow_experiment_name,
     )
     model_explainer = ModelExplainer(config=config, checkpoint_path=checkpoint_path)
     model_explainer.run(
