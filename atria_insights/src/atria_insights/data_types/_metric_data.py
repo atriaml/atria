@@ -23,6 +23,7 @@ class SampleMetricData(BaseModel):
 
     sample_id: str
     data: dict[str, float | torch.Tensor | str]
+    config: dict | None = None
 
 
 class BatchMetricData(BaseModel):
@@ -41,6 +42,7 @@ class BatchMetricData(BaseModel):
         | list[torch.Tensor]
         | list[float | str | torch.Tensor | list[torch.Tensor]],
     ]
+    config: dict | None = None
 
     def tolist(self) -> list[SampleMetricData]:
         metric_data_list = []
@@ -72,7 +74,9 @@ class BatchMetricData(BaseModel):
         # convert dict of lists to list of
         metric_data_list = [
             SampleMetricData(
-                sample_id=self.sample_id[sample_idx], data=list_of_dicts[sample_idx]
+                sample_id=self.sample_id[sample_idx],
+                data=list_of_dicts[sample_idx],
+                config=self.config,
             )
             for sample_idx in range(batch_size)
         ]
@@ -127,7 +131,8 @@ class BatchMetricData(BaseModel):
             assert len(data_dict[key]) == len(sample_ids), (
                 f"Data for key '{key}' has length {len(data_dict[key])}, expected {len(sample_ids)}. Got values: {data_dict[key]}"
             )
-        return cls(sample_id=sample_ids, data=data_dict)
+        config = metric_data_list[0].config if metric_data_list else None
+        return cls(sample_id=sample_ids, data=data_dict, config=config)
 
     @property
     def batch_size(self) -> int:

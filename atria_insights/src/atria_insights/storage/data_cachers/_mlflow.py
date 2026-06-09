@@ -88,63 +88,72 @@ class MLflowDataCacher:
         safe_key = self._safe_key(data.sample_id)
         base = f"{self._artifact_prefix}/{safe_key}"
 
-        # Encode attrs as JSON bytes stored under a reserved __attrs__ key in the NPZ.
-        meta: dict[str, Any] = {"sample_id": data.sample_id}
+        # Attrs → attrs.json (human-readable, supports nested dicts)
+        attrs: dict[str, Any] = {"sample_id": data.sample_id}
         if data.attrs:
-            meta.update(data.attrs)
-        attrs_bytes = json.dumps(meta).encode("utf-8")
+            attrs.update(data.attrs)
+        attrs_buf = io.BytesIO(json.dumps(attrs).encode("utf-8"))
+        self._client.log_stream(self._run_id, attrs_buf, f"{base}/attrs.json")
 
-        flat: dict[str, np.ndarray] = {
-            "__attrs__": np.frombuffer(attrs_bytes, dtype=np.uint8)
-        }
-
+        # Tensors → tensors.npz
         if data.tensors:
+            flat: dict[str, np.ndarray] = {}
             for k, v in data.tensors.items():
-                if v is None:
-                    continue
-                flat.update(_flatten_tensors(v, prefix=k))
-
-        buf = io.BytesIO()
-        np.savez(buf, **flat)
-        buf.seek(0)
-        self._client.log_stream(self._run_id, buf, f"{base}/sample.npz")
+                if v is not None:
+                    flat.update(_flatten_tensors(v, prefix=k))
+            if flat:
+                buf = io.BytesIO()
+                np.savez(buf, **flat)
+                buf.seek(0)
+                self._client.log_stream(self._run_id, buf, f"{base}/tensors.npz")
 
         logger.debug(
             "Saved sample '%s' to run '%s' at '%s'.", data.sample_id, self._run_id, base
         )
 
+    def _read_artifact_json(self, artifact_path: str) -> dict[str, Any]:
+        import mlflow
+
+        local_path = mlflow.artifacts.download_artifacts(
+            artifact_uri=f"runs:/{self._run_id}/{artifact_path}"
+        )
+        with open(local_path) as f:
+            return json.load(f)
+
+    def _read_artifact_bytes(self, artifact_path: str) -> io.BytesIO:
+        import mlflow
+
+        local_path = mlflow.artifacts.download_artifacts(
+            artifact_uri=f"runs:/{self._run_id}/{artifact_path}"
+        )
+        with open(local_path, "rb") as f:
+            return io.BytesIO(f.read())
+
     def load_sample(
         self, sample_key: str, load_tensors: bool = True
     ) -> SerializableSampleData:
-        import mlflow
-
         safe_key = self._safe_key(sample_key)
         base = f"{self._artifact_prefix}/{safe_key}"
 
-        npz_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"runs:/{self._run_id}/{base}/sample.npz"
-        )
-        flat = dict(np.load(npz_path, allow_pickle=False))
-
-        attrs_bytes = flat.pop("__attrs__").tobytes()
-        attrs = json.loads(attrs_bytes.decode("utf-8"))
+        attrs = self._read_artifact_json(f"{base}/attrs.json")
         stored_id = attrs.get("sample_id", sample_key)
 
-        tensors = _unflatten_tensors(flat) if load_tensors and flat else None
+        tensors = None
+        if load_tensors:
+            try:
+                buf = self._read_artifact_bytes(f"{base}/tensors.npz")
+                flat = dict(np.load(buf, allow_pickle=False))
+                tensors = _unflatten_tensors(flat) if flat else None
+            except Exception:
+                pass
 
         return SerializableSampleData(sample_id=stored_id, attrs=attrs, tensors=tensors)
 
     def load_sample_attrs(self, sample_key: str) -> dict[str, Any]:
-        import mlflow
-
         safe_key = self._safe_key(sample_key)
         base = f"{self._artifact_prefix}/{safe_key}"
 
-        npz_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"runs:/{self._run_id}/{base}/sample.npz"
-        )
-        flat = dict(np.load(npz_path, allow_pickle=False))
-        attrs = json.loads(flat["__attrs__"].tobytes().decode("utf-8"))
+        attrs = self._read_artifact_json(f"{base}/attrs.json")
         attrs.pop("sample_id", None)
         return attrs
 

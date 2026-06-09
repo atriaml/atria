@@ -18,7 +18,6 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
         super().__init__(cacher=cacher)
 
     def _serialize_type(self, data: SampleMetricData) -> SerializableSampleData:
-        # find all tensors in data
         tensors = {}
         attrs = {}
         for key, value in data.data.items():
@@ -26,6 +25,9 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
                 tensors[key] = value
             else:
                 attrs[key] = to_serializable(value)
+
+        if data.config is not None:
+            attrs["config"] = data.config
 
         return SerializableSampleData(
             sample_id=data.sample_id,
@@ -35,16 +37,18 @@ class MetricDataCacher(BaseSampleCacheManager[SampleMetricData]):
 
     def _deserialize_type(self, data: SerializableSampleData) -> SampleMetricData:
         assert data.attrs is not None, "attrs must be provided in CacheData."
-        assert data.tensors is not None, "tensors must be provided in CacheData."
 
-        attrs = data.attrs
+        attrs = dict(data.attrs)
         sample_id = attrs.pop("sample_id", None)
         assert isinstance(sample_id, str), "sample_id must be a string."
         attrs.pop("config_hash", None)
+        config = attrs.pop("config", None)
 
+        tensors = data.tensors or {}
         return SampleMetricData(
             sample_id=sample_id,
-            data={**attrs, **data.tensors},  # type: ignore
+            data={**attrs, **tensors},  # type: ignore
+            config=config,
         )
 
 

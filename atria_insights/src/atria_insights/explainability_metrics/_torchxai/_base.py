@@ -62,8 +62,8 @@ class ExplainabilityMetric(
         self._explainer = explainer
 
         # cache to disk
-        self._metric_unique_name = config.name
-        self._metric_key = config.name
+        self._metric_unique_name = config.type.replace("/", ".")
+        self._metric_key = self._metric_unique_name + "-" + config.hash
         self._cacher = cacher
 
         # assert models match
@@ -258,6 +258,7 @@ class ExplainabilityMetric(
         metric_data = BatchMetricData(
             sample_id=explanation_inputs.sample_id,
             data={**metric_output, "sample_exec_time": sample_exec_time},
+            config=self.config.model_dump(),
         )
 
         logger.info(
@@ -295,7 +296,7 @@ class ExplainabilityMetric(
                     continue
                 v = batch[key]
                 if isinstance(v, torch.Tensor):
-                    values.append(v.flatten().float())
+                    values.append(v.flatten().float().cpu())
                 elif isinstance(v, list):
                     flat = []
                     for item in v:
@@ -303,13 +304,16 @@ class ExplainabilityMetric(
                             flat.extend(item)
                         else:
                             flat.append(item)
-                    values.append(torch.tensor(flat, dtype=torch.float32))
+                    values.append(torch.tensor(flat, dtype=torch.float32).cpu())
             summary[key] = (
                 torch.nanmean(torch.cat(values)).item() if values else float("nan")
             )
 
         exec_times = torch.cat(
-            [batch["sample_exec_time"].flatten().float() for batch in self._results]
+            [
+                batch["sample_exec_time"].flatten().float().cpu()
+                for batch in self._results
+            ]
         )
         summary["exec_time"] = torch.nanmean(exec_times).item()
         return summary
@@ -325,7 +329,7 @@ class ExplainabilityMetric(
                 )
 
             for key, value in result.items():
-                engine.state.metrics["/".join([self._metric_unique_name, key])] = value
+                engine.state.metrics[".".join([self._metric_unique_name, key])] = value
         else:
             if isinstance(result, torch.Tensor):
                 if len(result.size()) == 0:
