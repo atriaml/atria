@@ -3,11 +3,9 @@ from __future__ import annotations
 import inspect
 from abc import abstractmethod
 from collections import OrderedDict
-from pathlib import Path
 from typing import Any, Generic
 
 import torch
-import yaml
 from atria_logger import get_logger
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.model_pipelines._ops import ModelPipelineOps
@@ -31,6 +29,9 @@ from atria_insights.explanation_pipelines._common import T_ExplanationPipelineCo
 from atria_insights.storage.sample_cache_managers._explanation_state import (
     ExplanationStateCacher,
 )
+from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
+    MetricDataCacher,
+)
 
 logger = get_logger(__name__)
 
@@ -45,27 +46,24 @@ class BaseExplanationPipeline(
     __config__: type[T_ExplanationPipelineConfig]
 
     def __init__(
-        self,
-        config: T_ExplanationPipelineConfig,
-        model_pipeline: ModelPipeline,
-        persist_to_disk: bool = False,
-        cache_dir: str | None = None,
+        self, config: T_ExplanationPipelineConfig, model_pipeline: ModelPipeline
     ) -> None:
         super().__init__(config=config)
         self._model_pipeline = model_pipeline
-        self._persist_to_disk = persist_to_disk
-        self._cache_dir = cache_dir
+        self._cacher = None
         self._build()
-        if self._persist_to_disk and not self._cache_dir:
-            raise ValueError("cache_dir must be specified if persist_to_disk is True.")
 
     @property
     def ops(self) -> Any:
         return ModelPipelineOps(self._model_pipeline)
 
-    @property
-    def cacher(self) -> ExplanationStateCacher | None:
-        return self._cacher if self._persist_to_disk else None
+    def attach_cachers(
+        self,
+        cacher: ExplanationStateCacher | None = None,
+        metric_cacher: MetricDataCacher | None = None,
+    ):
+        self._cacher = cacher
+        self._metric_cacher = metric_cacher
 
     def summarize(self):
         logger.info("XAI Model Pipeline Summary:")
@@ -74,16 +72,6 @@ class BaseExplanationPipeline(
         logger.info("Explainer: %s", self._explainer)
         logger.info("Feature Segmentor Config: %s", self.config.feature_segmentor)
         logger.info("Baseline Generator Config: %s", self.config.baseline_generator)
-
-    def _dump_config(self, config_dir: Path) -> dict:
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        d = self._config.to_dict()
-
-        with open(config_dir / "config.yaml", "w") as f:
-            yaml.safe_dump(d, f, sort_keys=False)
-
-        return d
 
     def _build_explainer(self):
         # build model with wrapped forward
@@ -116,23 +104,6 @@ class BaseExplanationPipeline(
             model=self._model_pipeline._model
         )
 
-    def _build_cacher(self):
-        self._explainer_dir = None
-        if self._persist_to_disk:
-            assert self._cache_dir is not None, (
-                "cache_dir must be specified if persist_to_disk is True."
-            )
-            self._explainer_dir = (
-                Path(self._cache_dir) / self._config.explainer.type.split("/")[-1]
-            )
-            self._dump_config(config_dir=self._explainer_dir)
-            self._cacher = ExplanationStateCacher(
-                cache_dir=self._explainer_dir, config=self.config
-            )
-
-            logger.info("Explanation caching enabled.")
-            logger.info(f"Storing outputs to file = {self._cacher.file_path}")
-
     def _build(self):
         # build explainer
         self._build_explainer()
@@ -142,9 +113,6 @@ class BaseExplanationPipeline(
 
         # build baselines generator
         self._build_baseline_generator()
-
-        # build cacher
-        self._build_cacher()
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
         raise NotImplementedError(
@@ -672,7 +640,7 @@ class BaseExplanationPipeline(
         # prepare explanation inputs
         model_outputs, explanation_inputs = self.prepare_explanation_inputs(batch=batch)
 
-        if self._persist_to_disk:
+        if self._cacher is not None:
             # check if full batch is already done
             is_batch_done = True
             for sample_id in explanation_inputs.sample_id:
@@ -772,7 +740,7 @@ class BaseExplanationPipeline(
         )
 
         # save to disk
-        if self._persist_to_disk:
+        if self._cacher is not None:
             for sample_explanation_state in explanation_state.tolist():
                 self._cacher.save_sample(sample_explanation_state)
 
@@ -795,8 +763,6 @@ class BaseExplanationPipeline(
                     model=self._wrapped_model,
                     explainer=self._explainer,
                     device=device,
-                    persist_to_disk=self._persist_to_disk,
-                    cache_dir=self._explainer_dir,
-                    metric_name=key,
+                    cacher=self._metric_cacher,
                 )
         return x_metrics

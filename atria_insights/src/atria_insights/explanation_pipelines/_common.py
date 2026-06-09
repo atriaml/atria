@@ -116,6 +116,12 @@ class ExplanationPipelineConfig(ModuleConfig):
     throw_on_load_mismatch: bool = False
     profile_time: bool = False
 
+    @property
+    def unique_name(self):
+        explainer_name = self.explainer.type.split("/")[-1]
+        pipeline_hash = self.hash
+        return "-".join([explainer_name, pipeline_hash])
+
     @model_validator(mode="after")
     def validate_explainer(self) -> Self:
         explainer_type = self.explainer.type

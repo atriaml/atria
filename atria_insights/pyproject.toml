@@ -22,6 +22,7 @@ dependencies = [
     "atria-models",
     "atria-metrics",
     "atria-datasets",
+    "mlflow>=3.0",
 ]
 
 [project.optional-dependencies]

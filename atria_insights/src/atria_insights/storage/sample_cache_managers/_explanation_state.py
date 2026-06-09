@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import torch
-import yaml
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa: F401
 from atria_logger import get_logger
 
@@ -13,7 +12,6 @@ from atria_insights.data_types._explanation_state import (
 )
 from atria_insights.data_types._targets import SampleExplanationTarget
 from atria_insights.explainers._attn._target import SampleAttentionTokenTarget
-from atria_insights.explanation_pipelines._common import ExplanationPipelineConfig
 from atria_insights.storage.data_cachers._common import SerializableSampleData
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
 from atria_insights.utilities._common import (
@@ -25,36 +23,9 @@ logger = get_logger(__name__)
 
 
 class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
-    def __init__(
-        self,
-        cache_dir: str | Path,
-        config: ExplanationPipelineConfig,
-        load_existing: bool = False,
-    ):
-        # create a child cache dir for the given explainer
-        # hack for configs if already exists
-        cache_path = Path(cache_dir)
-        if load_existing:
-            existing_files = list(cache_path.glob("explanations-*.hdf5"))
-            logger.info(
-                f"Looking for existing explanation cache files in {cache_path}. Found {len(existing_files)} files."
-            )
-            if existing_files:
-                file_name = existing_files[0].name
-                self._config = None
-        else:
-            file_name = f"explanations-{config.hash}.hdf5"
-            self._config = config
-
-        super().__init__(cache_dir=Path(cache_dir), file_name=file_name)
-
-        if not load_existing and self._config is not None:
-            self._dump_config()
-
-    def _dump_config(self) -> dict:
-        self.save_file_attrs({"config": json.dumps(self._config.to_dict())})
-        with open(self.file_path.with_suffix(".yaml"), "w") as f:
-            yaml.safe_dump(self._config.to_dict(), f, sort_keys=False)
+    def __init__(self, cache_dir: str | Path, attrs: dict):
+        super().__init__(cache_dir=Path(cache_dir), file_name="explanations")
+        self.save_file_attrs(attrs)
 
     def _serialize_type(self, data: SampleExplanationState) -> SerializableSampleData:
         if data.target is not None:
@@ -131,7 +102,6 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 else None,
                 "sliding_window_shapes": json.dumps(data.sliding_window_shapes),
                 "strides": json.dumps(data.strides),
-                "config_hash": self._config.hash,
                 "is_multitarget": data.is_multitarget,
                 "compute_metrics": json.dumps(data.compute_metrics.model_dump())
                 if data.compute_metrics is not None

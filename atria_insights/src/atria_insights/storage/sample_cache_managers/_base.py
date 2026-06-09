@@ -20,6 +20,8 @@ class BaseSampleCacheManager(Generic[T]):
         self._cache_dir = Path(cache_dir)
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         if cacher_type == "hdf5":
+            if not file_name.endswith("h5"):
+                file_name = file_name + ".h5"
             self._cacher = HDF5DataCacher(file_path=str(self._cache_dir / file_name))
         else:
             raise ValueError(f"Unsupported cacher_type: {cacher_type}")

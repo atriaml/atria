@@ -113,3 +113,4 @@ config-form-app/src/tree_.json
 schema.json
 test.ipynb
 test2.ipynb
+atria_insights/mlruns/

@@ -17,7 +17,6 @@ from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
 )
 from atria_transforms.data_types._document import DocumentTensorDataModel
-from atria_types._datasets import DatasetLabels
 from pydantic import model_validator
 
 from atria_insights.baseline_generators._sequence import SequenceBaselineGeneratorConfig
@@ -92,15 +91,8 @@ class SequenceModelAttnExplanationPipeline(
         self,
         config: SequenceModelAttnExplanationPipelineConfig,
         model_pipeline: SequenceModelPipeline,
-        persist_to_disk: bool = True,
-        cache_dir: str | None = None,
     ) -> None:
-        super().__init__(
-            config=config,
-            model_pipeline=model_pipeline,
-            persist_to_disk=persist_to_disk,
-            cache_dir=cache_dir,
-        )
+        super().__init__(config=config, model_pipeline=model_pipeline)
         assert isinstance(self._model_pipeline, SequenceModelPipeline), (
             f"{self.__class__.__name__} can only be used with SequenceModelPipeline. Found {self._model_pipeline=}"
         )

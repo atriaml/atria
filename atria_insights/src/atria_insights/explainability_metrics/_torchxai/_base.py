@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from abc import abstractmethod
-from pathlib import Path
 from typing import Any, Generic
 
 import torch
@@ -37,15 +36,18 @@ class ExplainabilityMetric(
 ):
     __abstract__ = True
 
+    @property
+    def name(self):
+        return self.__class__.__name__
+
     def __init__(
         self,
         model: torch.nn.Module,
         explainer: Explainer,
         config: T_ExplainabilityMetricConfig | None = None,
         device="cpu",
-        persist_to_disk: bool = True,
-        metric_name: str | None = None,
-        cache_dir: str | Path | None = None,
+        cacher: MetricDataCacher | None = None,
+        metric_key: str | None = None,
     ):
         Metric.__init__(self, output_transform=lambda x: x, device=device)
         ConfigurableModule.__init__(self, config=config)
@@ -59,17 +61,8 @@ class ExplainabilityMetric(
         self._explainer = explainer
 
         # cache to disk
-        self._persist_to_disk = persist_to_disk
-        if self._persist_to_disk:
-            assert cache_dir is not None, (
-                "cache_dir must be provided if caching is enabled"
-            )
-            self._cacher = MetricDataCacher(
-                cache_dir=cache_dir, config=self.config, file_name=metric_name
-            )
-
-            logger.info("Explanation caching enabled.")
-            logger.info(f"Storing outputs to file = {self._cacher.file_path}")
+        self._metric_key = metric_key
+        self._cacher = cacher
 
         # assert models match
         assert self._explainer._model == self._model, (
@@ -95,11 +88,6 @@ class ExplainabilityMetric(
                 "Target must be of type BatchExplanationTarget, list of BatchExplanationTarget, or None."
             )
 
-    @property
-    def name(self) -> str:
-        """Return the name of the metric."""
-        return self.__class__.__name__
-
     @reinit__is_reduced
     def reset(self):
         """Reset internal state (called at the start of every epoch)."""
@@ -116,12 +104,16 @@ class ExplainabilityMetric(
         """Execute the metric function. Must be implemented by subclasses."""
         pass
 
+    def _get_sample_key(self, sample_id: str):
+        return "-".join([self._metric_key, sample_id])
+
     def _load_from_disk(self, sample_ids: list[str]) -> dict[str, torch.Tensor]:
         """Load metric data from disk cache."""
         # load full batch from cache
         batch_metric_data = []
         for sample_id in sample_ids:
-            cached_data = self._cacher.load_sample(sample_id)
+            sample_key = self._get_sample_key(sample_id)
+            cached_data = self._cacher.load_sample(sample_key)
             batch_metric_data.append(cached_data)
         loaded_metric_data = BatchMetricData.fromlist(batch_metric_data)
 
@@ -145,7 +137,7 @@ class ExplainabilityMetric(
         Update internal state with output from engine.
         output_transform must return dict with key 'metric_kwargs'.
         """
-        if self._persist_to_disk:
+        if self._cacher is not None:
             # check if full batch is already done
             is_batch_done = True
             for sample_id in explanation_step_output.explanation_inputs.sample_id:
@@ -271,8 +263,13 @@ class ExplainabilityMetric(
         )
 
         # save to disk
-        if self._persist_to_disk:
+        if self._cacher is not None:
             for sample_metric_data in metric_data.tolist():
+                sample_metric_data = sample_metric_data.model_copy(
+                    update={
+                        "sample_id": self._get_sample_key(sample_metric_data.sample_id)
+                    }
+                )
                 self._cacher.save_sample(sample_metric_data)
 
         # Accumulate results

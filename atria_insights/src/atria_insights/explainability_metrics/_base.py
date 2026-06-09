@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 from atria_registry import ModuleConfig
+
+from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
+    MetricDataCacher,
+)
 
 if TYPE_CHECKING:
     import torch
@@ -19,17 +22,15 @@ class ExplainabilityMetricConfig(ModuleConfig):
         model: torch.nn.Module,
         explainer: Explainer | None = None,
         device: torch.device | str = "cpu",
-        persist_to_disk: bool = True,
-        cache_dir: str | Path | None = None,
-        metric_name: str | None = None,
+        cacher: MetricDataCacher | None = None,
     ) -> Explainer:
+        name = self.type.split("/")[-1]
         return super().build(
             model=model,
             explainer=explainer,
             device=device,
-            persist_to_disk=persist_to_disk,
-            cache_dir=cache_dir,
-            metric_name=metric_name,
+            cacher=cacher,
+            metric_key="-".join([name, self.hash]),
         )
 
 

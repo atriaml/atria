@@ -2,23 +2,20 @@ from __future__ import annotations
 
 from typing import TypeVar
 
-from atria_insights.explanation_pipelines._forward_wrappers._image_forward_wrappers import ImageModelExplanationForwardWrapper
 import torch
 from atria_logger import get_logger
-from atria_models.core.model_pipelines._image_pipeline import (
-    ImageClassificationPipelineConfig,
-    ImageModelPipeline,
-    ImageModelPipelineConfig,
-)
+from atria_models.core.model_pipelines._image_pipeline import ImageModelPipeline
 from atria_transforms.data_types._document import DocumentTensorDataModel
 from atria_transforms.data_types._image import ImageTensorDataModel
-from atria_types._datasets import DatasetLabels
 
 from atria_insights.data_types._targets import BatchExplanationTarget
 from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 from atria_insights.explanation_pipelines._common import (
     ExplanationPipelineConfig,
     ExplanationTargetStrategy,
+)
+from atria_insights.explanation_pipelines._forward_wrappers._image_forward_wrappers import (
+    ImageModelExplanationForwardWrapper,
 )
 from atria_insights.explanation_pipelines._registry_groups import EXPLANATION_PIPELINES
 
@@ -27,6 +24,7 @@ logger = get_logger(__name__)
 
 class ImageModelExplanationPipelineConfig(ExplanationPipelineConfig):
     pass
+
 
 T_ImageModelExplanationPipelineConfig = TypeVar(
     "T_ImageModelExplanationPipelineConfig", bound="ImageModelExplanationPipelineConfig"
@@ -46,19 +44,11 @@ class ImageModelExplanationPipeline(
         self,
         config: ImageModelExplanationPipelineConfig,
         model_pipeline: ImageModelPipeline,
-        persist_to_disk: bool = True,
-        cache_dir: str | None = None,
     ) -> None:
-        super().__init__(
-            config=config,
-            model_pipeline=model_pipeline,
-            persist_to_disk=persist_to_disk,
-            cache_dir=cache_dir,
-        )
+        super().__init__(config=config, model_pipeline=model_pipeline)
         assert isinstance(self._model_pipeline, ImageModelPipeline), (
             f"{self.__class__.__name__} can only be used with ImageModelPipeline. Found {self._model_pipeline=}"
         )
-
 
     def _wrap_model_forward(self, model: torch.nn.Module) -> torch.nn.Module:
         return ImageModelExplanationForwardWrapper(model=model)

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 import yaml
 from atria_datasets.core.dataset._datasets import Dataset
-from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger._api import enable_file_logging, get_logger
 from atria_ml.data_pipeline._data_pipeline import DataPipeline
@@ -33,6 +32,12 @@ from atria_insights.engines._feature_generation_engine import (
     FeatureGenerationEngineDependencies,
 )
 from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
+from atria_insights.storage.sample_cache_managers._explanation_state import (
+    ExplanationStateCacher,
+)
+from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
+    MetricDataCacher,
+)
 
 if TYPE_CHECKING:
     from ignite.engine import State
@@ -77,6 +82,10 @@ class ModelExplainer:
             )
             self._checkpoint_path = None
             self._run_dir = Path(self._config.env.run_dir) / "default_checkpoint"
+
+        pipeline_config = self._config.explanation_pipeline
+        self._explainer_dir = Path(self._run_dir) / pipeline_config.unique_name
+
         self._state: ModelExplainerState = self._build(local_rank=local_rank)
 
     def _initialize_runtime(self, local_rank: int) -> None:
@@ -109,13 +118,9 @@ class ModelExplainer:
             log_dir.mkdir(parents=True, exist_ok=True)
             tb_logger = TensorboardLogger(log_dir=log_dir)
 
-            explainer_dir = (
-                Path(self._run_dir)
-                / self._config.explanation_pipeline.explainer.type.split("/")[-1]
-            )
-            if not explainer_dir.exists():
-                explainer_dir.mkdir(parents=True, exist_ok=True)
-            enable_file_logging(str(Path(explainer_dir) / "run.log"))
+            if not self._explainer_dir.exists():
+                self._explainer_dir.mkdir(parents=True, exist_ok=True)
+            enable_file_logging(str(Path(self._explainer_dir) / "run.log"))
         else:
             tb_logger = None
         return tb_logger
@@ -131,19 +136,6 @@ class ModelExplainer:
             pin_memory=self._config.data.pin_memory,
             subset_size=total_samples,
         )
-
-        # # log the ids of first few samples in the dataset
-        # sample_ids = []
-        # for idx, sample_list in enumerate(test_dataloader.dataset):
-        #     for sample in sample_list:
-        #         logger.info(f"Sample id in test dataset: {sample.metadata.sample_id}")
-
-        #         if sample.metadata.sample_id == "ffdw0217_13-6407_qa_1_overflow_0":
-        #             print(sample)
-
-        #         # if idx >= 10:
-        #         #     break
-        # exit()
 
         return ExplanationEngine(
             config=ExplanationEngineConfig(
@@ -205,7 +197,6 @@ class ModelExplainer:
             train_transform=train_transform, eval_transform=eval_transform
         )
 
-
         # load labels
         labels = dataset.metadata.dataset_labels
 
@@ -224,7 +215,17 @@ class ModelExplainer:
 
         # build model pipelines
         x_model_pipeline = self._config.explanation_pipeline.build(
-            model_pipeline=model_pipeline, persist_to_disk=True, cache_dir=self._run_dir
+            model_pipeline=model_pipeline
+        )
+
+        x_model_pipeline.attach_cachers(
+            cacher=ExplanationStateCacher(
+                cache_dir=self._explainer_dir,
+                attrs={
+                    "config": json.dumps(self._config.explanation_pipeline.to_dict())
+                },
+            ),
+            metric_cacher=MetricDataCacher(cache_dir=self._explainer_dir),
         )
 
         # log model pipeline
