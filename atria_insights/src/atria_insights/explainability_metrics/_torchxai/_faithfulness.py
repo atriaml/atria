@@ -36,10 +36,7 @@ class AOPCConfig(ExplainabilityMetricConfig):
     def name(self):
         seed_part = f".seed_{self.seed}" if self.seed is not None else ""
         return (
-            f"aopc"
-            f".tfb_{self.total_feature_bins}"
-            f".nrp_{self.n_random_perms}"
-            f"{seed_part}"
+            f"aopc.tfb_{self.total_feature_bins}.nrp_{self.n_random_perms}{seed_part}"
         )
 
 
@@ -64,15 +61,27 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
             for batch in self._results:
                 if key not in batch:
                     continue
-                v = batch[key].cpu().float().numpy()
-                if reduce_perms:
-                    # [B, n_perms, n_bins] or [B, n_targets, n_perms, n_bins]
-                    v = v.mean(axis=-2)
-                # reshape to [N, n_bins], flattening batch and any target dims
-                v = v.reshape(-1, v.shape[-1])
-                for sample_curve in v:
-                    if not np.isnan(sample_curve).any():
-                        curves.append(_resample(sample_curve))
+                v = batch[key]
+                if isinstance(v, list):
+                    # Each element may have a different last dim (n_bins varies per sample)
+                    for sample_tensor in v:
+                        sample_arr = sample_tensor.cpu().float().numpy()
+                        if reduce_perms:
+                            # [..., n_perms, n_bins] → [..., n_bins]
+                            sample_arr = sample_arr.mean(axis=-2)
+                        # Flatten all leading dims (e.g. n_targets), keep last (n_bins)
+                        sample_arr = sample_arr.reshape(-1, sample_arr.shape[-1])
+                        for curve in sample_arr:
+                            if not np.isnan(curve).any():
+                                curves.append(_resample(curve))
+                else:
+                    arr = v.cpu().float().numpy()
+                    if reduce_perms:
+                        arr = arr.mean(axis=-2)
+                    arr = arr.reshape(-1, arr.shape[-1])
+                    for curve in arr:
+                        if not np.isnan(curve).any():
+                            curves.append(_resample(curve))
             return np.stack(curves).mean(0) if curves else np.full(101, float("nan"))
 
         desc_mean = gather_curves("desc")

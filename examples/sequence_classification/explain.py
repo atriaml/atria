@@ -93,59 +93,59 @@ _DEFAULT_FEATURE_SEGMENTOR_CONFIG = SequenceFeatureMaskSegmentorConfig(
 )
 
 _METRICS = ExplainabilityMetrics(
-    completeness=CompletenessConfig(enabled=True),
-    monotonicity_corr_and_non_sens=MonotonicityCorrAndNonSensConfig(
-        enabled=True,
-        n_perturbations_per_feature=1,
-        max_features_processed_per_batch=100,
-        percentage_feature_removal_per_step=0.2,  # 1% of the features will be removed together in each step
-        zero_attribution_threshold=1.0e-3,
-        zero_variance_threshold=1.0e-1,
-        use_percentage_attribution_threshold=True,
-        return_ratio=True,
-        show_progress=True,
-    ),
-    complexity_entropy=ComplexityEntropyConfig(group_features=True, enabled=True),
-    complexity_s=ComplexitySConfig(group_features=True, eps=1.0e-03, enabled=True),
-    effective_complexity=EffectiveComplexityConfig(
-        enabled=True,
-        n_perturbations_per_feature=1,
-        max_features_processed_per_batch=100,
-        percentage_feature_removal_per_step=0.2,
-        zero_variance_threshold=1.0e-1,
-        return_ratio=True,
-        show_progress=True,
-    ),
-    sparseness=SparsenessConfig(group_features=True, enabled=True),
-    # aopc=AOPCConfig(
-    #     total_feature_bins=200,
-    #     n_random_perms=3,
+    # completeness=CompletenessConfig(enabled=True),
+    # monotonicity_corr_and_non_sens=MonotonicityCorrAndNonSensConfig(
+    #     enabled=True,
+    #     n_perturbations_per_feature=1,
     #     max_features_processed_per_batch=100,
+    #     percentage_feature_removal_per_step=0.2,  # 1% of the features will be removed together in each step
+    #     zero_attribution_threshold=1.0e-3,
+    #     zero_variance_threshold=1.0e-1,
+    #     use_percentage_attribution_threshold=True,
+    #     return_ratio=True,
+    #     show_progress=True,
+    # ),
+    # complexity_entropy=ComplexityEntropyConfig(group_features=True, enabled=True),
+    # complexity_s=ComplexitySConfig(group_features=True, eps=1.0e-03, enabled=True),
+    # effective_complexity=EffectiveComplexityConfig(
+    #     enabled=True,
+    #     n_perturbations_per_feature=1,
+    #     max_features_processed_per_batch=100,
+    #     percentage_feature_removal_per_step=0.2,
+    #     zero_variance_threshold=1.0e-1,
+    #     return_ratio=True,
+    #     show_progress=True,
+    # ),
+    # sparseness=SparsenessConfig(group_features=True, enabled=True),
+    aopc=AOPCConfig(
+        total_feature_bins=20,
+        n_random_perms=1,
+        max_features_processed_per_batch=100,
+        show_progress=True,
+        enabled=True,
+    ),
+    # faithfulness_correlation=FaithfulnessCorrelationConfig(
+    #     n_perturb_samples=200,
+    #     max_examples_per_batch=100,
+    #     percent_features_perturbed=20 / 100,
     #     show_progress=True,
     #     enabled=True,
     # ),
-    faithfulness_correlation=FaithfulnessCorrelationConfig(
-        n_perturb_samples=200,
-        max_examples_per_batch=100,
-        percent_features_perturbed=20 / 100,
-        show_progress=True,
-        enabled=True,
-    ),
-    faithfulness_estimate=FaithfulnessEstimateConfig(
-        max_features_processed_per_batch=100,
-        percentage_feature_removal_per_step=0.01,
-        show_progress=True,
-        enabled=True,
-    ),
-    infidelity=InfidelityConfig(
-        max_examples_per_batch=100,
-        n_perturb_samples=200,
-        perturbation_noise_scale=0.1,
-        enabled=True,
-    ),
-    sensitivity_n=SensitivityNConfig(n_features_perturbed=0.2, enabled=True),
-    monotonicity=MonotonicityConfig(enabled=True),
-    sensitivity_max_avg=SensitivityMaxAvgConfig(enabled=True),
+    # faithfulness_estimate=FaithfulnessEstimateConfig(
+    #     max_features_processed_per_batch=100,
+    #     percentage_feature_removal_per_step=0.01,
+    #     show_progress=True,
+    #     enabled=True,
+    # ),
+    # infidelity=InfidelityConfig(
+    #     max_examples_per_batch=100,
+    #     n_perturb_samples=200,
+    #     perturbation_noise_scale=0.1,
+    #     enabled=True,
+    # ),
+    # sensitivity_n=SensitivityNConfig(n_features_perturbed=0.2, enabled=True),
+    # monotonicity=MonotonicityConfig(enabled=True),
+    # sensitivity_max_avg=SensitivityMaxAvgConfig(enabled=True),
 )
 
 # these are latest extracted by running analysis/task_wise_modality_rankings.py script
