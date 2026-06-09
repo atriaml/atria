@@ -4,7 +4,9 @@ from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger import get_logger
 
 from atria_insights.data_types._features import SampleFeatures
+from atria_insights.storage.data_cachers._base import DataCacher
 from atria_insights.storage.data_cachers._common import SerializableSampleData
+from atria_insights.storage.data_cachers._hdf5 import HDF5DataCacher
 from atria_insights.storage.sample_cache_managers._base import BaseSampleCacheManager
 from atria_insights.utilities._common import (
     _map_tensor_dicts_to_tuples,
@@ -15,9 +17,9 @@ logger = get_logger(__name__)
 
 
 class FeaturesCacher(BaseSampleCacheManager[SampleFeatures]):
-    def __init__(self, cache_dir: str | Path, file_name: str = "features.hdf5"):
+    def __init__(self, cacher: DataCacher):
         # create a child cache dir for the given explainer
-        super().__init__(cache_dir=Path(cache_dir), file_name=file_name)
+        super().__init__(cacher=cacher)
 
     def _serialize_type(self, data: SampleFeatures) -> SerializableSampleData:
         return SerializableSampleData(
@@ -51,4 +53,27 @@ class FeaturesCacher(BaseSampleCacheManager[SampleFeatures]):
             sample_id=sample_id,
             feature_keys=tuple(feature_keys),  # type: ignore
             features=features,
+        )
+
+
+class H5FeaturesCacher(FeaturesCacher):
+    def __init__(self, cache_dir: str):
+        self._cache_dir = Path(cache_dir)
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        super().__init__(
+            cacher=HDF5DataCacher(file_path=str(self._cache_dir / "features.h5"))
+        )
+
+
+class MLFlowFeaturesCacher(FeaturesCacher):
+    def __init__(self, experiment_name: str, tracking_uri: str, run_name: str):
+        from atria_insights.storage.data_cachers._mlflow import MLflowDataCacher
+
+        super().__init__(
+            cacher=MLflowDataCacher(
+                experiment_name=experiment_name,
+                run_name=run_name,
+                artifact_prefix="features",
+                tracking_uri=tracking_uri,
+            )
         )

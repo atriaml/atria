@@ -11,7 +11,9 @@ from atria_insights.explanation_pipelines._base import (
     _DEFAULT_FEATURE_INPUT_KEY,
     BaseExplanationPipeline,
 )
-from atria_insights.storage.sample_cache_managers._features_cacher import FeaturesCacher
+from atria_insights.storage.sample_cache_managers._features_cacher import (
+    H5FeaturesCacher,
+)
 
 logger = get_logger(__name__)
 
@@ -23,7 +25,6 @@ class FeatureGenerationStep(EngineStep):
         device: str | torch.device,
         with_amp: bool = False,
         cache_dir: str | Path | None = None,
-        file_name: str = "features.hdf5",
         test_run: bool = False,
     ):
         super().__init__(
@@ -36,7 +37,7 @@ class FeatureGenerationStep(EngineStep):
         self._x_model_pipeline = x_model_pipeline
 
         assert cache_dir is not None, "cache_dir must be provided if caching is enabled"
-        self._cacher = FeaturesCacher(cache_dir=cache_dir, file_name=file_name)
+        self._cacher = H5FeaturesCacher(cache_dir=cache_dir)
 
     @property
     def name(self) -> str:

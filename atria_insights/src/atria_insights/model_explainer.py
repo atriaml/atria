@@ -33,10 +33,10 @@ from atria_insights.engines._feature_generation_engine import (
 )
 from atria_insights.explanation_pipelines._base import BaseExplanationPipeline
 from atria_insights.storage.sample_cache_managers._explanation_state import (
-    ExplanationStateCacher,
+    H5ExplanationStateCacher,
 )
 from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
-    MetricDataCacher,
+    H5MetricDataCacher,
 )
 
 if TYPE_CHECKING:
@@ -175,7 +175,6 @@ class ModelExplainer:
                 dataloader=train_dataloader,
                 device=torch.device(self._device),
                 output_dir=self._run_dir,
-                feature_file_name="features.hdf5",
             ),
         )
 
@@ -219,13 +218,13 @@ class ModelExplainer:
         )
 
         x_model_pipeline.attach_cachers(
-            cacher=ExplanationStateCacher(
+            cacher=H5ExplanationStateCacher(
                 cache_dir=self._explainer_dir,
                 attrs={
                     "config": json.dumps(self._config.explanation_pipeline.to_dict())
                 },
             ),
-            metric_cacher=MetricDataCacher(cache_dir=self._explainer_dir),
+            metric_cacher=H5MetricDataCacher(cache_dir=self._explainer_dir),
         )
 
         # log model pipeline

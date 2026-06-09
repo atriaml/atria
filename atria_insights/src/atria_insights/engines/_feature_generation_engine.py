@@ -22,7 +22,6 @@ class FeatureGenerationEngineConfig(EngineConfig):
 
 class FeatureGenerationEngineDependencies(EngineDependencies):
     x_model_pipeline: BaseExplanationPipeline
-    feature_file_name: str
 
 
 class FeatureGenerationEngine(
@@ -40,7 +39,6 @@ class FeatureGenerationEngine(
             device=self._deps.device,
             with_amp=False,
             cache_dir=self._deps.output_dir,
-            file_name=self._deps.feature_file_name,
         )
 
     def _attach_handlers(self) -> None:
@@ -68,9 +66,7 @@ class FeatureGenerationEngine(
 
         if not overwrite:
             # check if features already exist
-            feature_file_path = (
-                Path(self._deps.output_dir) / self._deps.feature_file_name
-            )
+            feature_file_path = Path(self._deps.output_dir) / "features.h5"
             if feature_file_path.exists():
                 logger.info(
                     f"Features file already exists at {feature_file_path}. Skipping feature generation."
