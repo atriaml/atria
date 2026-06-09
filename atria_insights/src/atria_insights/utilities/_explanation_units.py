@@ -1,40 +1,31 @@
-import numpy as np
+from __future__ import annotations
+
+from typing import ClassVar
+
 import torch
 from atria_logger import get_logger
-from matplotlib.colors import LinearSegmentedColormap
+from atria_types._utilities._repr import RepresentationMixin
+from pydantic import BaseModel, ConfigDict, model_serializer
+
+from atria_insights.utilities._viz import score_to_color_map
 
 logger = get_logger(__name__)
 
-colors = []
-for j in np.linspace(1, 0, 100):
-    colors.append((30.0 / 255, 136.0 / 255, 229.0 / 255, j))
-for j in np.linspace(0, 1, 100):
-    colors.append((255.0 / 255, 13.0 / 255, 87.0 / 255, j))
-red_transparent_blue = LinearSegmentedColormap.from_list("red_transparent_blue", colors)
-
-colors = []
-for j in np.linspace(1, 0, 100):
-    colors.append((136.0 / 255, 30.0 / 255, 229.0 / 255, j))
-for j in np.linspace(0, 1, 100):
-    colors.append((13.0 / 255, 255.0 / 255, 87.0 / 255, j))
-green_transparent_purple = LinearSegmentedColormap.from_list(
-    "green_transparent_purple", colors
+_MODEL_CONFIG = ConfigDict(
+    arbitrary_types_allowed=True,
+    validate_assignment=True,
+    frozen=True,
+    extra="forbid",
+    revalidate_instances="always",
 )
 
 
-def score_to_color_map(explanation_score: float, color_map="red_transparent_blue"):
-    if color_map == "red_transparent_blue":
-        rgba = red_transparent_blue(explanation_score)
-    elif color_map == "green_transparent_purple":
-        rgba = green_transparent_purple(explanation_score)
-    return rgba
-
-
 class TextExplanationUnit:
+    unit_type: ClassVar[str] = "text"
+
     def __init__(
         self, attribution: torch.Tensor, context_attribution: torch.Tensor | None = None
     ):
-        print("attribution.detach().cpu().numpy()", attribution.detach().cpu().numpy())
         self.attribution = score_to_color_map(attribution.detach().cpu().numpy())
         self.context_attribution = (
             score_to_color_map(context_attribution.detach().cpu().numpy())
@@ -48,24 +39,32 @@ class TextExplanationUnit:
 
 
 class TextPositionExplanationUnit(TextExplanationUnit):
+    unit_type: ClassVar[str] = "text_position"
+
     @property
     def name(self) -> str:
         return "Position"
 
 
 class TextLayoutExplanationUnit(TextExplanationUnit):
+    unit_type: ClassVar[str] = "text_layout"
+
     @property
     def name(self) -> str:
         return "Layout"
 
 
 class AggregateTextExplanationUnit(TextExplanationUnit):
+    unit_type: ClassVar[str] = "text_aggregate"
+
     @property
     def name(self) -> str:
         return "Agg. Text"
 
 
 class ImageExplanationUnit:
+    unit_type: ClassVar[str] = "image"
+
     def __init__(self, attribution: torch.Tensor):
         self.attribution = score_to_color_map(attribution.detach().cpu().numpy())
 
@@ -74,119 +73,80 @@ class ImageExplanationUnit:
         return "Image"
 
 
-TEXT_EMBEDDING_KEYS = {
-    "token_embeddings": TextExplanationUnit,
-    "position_embeddings": TextPositionExplanationUnit,
-    "layout_embeddings": TextLayoutExplanationUnit,
-}
+ExplanationUnit = (
+    TextExplanationUnit
+    | TextPositionExplanationUnit
+    | TextLayoutExplanationUnit
+    | AggregateTextExplanationUnit
+    | ImageExplanationUnit
+)
 
 
-def _normalize_explanations(
-    explanations: tuple[torch.Tensor, ...],
-    shift_0_to_1: bool = True,
-    outlier_perc: int = 2,
-    debug: bool = False,
-) -> tuple[torch.Tensor, ...]:
-    from captum.attr._utils.visualization import _normalize_attr
+class SampleExplanationSummary(RepresentationMixin, BaseModel):
+    """All ExplanationUnit objects for one sample and one target (one per feature)."""
 
-    shapes = [exp.shape for exp in explanations]
-    flat = torch.cat([exp.reshape(-1) for exp in explanations])
+    model_config = _MODEL_CONFIG
+    value: list[ExplanationUnit]
 
-    if debug:
-        import matplotlib.pyplot as plt
+    @property
+    def n_units(self) -> int:
+        return len(self.value)
 
-        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-        axes[0].hist(flat.cpu().detach().numpy(), bins=100)
-        axes[0].set_title("Before normalization")
-
-    try:
-        flat = _normalize_attr(flat.cpu(), sign="all", outlier_perc=outlier_perc).to(
-            flat.device
-        )
-    except Exception:
-        flat = torch.zeros_like(flat)
-
-    if shift_0_to_1:
-        flat = flat * 0.5 + 0.5
-
-    if debug:
-        axes[1].hist(flat.cpu().detach().numpy(), bins=100)
-        axes[1].set_title("After normalization")
-        plt.tight_layout()
-        plt.show()
-
-    sizes = [exp.numel() for exp in explanations]
-    splits = flat.split(sizes)
-    return tuple(s.reshape(shape) for s, shape in zip(splits, shapes))
+    @model_serializer
+    def _serialize(self) -> dict:
+        units = []
+        for unit in self.value:
+            entry = {"unit_type": unit.unit_type}
+            for attr, val in vars(unit).items():
+                entry[attr] = val.tolist() if hasattr(val, "tolist") else val
+            units.append(entry)
+        return {"value": units}
 
 
-def _reduce_word_level_explanation_single(
-    explanation: torch.Tensor,  # (seq_len,) or (seq_len, hidden)
-    word_ids: torch.Tensor,  # (seq_len,)
-    sequence_ids: torch.Tensor,  # (seq_len,)
-) -> torch.Tensor:
-    mask = word_ids != -100
-    exp = explanation[mask]
-    if exp.dim() > 1:
-        exp = exp.sum(dim=-1)
-    wid = word_ids[mask]
-    sid = sequence_ids[mask]
+class BatchExplanationSummary(RepresentationMixin, BaseModel):
+    """Single-target explanation summaries for a full batch (one SampleExplanationSummary per sample)."""
 
-    flat_key = sid * (wid.max() + 1) + wid
-    unique_keys, inverse = flat_key.unique(return_inverse=True)
-    num_groups = unique_keys.shape[0]
+    model_config = _MODEL_CONFIG
+    value: list[SampleExplanationSummary]
 
-    sums = torch.zeros(num_groups, device=exp.device, dtype=exp.dtype)
-    counts = torch.zeros(num_groups, device=exp.device, dtype=exp.dtype)
-    sums.scatter_add_(0, inverse, exp)
-    counts.scatter_add_(0, inverse, torch.ones_like(exp))
-    return sums / counts
+    @property
+    def batch_size(self) -> int:
+        return len(self.value)
+
+    def tolist(self) -> list[SampleExplanationSummary]:
+        return list(self.value)
 
 
-def _process_single_sample(
-    feature_keys: set[str],
-    sample_explanations: tuple[torch.Tensor, ...],
-    word_ids: torch.Tensor,
-    sequence_ids: torch.Tensor,
-    context_text: list[str] | None,
-) -> list[TextExplanationUnit | ImageExplanationUnit]:  # 1. reduce
-    reduced = ()
-    for key, exp in zip(feature_keys, sample_explanations, strict=True):
-        logger.debug(f"[reduce] key={key} input shape={exp.shape}")
-        if key == "image":
-            reduced_exp = exp.sum(dim=0, keepdim=True)
-        else:
-            reduced_exp = _reduce_word_level_explanation_single(
-                exp, word_ids, sequence_ids
+class MultiTargetSampleExplanationSummary(RepresentationMixin, BaseModel):
+    """Multi-target explanation summaries for one sample (one SampleExplanationSummary per target)."""
+
+    model_config = _MODEL_CONFIG
+    value: list[SampleExplanationSummary]
+
+    @property
+    def n_targets(self) -> int:
+        return len(self.value)
+
+
+class MultiTargetBatchExplanationSummary(RepresentationMixin, BaseModel):
+    """Multi-target explanation summaries for a full batch (one BatchExplanationSummary per target)."""
+
+    model_config = _MODEL_CONFIG
+    value: list[BatchExplanationSummary]
+
+    @property
+    def n_targets(self) -> int:
+        return len(self.value)
+
+    @property
+    def batch_size(self) -> int:
+        return self.value[0].batch_size if self.value else 0
+
+    def tolist(self) -> list[MultiTargetSampleExplanationSummary]:
+        per_target_lists = [batch.tolist() for batch in self.value]
+        return [
+            MultiTargetSampleExplanationSummary(
+                value=[per_target_lists[t][i] for t in range(self.n_targets)]
             )
-        logger.debug(f"[reduce] key={key} output shape={reduced_exp.shape}")
-        reduced += (reduced_exp,)
-
-    # 2. normalize
-    logger.debug(f"[normalize] input shapes={[r.shape for r in reduced]}")
-    reduced = _normalize_explanations(reduced)
-    logger.debug(f"[normalize] output shapes={[r.shape for r in reduced]}")
-
-    # 3. build units
-    units = []
-    context_len = len(context_text) if context_text is not None else 0
-    logger.debug(f"[build] context_len={context_len}")
-
-    for key, value in zip(feature_keys, reduced, strict=True):
-        logger.debug(f"[build] key={key} value shape={value.shape}")
-        if key in TEXT_EMBEDDING_KEYS:
-            attribution = value[context_len:] if context_len else value
-            context_attribution = value[:context_len] if context_len else None
-            logger.debug(
-                f"[build] key={key} attribution shape={attribution.shape} context_attribution shape={context_attribution.shape if context_attribution is not None else None}"
-            )
-            units.append(
-                TEXT_EMBEDDING_KEYS[key](
-                    attribution=attribution, context_attribution=context_attribution
-                )
-            )
-        elif key == "image":
-            logger.debug(f"[build] key={key} attribution shape={value.shape}")
-            units.append(ImageExplanationUnit(attribution=value))
-
-    return units
+            for i in range(self.batch_size)
+        ]

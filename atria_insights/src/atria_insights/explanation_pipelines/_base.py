@@ -33,8 +33,8 @@ from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
     MetricDataCacher,
 )
 from atria_insights.utilities._explanation_units import (
-    ImageExplanationUnit,
-    TextExplanationUnit,
+    BatchExplanationSummary,
+    MultiTargetBatchExplanationSummary,
 )
 
 logger = get_logger(__name__)
@@ -754,6 +754,8 @@ class BaseExplanationPipeline(
         # save to disk
         if self._cacher is not None:
             for sample_explanation_state in explanation_state.tolist():
+                print("saving state", sample_explanation_state)
+                exit(0)
                 self._cacher.save_sample(sample_explanation_state)
 
         return ExplanationStepOutput(
@@ -765,8 +767,8 @@ class BaseExplanationPipeline(
         batch,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-    ) -> list[TextExplanationUnit | ImageExplanationUnit]:
-        return {}
+    ) -> BatchExplanationSummary | MultiTargetBatchExplanationSummary | None:
+        return None
 
     def build_metrics(self, device: torch.device | str = "cpu") -> dict[str, Metric]:
         if self.config.explainability_metrics is None:

@@ -17,6 +17,12 @@ from atria_insights.explainers._attn._target import (
     SampleAttentionTokenTarget,
 )
 from atria_insights.utilities._common import _to_device
+from atria_insights.utilities._explanation_units import (
+    BatchExplanationSummary,
+    MultiTargetBatchExplanationSummary,
+    MultiTargetSampleExplanationSummary,
+    SampleExplanationSummary,
+)
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -246,6 +252,7 @@ class SampleExplanationState(RepresentationMixin, BaseModel):
     strides: tuple[tuple[int, ...], ...] | None = None
     feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: SampleExplanation | MultiTargetSampleExplanation | None = None
+    explanation_units: SampleExplanationSummary | MultiTargetSampleExplanationSummary | None = None
     model_outputs: torch.Tensor | None = None
     compute_metrics: ComputeMetrics | None = None
 
@@ -286,7 +293,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     explanations: BatchExplanation | MultiTargetBatchExplanation
     model_outputs: torch.Tensor
-    explanation_units: list[]
+    explanation_units: BatchExplanationSummary | MultiTargetBatchExplanationSummary | None = None
     compute_metrics: ComputeMetrics | None = None
 
     @property
@@ -347,6 +354,9 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
             if self.attention_token_target
             else [None] * batch_size
         )
+        sample_explanation_units = (
+            self.explanation_units.tolist() if self.explanation_units is not None else [None] * batch_size
+        )
 
         for sample_idx in range(batch_size):
             sample_expl_state = SampleExplanationState(
@@ -367,6 +377,7 @@ class BatchExplanationState(RepresentationMixin, BaseModel):
                     else None
                 ),
                 explanations=explanations[sample_idx],
+                explanation_units=sample_explanation_units[sample_idx],
                 model_outputs=self.model_outputs[sample_idx].unsqueeze(0),
                 compute_metrics=self.compute_metrics,
             )
