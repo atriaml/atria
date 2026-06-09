@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Annotated, Literal, Union
 
+import numpy as np
 import torch
 from atria_logger import get_logger
 from atria_types._utilities._repr import RepresentationMixin
-from pydantic import BaseModel, ConfigDict, model_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from atria_insights.utilities._viz import score_to_color_map
 
 logger = get_logger(__name__)
 
-_MODEL_CONFIG = ConfigDict(
+_UNIT_CONFIG = ConfigDict(
+    arbitrary_types_allowed=True,
+    validate_assignment=True,
+    frozen=True,
+    extra="forbid",
+)
+
+_CONTAINER_CONFIG = ConfigDict(
     arbitrary_types_allowed=True,
     validate_assignment=True,
     frozen=True,
@@ -20,26 +28,47 @@ _MODEL_CONFIG = ConfigDict(
 )
 
 
-class TextExplanationUnit:
-    unit_type: ClassVar[str] = "text"
+def _to_color_array(v: torch.Tensor | np.ndarray | list | None) -> np.ndarray | None:
+    if v is None:
+        return None
+    if isinstance(v, torch.Tensor):
+        return score_to_color_map(v.detach().cpu().numpy())
+    if isinstance(v, list):
+        return np.array(v)
+    return v  # already np.ndarray
 
-    def __init__(
-        self, attribution: torch.Tensor, context_attribution: torch.Tensor | None = None
-    ):
-        self.attribution = score_to_color_map(attribution.detach().cpu().numpy())
-        self.context_attribution = (
-            score_to_color_map(context_attribution.detach().cpu().numpy())
-            if context_attribution is not None
-            else None
-        )
+
+class TextExplanationUnit(BaseModel):
+    model_config = _UNIT_CONFIG
+    unit_type: Literal["text"] = "text"
+    attribution: np.ndarray
+    context_attribution: np.ndarray | None = None
+
+    @field_validator("attribution", mode="before")
+    @classmethod
+    def _val_attribution(cls, v: torch.Tensor | np.ndarray | list) -> np.ndarray:
+        if isinstance(v, torch.Tensor):
+            return score_to_color_map(v.detach().cpu().numpy())
+        if isinstance(v, list):
+            return np.array(v)
+        return v
+
+    @field_validator("context_attribution", mode="before")
+    @classmethod
+    def _val_context(cls, v: torch.Tensor | np.ndarray | list | None) -> np.ndarray | None:
+        return _to_color_array(v)
+
+    @field_serializer("attribution", "context_attribution")
+    def _ser_array(self, v: np.ndarray | None) -> list | None:
+        return v.tolist() if v is not None else None
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "Text"
 
 
 class TextPositionExplanationUnit(TextExplanationUnit):
-    unit_type: ClassVar[str] = "text_position"
+    unit_type: Literal["text_position"] = "text_position"
 
     @property
     def name(self) -> str:
@@ -47,7 +76,7 @@ class TextPositionExplanationUnit(TextExplanationUnit):
 
 
 class TextLayoutExplanationUnit(TextExplanationUnit):
-    unit_type: ClassVar[str] = "text_layout"
+    unit_type: Literal["text_layout"] = "text_layout"
 
     @property
     def name(self) -> str:
@@ -55,58 +84,63 @@ class TextLayoutExplanationUnit(TextExplanationUnit):
 
 
 class AggregateTextExplanationUnit(TextExplanationUnit):
-    unit_type: ClassVar[str] = "text_aggregate"
+    unit_type: Literal["text_aggregate"] = "text_aggregate"
 
     @property
     def name(self) -> str:
         return "Agg. Text"
 
 
-class ImageExplanationUnit:
-    unit_type: ClassVar[str] = "image"
+class ImageExplanationUnit(BaseModel):
+    model_config = _UNIT_CONFIG
+    unit_type: Literal["image"] = "image"
+    attribution: np.ndarray
 
-    def __init__(self, attribution: torch.Tensor):
-        self.attribution = score_to_color_map(attribution.detach().cpu().numpy())
+    @field_validator("attribution", mode="before")
+    @classmethod
+    def _val_attribution(cls, v: torch.Tensor | np.ndarray | list) -> np.ndarray:
+        if isinstance(v, torch.Tensor):
+            return score_to_color_map(v.detach().cpu().numpy())
+        if isinstance(v, list):
+            return np.array(v)
+        return v
+
+    @field_serializer("attribution")
+    def _ser_array(self, v: np.ndarray) -> list:
+        return v.tolist()
 
     @property
     def name(self) -> str:
         return "Image"
 
 
-ExplanationUnit = (
-    TextExplanationUnit
-    | TextPositionExplanationUnit
-    | TextLayoutExplanationUnit
-    | AggregateTextExplanationUnit
-    | ImageExplanationUnit
-)
+ExplanationUnit = Annotated[
+    Union[
+        TextExplanationUnit,
+        TextPositionExplanationUnit,
+        TextLayoutExplanationUnit,
+        AggregateTextExplanationUnit,
+        ImageExplanationUnit,
+    ],
+    Field(discriminator="unit_type"),
+]
 
 
 class SampleExplanationSummary(RepresentationMixin, BaseModel):
     """All ExplanationUnit objects for one sample and one target (one per feature)."""
 
-    model_config = _MODEL_CONFIG
+    model_config = _CONTAINER_CONFIG
     value: list[ExplanationUnit]
 
     @property
     def n_units(self) -> int:
         return len(self.value)
 
-    @model_serializer
-    def _serialize(self) -> dict:
-        units = []
-        for unit in self.value:
-            entry = {"unit_type": unit.unit_type}
-            for attr, val in vars(unit).items():
-                entry[attr] = val.tolist() if hasattr(val, "tolist") else val
-            units.append(entry)
-        return {"value": units}
-
 
 class BatchExplanationSummary(RepresentationMixin, BaseModel):
     """Single-target explanation summaries for a full batch (one SampleExplanationSummary per sample)."""
 
-    model_config = _MODEL_CONFIG
+    model_config = _CONTAINER_CONFIG
     value: list[SampleExplanationSummary]
 
     @property
@@ -120,7 +154,7 @@ class BatchExplanationSummary(RepresentationMixin, BaseModel):
 class MultiTargetSampleExplanationSummary(RepresentationMixin, BaseModel):
     """Multi-target explanation summaries for one sample (one SampleExplanationSummary per target)."""
 
-    model_config = _MODEL_CONFIG
+    model_config = _CONTAINER_CONFIG
     value: list[SampleExplanationSummary]
 
     @property
@@ -131,7 +165,7 @@ class MultiTargetSampleExplanationSummary(RepresentationMixin, BaseModel):
 class MultiTargetBatchExplanationSummary(RepresentationMixin, BaseModel):
     """Multi-target explanation summaries for a full batch (one BatchExplanationSummary per target)."""
 
-    model_config = _MODEL_CONFIG
+    model_config = _CONTAINER_CONFIG
     value: list[BatchExplanationSummary]
 
     @property

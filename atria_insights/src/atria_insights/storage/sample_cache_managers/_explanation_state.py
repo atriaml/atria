@@ -20,6 +20,7 @@ from atria_insights.utilities._common import (
     _map_tensor_dicts_to_tuples,
     _map_tensor_tuples_to_keys,
 )
+from atria_insights.utilities._explanation_units import SampleExplanationSummary
 
 logger = get_logger(__name__)
 
@@ -92,6 +93,12 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         else:
             feature_mask = None
 
+        explanation_units_json = (
+            data.explanation_units.model_dump_json()
+            if data.explanation_units is not None
+            else None
+        )
+
         return SerializableSampleData(
             sample_id=data.sample_id,
             attrs={
@@ -108,6 +115,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
                 "compute_metrics": json.dumps(data.compute_metrics.model_dump())
                 if data.compute_metrics is not None
                 else None,
+                "explanation_units": explanation_units_json,
             },
             tensors=tensors,
         )
@@ -221,6 +229,13 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
         assert isinstance(strides, str), "strides must be a string."
         strides = json.loads(strides)
 
+        explanation_units_json = data.attrs.get("explanation_units")
+        explanation_units = (
+            SampleExplanationSummary.model_validate_json(explanation_units_json)
+            if explanation_units_json is not None
+            else None
+        )
+
         return SampleExplanationState(
             sample_id=sample_id,
             target=target,
@@ -232,6 +247,7 @@ class ExplanationStateCacher(BaseSampleCacheManager[SampleExplanationState]):
             feature_mask=feature_mask,
             model_outputs=model_outputs,
             explanations=explanations,
+            explanation_units=explanation_units,
         )
 
 

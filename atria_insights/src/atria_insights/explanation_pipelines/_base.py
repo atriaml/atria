@@ -754,8 +754,6 @@ class BaseExplanationPipeline(
         # save to disk
         if self._cacher is not None:
             for sample_explanation_state in explanation_state.tolist():
-                print("saving state", sample_explanation_state)
-                exit(0)
                 self._cacher.save_sample(sample_explanation_state)
 
         return ExplanationStepOutput(
