@@ -49,6 +49,7 @@ from atria_insights.feature_segmentors._sequence import (
     SequenceFeatureMaskSegmentorConfig,
 )
 from atria_insights.model_explainer import ModelExplainer
+from atria_logger import get_logger
 from atria_ml.configs import (
     DataConfig,
     RuntimeEnvConfig,
@@ -58,8 +59,6 @@ from atria_models.core.model_builders._common import ModelBuilderType
 from atria_models.core.model_pipelines._common import ModelConfig
 from atria_transforms.api.tfs import load_transform
 from atria_transforms.tfs._image_transforms import StandardImageTransform
-
-from atria_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -93,56 +92,59 @@ _DEFAULT_FEATURE_SEGMENTOR_CONFIG = SequenceFeatureMaskSegmentorConfig(
 )
 
 _METRICS = ExplainabilityMetrics(
-    completeness=CompletenessConfig(),
+    completeness=CompletenessConfig(enabled=True),
     monotonicity_corr_and_non_sens=MonotonicityCorrAndNonSensConfig(
+        enabled=True,
         n_perturbations_per_feature=1,
         max_features_processed_per_batch=100,
-        percentage_feature_removal_per_step=0.01,  # 1% of the features will be removed together in each step
+        percentage_feature_removal_per_step=0.2,  # 1% of the features will be removed together in each step
         zero_attribution_threshold=1.0e-3,
         zero_variance_threshold=1.0e-1,
         use_percentage_attribution_threshold=True,
         return_ratio=True,
         show_progress=True,
     ),
-    complexity_entropy=ComplexityEntropyConfig(group_features=True),
-    complexity_s=ComplexitySConfig(group_features=True, eps=1.0e-03),
+    complexity_entropy=ComplexityEntropyConfig(group_features=True, enabled=True),
+    complexity_s=ComplexitySConfig(group_features=True, eps=1.0e-03, enabled=True),
     effective_complexity=EffectiveComplexityConfig(
+        enabled=True,
         n_perturbations_per_feature=1,
         max_features_processed_per_batch=100,
-        percentage_feature_removal_per_step=0.01,
+        percentage_feature_removal_per_step=0.2,
         zero_variance_threshold=1.0e-1,
         return_ratio=True,
         show_progress=True,
     ),
-    sparseness=SparsenessConfig(group_features=True),
+    sparseness=SparsenessConfig(group_features=True, enabled=True),
     aopc=AOPCConfig(
-        total_feature_bins=200,
-        n_random_perms=3,
+        total_feature_bins=5,
+        n_random_perms=1,
         max_features_processed_per_batch=100,
         show_progress=True,
+        enabled=True,
     ),
     faithfulness_correlation=FaithfulnessCorrelationConfig(
-        n_perturb_samples=200,
-        max_examples_per_batch=100,
+        n_perturb_samples=20,
+        max_examples_per_batch=20,
         percent_features_perturbed=20 / 100,
         show_progress=True,
+        enabled=True,
     ),
     faithfulness_estimate=FaithfulnessEstimateConfig(
         max_features_processed_per_batch=100,
         percentage_feature_removal_per_step=0.01,
         show_progress=True,
+        enabled=True,
     ),
     infidelity=InfidelityConfig(
         max_examples_per_batch=100,
-        n_perturb_samples=200,
+        n_perturb_samples=20,
         perturbation_noise_scale=0.1,
+        enabled=True,
     ),
     sensitivity_n=SensitivityNConfig(n_features_perturbed=0.2, enabled=True),
     monotonicity=MonotonicityConfig(enabled=True),
-    sensitivity_max_avg=SensitivityMaxAvgConfig(
-        enabled=True,
-        max_examples_per_batch=1,
-    ),
+    sensitivity_max_avg=SensitivityMaxAvgConfig(enabled=True),
 )
 
 # these are latest extracted by running analysis/task_wise_modality_rankings.py script
@@ -176,7 +178,7 @@ _BASELINE_TYPES = {
 def main(
     data_dir: str | None = None,
     checkpoint_path: str | None = None,
-    project_name: str = "docxeval",
+    project_name: str = "docxeval12",
     dataset_name: str = "funsd",
     model_name: str = "bert-base-uncased",
     tokenizer_name: str = "bert-base-uncased",
@@ -192,7 +194,7 @@ def main(
     grad_batch_size: int = 4,
     num_workers: int = 8,
     seed: int = 42,
-    total_samples: int = 100,
+    total_samples: int = 5,
     compute_metrics: bool = True,
     access_token: str | None = None,
     use_segment_level_bboxes: bool = False,
@@ -202,6 +204,8 @@ def main(
     remove_other_labels: bool = False,
     profile_time: bool = False,
     iterative_computation: bool = False,
+    mlflow_tracking_uri: str | None = "http://localhost:5000",
+    mlflow_experiment_name: str | None = None,
 ):
     assert explainer_name in _EXPLAINERS, f"Explainer {explainer_name} not recognized."
 
@@ -287,13 +291,20 @@ def main(
             profile_time=profile_time,
         ),
         enable_outputs_caching=True,
+        mlflow_tracking_uri=mlflow_tracking_uri,
+        mlflow_experiment_name=mlflow_experiment_name,
     )
     model_explainer = ModelExplainer(config=config, checkpoint_path=checkpoint_path)
-    model_explainer.run(
+    state = model_explainer.run(
         total_samples=total_samples,
         compute_metrics=compute_metrics,
         compute_features_only=compute_features_only,
     )
+
+    # logger.info(f"metrics:\n{state.metrics}")
+    from rich import print
+
+    print(state.metrics)
 
 
 if __name__ == "__main__":
