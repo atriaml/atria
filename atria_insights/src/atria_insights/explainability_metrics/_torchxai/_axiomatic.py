@@ -10,7 +10,11 @@ from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
-from atria_insights.explainability_metrics._torchxai._base import ExplainabilityMetric
+from atria_insights.explainability_metrics._torchxai._base import (
+    BatchMetricOuptut,
+    ExplainabilityMetric,
+    MultiTargetBatchMetricOuptut,
+)
 from atria_insights.utilities._common import _get_first_layer
 
 
@@ -26,13 +30,12 @@ class CompletenessConfig(ExplainabilityMetricConfig):
 
 class Completeness(ExplainabilityMetric[CompletenessConfig]):
     __config__ = CompletenessConfig
-    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-    ) -> dict[str, Any]:
+    ) -> list[BatchMetricOuptut]:
         outputs = completeness(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
@@ -44,7 +47,19 @@ class Completeness(ExplainabilityMetric[CompletenessConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+
+        # get the value
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["score"]]
+        )
+        return [output_cls(key="axiomatic/completness", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("axiomatic/input_invariance")
@@ -116,7 +131,19 @@ class InputInvariance(ExplainabilityMetric[InputInvarianceConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+
+        # get the value
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.item() for x in outputs["score"]]
+        )
+        return [output_cls(key="axiomatic/input_invariance", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("axiomatic/monotonicity_corr_and_non_sens")
@@ -166,7 +193,7 @@ class MonotonicityCorrAndNonSens(
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-    ) -> dict[str, Any]:
+    ) -> list[BatchMetricOuptut | MultiTargetBatchMetricOuptut]:
         from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
             default_fixed_baseline_perturb_func,
         )
@@ -177,7 +204,7 @@ class MonotonicityCorrAndNonSens(
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"
             )
-        return monotonicity_corr_and_non_sens(
+        outputs = monotonicity_corr_and_non_sens(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
             additional_forward_args=explanation_inputs.additional_forward_args,
@@ -203,3 +230,23 @@ class MonotonicityCorrAndNonSens(
             multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )
+
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        return [
+            output_cls(
+                key="axiomatic/non_sensitivity",
+                value=outputs["non_sensitivity"].tolist()
+                if not explanation_inputs.is_multi_target
+                else [x.tolist() for x in outputs["non_sensitivity"]],
+            ),
+            output_cls(
+                key="faithfulness/monotonicity_corr",
+                value=outputs["monotonicity_corr"].tolist()
+                if not explanation_inputs.is_multi_target
+                else [x.tolist() for x in outputs["monotonicity_corr"]],
+            ),
+        ]

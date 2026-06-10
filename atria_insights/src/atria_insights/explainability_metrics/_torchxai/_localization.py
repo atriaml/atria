@@ -7,7 +7,11 @@ from torchxai.metrics import attribution_localization
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
-from atria_insights.explainability_metrics._torchxai._base import ExplainabilityMetric
+from atria_insights.explainability_metrics._torchxai._base import (
+    BatchMetricOuptut,
+    ExplainabilityMetric,
+    MultiTargetBatchMetricOuptut,
+)
 
 
 @EXPLAINABILITY_METRICS.register("localization/attr_localization")
@@ -29,7 +33,6 @@ class AttrLocalizationConfig(ExplainabilityMetricConfig):
 
 class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):
     __config__ = AttrLocalizationConfig
-    _score_keys: ClassVar[list[str]] = ["attribution_localization_score"]
 
     def _update(
         self,
@@ -58,4 +61,16 @@ class AttrLocalization(ExplainabilityMetric[AttrLocalizationConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["attribution_localization_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["attribution_localization_score"]]
+        )
+
+        return [output_cls(key="complexity/attr_localization", value=value)]

@@ -18,7 +18,11 @@ from torchxai.metrics.complexity.sparseness import (
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
-from atria_insights.explainability_metrics._torchxai._base import ExplainabilityMetric
+from atria_insights.explainability_metrics._torchxai._base import (
+    BatchMetricOuptut,
+    ExplainabilityMetric,
+    MultiTargetBatchMetricOuptut,
+)
 
 
 @EXPLAINABILITY_METRICS.register("complexity/complexity_entropy")
@@ -34,7 +38,6 @@ class ComplexityEntropyConfig(ExplainabilityMetricConfig):
 
 class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
     __config__ = ComplexityEntropyConfig
-    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -55,7 +58,20 @@ class ComplexityEntropy(ExplainabilityMetric[ComplexityEntropyConfig]):
                 return_dict=True,
             )
         assert isinstance(outputs, dict)
-        return outputs
+
+        # get the value
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["score"]]
+        )
+
+        return [output_cls(key="complexity/entropy_complexity", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("complexity/complexity_s")
@@ -78,7 +94,6 @@ class ComplexitySConfig(ExplainabilityMetricConfig):
 
 class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
     __config__ = ComplexitySConfig
-    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -102,8 +117,22 @@ class ComplexityS(ExplainabilityMetric[ComplexitySConfig]):
                 multi_target=explanation_inputs.is_multi_target,
                 return_dict=True,
             )
+
         assert isinstance(outputs, dict)
-        return outputs
+
+        # get the value
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["score"]]
+        )
+
+        return [output_cls(key="complexity/s_complexity", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("complexity/sparseness")
@@ -119,7 +148,6 @@ class SparsenessConfig(ExplainabilityMetricConfig):
 
 class Sparseness(ExplainabilityMetric[SparsenessConfig]):
     __config__ = SparsenessConfig
-    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -140,7 +168,20 @@ class Sparseness(ExplainabilityMetric[SparsenessConfig]):
                 return_dict=True,
             )
         assert isinstance(outputs, dict)
-        return outputs
+
+        # get the value
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["score"]]
+        )
+
+        return [output_cls(key="complexity/sparseness", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("complexity/effective_complexity")
@@ -180,7 +221,6 @@ class EffectiveComplexityConfig(ExplainabilityMetricConfig):
 
 class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
     __config__ = EffectiveComplexityConfig
-    _score_keys: ClassVar[list[str]] = ["score"]
 
     def _update(
         self,
@@ -197,7 +237,7 @@ class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
             raise ValueError(
                 f"Unsupported perturbation function: {self.config.perturb_func}"
             )
-        return effective_complexity(
+        outputs = effective_complexity(
             forward_func=self._model,
             inputs=explanation_inputs.inputs,
             additional_forward_args=explanation_inputs.additional_forward_args,
@@ -221,3 +261,18 @@ class EffectiveComplexity(ExplainabilityMetric[EffectiveComplexityConfig]):
             multi_target=explanation_inputs.is_multi_target,
             return_dict=True,
         )
+
+        assert isinstance(outputs, dict)
+
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["score"]]
+        )
+
+        return [output_cls(key="complexity/effective_complexity", value=value)]

@@ -1,5 +1,7 @@
+from collections import defaultdict
 from typing import Any, ClassVar, Literal
 
+import numpy as np
 import torch
 from torchxai.metrics import (
     aopc,
@@ -13,7 +15,11 @@ from torchxai.metrics import (
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
-from atria_insights.explainability_metrics._torchxai._base import ExplainabilityMetric
+from atria_insights.explainability_metrics._torchxai._base import (
+    BatchMetricOuptut,
+    ExplainabilityMetric,
+    MultiTargetBatchMetricOuptut,
+)
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/aopc")
@@ -42,64 +48,42 @@ class AOPCConfig(ExplainabilityMetricConfig):
 
 class AOPC(ExplainabilityMetric[AOPCConfig]):
     __config__ = AOPCConfig
+    _score_keys: ClassVar[list[str]] = [
+        "desc_minus_rand",
+        "abpc",
+        "aopc_desc",
+        "aopc_asc",
+        "aopc_rand",
+    ]
 
-    def compute(self) -> dict:
-        if not self._results:
-            return {}
-
+    def _resample_batch(
+        self, v: torch.Tensor | list, reduce_perm: bool = False
+    ) -> list[list[float]]:
         import numpy as np
 
-        def _resample(arr, n=101):
-            arr = np.asarray(arr, dtype=float)
+        samples = v if isinstance(v, list) else [v[i] for i in range(v.shape[0])]
+        result = []
+        for s in samples:
+            arr = (
+                s.cpu().float().numpy()
+                if isinstance(s, torch.Tensor)
+                else np.asarray(s, dtype=float)
+            )
+            if reduce_perm and arr.ndim > 1:
+                arr = arr.mean(axis=-2)
+            if arr.ndim > 1:
+                arr = arr.mean(axis=0)
             m = len(arr)
             if m < 2:
-                return np.full(n, arr[0])
-            return np.interp(np.linspace(0, 1, n), np.linspace(0, 1, m), arr)
-
-        def gather_curves(key, reduce_perms=False):
-            curves = []
-            for batch in self._results:
-                if key not in batch:
-                    continue
-                v = batch[key]
-                if isinstance(v, list):
-                    # Each element may have a different last dim (n_bins varies per sample)
-                    for sample_tensor in v:
-                        sample_arr = sample_tensor.cpu().float().numpy()
-                        if reduce_perms:
-                            # [..., n_perms, n_bins] → [..., n_bins]
-                            sample_arr = sample_arr.mean(axis=-2)
-                        # Flatten all leading dims (e.g. n_targets), keep last (n_bins)
-                        sample_arr = sample_arr.reshape(-1, sample_arr.shape[-1])
-                        for curve in sample_arr:
-                            if not np.isnan(curve).any():
-                                curves.append(_resample(curve))
-                else:
-                    arr = v.cpu().float().numpy()
-                    if reduce_perms:
-                        arr = arr.mean(axis=-2)
-                    arr = arr.reshape(-1, arr.shape[-1])
-                    for curve in arr:
-                        if not np.isnan(curve).any():
-                            curves.append(_resample(curve))
-            return np.stack(curves).mean(0) if curves else np.full(101, float("nan"))
-
-        desc_mean = gather_curves("desc")
-        asc_mean = gather_curves("asc")
-        rand_mean = gather_curves("rand", reduce_perms=True)
-
-        exec_times = torch.cat(
-            [batch["sample_exec_time"].flatten().float() for batch in self._results]
-        )
-        return {
-            "desc": desc_mean.tolist(),
-            "asc": asc_mean.tolist(),
-            "rand": rand_mean.tolist(),
-            "abpc": float((desc_mean - asc_mean)[-1]),
-            "desc_minus_rand": float((desc_mean - rand_mean)[-1]),
-            "asc_minus_rand": float((asc_mean - rand_mean)[-1]),
-            "exec_time": torch.nanmean(exec_times).item(),
-        }
+                resampled: list[float] = [
+                    float(arr[0]) if m > 0 else float("nan")
+                ] * 101
+            else:
+                resampled = np.interp(
+                    np.linspace(0, 1, 101), np.linspace(0, 1, m), arr.astype(float)
+                ).tolist()
+            result.append(resampled)
+        return torch.tensor(result)
 
     def _update(
         self,
@@ -111,10 +95,6 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
             inputs=explanation_inputs.inputs,
             additional_forward_args=explanation_inputs.additional_forward_args,
             attributions=explanations,  # type: ignore
-            # NOTE:
-            # notice metric baselines, explainer baselines must not be passed here
-            # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
-            # these contributions may be computed wrt different explainer baselines
             baselines=explanation_inputs.metric_baselines,
             feature_mask=explanation_inputs.metric_feature_mask,
             target=self._map_target(explanation_inputs.target),
@@ -129,7 +109,120 @@ class AOPC(ExplainabilityMetric[AOPCConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+
+        with torch.no_grad():
+            if explanation_inputs.is_multi_target:
+                desc_per_target = outputs.pop("desc")
+                asc_per_target = outputs.pop("asc")
+                rand_per_target = outputs.pop("rand")
+                print("desc_per_target,", desc_per_target)
+
+                desc_r_per_target = torch.stack(
+                    [self._resample_batch(desc) for desc in desc_per_target]
+                )
+                asc_r_per_target = torch.stack(
+                    [self._resample_batch(asc) for asc in asc_per_target]
+                )
+                rand_r_per_target = torch.stack(
+                    [
+                        self._resample_batch(rand, reduce_perm=True)
+                        for rand in rand_per_target
+                    ]
+                )
+
+                assert len(desc_r_per_target) == len(asc_r_per_target), (
+                    f"Lengths must match, found {len(desc_r_per_target)} =/= {len(asc_r_per_target)}"
+                )
+                assert len(rand_r_per_target) == len(asc_r_per_target), (
+                    f"Lengths must match, found {len(rand_r_per_target)} =/= {len(asc_r_per_target)}"
+                )
+
+                aopc_per_target = [
+                    [(desc_r[i][-1] - rand_r[i][-1]).item() for i in range(len(desc_r))]
+                    for desc_r, rand_r in zip(
+                        desc_r_per_target, rand_r_per_target, strict=True
+                    )
+                ]
+
+                abpc_per_target = [
+                    [(desc_r[i][-1] - asc_r[i][-1]).item() for i in range(len(desc_r))]
+                    for desc_r, asc_r in zip(
+                        desc_r_per_target, asc_r_per_target, strict=True
+                    )
+                ]
+
+                return [
+                    MultiTargetBatchMetricOuptut(
+                        key="faithfulness/aopc_desc", value=desc_r_per_target.tolist()
+                    ),
+                    MultiTargetBatchMetricOuptut(
+                        key="faithfulness/aopc_asc", value=asc_r_per_target.tolist()
+                    ),
+                    MultiTargetBatchMetricOuptut(
+                        key="faithfulness/aopc_rand", value=rand_r_per_target.tolist()
+                    ),
+                    MultiTargetBatchMetricOuptut(
+                        key="faithfulness/aopc", value=aopc_per_target
+                    ),
+                    MultiTargetBatchMetricOuptut(
+                        key="faithfulness/abpc", value=abpc_per_target
+                    ),
+                ]
+
+            else:
+                desc = outputs.pop("desc")
+                asc = outputs.pop("asc")
+                rand = outputs.pop("rand")
+
+                desc_r = self._resample_batch(desc)
+                asc_r = self._resample_batch(asc)
+                rand_r = self._resample_batch(rand, reduce_perm=True)
+
+                batch_size = len(desc_r)
+                return [
+                    BatchMetricOuptut(
+                        key="faithfulness/aopc_desc", value=desc_r.tolist()
+                    ),
+                    BatchMetricOuptut(
+                        key="faithfulness/aopc_asc", value=asc_r.tolist()
+                    ),
+                    BatchMetricOuptut(
+                        key="faithfulness/aopc_rand", value=rand_r.tolist()
+                    ),
+                    BatchMetricOuptut(
+                        key="faithfulness/aopc",
+                        value=[
+                            desc_r[i][-1] - rand_r[i][-1] for i in range(batch_size)
+                        ],
+                    ),
+                    BatchMetricOuptut(
+                        key="faithfulness/abpc",
+                        value=[desc_r[i][-1] - asc_r[i][-1] for i in range(batch_size)],
+                    ),
+                ]
+
+    def compute(self) -> dict:
+        if not self._results:
+            return {}
+
+        def flatten(lst):
+            return [x for xs in lst for x in xs]
+
+        accumulated = defaultdict(list)
+        for result in self._results:
+            for key, values in result.items():
+                if isinstance(values[0], list):
+                    accumulated[key].extend(flatten(values))
+                else:
+                    accumulated[key].extend(values)
+
+        mean_results = {}
+        for key, value in accumulated.items():
+            if key in ["faithfulness/aopc", "faithfulness/abpc"]:
+                mean_results[key] = np.mean(value)
+            else:
+                mean_results[key] = np.mean(value, axis=0)
+        return mean_results
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/faithfulness_correlation")
@@ -162,7 +255,6 @@ class FaithfulnessCorrelationConfig(ExplainabilityMetricConfig):
 
 class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig]):
     __config__ = FaithfulnessCorrelationConfig
-    _score_keys: ClassVar[list[str]] = ["faithfulness_corr_score"]
 
     def _update(
         self,
@@ -202,7 +294,17 @@ class FaithfulnessCorrelation(ExplainabilityMetric[FaithfulnessCorrelationConfig
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["faithfulness_corr_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["faithfulness_corr_score"]]
+        )
+        return [output_cls(key="complexity/faithfulness_corr", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/faithfulness_estimate")
@@ -228,7 +330,6 @@ class FaithfulnessEstimateConfig(ExplainabilityMetricConfig):
 
 class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
     __config__ = FaithfulnessEstimateConfig
-    _score_keys: ClassVar[list[str]] = ["faithfulness_estimate_score"]
 
     def _update(
         self,
@@ -256,7 +357,17 @@ class FaithfulnessEstimate(ExplainabilityMetric[FaithfulnessEstimateConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["faithfulness_estimate_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["faithfulness_estimate_score"]]
+        )
+        return [output_cls(key="complexity/faithfulness_estimate", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/infidelity")
@@ -284,7 +395,6 @@ class InfidelityConfig(ExplainabilityMetricConfig):
 
 class Infidelity(ExplainabilityMetric[InfidelityConfig]):
     __config__ = InfidelityConfig
-    _score_keys: ClassVar[list[str]] = ["infidelity_score"]
 
     def _update(
         self,
@@ -318,7 +428,18 @@ class Infidelity(ExplainabilityMetric[InfidelityConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["infidelity_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["infidelity_score"]]
+        )
+
+        return [output_cls(key="complexity/infidelity", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/monotonicity")
@@ -344,7 +465,6 @@ class MonotonicityConfig(ExplainabilityMetricConfig):
 
 class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
     __config__ = MonotonicityConfig
-    _score_keys: ClassVar[list[str]] = ["monotonicity_score"]
 
     def _update(
         self,
@@ -372,7 +492,18 @@ class Monotonicity(ExplainabilityMetric[MonotonicityConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["monotonicity_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["monotonicity_score"]]
+        )
+
+        return [output_cls(key="complexity/monotonicity", value=value)]
 
 
 @EXPLAINABILITY_METRICS.register("faithfulness/sensitivity_n")
@@ -398,7 +529,6 @@ class SensitivityNConfig(ExplainabilityMetricConfig):
 
 class SensitivityN(ExplainabilityMetric[SensitivityNConfig]):
     __config__ = SensitivityNConfig
-    _score_keys: ClassVar[list[str]] = ["sensitivity_n_score"]
 
     def _update(
         self,
@@ -426,4 +556,16 @@ class SensitivityN(ExplainabilityMetric[SensitivityNConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        value = (
+            outputs["sensitivity_n_score"].tolist()
+            if not explanation_inputs.is_multi_target
+            else [x.tolist() for x in outputs["sensitivity_n_score"]]
+        )
+
+        return [output_cls(key="complexity/sensitivity_n", value=value)]

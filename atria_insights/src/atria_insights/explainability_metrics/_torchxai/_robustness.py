@@ -6,7 +6,11 @@ from torchxai.metrics import sensitivity_max_and_avg
 from atria_insights.data_types._explanation_inputs import BatchExplanationInputs
 from atria_insights.explainability_metrics._base import ExplainabilityMetricConfig
 from atria_insights.explainability_metrics._registry_group import EXPLAINABILITY_METRICS
-from atria_insights.explainability_metrics._torchxai._base import ExplainabilityMetric
+from atria_insights.explainability_metrics._torchxai._base import (
+    BatchMetricOuptut,
+    ExplainabilityMetric,
+    MultiTargetBatchMetricOuptut,
+)
 
 
 @EXPLAINABILITY_METRICS.register("robustness/sensitivity_max_and_avg")
@@ -32,7 +36,6 @@ class SensitivityMaxAvgConfig(ExplainabilityMetricConfig):
 
 class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
     __config__ = SensitivityMaxAvgConfig
-    _score_keys: ClassVar[list[str]] = ["sensitivity_max", "sensitivity_avg"]
 
     def _update(
         self,
@@ -73,4 +76,22 @@ class SensitivityMaxAvg(ExplainabilityMetric[SensitivityMaxAvgConfig]):
             return_dict=True,
         )
         assert isinstance(outputs, dict)
-        return outputs
+        output_cls = (
+            BatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetBatchMetricOuptut
+        )
+        return [
+            output_cls(
+                key="axiomatic/sensitivity_max",
+                value=outputs["sensitivity_max"].tolist()
+                if not explanation_inputs.is_multi_target
+                else [x.tolist() for x in outputs["sensitivity_max"]],
+            ),
+            output_cls(
+                key="faithfulness/sensitivity_avg",
+                value=outputs["sensitivity_avg"].tolist()
+                if not explanation_inputs.is_multi_target
+                else [x.tolist() for x in outputs["sensitivity_avg"]],
+            ),
+        ]

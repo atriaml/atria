@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import time
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any, ClassVar, Generic
+from typing import ClassVar, Generic
 
+import numpy as np
 import torch
 from atria_logger import get_logger
 from atria_registry._module_base import ConfigurableModule
 from ignite.engine import Engine
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
+from pydantic import BaseModel, field_validator
 from torchxai.data_types import ExplanationTarget
 from torchxai.explainers import Explainer
 
@@ -28,6 +31,38 @@ from atria_insights.storage.sample_cache_managers._metric_data_cacher import (
 )
 
 logger = get_logger(__name__)
+
+
+class BatchMetricOuptut(BaseModel):
+    key: str
+    value: list[float] | list[list[float]]
+
+
+class MultiTargetBatchMetricOuptut(BaseModel):
+    key: str
+    value: list[list[float]] | list[list[list[float]]]
+
+    # hanlde multi target transform
+    @field_validator("value", mode="after")
+    def _transpose_value(
+        value: list[list[float]] | list[list[list[float]]],
+    ) -> list[MultiTargetTimedBatchMetricOuptut]:
+        print("value", len(value), len(value[0]))
+        transformed_value = list(map(list, zip(*value, strict=True)))
+        print("transformed_value", len(transformed_value), len(transformed_value[0]))
+        return transformed_value
+
+
+class TimedBatchMetricOuptut(BatchMetricOuptut):
+    key: str
+    value: list[float] | list[list[float]]
+    exec_time_ms: list[float]
+
+
+class MultiTargetTimedBatchMetricOuptut(BatchMetricOuptut):
+    key: str
+    value: list[list[float]] | list[list[list[float]]]
+    exec_time_ms: list[float]
 
 
 class ExplainabilityMetric(
@@ -102,7 +137,7 @@ class ExplainabilityMetric(
         self,
         explanation_inputs: BatchExplanationInputs,
         explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-    ) -> dict[str, Any]:
+    ) -> list[BatchMetricOuptut | MultiTargetBatchMetricOuptut]:
         """Execute the metric function. Must be implemented by subclasses."""
         pass
 
@@ -133,6 +168,60 @@ class ExplainabilityMetric(
         engine.state.x_metric_completed = self.name
         engine.fire_event(MetricUpdateEvents.X_METRIC_COMPLETED)
 
+    def _timed_update(
+        self, explanation_step_output: ExplanationStepOutput
+    ) -> list[TimedBatchMetricOuptut]:
+        # Measure execution time
+        start_time = time.time()
+
+        # Compute metric
+        # put items to device
+        explanation_inputs = explanation_step_output.explanation_inputs.to_device(
+            self._device
+        )
+        explanation_state = explanation_step_output.explanation_state.to_device(
+            self._device
+        )
+
+        # convert explanations to list if multi-target
+        if isinstance(explanation_state.explanations, MultiTargetBatchExplanation):
+            explanations = [e.value for e in explanation_state.explanations.value]
+        else:
+            explanations = explanation_state.explanations.value
+
+        logger.info(
+            f"Computing metric {self.name} for batch size {explanation_inputs.batch_size}."
+        )
+
+        # compute metric
+        batch_metric_outputs = self._update(
+            explanation_inputs=explanation_inputs, explanations=explanations
+        )
+
+        # Measure end time
+        end_time = time.time()
+
+        # store execution time per sample
+        batch_exec_time = [
+            (end_time - start_time) * 1000 / explanation_inputs.batch_size
+            for _ in range(explanation_inputs.batch_size)
+        ]
+
+        cls = (
+            TimedBatchMetricOuptut
+            if not explanation_inputs.is_multi_target
+            else MultiTargetTimedBatchMetricOuptut
+        )
+        timed_batch_metric_output = [
+            cls(
+                key=batch_metric_output.key,
+                value=batch_metric_output.value,
+                exec_time_ms=batch_exec_time,
+            )
+            for batch_metric_output in batch_metric_outputs
+        ]
+        return timed_batch_metric_output
+
     @reinit__is_reduced
     def update(self, explanation_step_output: ExplanationStepOutput) -> None:
         """
@@ -156,11 +245,11 @@ class ExplainabilityMetric(
                     data = self._load_from_disk(
                         sample_ids=explanation_step_output.explanation_inputs.sample_id
                     )
-                    # logger.info("Metric data loaded.")
                     self._results.append(data)
                     self._num_examples += (
                         explanation_step_output.explanation_inputs.batch_size
                     )
+                    print("results loaded from cache", data)
                     return
                 except Exception as e:
                     logger.warning(
@@ -170,94 +259,23 @@ class ExplainabilityMetric(
 
         logger.debug(f"Computing metric {self.name}.")
 
-        # Measure execution time
-        start_time = time.time()
-
-        # Compute metric
-        # put items to device
-        explanation_inputs = explanation_step_output.explanation_inputs.to_device(
-            self._device
-        )
-        explanation_state = explanation_step_output.explanation_state.to_device(
-            self._device
+        timed_batch_metric_outputs = self._timed_update(
+            explanation_step_output=explanation_step_output
         )
 
-        # convert explanations to list if multi-target
-        if isinstance(explanation_state.explanations, MultiTargetBatchExplanation):
-            explanations = [e.value for e in explanation_state.explanations.value]
-        else:
-            explanations = explanation_state.explanations.value
-
-        logger.info(
-            f"Computing metric {self.name} for batch size {explanation_inputs.batch_size}."
-        )
-        # compute metric
-        metric_output = self._update(
-            explanation_inputs=explanation_inputs, explanations=explanations
-        )
-
-        # Measure end time
-        end_time = time.time()
-
-        # store execution time per sample
-        batch_exec_time = torch.tensor(end_time - start_time, requires_grad=False)
-        sample_exec_time = torch.stack(
-            [
-                batch_exec_time / explanation_inputs.batch_size
-                for _ in range(explanation_inputs.batch_size)
-            ]
-        )
-
-        # if it is multitarget each key, value would be key, list {batch values} so we transpose it
-        if explanation_inputs.is_multi_target:
-            n_targets = len(explanation_inputs.target)
-            logger.debug(
-                f"Transposing multi-target metric output for {n_targets} targets."
+        # flatten the batch metric outputs
+        metric_output = {}
+        for timed_batch_metric_output in timed_batch_metric_outputs:
+            metric_output[f"metric/{timed_batch_metric_output.key}/score"] = (
+                timed_batch_metric_output.value
             )
-            for key, value in metric_output.items():
-                assert isinstance(value, list), (
-                    f"Expected list for multi-target metric output, got {type(value)}"
-                )
-                if isinstance(value[0], torch.Tensor):
-                    metric_output[key] = torch.stack(value).transpose(0, 1)
-                    assert (
-                        metric_output[key].shape[0] == explanation_inputs.batch_size
-                    ), (
-                        f"Expected shape[0] to be batch size {explanation_inputs.batch_size}, got {metric_output[key].shape[0]}"
-                    )
-                    assert metric_output[key].shape[1] == n_targets, (
-                        f"Expected shape[1] to be number of targets {len(value)}, got {metric_output[key].shape[1]}"
-                    )
-                else:
-                    metric_output[key] = list(map(list, zip(*value, strict=True)))
-                    assert len(metric_output[key]) == explanation_inputs.batch_size, (
-                        f"Expected length to be batch size {explanation_inputs.batch_size}, got {len(metric_output[key])}"
-                    )
-                    assert all(
-                        len(metric_output[key][i]) == n_targets
-                        for i in range(explanation_inputs.batch_size)
-                    ), f"Expected inner length to be number of targets {n_targets}"
-
-                # recursively convert numpy arrays to tensors if any
-                def _convert_to_tensor(item):
-                    import numpy as np
-
-                    if isinstance(item, np.ndarray):
-                        return torch.tensor(item)
-                    elif isinstance(item, list):
-                        return [_convert_to_tensor(i) for i in item]
-                    elif isinstance(item, dict):
-                        return {k: _convert_to_tensor(v) for k, v in item.items()}
-                    else:
-                        return item
-
-                metric_output[key] = _convert_to_tensor(metric_output[key])
-
-            logger.debug(f"Transposed metric output: {metric_output}")
+            metric_output[f"metric/{timed_batch_metric_output.key}/exec_time_ms"] = (
+                timed_batch_metric_output.exec_time_ms
+            )
 
         metric_data = BatchMetricData(
-            sample_id=explanation_inputs.sample_id,
-            data={**metric_output, "sample_exec_time": sample_exec_time},
+            sample_id=explanation_step_output.explanation_inputs.sample_id,
+            data={**metric_output},
             config=self.config.model_dump(),
         )
 
@@ -276,47 +294,26 @@ class ExplainabilityMetric(
                 self._cacher.save_sample(sample_metric_data)
 
         # Accumulate results
-        self._num_examples += explanation_inputs.batch_size
+        self._num_examples += explanation_step_output.explanation_inputs.batch_size
         self._results.append(metric_data.data)
+        print("results loaded directly", metric_data.data)
 
     def compute(self) -> dict:
-        """Aggregate accumulated per-batch results into a summary dict.
-
-        For each key in _score_keys, concatenates values across all batches,
-        flattens (handling multi-target tensors), and returns nanmean.
-        """
         if not self._results:
             return {}
 
-        summary = {}
-        for key in self._score_keys:
-            values = []
-            for batch in self._results:
-                if key not in batch:
-                    continue
-                v = batch[key]
-                if isinstance(v, torch.Tensor):
-                    values.append(v.flatten().float().cpu())
-                elif isinstance(v, list):
-                    flat = []
-                    for item in v:
-                        if isinstance(item, list):
-                            flat.extend(item)
-                        else:
-                            flat.append(item)
-                    values.append(torch.tensor(flat, dtype=torch.float32).cpu())
-            summary[key] = (
-                torch.nanmean(torch.cat(values)).item() if values else float("nan")
-            )
+        def flatten(lst):
+            return [x for xs in lst for x in xs]
 
-        exec_times = torch.cat(
-            [
-                batch["sample_exec_time"].flatten().float().cpu()
-                for batch in self._results
-            ]
-        )
-        summary["exec_time"] = torch.nanmean(exec_times).item()
-        return summary
+        accumulated = defaultdict(list)
+        for result in self._results:
+            for key, values in result.items():
+                if isinstance(values[0], list):
+                    accumulated[key].extend(flatten(values))
+                else:
+                    accumulated[key].extend(values)
+        mean_results = {key: np.mean(values) for key, values in accumulated.items()}
+        return mean_results
 
     def completed(self, engine: Engine, name: str) -> None:
         result = self.compute()
@@ -329,7 +326,7 @@ class ExplainabilityMetric(
                 )
 
             for key, value in result.items():
-                engine.state.metrics[".".join([self._metric_unique_name, key])] = value
+                engine.state.metrics[key] = value
         else:
             if isinstance(result, torch.Tensor):
                 if len(result.size()) == 0:
