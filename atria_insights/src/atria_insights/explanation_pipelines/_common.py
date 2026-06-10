@@ -60,6 +60,11 @@ class SlidingWindowConfig(BaseModel):
     image_h: int = Field(default=16, ge=1, le=256)
     image_w: int = Field(default=16, ge=1, le=256)
 
+    @property
+    def value(self):
+        return {
+            'image': (self.image_c, self.image_h, self.image_w),
+        }
 
 class ExplainabilityMetrics(BaseModel):
     completeness: CompletenessConfig = CompletenessConfig()

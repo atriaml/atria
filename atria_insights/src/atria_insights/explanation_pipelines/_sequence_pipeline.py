@@ -53,6 +53,16 @@ class SequenceSlidingWindowConfig(SlidingWindowConfig):
     token_type_ids: int = 8
     layout_ids: int = 8
 
+    @property
+    def value(self):
+        return {
+            'image': (self.image_c, self.image_h, self.image_w),
+            'token_ids': (8,),
+            'position_ids': (8,),
+            'token_type_ids': (8,),
+            'layout_ids': (8,),
+        }
+
 
 class SequenceModelExplanationPipelineConfig(ExplanationPipelineConfig):
     __schema_exclude__: ClassVar[set[str]] = {
@@ -499,10 +509,8 @@ class SequenceModelExplanationPipeline(
         for key in input_feature_keys:
             if key in self.config.ignored_feature_ids:
                 continue
-            sliding_window_shapes_map[key] = (
-                self.config.sliding_window_shapes_map.__dict__[key],
-            )
-            strides[key] = (self.config.strides_map.__dict__[key],)
+            sliding_window_shapes_map[key] = self.config.sliding_window_shapes_map.value[key]
+            strides[key] = self.config.strides_map.value[key]
 
         return sliding_window_shapes_map, strides
 

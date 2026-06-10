@@ -200,12 +200,12 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
             if self.config.image == "none":
                 baseline_embeddings["image"] = image
             else:
-                assert (
-                    self.config.image_mean is not None
-                    and self.config.image_std is not None
-                ), (
-                    "image_mean and image_std must be provided for image baseline generation"
-                )
+                # assert (
+                #     self.config.image_mean is not None
+                #     and self.config.image_std is not None
+                # ), (
+                #     "image_mean and image_std must be provided for image baseline generation"
+                # )
                 # validate shape of image
                 assert image.ndim == 4, (
                     f"Image input should be 4-dimensional (B, C, H, W), but got {sequence_inputs['image'].ndim} dimensions"
@@ -213,8 +213,8 @@ class SequenceBaselineGenerator(BaselineGenerator[SequenceBaselineGeneratorConfi
                 baseline_embeddings["image"] = self._create_image_baseline(
                     image=image,
                     baseline_type=self.config.image,
-                    mean=self.config.image_mean,
-                    std=self.config.image_std,
+                    mean=self.config.image_mean or [0.5 ,0.5, 0.5],
+                    std=self.config.image_std or [0.5 ,0.5, 0.5],
                 )
         return baseline_embeddings
 
