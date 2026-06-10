@@ -55,6 +55,7 @@ class BaseExplanationPipeline(
         super().__init__(config=config)
         self._model_pipeline = model_pipeline
         self._cacher = None
+        self._metric_cacher = None
         self._build()
 
     @property
