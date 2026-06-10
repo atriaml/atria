@@ -134,19 +134,27 @@ class MLflowDataCacher:
     ) -> SerializableSampleData:
         safe_key = self._safe_key(sample_key)
         base = f"{self._artifact_prefix}/{safe_key}"
-
         attrs = self._read_artifact_json(f"{base}/attrs.json")
         stored_id = attrs.get("sample_id", sample_key)
-
         tensors = None
         if load_tensors:
-            try:
-                buf = self._read_artifact_bytes(f"{base}/tensors.npz")
-                flat = dict(np.load(buf, allow_pickle=False))
-                tensors = _unflatten_tensors(flat) if flat else None
-            except Exception:
-                pass
-
+            tensors_path = f"{base}/tensors.npz"
+            artifacts = self._artifact_repo.list_artifacts(base)
+            has_tensors = any(a.path.endswith("tensors.npz") for a in artifacts)
+            if has_tensors:
+                try:
+                    buf = self._read_artifact_bytes(tensors_path)
+                    flat = dict(np.load(buf, allow_pickle=False))
+                    tensors = _unflatten_tensors(flat) if flat else None
+                except Exception:
+                    logger.warning(
+                        "Failed to load tensors for sample '%s', skipping.", sample_key
+                    )
+            else:
+                logger.debug(
+                    "No tensors.npz found for sample '%s', skipping tensor load.",
+                    sample_key,
+                )
         return SerializableSampleData(sample_id=stored_id, attrs=attrs, tensors=tensors)
 
     def load_sample_attrs(self, sample_key: str) -> dict[str, Any]:
