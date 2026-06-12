@@ -47,9 +47,7 @@ class MultiTargetBatchMetricOuptut(BaseModel):
     def _transpose_value(
         value: list[list[float]] | list[list[list[float]]],
     ) -> list[MultiTargetTimedBatchMetricOuptut]:
-        print("value", len(value), len(value[0]))
         transformed_value = list(map(list, zip(*value, strict=True)))
-        print("transformed_value", len(transformed_value), len(transformed_value[0]))
         return transformed_value
 
 
@@ -249,7 +247,6 @@ class ExplainabilityMetric(
                     self._num_examples += (
                         explanation_step_output.explanation_inputs.batch_size
                     )
-                    print("results loaded from cache", data)
                     return
                 except Exception as e:
                     logger.warning(
@@ -296,7 +293,6 @@ class ExplainabilityMetric(
         # Accumulate results
         self._num_examples += explanation_step_output.explanation_inputs.batch_size
         self._results.append(metric_data.data)
-        print("results loaded directly", metric_data.data)
 
     def compute(self) -> dict:
         if not self._results:

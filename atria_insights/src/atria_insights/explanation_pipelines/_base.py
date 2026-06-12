@@ -776,10 +776,10 @@ class BaseExplanationPipeline(
         # build explainer
         x_metrics = {}
         for key, value in self.config.explainability_metrics.__dict__.items():
-            logger.info(
-                "Building explainability metric '%s' with config: %s", key, value
-            )
             if value.enabled:
+                logger.info(
+                    "Building explainability metric '%s' with config: %s", key, value
+                )
                 x_metrics[key] = value.build(
                     model=self._wrapped_model,
                     explainer=self._explainer,

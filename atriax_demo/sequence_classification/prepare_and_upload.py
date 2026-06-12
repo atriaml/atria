@@ -45,7 +45,7 @@ def main(
     warmup_steps: int = 1000,
     splitting_enabled: bool = True,
     split_ratio: float = 0.95,
-    run_eval: bool = False,
+    run_eval: bool = True,
     eval_checkpoint: str | None = None,
     upload_name: str = "my_uploaded_model",
 ):
@@ -176,6 +176,7 @@ if __name__ == "__main__":
             exp_name=f"eval_{config['dataset_name'].replace('/', '_')}_{config['model_name']}",
             dataset_name=config["dataset_name"],
             model_name=config["model_name"],
+            tokenizer_name=config['tokenizer_name'],
             eval_checkpoint=config["eval_checkpoint"],
             upload_name=config["upload_name"],
         )
