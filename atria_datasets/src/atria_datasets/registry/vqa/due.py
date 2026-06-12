@@ -445,6 +445,7 @@ class InputTransform(DatasetInputTransform):
 )
 class DueBenchmark(DocumentDataset):
     __config__ = DueBenchmarkConfig
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> dict[str, str]:
         return {

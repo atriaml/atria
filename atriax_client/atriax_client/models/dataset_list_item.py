@@ -25,7 +25,6 @@ class DatasetListItem:
         created_at (str):
         updated_at (str):
         name (str):
-        description (str):
         type_ (str):
         user_id (UUID):
         storage_metadata (DatasetStorageMetadata):
@@ -38,7 +37,6 @@ class DatasetListItem:
     created_at: str
     updated_at: str
     name: str
-    description: str
     type_: str
     user_id: UUID
     storage_metadata: DatasetStorageMetadata
@@ -55,8 +53,6 @@ class DatasetListItem:
         updated_at = self.updated_at
 
         name = self.name
-
-        description = self.description
 
         type_ = self.type_
 
@@ -78,7 +74,6 @@ class DatasetListItem:
                 "created_at": created_at,
                 "updated_at": updated_at,
                 "name": name,
-                "description": description,
                 "type": type_,
                 "user_id": user_id,
                 "storage_metadata": storage_metadata,
@@ -105,8 +100,6 @@ class DatasetListItem:
 
         name = d.pop("name")
 
-        description = d.pop("description")
-
         type_ = d.pop("type")
 
         user_id = UUID(d.pop("user_id"))
@@ -124,7 +117,6 @@ class DatasetListItem:
             created_at=created_at,
             updated_at=updated_at,
             name=name,
-            description=description,
             type_=type_,
             user_id=user_id,
             storage_metadata=storage_metadata,

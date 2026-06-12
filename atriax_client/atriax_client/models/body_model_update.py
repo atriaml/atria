@@ -16,12 +16,10 @@ class BodyModelUpdate:
     """
     Attributes:
         name (None | str | Unset):
-        description (None | str | Unset):
         is_public (bool | None | Unset):
     """
 
     name: None | str | Unset = UNSET
-    description: None | str | Unset = UNSET
     is_public: bool | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -31,12 +29,6 @@ class BodyModelUpdate:
             name = UNSET
         else:
             name = self.name
-
-        description: None | str | Unset
-        if isinstance(self.description, Unset):
-            description = UNSET
-        else:
-            description = self.description
 
         is_public: bool | None | Unset
         if isinstance(self.is_public, Unset):
@@ -49,8 +41,6 @@ class BodyModelUpdate:
         field_dict.update({})
         if name is not UNSET:
             field_dict["name"] = name
-        if description is not UNSET:
-            field_dict["description"] = description
         if is_public is not UNSET:
             field_dict["is_public"] = is_public
 
@@ -69,15 +59,6 @@ class BodyModelUpdate:
 
         name = _parse_name(d.pop("name", UNSET))
 
-        def _parse_description(data: object) -> None | str | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | str | Unset, data)
-
-        description = _parse_description(d.pop("description", UNSET))
-
         def _parse_is_public(data: object) -> bool | None | Unset:
             if data is None:
                 return data
@@ -89,7 +70,6 @@ class BodyModelUpdate:
 
         body_model_update = cls(
             name=name,
-            description=description,
             is_public=is_public,
         )
 

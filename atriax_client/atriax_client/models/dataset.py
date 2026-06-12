@@ -24,7 +24,6 @@ class Dataset:
         created_at (str):
         updated_at (str):
         name (str):
-        description (str):
         type_ (str):
         repo_id (str):
         user_id (UUID):
@@ -38,7 +37,6 @@ class Dataset:
     created_at: str
     updated_at: str
     name: str
-    description: str
     type_: str
     repo_id: str
     user_id: UUID
@@ -55,8 +53,6 @@ class Dataset:
         updated_at = self.updated_at
 
         name = self.name
-
-        description = self.description
 
         type_ = self.type_
 
@@ -80,7 +76,6 @@ class Dataset:
                 "created_at": created_at,
                 "updated_at": updated_at,
                 "name": name,
-                "description": description,
                 "type": type_,
                 "repo_id": repo_id,
                 "user_id": user_id,
@@ -108,8 +103,6 @@ class Dataset:
 
         name = d.pop("name")
 
-        description = d.pop("description")
-
         type_ = d.pop("type")
 
         repo_id = d.pop("repo_id")
@@ -129,7 +122,6 @@ class Dataset:
             created_at=created_at,
             updated_at=updated_at,
             name=name,
-            description=description,
             type_=type_,
             repo_id=repo_id,
             user_id=user_id,

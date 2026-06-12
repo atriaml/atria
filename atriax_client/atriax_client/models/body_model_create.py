@@ -19,14 +19,15 @@ class BodyModelCreate:
     Attributes:
         name (str):
         default_branch (str | Unset):  Default: 'main'.
-        description (str | Unset):
+        description (str | Unset):  Default: 'A short description of the model, its intended use, and any other relevant
+            information.'.
         is_public (bool | Unset):  Default: False.
         file (File | None | Unset):
     """
 
     name: str
     default_branch: str | Unset = "main"
-    description: str | Unset = UNSET
+    description: str | Unset = "A short description of the model, its intended use, and any other relevant information."
     is_public: bool | Unset = False
     file: File | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
