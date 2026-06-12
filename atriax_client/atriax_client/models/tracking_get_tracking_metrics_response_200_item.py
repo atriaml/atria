@@ -6,11 +6,11 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="SampleExplanationMetricData")
+T = TypeVar("T", bound="TrackingGetTrackingMetricsResponse200Item")
 
 
 @_attrs_define
-class SampleExplanationMetricData:
+class TrackingGetTrackingMetricsResponse200Item:
     """ """
 
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -24,10 +24,10 @@ class SampleExplanationMetricData:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        sample_explanation_metric_data = cls()
+        tracking_get_tracking_metrics_response_200_item = cls()
 
-        sample_explanation_metric_data.additional_properties = d
-        return sample_explanation_metric_data
+        tracking_get_tracking_metrics_response_200_item.additional_properties = d
+        return tracking_get_tracking_metrics_response_200_item
 
     @property
     def additional_keys(self) -> list[str]:

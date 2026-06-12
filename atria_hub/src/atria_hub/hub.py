@@ -8,12 +8,9 @@ from atria_hub.config import settings
 
 if TYPE_CHECKING:
     from atria_hub.api.auth import AuthApi
-    from atria_hub.api.config_snapshots import ConfigSnapshotsApi
     from atria_hub.api.datasets import DatasetsApi
-    from atria_hub.api.evaluations import EvaluationsApi
     from atria_hub.api.health_check import HealthCheckApi
     from atria_hub.api.models import ModelsApi
-    from atria_hub.api.tasks import TasksApi
     from atria_hub.client import AtriaHubClient
     from atria_hub.models import AuthLoginModel
 
@@ -31,13 +28,10 @@ class AtriaHub:
         use_key_ring: bool = True,
     ):
         from atria_hub.api.auth import AuthApi
-        from atria_hub.api.config_snapshots import ConfigSnapshotsApi
         from atria_hub.api.credentials import RepoCredentialsApi
         from atria_hub.api.datasets import DatasetsApi
-        from atria_hub.api.evaluations import EvaluationsApi
         from atria_hub.api.health_check import HealthCheckApi
         from atria_hub.api.models import ModelsApi
-        from atria_hub.api.tasks import TasksApi
         from atria_hub.client import AtriaHubClient
 
         self._base_url = base_url
@@ -63,14 +57,6 @@ class AtriaHub:
         ## initialize repo credentials api
         self._repo_credentials = RepoCredentialsApi(client=self._client)
 
-        # tasks api
-        self._tasks = TasksApi(client=self._client)
-
-        # config snapshot api
-        self._config_snapshots = ConfigSnapshotsApi(client=self._client)
-
-        # evaluation APIs
-        self._evaluations = EvaluationsApi(client=self._client)
 
     def initialize(
         self, credentials: AuthLoginModel | None = None, force_sign_in: bool = False
@@ -128,18 +114,3 @@ class AtriaHub:
     def models(self) -> ModelsApi:
         """Return the models API."""
         return self._models
-
-    @property
-    def tasks(self) -> TasksApi:
-        """Return the tasks API."""
-        return self._tasks
-
-    @property
-    def evaluations(self) -> EvaluationsApi:
-        """Return the evaluations API."""
-        return self._evaluations
-
-    @property
-    def config_snapshots(self) -> ConfigSnapshotsApi:
-        """Return the config snapshots API."""
-        return self._config_snapshots

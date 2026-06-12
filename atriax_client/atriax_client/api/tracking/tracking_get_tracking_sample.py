@@ -14,7 +14,7 @@ from ...types import UNSET, Response
 
 
 def _get_kwargs(
-    sample_index: int,
+    sample_id: str,
     *,
     run_id: str,
 ) -> dict[str, Any]:
@@ -26,8 +26,8 @@ def _get_kwargs(
 
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/tracking/samples/{sample_index}".format(
-            sample_index=quote(str(sample_index), safe=""),
+        "url": "/api/v1/tracking/samples/{sample_id}".format(
+            sample_id=quote(str(sample_id), safe=""),
         ),
         "params": params,
     }
@@ -66,7 +66,7 @@ def _build_response(
 
 
 def sync_detailed(
-    sample_index: int,
+    sample_id: str,
     *,
     client: AuthenticatedClient,
     run_id: str,
@@ -74,7 +74,7 @@ def sync_detailed(
     """Get Tracking Sample
 
     Args:
-        sample_index (int):
+        sample_id (str):
         run_id (str):
 
     Raises:
@@ -86,7 +86,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        sample_index=sample_index,
+        sample_id=sample_id,
         run_id=run_id,
     )
 
@@ -98,7 +98,7 @@ def sync_detailed(
 
 
 def sync(
-    sample_index: int,
+    sample_id: str,
     *,
     client: AuthenticatedClient,
     run_id: str,
@@ -106,7 +106,7 @@ def sync(
     """Get Tracking Sample
 
     Args:
-        sample_index (int):
+        sample_id (str):
         run_id (str):
 
     Raises:
@@ -118,14 +118,14 @@ def sync(
     """
 
     return sync_detailed(
-        sample_index=sample_index,
+        sample_id=sample_id,
         client=client,
         run_id=run_id,
     ).parsed
 
 
 async def asyncio_detailed(
-    sample_index: int,
+    sample_id: str,
     *,
     client: AuthenticatedClient,
     run_id: str,
@@ -133,7 +133,7 @@ async def asyncio_detailed(
     """Get Tracking Sample
 
     Args:
-        sample_index (int):
+        sample_id (str):
         run_id (str):
 
     Raises:
@@ -145,7 +145,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        sample_index=sample_index,
+        sample_id=sample_id,
         run_id=run_id,
     )
 
@@ -155,7 +155,7 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    sample_index: int,
+    sample_id: str,
     *,
     client: AuthenticatedClient,
     run_id: str,
@@ -163,7 +163,7 @@ async def asyncio(
     """Get Tracking Sample
 
     Args:
-        sample_index (int):
+        sample_id (str):
         run_id (str):
 
     Raises:
@@ -176,7 +176,7 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            sample_index=sample_index,
+            sample_id=sample_id,
             client=client,
             run_id=run_id,
         )

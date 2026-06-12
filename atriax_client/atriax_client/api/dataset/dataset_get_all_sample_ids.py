@@ -52,9 +52,9 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | list[int] | None:
+) -> HTTPValidationError | list[str] | None:
     if response.status_code == 200:
-        response_200 = cast(list[int], response.json())
+        response_200 = cast(list[str], response.json())
 
         return response_200
 
@@ -71,7 +71,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | list[int]]:
+) -> Response[HTTPValidationError | list[str]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -88,7 +88,7 @@ def sync_detailed(
     client: AuthenticatedClient,
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-) -> Response[HTTPValidationError | list[int]]:
+) -> Response[HTTPValidationError | list[str]]:
     """Get All Sample Ids
 
     Args:
@@ -103,7 +103,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[HTTPValidationError | list[str]]
     """
 
     kwargs = _get_kwargs(
@@ -129,7 +129,7 @@ def sync(
     client: AuthenticatedClient,
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-) -> HTTPValidationError | list[int] | None:
+) -> HTTPValidationError | list[str] | None:
     """Get All Sample Ids
 
     Args:
@@ -144,7 +144,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        HTTPValidationError | list[str]
     """
 
     return sync_detailed(
@@ -165,7 +165,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-) -> Response[HTTPValidationError | list[int]]:
+) -> Response[HTTPValidationError | list[str]]:
     """Get All Sample Ids
 
     Args:
@@ -180,7 +180,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[HTTPValidationError | list[str]]
     """
 
     kwargs = _get_kwargs(
@@ -204,7 +204,7 @@ async def asyncio(
     client: AuthenticatedClient,
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-) -> HTTPValidationError | list[int] | None:
+) -> HTTPValidationError | list[str] | None:
     """Get All Sample Ids
 
     Args:
@@ -219,7 +219,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        HTTPValidationError | list[str]
     """
 
     return (

@@ -11,28 +11,25 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.dataset_config import DatasetConfig
-    from ..models.explainer_pipeline_config import ExplainerPipelineConfig
     from ..models.model_config import ModelConfig
 
 
-T = TypeVar("T", bound="ExplanationTaskConfig")
+T = TypeVar("T", bound="InferenceTaskConfig")
 
 
 @_attrs_define
-class ExplanationTaskConfig:
+class InferenceTaskConfig:
     """
     Attributes:
         dataset (DatasetConfig):
         model (ModelConfig):
-        experiment_id (UUID):
-        explainer_pipeline (ExplainerPipelineConfig):
+        experiment_id (None | Unset | UUID):
         sample_ids (list[str] | None | Unset):
     """
 
     dataset: DatasetConfig
     model: ModelConfig
-    experiment_id: UUID
-    explainer_pipeline: ExplainerPipelineConfig
+    experiment_id: None | Unset | UUID = UNSET
     sample_ids: list[str] | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -41,9 +38,13 @@ class ExplanationTaskConfig:
 
         model = self.model.to_dict()
 
-        experiment_id = str(self.experiment_id)
-
-        explainer_pipeline = self.explainer_pipeline.to_dict()
+        experiment_id: None | str | Unset
+        if isinstance(self.experiment_id, Unset):
+            experiment_id = UNSET
+        elif isinstance(self.experiment_id, UUID):
+            experiment_id = str(self.experiment_id)
+        else:
+            experiment_id = self.experiment_id
 
         sample_ids: list[str] | None | Unset
         if isinstance(self.sample_ids, Unset):
@@ -60,10 +61,10 @@ class ExplanationTaskConfig:
             {
                 "dataset": dataset,
                 "model": model,
-                "experiment_id": experiment_id,
-                "explainer_pipeline": explainer_pipeline,
             }
         )
+        if experiment_id is not UNSET:
+            field_dict["experiment_id"] = experiment_id
         if sample_ids is not UNSET:
             field_dict["sample_ids"] = sample_ids
 
@@ -72,7 +73,6 @@ class ExplanationTaskConfig:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.dataset_config import DatasetConfig
-        from ..models.explainer_pipeline_config import ExplainerPipelineConfig
         from ..models.model_config import ModelConfig
 
         d = dict(src_dict)
@@ -80,9 +80,22 @@ class ExplanationTaskConfig:
 
         model = ModelConfig.from_dict(d.pop("model"))
 
-        experiment_id = UUID(d.pop("experiment_id"))
+        def _parse_experiment_id(data: object) -> None | Unset | UUID:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                experiment_id_type_0 = UUID(data)
 
-        explainer_pipeline = ExplainerPipelineConfig.from_dict(d.pop("explainer_pipeline"))
+                return experiment_id_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | Unset | UUID, data)
+
+        experiment_id = _parse_experiment_id(d.pop("experiment_id", UNSET))
 
         def _parse_sample_ids(data: object) -> list[str] | None | Unset:
             if data is None:
@@ -101,16 +114,15 @@ class ExplanationTaskConfig:
 
         sample_ids = _parse_sample_ids(d.pop("sample_ids", UNSET))
 
-        explanation_task_config = cls(
+        inference_task_config = cls(
             dataset=dataset,
             model=model,
             experiment_id=experiment_id,
-            explainer_pipeline=explainer_pipeline,
             sample_ids=sample_ids,
         )
 
-        explanation_task_config.additional_properties = d
-        return explanation_task_config
+        inference_task_config.additional_properties = d
+        return inference_task_config
 
     @property
     def additional_keys(self) -> list[str]:

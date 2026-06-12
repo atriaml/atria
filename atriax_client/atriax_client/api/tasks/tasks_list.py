@@ -19,7 +19,7 @@ def _get_kwargs(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    experiment_name: None | str | Unset = UNSET,
+    resource_id: None | str | Unset = UNSET,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {}
 
@@ -47,12 +47,12 @@ def _get_kwargs(
         json_search_by = search_by
     params["search_by"] = json_search_by
 
-    json_experiment_name: None | str | Unset
-    if isinstance(experiment_name, Unset):
-        json_experiment_name = UNSET
+    json_resource_id: None | str | Unset
+    if isinstance(resource_id, Unset):
+        json_resource_id = UNSET
     else:
-        json_experiment_name = experiment_name
-    params["experiment_name"] = json_experiment_name
+        json_resource_id = resource_id
+    params["resource_id"] = json_resource_id
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
@@ -110,7 +110,7 @@ def sync_detailed(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    experiment_name: None | str | Unset = UNSET,
+    resource_id: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[Task]]:
     """List
 
@@ -122,7 +122,7 @@ def sync_detailed(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        experiment_name (None | str | Unset):
+        resource_id (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,7 +140,7 @@ def sync_detailed(
         order=order,
         search=search,
         search_by=search_by,
-        experiment_name=experiment_name,
+        resource_id=resource_id,
     )
 
     response = client.get_httpx_client().request(
@@ -160,7 +160,7 @@ def sync(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    experiment_name: None | str | Unset = UNSET,
+    resource_id: None | str | Unset = UNSET,
 ) -> HTTPValidationError | list[Task] | None:
     """List
 
@@ -172,7 +172,7 @@ def sync(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        experiment_name (None | str | Unset):
+        resource_id (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -191,7 +191,7 @@ def sync(
         order=order,
         search=search,
         search_by=search_by,
-        experiment_name=experiment_name,
+        resource_id=resource_id,
     ).parsed
 
 
@@ -205,7 +205,7 @@ async def asyncio_detailed(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    experiment_name: None | str | Unset = UNSET,
+    resource_id: None | str | Unset = UNSET,
 ) -> Response[HTTPValidationError | list[Task]]:
     """List
 
@@ -217,7 +217,7 @@ async def asyncio_detailed(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        experiment_name (None | str | Unset):
+        resource_id (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -235,7 +235,7 @@ async def asyncio_detailed(
         order=order,
         search=search,
         search_by=search_by,
-        experiment_name=experiment_name,
+        resource_id=resource_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -253,7 +253,7 @@ async def asyncio(
     order: str | Unset = "desc",
     search: None | str | Unset = UNSET,
     search_by: None | str | Unset = UNSET,
-    experiment_name: None | str | Unset = UNSET,
+    resource_id: None | str | Unset = UNSET,
 ) -> HTTPValidationError | list[Task] | None:
     """List
 
@@ -265,7 +265,7 @@ async def asyncio(
         order (str | Unset):  Default: 'desc'.
         search (None | str | Unset):
         search_by (None | str | Unset):
-        experiment_name (None | str | Unset):
+        resource_id (None | str | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -285,6 +285,6 @@ async def asyncio(
             order=order,
             search=search,
             search_by=search_by,
-            experiment_name=experiment_name,
+            resource_id=resource_id,
         )
     ).parsed

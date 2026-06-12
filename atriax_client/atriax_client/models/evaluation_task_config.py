@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar
+from uuid import UUID
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
-
-from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.dataset_config import DatasetConfig
@@ -22,16 +21,12 @@ class EvaluationTaskConfig:
     Attributes:
         dataset (DatasetConfig):
         model (ModelConfig):
-        is_metrics_computation_run (bool | Unset):  Default: False.
-        experiment_name (None | str | Unset):
-        run_name (None | str | Unset):
+        experiment_id (UUID):
     """
 
     dataset: DatasetConfig
     model: ModelConfig
-    is_metrics_computation_run: bool | Unset = False
-    experiment_name: None | str | Unset = UNSET
-    run_name: None | str | Unset = UNSET
+    experiment_id: UUID
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,19 +34,7 @@ class EvaluationTaskConfig:
 
         model = self.model.to_dict()
 
-        is_metrics_computation_run = self.is_metrics_computation_run
-
-        experiment_name: None | str | Unset
-        if isinstance(self.experiment_name, Unset):
-            experiment_name = UNSET
-        else:
-            experiment_name = self.experiment_name
-
-        run_name: None | str | Unset
-        if isinstance(self.run_name, Unset):
-            run_name = UNSET
-        else:
-            run_name = self.run_name
+        experiment_id = str(self.experiment_id)
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -59,14 +42,9 @@ class EvaluationTaskConfig:
             {
                 "dataset": dataset,
                 "model": model,
+                "experiment_id": experiment_id,
             }
         )
-        if is_metrics_computation_run is not UNSET:
-            field_dict["is_metrics_computation_run"] = is_metrics_computation_run
-        if experiment_name is not UNSET:
-            field_dict["experiment_name"] = experiment_name
-        if run_name is not UNSET:
-            field_dict["run_name"] = run_name
 
         return field_dict
 
@@ -80,32 +58,12 @@ class EvaluationTaskConfig:
 
         model = ModelConfig.from_dict(d.pop("model"))
 
-        is_metrics_computation_run = d.pop("is_metrics_computation_run", UNSET)
-
-        def _parse_experiment_name(data: object) -> None | str | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | str | Unset, data)
-
-        experiment_name = _parse_experiment_name(d.pop("experiment_name", UNSET))
-
-        def _parse_run_name(data: object) -> None | str | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(None | str | Unset, data)
-
-        run_name = _parse_run_name(d.pop("run_name", UNSET))
+        experiment_id = UUID(d.pop("experiment_id"))
 
         evaluation_task_config = cls(
             dataset=dataset,
             model=model,
-            is_metrics_computation_run=is_metrics_computation_run,
-            experiment_name=experiment_name,
-            run_name=run_name,
+            experiment_id=experiment_id,
         )
 
         evaluation_task_config.additional_properties = d

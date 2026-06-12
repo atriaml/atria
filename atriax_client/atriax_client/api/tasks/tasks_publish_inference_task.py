@@ -1,34 +1,40 @@
 from http import HTTPStatus
-from typing import Any, cast
-from urllib.parse import quote
-from uuid import UUID
+from typing import Any
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
+from ...models.inference_task_config import InferenceTaskConfig
+from ...models.task import Task
 from ...types import Response
 
 
 def _get_kwargs(
-    evaluation_experiment_id: UUID,
+    *,
+    body: InferenceTaskConfig,
 ) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
     _kwargs: dict[str, Any] = {
-        "method": "get",
-        "url": "/api/v1/evaluation_experiments/{evaluation_experiment_id}/sample_evaluations/indices/".format(
-            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
-        ),
+        "method": "post",
+        "url": "/api/v1/tasks/inference/",
     }
 
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | list[int] | None:
+) -> HTTPValidationError | Task | None:
     if response.status_code == 200:
-        response_200 = cast(list[int], response.json())
+        response_200 = Task.from_dict(response.json())
 
         return response_200
 
@@ -45,7 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | list[int]]:
+) -> Response[HTTPValidationError | Task]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -55,25 +61,25 @@ def _build_response(
 
 
 def sync_detailed(
-    evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[HTTPValidationError | list[int]]:
-    """List Indices
+    body: InferenceTaskConfig,
+) -> Response[HTTPValidationError | Task]:
+    """Publish Inference Task
 
     Args:
-        evaluation_experiment_id (UUID):
+        body (InferenceTaskConfig):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[HTTPValidationError | Task]
     """
 
     kwargs = _get_kwargs(
-        evaluation_experiment_id=evaluation_experiment_id,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -84,49 +90,49 @@ def sync_detailed(
 
 
 def sync(
-    evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> HTTPValidationError | list[int] | None:
-    """List Indices
+    body: InferenceTaskConfig,
+) -> HTTPValidationError | Task | None:
+    """Publish Inference Task
 
     Args:
-        evaluation_experiment_id (UUID):
+        body (InferenceTaskConfig):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        HTTPValidationError | Task
     """
 
     return sync_detailed(
-        evaluation_experiment_id=evaluation_experiment_id,
         client=client,
+        body=body,
     ).parsed
 
 
 async def asyncio_detailed(
-    evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[HTTPValidationError | list[int]]:
-    """List Indices
+    body: InferenceTaskConfig,
+) -> Response[HTTPValidationError | Task]:
+    """Publish Inference Task
 
     Args:
-        evaluation_experiment_id (UUID):
+        body (InferenceTaskConfig):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | list[int]]
+        Response[HTTPValidationError | Task]
     """
 
     kwargs = _get_kwargs(
-        evaluation_experiment_id=evaluation_experiment_id,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -135,26 +141,26 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    evaluation_experiment_id: UUID,
     *,
     client: AuthenticatedClient,
-) -> HTTPValidationError | list[int] | None:
-    """List Indices
+    body: InferenceTaskConfig,
+) -> HTTPValidationError | Task | None:
+    """Publish Inference Task
 
     Args:
-        evaluation_experiment_id (UUID):
+        body (InferenceTaskConfig):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | list[int]
+        HTTPValidationError | Task
     """
 
     return (
         await asyncio_detailed(
-            evaluation_experiment_id=evaluation_experiment_id,
             client=client,
+            body=body,
         )
     ).parsed

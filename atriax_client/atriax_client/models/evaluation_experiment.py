@@ -7,8 +7,6 @@ from uuid import UUID
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..types import UNSET, Unset
-
 T = TypeVar("T", bound="EvaluationExperiment")
 
 
@@ -20,28 +18,22 @@ class EvaluationExperiment:
         created_at (str):
         updated_at (str):
         dataset_id (UUID):
-        dataset_branch_commit_sha (str):
-        dataset_config_name (str):
+        dataset_branch (str):
         dataset_split (str):
         model_id (UUID):
-        model_branch_commit_sha (str):
-        model_config_name (str):
+        model_branch (str):
         user_id (UUID):
-        is_public (bool | Unset):  Default: False.
     """
 
     id: UUID
     created_at: str
     updated_at: str
     dataset_id: UUID
-    dataset_branch_commit_sha: str
-    dataset_config_name: str
+    dataset_branch: str
     dataset_split: str
     model_id: UUID
-    model_branch_commit_sha: str
-    model_config_name: str
+    model_branch: str
     user_id: UUID
-    is_public: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -53,21 +45,15 @@ class EvaluationExperiment:
 
         dataset_id = str(self.dataset_id)
 
-        dataset_branch_commit_sha = self.dataset_branch_commit_sha
-
-        dataset_config_name = self.dataset_config_name
+        dataset_branch = self.dataset_branch
 
         dataset_split = self.dataset_split
 
         model_id = str(self.model_id)
 
-        model_branch_commit_sha = self.model_branch_commit_sha
-
-        model_config_name = self.model_config_name
+        model_branch = self.model_branch
 
         user_id = str(self.user_id)
-
-        is_public = self.is_public
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -77,17 +63,13 @@ class EvaluationExperiment:
                 "created_at": created_at,
                 "updated_at": updated_at,
                 "dataset_id": dataset_id,
-                "dataset_branch_commit_sha": dataset_branch_commit_sha,
-                "dataset_config_name": dataset_config_name,
+                "dataset_branch": dataset_branch,
                 "dataset_split": dataset_split,
                 "model_id": model_id,
-                "model_branch_commit_sha": model_branch_commit_sha,
-                "model_config_name": model_config_name,
+                "model_branch": model_branch,
                 "user_id": user_id,
             }
         )
-        if is_public is not UNSET:
-            field_dict["is_public"] = is_public
 
         return field_dict
 
@@ -102,35 +84,26 @@ class EvaluationExperiment:
 
         dataset_id = UUID(d.pop("dataset_id"))
 
-        dataset_branch_commit_sha = d.pop("dataset_branch_commit_sha")
-
-        dataset_config_name = d.pop("dataset_config_name")
+        dataset_branch = d.pop("dataset_branch")
 
         dataset_split = d.pop("dataset_split")
 
         model_id = UUID(d.pop("model_id"))
 
-        model_branch_commit_sha = d.pop("model_branch_commit_sha")
-
-        model_config_name = d.pop("model_config_name")
+        model_branch = d.pop("model_branch")
 
         user_id = UUID(d.pop("user_id"))
-
-        is_public = d.pop("is_public", UNSET)
 
         evaluation_experiment = cls(
             id=id,
             created_at=created_at,
             updated_at=updated_at,
             dataset_id=dataset_id,
-            dataset_branch_commit_sha=dataset_branch_commit_sha,
-            dataset_config_name=dataset_config_name,
+            dataset_branch=dataset_branch,
             dataset_split=dataset_split,
             model_id=model_id,
-            model_branch_commit_sha=model_branch_commit_sha,
-            model_config_name=model_config_name,
+            model_branch=model_branch,
             user_id=user_id,
-            is_public=is_public,
         )
 
         evaluation_experiment.additional_properties = d

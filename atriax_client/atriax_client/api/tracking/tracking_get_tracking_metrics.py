@@ -1,27 +1,32 @@
 from http import HTTPStatus
 from typing import Any
-from urllib.parse import quote
-from uuid import UUID
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.http_validation_error import HTTPValidationError
-from ...models.sample_explanation import SampleExplanation
-from ...types import Response
+from ...models.tracking_get_tracking_metrics_response_200_item import TrackingGetTrackingMetricsResponse200Item
+from ...types import UNSET, Response
 
 
 def _get_kwargs(
-    evaluation_experiment_id: UUID,
-    id: UUID,
+    *,
+    experiment_id: str,
+    sample_id: str,
 ) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+
+    params["experiment_id"] = experiment_id
+
+    params["sample_id"] = sample_id
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
+
     _kwargs: dict[str, Any] = {
         "method": "get",
-        "url": "/api/v1/evaluations/{evaluation_experiment_id}/sample_explanations/{id}/".format(
-            evaluation_experiment_id=quote(str(evaluation_experiment_id), safe=""),
-            id=quote(str(id), safe=""),
-        ),
+        "url": "/api/v1/tracking/metrics",
+        "params": params,
     }
 
     return _kwargs
@@ -29,9 +34,14 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> HTTPValidationError | SampleExplanation | None:
+) -> HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item] | None:
     if response.status_code == 200:
-        response_200 = SampleExplanation.from_dict(response.json())
+        response_200 = []
+        _response_200 = response.json()
+        for response_200_item_data in _response_200:
+            response_200_item = TrackingGetTrackingMetricsResponse200Item.from_dict(response_200_item_data)
+
+            response_200.append(response_200_item)
 
         return response_200
 
@@ -48,7 +58,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[HTTPValidationError | SampleExplanation]:
+) -> Response[HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -58,28 +68,30 @@ def _build_response(
 
 
 def sync_detailed(
-    evaluation_experiment_id: UUID,
-    id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[HTTPValidationError | SampleExplanation]:
-    """Item
+    experiment_id: str,
+    sample_id: str,
+) -> Response[HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]]:
+    """Get Tracking Metrics
+
+     Fetch attrs.json for all metric runs that have data for the given sample.
 
     Args:
-        evaluation_experiment_id (UUID):
-        id (UUID):
+        experiment_id (str):
+        sample_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | SampleExplanation]
+        Response[HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]]
     """
 
     kwargs = _get_kwargs(
-        evaluation_experiment_id=evaluation_experiment_id,
-        id=id,
+        experiment_id=experiment_id,
+        sample_id=sample_id,
     )
 
     response = client.get_httpx_client().request(
@@ -90,55 +102,59 @@ def sync_detailed(
 
 
 def sync(
-    evaluation_experiment_id: UUID,
-    id: UUID,
     *,
     client: AuthenticatedClient,
-) -> HTTPValidationError | SampleExplanation | None:
-    """Item
+    experiment_id: str,
+    sample_id: str,
+) -> HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item] | None:
+    """Get Tracking Metrics
+
+     Fetch attrs.json for all metric runs that have data for the given sample.
 
     Args:
-        evaluation_experiment_id (UUID):
-        id (UUID):
+        experiment_id (str):
+        sample_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | SampleExplanation
+        HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]
     """
 
     return sync_detailed(
-        evaluation_experiment_id=evaluation_experiment_id,
-        id=id,
         client=client,
+        experiment_id=experiment_id,
+        sample_id=sample_id,
     ).parsed
 
 
 async def asyncio_detailed(
-    evaluation_experiment_id: UUID,
-    id: UUID,
     *,
     client: AuthenticatedClient,
-) -> Response[HTTPValidationError | SampleExplanation]:
-    """Item
+    experiment_id: str,
+    sample_id: str,
+) -> Response[HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]]:
+    """Get Tracking Metrics
+
+     Fetch attrs.json for all metric runs that have data for the given sample.
 
     Args:
-        evaluation_experiment_id (UUID):
-        id (UUID):
+        experiment_id (str):
+        sample_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[HTTPValidationError | SampleExplanation]
+        Response[HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]]
     """
 
     kwargs = _get_kwargs(
-        evaluation_experiment_id=evaluation_experiment_id,
-        id=id,
+        experiment_id=experiment_id,
+        sample_id=sample_id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -147,29 +163,31 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    evaluation_experiment_id: UUID,
-    id: UUID,
     *,
     client: AuthenticatedClient,
-) -> HTTPValidationError | SampleExplanation | None:
-    """Item
+    experiment_id: str,
+    sample_id: str,
+) -> HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item] | None:
+    """Get Tracking Metrics
+
+     Fetch attrs.json for all metric runs that have data for the given sample.
 
     Args:
-        evaluation_experiment_id (UUID):
-        id (UUID):
+        experiment_id (str):
+        sample_id (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        HTTPValidationError | SampleExplanation
+        HTTPValidationError | list[TrackingGetTrackingMetricsResponse200Item]
     """
 
     return (
         await asyncio_detailed(
-            evaluation_experiment_id=evaluation_experiment_id,
-            id=id,
             client=client,
+            experiment_id=experiment_id,
+            sample_id=sample_id,
         )
     ).parsed

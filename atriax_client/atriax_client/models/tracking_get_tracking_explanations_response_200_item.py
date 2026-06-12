@@ -1,62 +1,33 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-if TYPE_CHECKING:
-    from ..models.sample_evaluation_create_data import SampleEvaluationCreateData
-
-
-T = TypeVar("T", bound="SampleEvaluationCreate")
+T = TypeVar("T", bound="TrackingGetTrackingExplanationsResponse200Item")
 
 
 @_attrs_define
-class SampleEvaluationCreate:
-    """
-    Attributes:
-        sample_index (int):
-        data (SampleEvaluationCreateData):
-    """
+class TrackingGetTrackingExplanationsResponse200Item:
+    """ """
 
-    sample_index: int
-    data: SampleEvaluationCreateData
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        sample_index = self.sample_index
-
-        data = self.data.to_dict()
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "sample_index": sample_index,
-                "data": data,
-            }
-        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.sample_evaluation_create_data import SampleEvaluationCreateData
-
         d = dict(src_dict)
-        sample_index = d.pop("sample_index")
+        tracking_get_tracking_explanations_response_200_item = cls()
 
-        data = SampleEvaluationCreateData.from_dict(d.pop("data"))
-
-        sample_evaluation_create = cls(
-            sample_index=sample_index,
-            data=data,
-        )
-
-        sample_evaluation_create.additional_properties = d
-        return sample_evaluation_create
+        tracking_get_tracking_explanations_response_200_item.additional_properties = d
+        return tracking_get_tracking_explanations_response_200_item
 
     @property
     def additional_keys(self) -> list[str]:
