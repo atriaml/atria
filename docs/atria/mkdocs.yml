@@ -1,0 +1,124 @@
+site_name: "Atria"
+site_description: A structured ML framework for reproducible training, evaluation, and explainability
+site_author: "Saifullah Saifullah"
+dev_addr: "127.0.0.1:8081"
+docs_dir: pages
+
+theme:
+  name: shadcn
+  icon: null
+  topbar_sections: false
+  pygments_style:
+    light: shadcn-light
+    dark: github-dark
+  katex_options:
+    trust: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      default_handler: python
+      locale: en
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            ignore_init_summary: true
+            docstring_section_style: list
+            filters: public
+            inherited_members: true
+            summary: true
+            heading_level: 1
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            merge_init_into_class: true
+            separate_signature: true
+            show_signature_annotations: true
+            show_bases: false
+
+markdown_extensions:
+  admonition:
+  codehilite:
+  fenced_code:
+  footnotes:
+  extra:
+  pymdownx.blocks.details:
+  pymdownx.tabbed:
+    alternate_style: true
+  pymdownx.blocks.tab:
+    combine_header_slug: true
+    separator: ___
+  pymdownx.snippets:
+  pymdownx.superfences:
+
+nav:
+  - Getting Started:
+    - Home: index.md
+    - Installation: install.md
+
+  - atria_registry:
+    - Overview: atria_registry/overview.md
+    - Concepts:
+      - Configurable Modules: atria_registry/concepts/configurable-module.md
+      - Module Registry: atria_registry/concepts/module-registry.md
+
+  - atria_types:
+    - Overview: atria_types/overview.md
+    - Concepts:
+      - Data Instances: atria_types/concepts/data-instances.md
+      - Row-Level Conversion: atria_types/concepts/row-conversion.md
+
+  - atria_datasets:
+    - Overview: atria_datasets/overview.md
+    - Concepts:
+      - Dataset Lifecycle: atria_datasets/concepts/dataset-lifecycle.md
+      - Storage Backends: atria_datasets/concepts/storage-backends.md
+    - Usage: atria_datasets/usage.md
+
+  - atria_models:
+    - Overview: atria_models/overview.md
+    - Concepts:
+      - Model Builders: atria_models/concepts/model-builders.md
+      - Model Pipelines: atria_models/concepts/model-pipelines.md
+      - Snapshots & Hub: atria_models/concepts/snapshots.md
+    - Usage: atria_models/usage.md
+
+  - atria_transforms:
+    - Overview: atria_transforms/overview.md
+    - Concepts:
+      - Transform Registry: atria_transforms/concepts/transform-registry.md
+
+  - atria_metrics:
+    - Overview: atria_metrics/overview.md
+    - Concepts:
+      - Metric Types: atria_metrics/concepts/metric-types.md
+
+  - atria_ml:
+    - Overview: atria_ml/overview.md
+    - Concepts:
+      - Task Config Hierarchy: atria_ml/concepts/task-configs.md
+      - Decoupled Workflows: atria_ml/concepts/decoupled-workflows.md
+    - Usage: atria_ml/usage.md
+
+  - atria_insights:
+    - Overview: atria_insights/overview.md
+    - Concepts:
+      - Explanation Pipelines: atria_insights/concepts/explanation-pipelines.md
+      - Explainers: atria_insights/concepts/explainers.md
+      - Explainability Metrics: atria_insights/concepts/explainability-metrics.md
+    - Usage: atria_insights/usage.md
+
+  - atria_hub:
+    - Overview: atria_hub/overview.md
+    - Concepts:
+      - Publishable Entities: atria_hub/concepts/publishable-entities.md
+      - Hub Client: atria_hub/concepts/hub-client.md
+
+  - atria_cli:
+    - Overview: atria_cli/overview.md
+    - Concepts:
+      - Commands & Config: atria_cli/concepts/commands.md
+    - Usage: atria_cli/usage.md

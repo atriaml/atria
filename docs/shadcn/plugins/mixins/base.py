@@ -1,0 +1,137 @@
+from pathlib import Path
+from typing import Any
+
+from jinja2 import Environment
+from mkdocs.config.defaults import MkDocsConfig
+from mkdocs.plugins import get_plugin_logger
+from mkdocs.structure.files import Files
+from mkdocs.structure.nav import Navigation
+from mkdocs.structure.pages import Page
+from mkdocs.utils.templates import TemplateContext
+
+mixin_logger = get_plugin_logger("mixins")
+
+
+class Mixin:
+    """A base mixin class for MkDocs plugins."""
+
+    @property
+    def theme_root(self) -> Path:
+        """The root directory of the theme"""
+        return Path(__file__).parent.parent.parent
+
+    def _super_method_or(
+        self,
+        method_name: str,
+        *args,
+        fallback: Any = None,
+        **kwargs,
+    ):
+        """Call the superclass method if it exists, otherwise return the fallback value."""
+        fun = getattr(super(), method_name, None)
+        if fun is None:
+            return fallback
+        return fun(*args, **kwargs)
+
+    def on_startup(self, *, command, dirty) -> None:
+        return self._super_method_or(
+            "on_startup",
+            command=command,
+            dirty=dirty,
+        )
+
+    def on_env(
+        self,
+        env: Environment,
+        /,
+        *,
+        config: MkDocsConfig,
+        files: Files,
+    ) -> Environment:
+        return self._super_method_or(
+            "on_env",
+            env,
+            config=config,
+            files=files,
+            fallback=env,
+        )
+
+    def on_files(self, files: Files, config: MkDocsConfig) -> Files:
+        return self._super_method_or(
+            "on_files",
+            files,
+            config=config,
+            fallback=files,
+        )
+
+    def on_nav(
+        self,
+        nav: Navigation,
+        /,
+        *,
+        config: MkDocsConfig,
+        files: Files,
+    ) -> Navigation:
+        return self._super_method_or(
+            "on_nav",
+            nav,
+            config=config,
+            files=files,
+            fallback=nav,
+        )
+
+    def on_page_markdown(
+        self,
+        markdown: str,
+        /,
+        *,
+        page: Page,
+        config: MkDocsConfig,
+        files: Files,
+    ) -> str:
+        return self._super_method_or(
+            "on_page_markdown",
+            markdown,
+            page=page,
+            config=config,
+            files=files,
+            fallback=markdown,
+        )
+
+    def on_config(self, config: MkDocsConfig):
+        return self._super_method_or("on_config", config, fallback=config)
+
+    def on_page_context(
+        self,
+        context: TemplateContext,
+        page: Page,
+        config: MkDocsConfig,
+        nav: Navigation,
+    ):
+        return self._super_method_or(
+            "on_page_context",
+            context,
+            page,
+            config=config,
+            nav=nav,
+            fallback=context,
+        )
+
+    def on_post_build(self, config: MkDocsConfig):
+        return self._super_method_or(
+            "on_post_build",
+            config,
+            fallback=None,
+        )
+
+    def on_page_content(
+        self, html: str, page: Page, config: MkDocsConfig, files: Files
+    ) -> str:
+        return self._super_method_or(
+            "on_page_content",
+            html,
+            page,
+            config=config,
+            files=files,
+            fallback=html,
+        )
