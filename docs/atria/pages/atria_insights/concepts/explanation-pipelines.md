@@ -6,6 +6,9 @@ title: Explanation Pipelines
 
 An `ExplanationPipeline` wraps a `ModelPipeline` with the additional processing needed to produce and evaluate attributions. It is a `ConfigurableModule`, registered in `EXPLANATION_PIPELINES`.
 
+!!! note "Model requirement"
+    Text explanation pipelines (`SequencePipeline`, `AttnSequencePipeline`) require the underlying model to be a [`TransformersEncoderModel`](../../atria_models/concepts/transformer-encoder.md) — Atria's native transformer base that provides the embedding-space forward path and attention extraction interface. HuggingFace `AutoModel*` wrappers do not satisfy this contract.
+
 ## BaseExplanationPipeline
 
 ```python

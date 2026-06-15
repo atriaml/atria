@@ -1,2 +1,2 @@
-uv run mkdocs serve -f pages/mkdocs.yml --watch-theme -w ./pages --livereload $@
+uv run mkdocs serve -f atria/mkdocs.yml --watch-theme -w ./atria --livereload $@
 # npm run dev

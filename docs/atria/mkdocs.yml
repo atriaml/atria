@@ -82,6 +82,7 @@ nav:
     - Overview: atria_models/overview.md
     - Concepts:
       - Model Builders: atria_models/concepts/model-builders.md
+      - Transformer Encoder: atria_models/concepts/transformer-encoder.md
       - Model Pipelines: atria_models/concepts/model-pipelines.md
       - Snapshots & Hub: atria_models/concepts/snapshots.md
     - Usage: atria_models/usage.md

@@ -27,6 +27,7 @@ self._model = ModelBuilder.from_type(
     builder_type=self.config.model.builder_type,  # e.g. "timm"
     frozen_layers=self.config.model.frozen_layers,
     pretrained_checkpoint=self.config.model.pretrained_checkpoint,
+    model_type=self.config.model.model_type,      # task type, used by some builders
 ).build(
     model_name_or_path=self.config.model.model_name_or_path,  # e.g. "resnet50"
     **self.config.model.model_kwargs,
@@ -41,9 +42,32 @@ All builders support:
 - **`pretrained_checkpoint`** — path or URL to a checkpoint to load on top of the pretrained weights. Supports local paths and fsspec-compatible URLs.
 - **`bn_to_gn`** — replace all `BatchNorm` layers with `GroupNorm` (useful for small-batch or variable-batch training).
 
-## TransformersModelBuilder specifics
+## Builder-specific behaviour
 
-Transformers models require a `model_type` (e.g. `"bert"`, `"roberta"`, `"layoutlm"`) to select the right `AutoModel` class. The builder calls `AutoModel.from_pretrained(model_name_or_path)` and applies any Atria-specific head modifications on top.
+### TimmModelBuilder
+
+Calls `timm.create_model(model_name=model_name_or_path, pretrained=True, ...)`. Automatically translates `num_labels` → `num_classes` (timm's convention for the output head size).
+
+### TorchvisionModelBuilder
+
+Calls `torch.hub.load("pytorch/vision:v0.10.0", model_name_or_path, ...)`. When `num_labels` is provided in `model_kwargs`, it explicitly replaces the last `Linear` layer of the model with a new `Linear(in_features, num_labels)`. If `num_labels` is absent, the original head is kept and a warning is logged.
+
+### TransformersModelBuilder
+
+Requires `model_type` to specify the **task**, not the architecture. Supported values: `"sequence_classification"`, `"token_classification"`, `"question_answering"`, `"image_classification"`. The task type determines which `AutoModel*` class to use:
+
+| `model_type` | HuggingFace class |
+|---|---|
+| `sequence_classification` | `AutoModelForSequenceClassification` |
+| `token_classification` | `AutoModelForTokenClassification` |
+| `question_answering` | `AutoModelForQuestionAnswering` |
+| `image_classification` | `AutoModelForImageClassification` |
+
+The architecture is selected by `model_name_or_path` (e.g. `"bert-base-uncased"`, `"microsoft/layoutlm-base-uncased"`). For `image_classification`, the classifier head is also replaced with `Linear(in_features, num_labels)`.
+
+### AtriaModelBuilder
+
+Loads a model config from Atria's own model registry via `load_model_config(model_name_or_path)`. Used for Atria-native transformer encoder architectures with pluggable task heads (`SequenceClassificationHead`, `TokenClassificationHead`, `QuestionAnsweringHead`). Supports `"sequence_classification"`, `"token_classification"`, and `"question_answering"` as `model_type` values (not image classification).
 
 ## Contrast with direct model creation
 
