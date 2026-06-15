@@ -12,9 +12,11 @@ Explainability in Atria is not a post-hoc add-on. It is a first-class workflow:
 
 ```
 ExplanationTaskConfig
-    ├── data: DataConfig           ← same dataset as training
-    ├── model_pipeline: Config     ← same model as training
-    └── explainer: ExplainerConfig ← which attribution method to use
+    ├── data: DataConfig                          ← same dataset as training
+    ├── model_pipeline: ModelPipelineConfig       ← same model as training
+    └── explanation_pipeline: ExplanationPipelineConfig
+            ├── explainer: ExplainerConfig        ← which attribution method to use
+            └── explainability_metrics: ExplainabilityMetrics
 ```
 
 `ModelExplainer` orchestrates the explanation run: it loads the dataset and model pipeline via the shared configs, wraps the pipeline in an `ExplanationPipeline`, runs the explainer over the data, computes explainability metrics, and stores results to disk (HDF5).

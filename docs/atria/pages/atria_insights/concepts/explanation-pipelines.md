@@ -25,7 +25,7 @@ The base class holds a reference to the `ModelPipeline` and provides:
 
 ## Concrete pipeline types
 
-### ImagePipeline
+### ImagePipeline (`image_classification`)
 
 Handles image attribution:
 
@@ -36,7 +36,14 @@ Handles image attribution:
 
 ### SequencePipeline
 
-Handles token-level text attribution:
+Gradient-based token-level text attribution. Registered names:
+
+| Name | Task |
+|---|---|
+| `sequence_classification` | Text / sequence classification |
+| `token_classification` | NER / token labeling |
+| `layout_token_classification` | Document token labeling (LiLT, LayoutLMv3) |
+| `question_answering` | Extractive QA |
 
 - Converts tokenized sequences to embedding-space representations.
 - Runs gradient-based methods in embedding space (for `IntegratedGradients`, `DeepLIFT`, etc.).
@@ -45,7 +52,13 @@ Handles token-level text attribution:
 
 ### AttnSequencePipeline
 
-Attention-based alternative to gradient computation:
+Attention-based alternative to gradient computation. Registered names:
+
+| Name | Task |
+|---|---|
+| `sequence_classification_attn` | Text / sequence classification |
+| `token_classification_attn` | NER / token labeling |
+| `question_answering_attn` | Extractive QA |
 
 - Extracts attention weights directly from transformer layers (no gradient computation needed).
 - Supports attention rollout (multiplying attention matrices across layers) for multi-layer models.

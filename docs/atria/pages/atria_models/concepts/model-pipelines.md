@@ -27,17 +27,20 @@ class ModelPipeline(ConfigurableModule[T_ModelPipelineConfig]):
 
 ## Concrete pipeline types
 
-| Pipeline | Task |
-|---|---|
-| `ImageModelPipeline` | Image classification / detection / segmentation |
-| `SequenceModelPipeline` | Sequence classification |
-| `QuestionAnsweringPipeline` | Extractive QA |
-| `TokenClassificationPipeline` | Named entity recognition, token labeling |
+| Pipeline | Registered as | Task |
+|---|---|---|
+| `ImageClassificationPipeline` | `"image_classification"` | Image classification |
+| `SequenceClassificationPipeline` | `"sequence_classification"` | Sequence / text classification |
+| `TokenClassificationPipeline` | `"token_classification"` | NER / token labeling |
+| `LayoutTokenClassificationPipeline` | `"layout_token_classification"` | Document token labeling with layout features (LiLT, LayoutLMv3) |
+| `QuestionAnsweringPipeline` | `"question_answering"` | Extractive QA |
+
+The class hierarchy groups these under two abstract bases: `ImageModelPipeline` (for image tasks) and `SequenceModelPipeline` (for all text/document tasks).
 
 Task-specific pipelines override:
 - `_model_build_kwargs()` — extra kwargs for the builder (e.g. `num_labels`)
-- `forward()` — wraps the model call, returning a typed `ModelOutput`
-- `collate_fn()` — batches `BaseDataInstance` objects into tensors
+- `training_step()` / `evaluation_step()` / `predict_step()` — task-specific logic returning `ModelOutput`
+- Batching and preprocessing — handled by the model pipeline's transform chain
 
 ## ModelPipelineConfig
 
@@ -50,14 +53,14 @@ The config carried by a pipeline specifies:
 
 ## Registered pipelines
 
-Pipelines register with named paths in `MODEL_PIPELINES`, typically organized as `{modality}/{task}/{builder}`:
+Pipelines register with flat names in `MODEL_PIPELINES`:
 
 ```
-image/classification/timm
-image/classification/torchvision
-sequence/classification/transformers
-sequence/token_classification/transformers
-sequence/question_answering/transformers
+image_classification
+sequence_classification
+token_classification
+layout_token_classification
+question_answering
 ```
 
-This naming convention allows the CLI and training configs to select a pipeline by name without importing the class directly.
+The pipeline name is the key used in training and evaluation configs to select a pipeline without importing the class directly.

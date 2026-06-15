@@ -78,7 +78,7 @@ Writing is parallelized with Ray (`RayParallelDeltalakeWriter`). Each Ray actor 
 
 **Format:** TAR archives (`.tar` shards) compatible with the WebDataset library.
 
-Available as `FileStorageType.WEBDATASET` for distributed training scenarios where data lives on object storage (S3, GCS) and needs to be streamed efficiently across many workers.
+`FileStorageType.WEBDATASET` exists in the enum and is used internally by the Delta Lake shard writer (the TAR shard files it creates are WebDataset-compatible). However, `WEBDATASET` is not a supported value for the `cached_storage_type` parameter in `load_dataset` — passing it will raise a `ValueError`. The two supported cached storage backends are `DELTALAKE` and `MSGPACK`.
 
 ## HuggingFace adapter
 
@@ -87,9 +87,13 @@ Available as `FileStorageType.WEBDATASET` for distributed training scenarios whe
 ```python
 @DATASETS.register("imagenet/hf")
 class ImageNetHF(HuggingfaceDataset):
-    class Config(DatasetConfig):
-        hf_dataset_name: str = "imagenet-1k"
+    class Config(HuggingfaceDatasetConfig):
+        pass
     __config__ = Config
+
+# HuggingfaceDatasetConfig requires:
+#   hf_repo: str        e.g. "imagenet-1k"
+#   hf_config_name: str e.g. "default"
 ```
 
 The adapter converts HuggingFace rows to Atria `BaseDataInstance` objects on the fly. It can then be re-cached to Deltalake or msgpack for subsequent runs.
@@ -101,4 +105,3 @@ The adapter converts HuggingFace rows to Atria `BaseDataInstance` objects on the
 | Structured / tabular data | `DELTALAKE` |
 | Image-heavy, high throughput | `MSGPACK` |
 | Already stored in HuggingFace Hub | `HuggingfaceDataset` adapter |
-| Distributed training over object storage | `WEBDATASET` |

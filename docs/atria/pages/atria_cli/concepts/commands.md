@@ -8,89 +8,80 @@ title: Commands & Config
 
 ```bash
 # Create a hub account
-atria sign_up --username alice --email alice@example.com --password secret
+atria sign_up --username alice --email alice@example.com --password Secret123
 
 # Authenticate (stores credentials in OS keyring)
-atria sign_in --username alice --password secret
+atria sign_in --email alice@example.com --password Secret123
 
 # Remove stored credentials
 atria sign_out
 ```
 
+`sign_in` uses `email` (not `username`). Credentials are stored via the OS keyring and reused automatically for subsequent hub calls.
+
 ## Dataset commands
 
 ### prepare_and_upload
 
-Downloads a raw dataset, converts it to typed `BaseDataInstance` objects, caches it to a storage backend, and pushes it to the hub as a versioned artifact:
+Downloads a registered dataset, caches it to Delta Lake format, and pushes it to the hub as a versioned artifact:
 
 ```bash
 atria datasets prepare_and_upload \
-    --dataset-name cifar10/standard \
-    --data-dir /data/cache \
-    --storage-type MSGPACK \
-    --hub-dataset-name my-org/cifar10-custom
+    --name cifar10/standard \
+    --target_name my-org/cifar10-custom \
+    --data_dir /data/cache \
+    --is_public False
 ```
 
-Internally this runs the full dataset lifecycle:
-`load_dataset_config` → `config.build()` → `dataset.push_to_hub()`
+Key parameters:
+
+| Parameter | Description |
+|---|---|
+| `name` | Registered dataset name (e.g. `"cifar10/standard"`) |
+| `target_name` | Hub artifact name; defaults to the dataset name if omitted |
+| `branch` | Hub branch to push to (default: `"main"`) |
+| `data_dir` | Local directory for cached storage |
+| `is_public` | Whether the artifact is publicly visible |
+| `overwrite_existing` | Overwrite if a snapshot already exists on this branch |
+
+Internally: `load_dataset_config(name)` → `config.build(...)` → `dataset.upload_to_hub(name=target_name, ...)`
 
 ### download
 
-Pulls a dataset artifact from the hub and writes storage files to a local directory:
+Pulls a dataset artifact from the hub:
 
 ```bash
-atria datasets download my-org/cifar10-custom --output-dir ./data/cifar10/
+atria datasets download --name my-org/cifar10-custom --branch main --download_dir ./data/cifar10/
 ```
 
 ## Model commands
 
 ### upload
 
-Pushes a model snapshot (weights + config) to the hub:
+Loads a model snapshot from a local snapshot directory (containing `model.safetensors` and `metadata.yaml`) and uploads it to the hub:
 
 ```bash
 atria models upload \
-    --checkpoint ./runs/exp1/best.pt \
-    --config ./runs/exp1/config.json \
-    --hub-model-name my-org/resnet50-cifar10
+    --name my-org/resnet50-cifar10 \
+    --snapshot_dir ./runs/exp1/snapshot/ \
+    --branch main
 ```
+
+Key parameters:
+
+| Parameter | Description |
+|---|---|
+| `name` | Hub artifact name (e.g. `"my-org/resnet50-cifar10"`) |
+| `snapshot_dir` | Path to local snapshot directory from `pipeline.save_to_disk()` |
+| `branch` | Hub branch to push to (default: `"main"`) |
+| `is_public` | Whether the artifact is publicly visible |
 
 ### download
 
 Pulls a model snapshot from the hub:
 
 ```bash
-atria models download my-org/resnet50-cifar10 --output-dir ./models/
-```
-
-## Config file format
-
-All training / evaluation / explanation commands accept a YAML or JSON config file that maps to the appropriate `TaskConfig` subclass. The config is loaded via Hydra `instantiate`, so nested `_target_` fields are supported:
-
-```yaml
-# train_config.yaml
-_target_: atria_ml.configs.TrainingTaskConfig
-env:
-  _target_: atria_ml.configs._env.RuntimeEnvConfig
-  run_dir: ./runs/exp1
-data:
-  _target_: atria_ml.configs.DataConfig
-  dataset_config:
-    _target_: atria_datasets.registry.Cifar10Config
-  train_batch_size: 64
-model_pipeline:
-  _target_: atria_models...ImageClassificationConfig
-  model:
-    builder_type: timm
-    model_name_or_path: resnet50
-trainer:
-  _target_: atria_ml.configs.TrainerConfig
-  learning_rate: 0.001
-  max_epochs: 50
-```
-
-```bash
-atria train --config train_config.yaml
+atria models download --name my-org/resnet50-cifar10 --branch main --download_dir ./models/
 ```
 
 ## Why Fire over Click/Typer
@@ -100,4 +91,4 @@ Python Fire was chosen because:
 - Fire automatically handles nested dicts and lists as CLI arguments
 - Adding a new command means adding a new function, not a new decorator chain
 
-The trade-off is less control over help text and argument validation, but for a research tool where the config file carries the complexity, this is acceptable.
+The trade-off is less control over help text and argument validation, but for a research tool where the Python API carries the complexity, this is acceptable.

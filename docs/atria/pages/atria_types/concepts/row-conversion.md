@@ -14,9 +14,12 @@ row = instance.to_row()
 # row is a flat dict like:
 # {
 #   "sample_id": "abc-123",
-#   "image__bytes": b"...",
-#   "image__path": None,
+#   "index": None,
 #   "annotations": '[{"type": "classification", "label": "cat"}]',
+#   "image__file_path": "/path/to/img.jpg",
+#   "image__content": <PIL.Image>,
+#   "image__source_width": 640,
+#   "image__source_height": 480,
 # }
 
 # Reconstruct from storage
@@ -24,7 +27,7 @@ instance2 = ImageInstance.from_row(row)
 assert instance == instance2
 ```
 
-`to_row()` flattens nested Pydantic models using `__` as a separator (e.g. `image.bytes` → `"image__bytes"`). Complex types like `Image` serialize to bytes/path pairs; `annotations` serialize to a JSON string because heterogeneous lists can't be stored as typed columnar fields.
+`to_row()` flattens nested Pydantic models using `__` as a separator (e.g. `image.file_path` → `"image__file_path"`). `Image` fields flatten to `{field}__file_path` and `{field}__content` pairs — this naming convention is what the `DeltalakeStorageManager` uses to route binary content into TAR shards (see [Storage Backends](../../atria_datasets/concepts/storage-backends.md)). `annotations` serialize to a JSON string because heterogeneous lists can't be stored as typed columnar fields.
 
 `from_row()` reverses this: it unflattens the dict back to the nested structure that `ImageInstance` expects, then Pydantic validates and constructs the full object.
 
@@ -37,10 +40,11 @@ schema = ImageInstance.pa_schema()
 # pa.schema([
 #   ("sample_id", pa.string()),
 #   ("index", pa.int64()),
-#   ("image__bytes", pa.binary()),
-#   ("image__path", pa.string()),
 #   ("annotations", pa.string()),
-#   ...
+#   ("image__file_path", pa.string()),
+#   ("image__content", pa.binary()),
+#   ("image__source_width", pa.int64()),
+#   ("image__source_height", pa.int64()),
 # ])
 ```
 

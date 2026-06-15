@@ -53,13 +53,19 @@ class EvaluationTaskConfig(TaskConfigBase):
 
 ```python
 class RuntimeEnvConfig(BaseModel):
-    run_dir: str      # where to save checkpoints, metrics, configs
-    seed: int         # random seed for reproducibility
-    device: str       # "cuda", "cpu", "cuda:0"
-    num_gpus: int     # for DDP / multi-GPU
+    project_name: str  # e.g. "atria_ml"
+    exp_name: str      # auto-generated codename if not set
+    dataset_name: str | None
+    model_name: str | None
+    output_dir: str    # root dir for all outputs (required)
+    seed: int          # random seed for reproducibility
+    deterministic: bool
+    backend: str | None  # distributed backend: "nccl", "gloo", or None
+    n_devices: int       # number of GPUs for DDP
+    overwrite_output_dir: bool
 ```
 
-The `run_dir` is where everything for a single experiment is written: the task config JSON, checkpoints, metric files, and snapshot artifacts.
+`run_dir` is a computed property: `output_dir / exp_name / dataset_name / model_name`. This is where checkpoints, metric files, and snapshot artifacts are written for a single experiment.
 
 ## Serialization
 

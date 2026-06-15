@@ -46,6 +46,6 @@ Credentials are stored via the OS keyring (using `keyring`). After `atria sign_i
 
 ## Relation to atria_models and atria_datasets
 
-- `ModelPipelineOps.push_to_hub()` calls `ModelsApi` internally.
-- `Dataset._hub_ops.push_to_hub()` calls `DatasetsApi` internally.
+- `ModelPipeline.upload_to_hub()` and `ModelPipeline.load_from_hub()` call `ModelsApi` internally.
+- Dataset push/pull operations call `DatasetsApi` internally.
 - Both use `AtriaHub` as the interface, keeping model and dataset code agnostic of the HTTP layer.

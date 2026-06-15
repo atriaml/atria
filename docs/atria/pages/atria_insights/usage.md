@@ -6,41 +6,42 @@ title: Usage
 
 ## Configure an explanation run
 
+The recommended pattern is the `from_training_task_config` factory — it copies the dataset and model pipeline config from a completed training run and adds the explanation-specific settings:
+
 ```python
 from atria_insights.configs.explanation_task_config import ExplanationTaskConfig
-from atria_ml.configs import DataConfig, RuntimeEnvConfig
-from atria_datasets.api import load_dataset_config
-from atria_models.api import load_model_pipeline_config
+from atria_insights.explainers._torchxai import IntegratedGradientsExplainerConfig
+from atria_insights.explanation_pipelines._common import ExplainabilityMetrics
+from atria_insights.explainability_metrics._torchxai._faithfulness import AOPCConfig
+from atria_insights.explainability_metrics._torchxai._complexity import ComplexityEntropyConfig
 
-config = ExplanationTaskConfig(
-    env=RuntimeEnvConfig(run_dir="./runs/exp1/explanations"),
-    data=DataConfig(
-        dataset_config=load_dataset_config("cifar10/standard"),
-        eval_batch_size=16,
+config = ExplanationTaskConfig.from_training_task_config(
+    explanation_pipeline_name="image_classification",
+    training_task_config=training_config,       # from a completed training run
+    exp_name="img_cls_ig_00",
+    output_dir="./outputs",
+    explainer=IntegratedGradientsExplainerConfig(n_steps=50),
+    explainability_metrics=ExplainabilityMetrics(
+        aopc=AOPCConfig(enabled=True, total_feature_bins=100),
+        complexity_entropy=ComplexityEntropyConfig(enabled=True),
     ),
-    model_pipeline=load_model_pipeline_config("image/classification/timm"),
-    eval_checkpoint="./runs/exp1/checkpoints/best.pt",
-    explanation_pipeline="image/classification",
-    explainer={
-        "_target_": "atria_insights.explainers.IntegratedGradientsConfig",
-        "n_steps": 50,
-    },
-    explainability_metrics=[
-        {"_target_": "atria_insights.explainability_metrics.AopcConfig"},
-        {"_target_": "atria_insights.explainability_metrics.ComplexityEntropyConfig"},
-    ],
 )
 ```
+
+For text/document tasks use `"sequence_classification"`, `"token_classification"`, `"layout_token_classification"`, or their `_attn` variants as the pipeline name.
 
 ## Run the explainer
 
 ```python
 from atria_insights.model_explainer import ModelExplainer
 
-explainer = ModelExplainer(config=config)
+explainer = ModelExplainer(
+    config=config,
+    checkpoint_path="./outputs/exp1/checkpoints/best.pt",
+)
 explainer.run()
-# Attributions stored to: ./runs/exp1/explanations/attributions.h5
-# Metrics stored to:      ./runs/exp1/explanations/metrics.h5
+# Attributions stored to: {run_dir}/attributions.h5
+# Metrics stored to:      {run_dir}/metrics.h5
 ```
 
 ## Run via the CLI
@@ -54,7 +55,7 @@ atria explain --config explanation_config.yaml
 ```python
 import h5py
 
-with h5py.File("./runs/exp1/explanations/attributions.h5", "r") as f:
+with h5py.File("./outputs/explanations/attributions.h5", "r") as f:
     for sample_id in f.keys():
         attribution = f[sample_id]["attribution"][:]
         # attribution shape: (C, H, W) for image attribution
@@ -62,7 +63,7 @@ with h5py.File("./runs/exp1/explanations/attributions.h5", "r") as f:
 
 ## Compare two explainers
 
-Run two explanation configs differing only in `explainer:`, both pointing to the same checkpoint and dataset. Load both metric HDF5 files and compare per-sample metric values:
+Run two explanation configs differing only in `explainer`, both pointing to the same checkpoint and dataset. Load both metric HDF5 files and compare per-sample metric values:
 
 ```python
 import h5py, numpy as np

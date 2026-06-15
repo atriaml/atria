@@ -21,20 +21,21 @@ title: Hub Client
 hub = AtriaHub()
 hub.datasets   # DatasetsApi
 hub.models     # ModelsApi
-hub._auth_api  # AuthApi
+hub.auth       # AuthApi
+hub.health_check  # HealthCheckApi
 ```
 
-Most user-facing code interacts with `AtriaHub` via the CLI or via `ModelPipelineOps.push_to_hub()` / `Dataset._hub_ops.push_to_hub()` — direct use of the client is rarely needed.
+Most user-facing code interacts with `AtriaHub` via the CLI or via `ModelPipeline.upload_to_hub()` / `ModelPipeline.load_from_hub()` — direct use of the client is rarely needed.
 
 ## API objects
 
 | API | Key operations |
 |---|---|
-| `DatasetsApi` | `push(dataset, name)`, `pull(name, version)`, `list()` |
-| `ModelsApi` | `push(artifact, name)`, `pull(name, version)`, `list()` |
-| `AuthApi` | `login(username, password)`, `refresh_token()`, `logout()` |
-| `RepoCredentialsApi` | Repository-level access tokens for private artifacts |
-| `HealthCheckApi` | `ping()` — checks hub availability |
+| `DatasetsApi` | `get_or_create()`, `upload_files()`, `download_files()`, `validate()` |
+| `ModelsApi` | `get_or_create()`, `upload_snapshot()`, `download_files()`, `validate()` |
+| `AuthApi` | Login and token management via Supabase |
+| `RepoCredentialsApi` | Repository-level access tokens for LakeFS storage |
+| `HealthCheckApi` | `health_check()` — checks hub availability |
 
 ## Credential storage
 
@@ -49,5 +50,5 @@ The `use_key_ring=True` default means credentials persist across sessions and pr
 
 | Env var | Default | Description |
 |---|---|---|
-| `ATRIAX_URL` | `https://hub.atriaml.com` | Hub API base URL |
-| `ATRIAX_STORAGE_URL` | `https://storage.atriaml.com` | Binary artifact storage URL |
+| `ATRIAX_URL` | `http://127.0.0.1:8000` | Hub API base URL |
+| `ATRIAX_STORAGE_URL` | `http://127.0.0.1:8090` | LakeFS binary artifact storage URL |

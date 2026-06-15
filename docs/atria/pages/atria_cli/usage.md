@@ -7,9 +7,11 @@ title: Usage
 ## Authentication
 
 ```bash
-# Register and sign in
-atria sign_up --username alice --email alice@example.com
-atria sign_in --username alice --password secret
+# Register
+atria sign_up --username alice --email alice@example.com --password Secret123
+
+# Sign in (stores token in OS keyring)
+atria sign_in --email alice@example.com --password Secret123
 ```
 
 ## Dataset operations
@@ -17,38 +19,25 @@ atria sign_in --username alice --password secret
 ```bash
 # Prepare a registered dataset and upload to hub
 atria datasets prepare_and_upload \
-    --dataset-name cifar10/standard \
-    --data-dir ./data/cache \
-    --hub-dataset-name alice/cifar10
+    --name cifar10/standard \
+    --target_name alice/cifar10 \
+    --data_dir ./data/cache
 
 # Download a hub dataset
-atria datasets download alice/cifar10 --output-dir ./data/cifar10/
+atria datasets download --name alice/cifar10 --download_dir ./data/cifar10/
 ```
 
 ## Model operations
 
 ```bash
-# Upload a trained model snapshot
+# Upload a model snapshot directory to hub
+# (snapshot_dir must contain model.safetensors and metadata.yaml)
 atria models upload \
-    --checkpoint ./runs/exp1/best.pt \
-    --config ./runs/exp1/config.json \
-    --hub-model-name alice/resnet50-cifar10
+    --name alice/resnet50-cifar10 \
+    --snapshot_dir ./runs/exp1/snapshot/
 
-# Download a hub model
-atria models download alice/resnet50-cifar10 --output-dir ./models/
-```
-
-## Training and evaluation (via task configs)
-
-```bash
-# Train
-python -m atria_cli train --config configs/train.yaml
-
-# Evaluate
-python -m atria_cli evaluate --config configs/eval.yaml
-
-# Explain
-python -m atria_cli explain --config configs/explain.yaml
+# Download a hub model snapshot
+atria models download --name alice/resnet50-cifar10 --download_dir ./models/
 ```
 
 ## Check hub connectivity
@@ -56,5 +45,5 @@ python -m atria_cli explain --config configs/explain.yaml
 ```python
 from atria_hub.hub import AtriaHub
 hub = AtriaHub()
-hub._health_check_api.ping()
+hub.health_check.health_check()
 ```

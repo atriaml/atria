@@ -11,47 +11,51 @@ A **snapshot** is a versioned, self-contained bundle of a `ModelPipeline` checkp
 ```python
 @dataclass
 class SnapshotArtifact:
-    weights: bytes    # torch.save(state_dict) → bytes
-    metadata: bytes   # ModelPipelineConfig.to_dict() → JSON bytes
+    weights: bytes    # safetensors.torch.save(state_dict) → bytes
+    metadata: bytes   # YAML dump of pipeline_name + config + labels
 ```
 
-The `weights` are the raw `state_dict` serialized to bytes. The `metadata` is the complete `ModelPipelineConfig` in Hydra-instantiable JSON format — enough to reconstruct the model architecture and instantiate the pipeline without any other context.
+The `weights` are the model `state_dict` serialized with [safetensors](https://github.com/huggingface/safetensors). The `metadata` is a YAML document containing the `pipeline_name`, the complete `ModelPipelineConfig` in Hydra-instantiable dict format, and the `DatasetLabels` — enough to reconstruct the full pipeline without any other context.
 
 ## Creating a snapshot
 
-During evaluation, when `save_snapshot=True` in `EvaluationTaskConfig`, the pipeline creates a snapshot from its current state:
-
 ```python
-artifact = pipeline.ops.to_snapshot()
-# artifact.weights  → bytes of the best checkpoint
-# artifact.metadata → JSON bytes of the full config
+artifact = pipeline.snapshot()
+# artifact.weights  → safetensors bytes
+# artifact.metadata → YAML bytes (pipeline_name, config, labels)
 ```
 
-Snapshots can also be created manually:
+To save to disk:
 
 ```python
-artifact = pipeline.ops.to_snapshot(checkpoint_path="/runs/exp1/best.pt")
+snapshot_dir = pipeline.save_to_disk("/runs/exp1/")
+```
+
+To reconstruct from disk:
+
+```python
+pipeline = ModelPipeline.load_from_disk("/runs/exp1/")
 ```
 
 ## Publishing to the hub
 
-`ModelPipelineOps.push_to_hub(artifact, hub_model_name)` uploads the snapshot to Atria Hub:
-
 ```python
-pipeline.ops.push_to_hub(artifact, hub_model_name="my-org/resnet50-cifar10")
+pipeline.upload_to_hub(
+    name="my-org/resnet50-cifar10",
+    branch="main",
+    is_public=False,
+)
 ```
 
-On the hub, the snapshot is stored as a versioned model artifact with:
-- The weights file
-- The metadata JSON (the config)
-- Provenance metadata (dataset, training config hash, evaluation metrics)
+On the hub, the snapshot is stored as a versioned model artifact with the weights file and the YAML metadata.
 
 ## Pulling from the hub
 
 ```python
-from atria_models.api import load_model_pipeline_config
-config = load_model_pipeline_config("my-org/resnet50-cifar10", from_hub=True)
-pipeline = config.build(labels=dataset.labels)
+pipeline = ModelPipeline.load_from_hub(
+    name="my-org/resnet50-cifar10",
+    branch="main",
+)
 ```
 
 Or using the CLI:

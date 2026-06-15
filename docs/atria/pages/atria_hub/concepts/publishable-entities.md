@@ -19,17 +19,20 @@ For datasets, this is the dataset's storage shards + the serialized `DatasetConf
 
 ## Model artifacts on the hub
 
-A model artifact on the hub is identified by `{owner}/{model-name}` and optionally a version or commit hash. It contains:
+A model artifact on the hub is identified by `{owner}/{model-name}` and optionally a branch name. It contains:
 
-- `model_weights.pt` — PyTorch state dict bytes
-- `model_config.json` — the full `ModelPipelineConfig` in Hydra format
-- Metadata: training dataset name, evaluation metrics, Atria version
+- `model.safetensors` — model weights in safetensors format
+- `metadata.yaml` — the full `ModelPipelineConfig` + `DatasetLabels` in YAML format
 
 Pulling a model artifact restores the exact `ModelPipeline` that was snapshotted:
 
 ```python
-config = load_model_pipeline_config("my-org/resnet50-cifar10", from_hub=True)
-pipeline = config.build(labels=dataset.labels)
+from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
+
+pipeline = ModelPipeline.load_from_hub(
+    name="my-org/resnet50-cifar10",
+    branch="main",
+)
 # pipeline is identical to what was trained
 ```
 

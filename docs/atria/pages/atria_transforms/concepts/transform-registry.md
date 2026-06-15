@@ -6,33 +6,36 @@ title: Transform Registry
 
 ## DataTransform
 
-`DataTransform` is the base class for all transforms. It is a `ConfigurableModule` and therefore has a paired `ModuleConfig`:
+`DataTransform` is the base class for all transforms. It inherits from `PydanticConfigurableModule`, which means the transform class itself IS the config — its Pydantic fields are the hyperparameters, with no separate nested Config class:
 
 ```python
-@TRANSFORMS.register("image/resize_normalize")
-class ImageResizeNormalize(DataTransform):
-    class Config(ModuleConfig):
-        size: int = 224
-        mean: list[float] = [0.485, 0.456, 0.406]
-        std: list[float] = [0.229, 0.224, 0.225]
-    __config__ = Config
+@DATA_TRANSFORMS.register("standard_image_transform")
+class StandardImageTransform(DataTransform[np.ndarray]):
+    to_rgb: bool = True
+    do_normalize: bool = True
+    do_resize: bool = True
+    stats: Literal["imagenet", "standard", "openai_clip", "custom"] = "imagenet"
+    resize_height: int = 224
+    resize_width: int = 224
 
-    def __call__(self, instance: BaseDataInstance) -> TensorDataModel:
-        # convert instance → tensor data model
+    def __call__(self, input: Any) -> np.ndarray:
+        # convert instance → numpy array
         ...
 ```
 
-A transform takes a `BaseDataInstance` (or batch thereof) and returns a `TensorDataModel` — the typed tensor bundle ready for model input.
+A transform takes arbitrary input and returns a typed output (often a `TensorDataModel` or numpy array). The `data_model` property declares the output type.
 
-## TRANSFORMS registry
+## DATA_TRANSFORMS registry
 
-The `TRANSFORMS` `RegistryGroup` holds all registered transforms. Transforms are loaded the same way as datasets and model pipelines:
+The `DATA_TRANSFORMS` `RegistryGroup` holds all registered transforms. Because transforms are `PydanticConfigurableModule` subclasses (not `ConfigurableModule`), they register the class itself as the config:
 
 ```python
-from atria_transforms.api import load_transform_config
+from atria_transforms.registry import DATA_TRANSFORMS
 
-config = load_transform_config("image/resize_normalize", size=256)
+config = DATA_TRANSFORMS.load_module_config("standard_image_transform")
 transform = config.build()
+# or equivalently:
+transform = StandardImageTransform(resize_height=256)
 ```
 
 ## Train vs. eval transforms
@@ -46,8 +49,8 @@ Both are `DataTransform | None`. Setting them to different transforms is the sta
 
 ```python
 DataConfig(
-    preprocess_train_transform=load_transform_config("image/augment_and_normalize"),
-    preprocess_eval_transform=load_transform_config("image/resize_normalize"),
+    preprocess_train_transform=StandardImageTransform(do_resize=True, stats="imagenet"),
+    preprocess_eval_transform=StandardImageTransform(do_resize=True, stats="imagenet"),
 )
 ```
 
@@ -55,18 +58,18 @@ DataConfig(
 
 | Family | Transforms |
 |---|---|
-| Image | Resize, center crop, random crop, normalize, color jitter |
+| Image | `StandardImageTransform` — resize, normalize to configurable stats (ImageNet, CLIP, custom) |
 | Torchvision wrappers | Any `torchvision.transforms` wrapped as a `DataTransform` |
 | HuggingFace processor | `AutoImageProcessor`, `AutoTokenizer` wrappers |
 | Document tokenizer | LayoutLM/BERT-style document tokenization for OCR + bounding boxes |
 
 ## Serialization
 
-Because every transform is a `ModuleConfig`, it serializes to a Hydra-instantiable dict:
+Because every transform is a `PydanticConfigurableModule`, it serializes to a Hydra-instantiable dict:
 
 ```python
-config.to_dict()
-# {"_target_": "atria_transforms.tfs.ImageResizeNormalizeConfig", "size": 224, ...}
+transform.to_dict()
+# {"_target_": "atria_transforms.tfs.StandardImageTransform", "resize_height": 224, ...}
 ```
 
 This dict is stored in `DataConfig` and therefore in `TaskConfig`, making the full preprocessing pipeline part of the experiment record.
