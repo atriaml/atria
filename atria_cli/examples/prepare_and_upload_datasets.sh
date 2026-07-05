@@ -17,5 +17,5 @@ declare -a datasets=(
 
 for dataset_entry in "${datasets[@]}"; do
     echo "Processing dataset: $dataset_entry"
-    python -m atria_cli.cli datasets prepare_and_upload $dataset_entry $@ 
+    uv run atria datasets prepare_and_upload $dataset_entry $@
 done

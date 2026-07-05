@@ -21,6 +21,9 @@ dependencies = [
 ]
 
 
+[project.scripts]
+atria = "atria_cli.cli:main"
+
 [tool.hatch.metadata]
 allow-direct-references = true
 

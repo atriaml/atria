@@ -9,7 +9,7 @@ from atria_cli.commands.sign_up import sign_up
 logger = get_logger(__name__)
 
 
-if __name__ == "__main__":
+def main():
     fire.Fire(
         {
             "sign_in": sign_in,
@@ -22,3 +22,7 @@ if __name__ == "__main__":
             "models": {"upload": models.upload, "download": models.download},
         }
     )
+
+
+if __name__ == "__main__":
+    main()

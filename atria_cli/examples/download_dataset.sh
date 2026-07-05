@@ -17,5 +17,5 @@ declare -a datasets=(
 
 for dataset_entry in "${datasets[@]}"; do
     echo "Downloading dataset: $dataset_entry"
-    python -m atria_cli.cli datasets download $dataset_entry $@
+    uv run atria datasets download $dataset_entry $@
 done
