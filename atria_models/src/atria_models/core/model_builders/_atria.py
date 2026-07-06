@@ -57,12 +57,9 @@ class AtriaModelBuilder(ModelBuilder):
         elif self._model_type == "question_answering":
             head_config = QuestionAnsweringHeadConfig()
             config = config.model_copy(update={"head_config": head_config})
-        config = config.model_copy(update=kwargs)
-        return config.model_validate(config)
+        return config.model_validate(config.model_copy(update=kwargs).model_dump())
 
-    def _build(
-        self, model_name_or_path: str, **kwargs
-    ) -> Module:
+    def _build(self, model_name_or_path: str, **kwargs) -> Module:
         config = self.get_config(model_name_or_path=model_name_or_path, **kwargs)
         logger.info(
             f"Building model '{model_name_or_path}' with parameters:\n{pretty_repr(config, expand_all=True)}"

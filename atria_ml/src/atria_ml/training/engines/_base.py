@@ -201,7 +201,9 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
 
     def _attach_profilers(self):
         if self._config.logging.profile_time:
-            assert self._deps.output_dir is not None, f"Output dir must be set to use profilers"
+            assert self._deps.output_dir is not None, (
+                "Output dir must be set to use profilers"
+            )
 
             from ignite.engine import Events
             from ignite.handlers import BasicTimeProfiler, HandlersTimeProfiler
@@ -325,7 +327,7 @@ class EngineBase(Generic[T_EngineConfig, T_EngineDependencies]):
         logger.info(f"Loading checkpoint from {checkpoint_path}")
         if not Path(checkpoint_path).exists():
             raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
         Checkpoint.load_objects(
             to_load=self._to_load_state_dict(), checkpoint=checkpoint, strict=True

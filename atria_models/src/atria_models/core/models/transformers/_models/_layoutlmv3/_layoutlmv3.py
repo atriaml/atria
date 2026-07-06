@@ -156,20 +156,20 @@ class LayoutLMv3AttentionBiasModule(nn.Module):
         return ret
 
     def _cal_1d_pos_emb(self, position_ids):
+        import torch.nn.functional as F
+
         rel_pos_mat = position_ids.unsqueeze(-2) - position_ids.unsqueeze(-1)
         rel_pos = self.relative_position_bucket(
             rel_pos_mat, num_buckets=self.rel_pos_bins, max_distance=self.max_rel_pos
         )
-        # Since this is a simple indexing operation that is independent of the input,
-        # no need to track gradients for this operation
-        #
-        # Without this no_grad context, training speed slows down significantly
-        with torch.no_grad():
-            rel_pos = self.rel_pos_bias.weight.t()[rel_pos].permute(0, 3, 1, 2)
+        rel_pos = F.one_hot(rel_pos, num_classes=self.rel_pos_bins).float()
+        rel_pos = self.rel_pos_bias(rel_pos).permute(0, 3, 1, 2)
         rel_pos = rel_pos.contiguous()
         return rel_pos
 
     def _cal_2d_pos_emb(self, bbox):
+        import torch.nn.functional as F
+
         position_coord_x = bbox[:, :, 0]
         position_coord_y = bbox[:, :, 3]
         rel_pos_x_2d_mat = position_coord_x.unsqueeze(-2) - position_coord_x.unsqueeze(
@@ -188,13 +188,10 @@ class LayoutLMv3AttentionBiasModule(nn.Module):
             num_buckets=self.rel_2d_pos_bins,
             max_distance=self.max_rel_2d_pos,
         )
-        # Since this is a simple indexing operation that is independent of the input,
-        # no need to track gradients for this operation
-        #
-        # Without this no_grad context, training speed slows down significantly
-        with torch.no_grad():
-            rel_pos_x = self.rel_pos_x_bias.weight.t()[rel_pos_x].permute(0, 3, 1, 2)
-            rel_pos_y = self.rel_pos_y_bias.weight.t()[rel_pos_y].permute(0, 3, 1, 2)
+        rel_pos_x = F.one_hot(rel_pos_x, num_classes=self.rel_2d_pos_bins).float()
+        rel_pos_y = F.one_hot(rel_pos_y, num_classes=self.rel_2d_pos_bins).float()
+        rel_pos_x = self.rel_pos_x_bias(rel_pos_x).permute(0, 3, 1, 2)
+        rel_pos_y = self.rel_pos_y_bias(rel_pos_y).permute(0, 3, 1, 2)
         rel_pos_x = rel_pos_x.contiguous()
         rel_pos_y = rel_pos_y.contiguous()
         rel_2d_pos = rel_pos_x + rel_pos_y

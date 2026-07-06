@@ -188,15 +188,19 @@ class TrainingStep(EngineStep):
         self._validate_gradient_config()
         self._reset_optimizers(engine=engine)
         self._model_pipeline.ops.train()
-        collated_batch = batch[0].batch(batch).ops.to_torch()
-        collated_batch = collated_batch.ops.to(self._device)
-        model_output = self._call_forward(engine=engine, batch=collated_batch)
-        self._update_optimizers(engine=engine, loss=model_output.loss)  # type: ignore
-        if (
-            engine.state.iteration % self._gradient_config.gradient_accumulation_steps
-            == 0
-        ):
-            engine.fire_event(OptimizerEvents.optimizer_step)
-            engine.state.optimizer_step += 1  # type: ignore
+        if len(batch) > 0:
+            collated_batch = batch[0].batch(batch).ops.to_torch()
+            collated_batch = collated_batch.ops.to(self._device)
+            model_output = self._call_forward(engine=engine, batch=collated_batch)
+            self._update_optimizers(engine=engine, loss=model_output.loss)  # type: ignore
+            if (
+                engine.state.iteration
+                % self._gradient_config.gradient_accumulation_steps
+                == 0
+            ):
+                engine.fire_event(OptimizerEvents.optimizer_step)
+                engine.state.optimizer_step += 1  # type: ignore
 
-        return model_output
+            return model_output
+        else:
+            return ModelOutput(loss=0)

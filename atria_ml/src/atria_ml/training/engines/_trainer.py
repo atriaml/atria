@@ -244,12 +244,10 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         self.attach_model_checkpointer()
 
         # attach parent
-        engine = super()._attach_handlers()
+        super()._attach_handlers()
 
         # print engine configuration info
         self._print_configuration_info()
-
-        return engine
 
     def _attach_progress_bar(self) -> None:
         from ignite.engine import Events

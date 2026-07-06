@@ -172,10 +172,17 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
 
         # for each token processed_outputs, create DocumentTensorDataModel
         if self.explode_instances:
-            return [
+            exploded_instances = [
                 tokenized_instance.resolve_overflow(i, update_sample_id=True)
                 for i in range(tokenized_instance.batch_size)
             ]
+
+            # filter out invalid instances
+            exploded_instances = [
+                x for x in exploded_instances if np.any(x.token_labels != -100)
+            ]
+
+            return exploded_instances
         else:
             return tokenized_instance
 
@@ -183,6 +190,7 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
         self, document_instance: TokenizedDocumentInstance
     ) -> TokenizedDocumentInstance | list[TokenizedDocumentInstance]:
         return document_instance
+
 
 @DATA_TRANSFORMS.register("document_tokenizer/sequence_classification")
 class SequenceClassificationDocumentTokenizer(DocumentTokenizer):
