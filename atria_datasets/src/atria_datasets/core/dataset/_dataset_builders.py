@@ -34,6 +34,9 @@ class ComposedTransform:
             sample = transform(sample)
         return sample
 
+    def __repr__(self) -> str:
+        return f"ComposedTransform({self._transforms})"
+
 
 class PreprocessOutputTransformer:
     """Output transformer for the cache-write step.

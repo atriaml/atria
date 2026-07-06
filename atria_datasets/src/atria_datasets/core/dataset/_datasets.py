@@ -331,7 +331,6 @@ class Dataset(
                 raise ValueError(
                     "preprocess_transform must implement data_model property returning a BaseDataInstance."
                 )
-
         self._data_dir = data_dir
         self._downloaded_files = _prepare_downloads(self, data_dir, access_token)  # type: ignore[assignment]
 
@@ -371,8 +370,12 @@ class Dataset(
                 logger.warning(f"Overwriting existing cached split {s.value}")
                 storage_manager.purge_split(s)
                 split_exists = False
+            print("split_iterator", split_iterator)
+            exit()
             if not split_exists:
-                logger.info(f"Caching split [{s.value}] to {storage_manager.storage_dir}")
+                logger.info(
+                    f"Caching split [{s.value}] to {storage_manager.storage_dir}"
+                )
                 storage_manager.write_split(split_iterator=split_iterator)
             else:
                 logger.info(

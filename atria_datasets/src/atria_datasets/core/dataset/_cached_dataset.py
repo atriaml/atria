@@ -78,9 +78,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         snapshot_file = self._path / _DEFAULT_SNAPSHOT_PATH
         with open(snapshot_file) as f:
             self._snapshot_data = yaml.load(f, Loader=SafeTupleLoader)
-        assert self._snapshot_data is not None, (
-            f"Snapshot file is empty: {snapshot_file}"
-        )
+        assert (
+            self._snapshot_data is not None
+        ), f"Snapshot file is empty: {snapshot_file}"
 
         fqn = self._snapshot_data["data_model"]
         module_name, class_name = fqn.rsplit(".", 1)
@@ -90,7 +90,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         metadata_path = self._path / _DEFAULT_ATRIA_DATASETS_METADATA_PATH
         if metadata_path.exists():
             with open(metadata_path) as f:
-                self._metadata_data = DatasetMetadata(**yaml.safe_load(f))
+                self._metadata_data = DatasetMetadata(
+                    **yaml.load(f, Loader=SafeTupleLoader)
+                )
 
         self._split_iterators = self._build_split_iterators()
         return self
@@ -254,7 +256,7 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
     def config(self) -> DatasetConfig:
         config_path = self._path / _DEFAULT_ATRIA_DATASETS_CONFIG_PATH
         with open(config_path) as f:
-            return DatasetConfig.model_validate(yaml.safe_load(f))
+            return DatasetConfig.model_validate(yaml.load(f, Loader=SafeTupleLoader))
 
     @property
     def data_model(self) -> type[T_BaseDataInstance]:
