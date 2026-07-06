@@ -281,22 +281,23 @@ class Dataset(
             runtime application (never baked into the cache).
         """
         from atria_datasets.core.dataset._cached_dataset import CachedDataset
-        from atria_datasets.core.dataset._common import (
-            _resolve_storage_manager_cls,
-            _save_dataset_info,
-            _save_snapshot,
-        )
         from atria_datasets.core.dataset._dataset_builders import (
             _prepare_downloads,
             _prepare_split,
             _resolve_output_data_model,
         )
+        from atria_datasets.core.storage._storage_managers._base import StorageManager
 
         data_dir = _validate_data_dir(data_dir or _default_data_dir(self))
-        storage_manager_cls = _resolve_storage_manager_cls(cached_storage_type)
-        unique_path = storage_manager_cls.compute_cache_path(
-            self, data_dir, preprocess_train_transform, preprocess_eval_transform
+        storage_manager = StorageManager.create(
+            cached_storage_type,
+            data_dir=data_dir,
+            num_processes=num_processes,
+            dataset=self,
+            preprocess_train_transform=preprocess_train_transform,
+            preprocess_eval_transform=preprocess_eval_transform,
         )
+        unique_path = storage_manager.storage_dir / storage_manager.config_name
 
         if (
             unique_path.exists()
@@ -364,14 +365,6 @@ class Dataset(
                 base_iterator=base_iterator,
             )
 
-        storage_dir, unique_config_name = unique_path.parent, unique_path.name
-        storage_manager = storage_manager_cls(
-            data_dir=data_dir,
-            storage_dir=str(storage_dir),
-            config_name=unique_config_name,
-            num_processes=num_processes,
-        )
-
         for s, split_iterator in split_iterators.items():
             split_exists = storage_manager.split_exists(s)
             if split_exists and overwrite_existing_cached:
@@ -379,16 +372,16 @@ class Dataset(
                 storage_manager.purge_split(s)
                 split_exists = False
             if not split_exists:
-                logger.info(f"Caching split [{s.value}] to {storage_dir}")
+                logger.info(f"Caching split [{s.value}] to {storage_manager.storage_dir}")
                 storage_manager.write_split(split_iterator=split_iterator)
             else:
                 logger.info(
                     f"Skipping cached split {s.value} at {storage_manager.split_dir(s)}"
                 )
 
-        _save_dataset_info(
-            str(storage_dir),
-            unique_config_name,
+        CachedDataset.save_dataset_info(
+            str(storage_manager.storage_dir),
+            storage_manager.config_name,
             self.config.model_dump(),
             self.metadata.model_dump(),
         )
@@ -397,9 +390,9 @@ class Dataset(
             if preprocess_train_transform is not None
             else self.data_model
         )
-        _save_snapshot(
-            storage_dir=storage_dir,
-            config_name=unique_config_name,
+        CachedDataset.save_snapshot(
+            storage_dir=storage_manager.storage_dir,
+            config_name=storage_manager.config_name,
             config_hash=self.config.hash,
             data_model=output_data_model,
             storage_type=cached_storage_type,

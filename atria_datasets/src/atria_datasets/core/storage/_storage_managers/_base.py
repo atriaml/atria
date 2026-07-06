@@ -18,6 +18,7 @@ from atria_datasets.core.dataset._dataset_builders import (
     _validate_data_dir,
 )
 from atria_datasets.core.dataset._split_iterators import SplitIterator
+from atria_datasets.core.storage.utilities import FileStorageType
 
 if TYPE_CHECKING:
     from atria_transforms.core import DataTransform
@@ -55,19 +56,72 @@ class StorageManager(ABC):
 
         self._setup_directories()
 
+    @classmethod
+    def create(
+        cls,
+        cached_storage_type: FileStorageType,
+        data_dir: str | Path,
+        num_processes: int = 8,
+        name_suffix: str = "",
+        *,
+        storage_dir: str | Path | None = None,
+        config_name: str | None = None,
+        dataset: Dataset | None = None,
+        preprocess_train_transform: DataTransform | None = None,
+        preprocess_eval_transform: DataTransform | None = None,
+    ) -> StorageManager:
+        """Resolve the concrete StorageManager for `cached_storage_type` and instantiate it.
+
+        Pass `dataset` (optionally with preprocess transforms) to have the
+        unique cache path computed automatically via `compute_cache_path`;
+        otherwise pass `storage_dir`/`config_name` directly for an
+        already-known cache location (e.g. reloading an existing snapshot).
+        """
+        if cached_storage_type == FileStorageType.DELTALAKE:
+            from atria_datasets.core.storage._storage_managers._deltalake import (
+                DeltalakeStorageManager,
+            )
+
+            storage_manager_cls: type[StorageManager] = DeltalakeStorageManager
+        elif cached_storage_type == FileStorageType.MSGPACK:
+            from atria_datasets.core.storage._storage_managers._msgpack import (
+                MsgpackStorageManager,
+            )
+
+            storage_manager_cls = MsgpackStorageManager
+        else:
+            raise ValueError(f"Unsupported storage type: {cached_storage_type}")
+
+        if dataset is not None:
+            unique_path = storage_manager_cls.compute_cache_path(
+                dataset, data_dir, preprocess_train_transform, preprocess_eval_transform
+            )
+            storage_dir, config_name = str(unique_path.parent), unique_path.name
+
+        assert storage_dir is not None and config_name is not None, (
+            "create() requires either `dataset` or explicit `storage_dir`/`config_name`."
+        )
+        return storage_manager_cls(
+            data_dir=data_dir,
+            storage_dir=storage_dir,
+            config_name=config_name,
+            num_processes=num_processes,
+            name_suffix=name_suffix,
+        )
+
     def _setup_directories(self) -> None:
         """Create necessary directory structure."""
         self.storage_dir.mkdir(parents=True, exist_ok=True)
-        assert self.storage_dir.is_dir(), (
-            f"Storage directory {self.storage_dir} must be a directory."
-        )
+        assert (
+            self.storage_dir.is_dir()
+        ), f"Storage directory {self.storage_dir} must be a directory."
         (self.storage_dir / self.config_name).mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def compute_cache_path(
         cls,
         dataset: Dataset,
-        data_dir: str | None,
+        data_dir: str | Path | None,
         preprocess_train_transform: DataTransform | None = None,
         preprocess_eval_transform: DataTransform | None = None,
     ) -> Path:
@@ -94,9 +148,7 @@ class StorageManager(ABC):
 
     def split_dir(self, split: DatasetSplitType) -> Path:
         """Get the directory path for a specific split."""
-        split_dir = (
-            self.storage_dir / self.config_name / split.value / self.name_suffix
-        )
+        split_dir = self.storage_dir / self.config_name / split.value / self.name_suffix
         split_dir.mkdir(parents=True, exist_ok=True)
         return split_dir
 

@@ -159,6 +159,61 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         return not (required_keys - snapshot.keys())
 
     # ------------------------------------------------------------------
+    # Persistence (writing a cache snapshot to disk — mirrors load())
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _write_yaml(file_path: Path, data: dict) -> None:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, "w") as f:
+            yaml.dump(data, f, sort_keys=False)
+
+    @classmethod
+    def save_dataset_info(
+        cls, storage_dir: str, config_name: str, config: dict, metadata: dict
+    ) -> None:
+        """Persist a dataset's config.yaml and metadata.yaml to its cache directory."""
+        config_file_path = (
+            Path(storage_dir) / config_name / _DEFAULT_ATRIA_DATASETS_CONFIG_PATH
+        )
+        logger.info("Saving dataset configuration to %s", config_file_path)
+        cls._write_yaml(config_file_path, config)
+
+        metadata_file_path = (
+            Path(storage_dir) / config_name / _DEFAULT_ATRIA_DATASETS_METADATA_PATH
+        )
+        logger.info("Saving dataset metadata to %s", metadata_file_path)
+        cls._write_yaml(metadata_file_path, metadata)
+
+    @classmethod
+    def save_snapshot(
+        cls,
+        storage_dir: Path | str,
+        config_name: str,
+        config_hash: str,
+        data_model: type,
+        storage_type: FileStorageType,
+        dataset_name: str | None,
+        dataset_class_name: str,
+        train_transform: dict | None = None,
+        eval_transform: dict | None = None,
+    ) -> None:
+        """Persist the snapshot.yaml this class's load()/validate_cache() read back."""
+        snapshot = {
+            "storage_type": storage_type.value,
+            "data_model": f"{data_model.__module__}.{data_model.__qualname__}",
+            "dataset_name": dataset_name,
+            "dataset_class_name": dataset_class_name,
+            "config_name": config_name,
+            "config_hash": config_hash,
+            "train_transform": train_transform,
+            "eval_transform": eval_transform,
+        }
+        snapshot_path = Path(storage_dir) / config_name / _DEFAULT_SNAPSHOT_PATH
+        logger.info("Saving dataset snapshot to %s", snapshot_path)
+        cls._write_yaml(snapshot_path, snapshot)
+
+    # ------------------------------------------------------------------
     # Properties (plain getters — require load() to have been called)
     # ------------------------------------------------------------------
 
@@ -223,15 +278,15 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
     # ------------------------------------------------------------------
 
     def _build_split_iterators(self) -> dict[DatasetSplitType, SplitIterator]:
-        from atria_datasets.core.dataset._common import _get_storage_manager
         from atria_datasets.core.dataset._dataset_builders import (
             ComposedTransform,
             LoadOutputTransformer,
         )
+        from atria_datasets.core.storage._storage_managers._base import StorageManager
 
-        storage_manager = _get_storage_manager(
+        storage_manager = StorageManager.create(
+            self.storage_type,
             data_dir=str(self._path.parent),
-            cached_storage_type=self.storage_type,
             storage_dir=str(self._path.parent),
             config_name=self._path.name,
             num_processes=1,
