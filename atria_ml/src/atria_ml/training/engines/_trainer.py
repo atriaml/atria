@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
+from ignite.metrics import Metric
 
 from atria_ml.configs._task import TrainingTaskConfig
 from atria_ml.optimizers._base import OptimizerConfig
@@ -65,16 +66,21 @@ class TrainerEngineConfig(EngineConfig):
 
 class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
     def __init__(self, config: TrainerEngineConfig, deps: TrainerEngineDependencies):
+        self._config = config
+        self._deps = deps
         self._validation_engine: ValidationEngine | None = None
         self._optimizers: dict[str, torch.optim.Optimizer] | None = None
         self._lr_schedulers: dict[str, torch.optim.lr_scheduler.LRScheduler] | None = (
             None
         )
         self._ema_handler: EMAHandler | None = None
-
-        super().__init__(config, deps)
-        if not self._config.eval_training:
-            self._metrics = None
+        self._metrics: dict[str, Metric] | None = None
+        self._engine_step, self._engine = self._build_engine()
+        if self._config.eval_training:
+            self._metrics = self._deps.model_pipeline.build_metrics(
+                stage=self._engine_step.name, device=self._deps.device
+            )
+        self._attach_handlers()
 
     @property
     def steps_per_epoch(self) -> int:
