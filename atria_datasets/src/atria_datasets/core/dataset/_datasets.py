@@ -370,8 +370,6 @@ class Dataset(
                 logger.warning(f"Overwriting existing cached split {s.value}")
                 storage_manager.purge_split(s)
                 split_exists = False
-            print("split_iterator", split_iterator)
-            exit()
             if not split_exists:
                 logger.info(
                     f"Caching split [{s.value}] to {storage_manager.storage_dir}"
