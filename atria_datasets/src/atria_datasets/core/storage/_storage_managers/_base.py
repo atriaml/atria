@@ -98,9 +98,9 @@ class StorageManager(ABC):
             )
             storage_dir, config_name = str(unique_path.parent), unique_path.name
 
-        assert storage_dir is not None and config_name is not None, (
-            "create() requires either `dataset` or explicit `storage_dir`/`config_name`."
-        )
+        assert (
+            storage_dir is not None and config_name is not None
+        ), "create() requires either `dataset` or explicit `storage_dir`/`config_name`."
         return storage_manager_cls(
             data_dir=data_dir,
             storage_dir=storage_dir,
@@ -135,7 +135,7 @@ class StorageManager(ABC):
         resolved = _validate_data_dir(data_dir or _default_data_dir(dataset))
         storage_dir = Path(resolved) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
         config_name = (
-            f"{dataset.config.config_name}-{dataset.config.hash}-{cls.storage_prefix}"
+            f"{cls.storage_prefix}/{dataset.config.config_name}-{dataset.config.hash}"
         )
         if (
             preprocess_train_transform is not None
