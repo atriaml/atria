@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Generic
+from typing import TYPE_CHECKING, Generic
 
 from atria_logger import get_logger
 from atria_registry import ConfigurableModule
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+
 class DatasetInputTransform(Generic[T_BaseDataInstance, T_DatasetConfig]):
     def __init__(self, data_model: T_DatasetConfig, config: T_BaseDataInstance):
         self.data_model = data_model
@@ -51,6 +52,7 @@ class DatasetInputTransform(Generic[T_BaseDataInstance, T_DatasetConfig]):
             raise TypeError(
                 f"Cannot convert sample of type {type(sample)} to data model {self.data_model}"
             )
+
 
 class Dataset(
     ConfigurableModule[T_DatasetConfig], Generic[T_DatasetConfig, T_BaseDataInstance]
@@ -127,12 +129,12 @@ class Dataset(
                 f"Class '{cls.__name__}.__data_model__' must be a type, "
                 f"got {type(data_model).__name__}: {data_model}"
             )
-        assert isinstance(cls.__requires_access_token__, bool), (
-            f"Class '{cls.__name__}' must define __requires_access_token__ as a boolean."
-        )
-        assert isinstance(cls.__extract_downloads__, bool), (
-            f"Class '{cls.__name__}' must define __extract_downloads__ as a boolean."
-        )
+        assert isinstance(
+            cls.__requires_access_token__, bool
+        ), f"Class '{cls.__name__}' must define __requires_access_token__ as a boolean."
+        assert isinstance(
+            cls.__extract_downloads__, bool
+        ), f"Class '{cls.__name__}' must define __extract_downloads__ as a boolean."
 
     @property
     def metadata(self) -> DatasetMetadata:
@@ -161,89 +163,62 @@ class Dataset(
         preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
-        _for_cache: bool = False,
     ) -> Dataset | CachedDataset:
-        """Unified entry point for loading a dataset.
+        """Entry point for loading a dataset, live or cached.
 
-        preprocess_train/eval_transform: baked into the cache at write time
-            (PreprocessOutputTransformer path).
-        train/eval_transform: applied at iteration time via LoadOutputTransformer
-            composition (both cached and uncached).
-
-        When enable_cached_splits=False: prepares split iterators using
-            LoadOutputTransformer + train/eval_transform and returns self.
-        When enable_cached_splits=True: on cache hit returns CachedDataset with
-            train/eval_transform; on miss writes via PreprocessOutputTransformer +
-            preprocess transforms, then returns CachedDataset with train/eval_transform.
+        enable_cached_splits=False (default): prepares live split iterators via
+            _load_splits() (LoadOutputTransformer + train/eval_transform) and
+            returns self.
+        enable_cached_splits=True: delegates entirely to cache(), which is
+            self-sufficient — it checks cache uniqueness via the storage
+            manager and builds from scratch if needed — and returns a
+            CachedDataset.
         """
-        from atria_datasets.core.dataset._cached_dataset import CachedDataset
-        from atria_datasets.core.dataset._dataset_builders import (
-            _compute_unique_cache_path,
-            _default_data_dir,
-            _prepare_downloads,
-            _prepare_split,
-            _validate_data_dir,
-        )
-
         if enable_cached_splits:
-            unique_path = _compute_unique_cache_path(
-                self, data_dir, preprocess_train_transform, preprocess_eval_transform
-            )
-            if unique_path.exists() and not overwrite_existing_cached:
-                logger.info(f"Loading existing cached dataset from {unique_path}")
-                if CachedDataset.validate_cache(unique_path):
-                    return CachedDataset(
-                        path=unique_path,
-                        allowed_keys=allowed_keys,
-                        train_transform=train_transform,
-                        eval_transform=eval_transform,
-                    ).load()
-            if (
-                preprocess_train_transform is not None
-                or preprocess_eval_transform is not None
-            ):
-                assert cached_storage_type == FileStorageType.MSGPACK, (
-                    "Caching with preprocess transforms is only supported for MSGPACK storage type."
-                )
-                preprocess_tf = preprocess_train_transform or preprocess_eval_transform
-                try:
-                    assert type(preprocess_train_transform) == type(
-                        preprocess_eval_transform
-                    ), (
-                        "preprocess_train_transform and preprocess_eval_transform must be of the same type."
-                    )
-                    assert issubclass(preprocess_tf.data_model, BaseDataInstance), (
-                        "preprocess_transform must implement data_model property returning a BaseDataInstance."
-                    )
-                except NotImplementedError:
-                    raise ValueError(
-                        "preprocess_transform must implement data_model property returning a BaseDataInstance."
-                    )
-
-            self.load(
-                data_dir=data_dir,
-                split=split,
-                access_token=access_token,
-                enable_cached_splits=False,
-                store_artifact_content=store_artifact_content,
-                max_cache_image_size=max_cache_image_size,
-                split_iterator_type=split_iterator_type,
-                preprocess_train_transform=preprocess_train_transform,
-                preprocess_eval_transform=preprocess_eval_transform,
-                _for_cache=True,
-            )
             return self.cache(
                 data_dir=data_dir,
                 split=split,
+                access_token=access_token,
                 cached_storage_type=cached_storage_type,
                 overwrite_existing_cached=overwrite_existing_cached,
+                store_artifact_content=store_artifact_content,
+                max_cache_image_size=max_cache_image_size,
                 num_processes=num_processes,
                 allowed_keys=allowed_keys,
+                split_iterator_type=split_iterator_type,
                 preprocess_train_transform=preprocess_train_transform,
                 preprocess_eval_transform=preprocess_eval_transform,
                 train_transform=train_transform,
                 eval_transform=eval_transform,
             )
+        return self._load_splits(
+            data_dir=data_dir,
+            split=split,
+            access_token=access_token,
+            split_iterator_type=split_iterator_type,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
+
+    def _load_splits(
+        self,
+        data_dir: str | None = None,
+        split: DatasetSplitType | None = None,
+        access_token: str | None = None,
+        split_iterator_type: type[SplitIterator] = SplitIterator,
+        train_transform: DataTransform | None = None,
+        eval_transform: DataTransform | None = None,
+    ) -> Dataset:
+        """Prepare live split iterators for direct, uncached iteration.
+
+        Applies LoadOutputTransformer (sample.load()) composed with the given
+        train/eval_transform at iteration time. Does not read from or write to
+        any on-disk cache — use cache() to persist a snapshot to storage.
+        """
+        from atria_datasets.core.dataset._dataset_builders import (
+            _prepare_downloads,
+            _prepare_split,
+        )
 
         resolved = _validate_data_dir(data_dir or _default_data_dir(self))
         self._data_dir = resolved
@@ -252,28 +227,18 @@ class Dataset(
         for s in self._available_splits():
             if split is not None and s != split:
                 continue
-            if _for_cache:
-                tf = (
-                    preprocess_train_transform
-                    if s == DatasetSplitType.train
-                    else (preprocess_eval_transform or preprocess_train_transform)
-                )
-            else:
-                tf = (
-                    train_transform
-                    if s == DatasetSplitType.train
-                    else (eval_transform or train_transform)
-                )
+            tf = (
+                train_transform
+                if s == DatasetSplitType.train
+                else (eval_transform or train_transform)
+            )
             split_iterators[s] = _prepare_split(
                 self,
                 s,
                 resolved,
                 split_iterator_type,
-                store_artifact_content=store_artifact_content,
-                resize_images=max_cache_image_size is not None,
-                image_max_size=max_cache_image_size,
                 user_transform=tf,
-                for_cache=_for_cache,
+                for_cache=False,
             )
         self._split_iterators = split_iterators
         return self
@@ -282,49 +247,132 @@ class Dataset(
         self,
         data_dir: str | None = None,
         split: DatasetSplitType | None = None,
+        access_token: str | None = None,
         cached_storage_type: FileStorageType = FileStorageType.DELTALAKE,
         overwrite_existing_cached: bool = False,
+        store_artifact_content: bool = True,
+        max_cache_image_size: int | None = None,
         num_processes: int = 8,
         allowed_keys: set[str] | None = None,
+        split_iterator_type: type[SplitIterator] = SplitIterator,
         preprocess_train_transform: DataTransform | None = None,
         preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
     ) -> CachedDataset:
-        """Write already-loaded split iterators to disk and return a CachedDataset.
+        """Build (or reuse) an on-disk cached snapshot of this dataset.
 
-        Requires that load() has been called first to populate self._split_iterators.
-        preprocess transforms are used only to compute the cache path hash and record
-        them in the snapshot. train/eval_transform are forwarded to the returned
-        CachedDataset for runtime application.
+        Fully self-sufficient — does not require load() to have been called
+        first. Cache uniqueness is checked exclusively via the storage
+        manager's compute_cache_path (which folds its storage_prefix into the
+        top-level path, so different storage backends never collide):
+        - If a valid cache already exists and overwrite_existing_cached=False,
+          it is returned immediately.
+        - Otherwise split iterators are (re)built: from scratch via
+          dataset._split_iterator(...) whenever a preprocess transform is
+          given, or when load() has not populated self._split_iterators yet;
+          if load() was already called and no preprocess transform is given,
+          the previously-built base iterators are reused (only the
+          write-time output transform is rebuilt).
+
+        preprocess_train/eval_transform: baked into the cache at write time
+            (PreprocessOutputTransformer path); only supported for MSGPACK.
+        train/eval_transform: forwarded to the returned CachedDataset for
+            runtime application (never baked into the cache).
         """
         from atria_datasets.core.dataset._cached_dataset import CachedDataset
         from atria_datasets.core.dataset._common import (
-            _get_storage_manager,
+            _resolve_storage_manager_cls,
             _save_dataset_info,
             _save_snapshot,
         )
         from atria_datasets.core.dataset._dataset_builders import (
-            _compute_unique_cache_path,
+            _prepare_downloads,
+            _prepare_split,
             _resolve_output_data_model,
         )
 
         data_dir = _validate_data_dir(data_dir or _default_data_dir(self))
-        unique_path = _compute_unique_cache_path(
+        storage_manager_cls = _resolve_storage_manager_cls(cached_storage_type)
+        unique_path = storage_manager_cls.compute_cache_path(
             self, data_dir, preprocess_train_transform, preprocess_eval_transform
         )
-        storage_dir, unique_config_name = unique_path.parent, unique_path.name
-        storage_manager = _get_storage_manager(
-            cached_storage_type,
-            data_dir,
-            str(storage_dir),
-            unique_config_name,
-            num_processes,
-        )
 
-        for s, split_iterator in self._split_iterators.items():
+        if (
+            unique_path.exists()
+            and not overwrite_existing_cached
+            and CachedDataset.validate_cache(unique_path)
+        ):
+            logger.info(f"Loading existing cached dataset from {unique_path}")
+            return CachedDataset(
+                path=unique_path,
+                allowed_keys=allowed_keys,
+                train_transform=train_transform,
+                eval_transform=eval_transform,
+            ).load()
+
+        if (
+            preprocess_train_transform is not None
+            or preprocess_eval_transform is not None
+        ):
+            assert (
+                cached_storage_type == FileStorageType.MSGPACK
+            ), "Caching with preprocess transforms is only supported for MSGPACK storage type."
+            preprocess_tf = preprocess_train_transform or preprocess_eval_transform
+            try:
+                assert type(preprocess_train_transform) == type(
+                    preprocess_eval_transform
+                ), "preprocess_train_transform and preprocess_eval_transform must be of the same type."
+                assert issubclass(
+                    preprocess_tf.data_model, BaseDataInstance
+                ), "preprocess_transform must implement data_model property returning a BaseDataInstance."
+            except NotImplementedError:
+                raise ValueError(
+                    "preprocess_transform must implement data_model property returning a BaseDataInstance."
+                )
+
+        self._data_dir = data_dir
+        self._downloaded_files = _prepare_downloads(self, data_dir, access_token)  # type: ignore[assignment]
+
+        reuse_base_iterators = (
+            preprocess_train_transform is None and preprocess_eval_transform is None
+        )
+        split_iterators: dict[DatasetSplitType, SplitIterator] = {}
+        for s in self._available_splits():
             if split is not None and s != split:
                 continue
+            tf = (
+                preprocess_train_transform
+                if s == DatasetSplitType.train
+                else (preprocess_eval_transform or preprocess_train_transform)
+            )
+            base_iterator = (
+                self._split_iterators[s].base_iterator
+                if reuse_base_iterators and s in self._split_iterators
+                else None
+            )
+            split_iterators[s] = _prepare_split(
+                self,
+                s,
+                data_dir,
+                split_iterator_type,
+                store_artifact_content=store_artifact_content,
+                resize_images=max_cache_image_size is not None,
+                image_max_size=max_cache_image_size,
+                user_transform=tf,
+                for_cache=True,
+                base_iterator=base_iterator,
+            )
+
+        storage_dir, unique_config_name = unique_path.parent, unique_path.name
+        storage_manager = storage_manager_cls(
+            data_dir=data_dir,
+            storage_dir=str(storage_dir),
+            config_name=unique_config_name,
+            num_processes=num_processes,
+        )
+
+        for s, split_iterator in split_iterators.items():
             split_exists = storage_manager.split_exists(s)
             if split_exists and overwrite_existing_cached:
                 logger.warning(f"Overwriting existing cached split {s.value}")
@@ -352,16 +400,21 @@ class Dataset(
         _save_snapshot(
             storage_dir=storage_dir,
             config_name=unique_config_name,
+            config_hash=self.config.hash,
             data_model=output_data_model,
             storage_type=cached_storage_type,
             dataset_name=self.config.dataset_name,
             dataset_class_name=self.__class__.__name__,
-            train_transform=preprocess_train_transform.to_dict()
-            if preprocess_train_transform is not None
-            else None,
-            eval_transform=preprocess_eval_transform.to_dict()
-            if preprocess_eval_transform is not None
-            else None,
+            train_transform=(
+                preprocess_train_transform.to_dict()
+                if preprocess_train_transform is not None
+                else None
+            ),
+            eval_transform=(
+                preprocess_eval_transform.to_dict()
+                if preprocess_eval_transform is not None
+                else None
+            ),
         )
         return CachedDataset(
             path=unique_path,
@@ -448,7 +501,6 @@ class Dataset(
     ) -> dict[DatasetSplitType, SplitIterator[T_BaseDataInstance]]:
         """Get all split iterators as a dictionary."""
         return self._split_iterators
-
 
     def _download_urls(self) -> dict[str, tuple[str, str]] | list[str]:
         """

@@ -8,7 +8,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 from urllib.parse import urlparse
 
 import deltalake
@@ -21,6 +21,7 @@ from atria_types import BaseDataInstance, DatasetSplitType
 
 from atria_datasets.core.dataset._datasets import SplitIterator
 from atria_datasets.core.dataset._split_iterators import InstanceTransform
+from atria_datasets.core.storage._storage_managers._base import StorageManager
 
 logger = get_logger(__name__)
 
@@ -386,8 +387,10 @@ class SingleDeltalakeWriter:
             )
 
 
-class DeltalakeStorageManager:
+class DeltalakeStorageManager(StorageManager):
     """Manages delta lake storage for dataset splits."""
+
+    storage_prefix: ClassVar[str] = "delta"
 
     def __init__(
         self,
@@ -399,62 +402,18 @@ class DeltalakeStorageManager:
         max_shard_size: int = 100_000,
         name_suffix: str = "",
     ):
-        self.data_dir = data_dir
-        self.storage_dir = Path(storage_dir)
-        self.config_name = config_name
-        self.num_processes = num_processes
         self.max_memory = max_memory
         self.max_shard_size = max_shard_size
-        self.name_suffix = name_suffix
-
-        self._setup_directories()
-
-    def _setup_directories(self) -> None:
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
-        assert self.storage_dir.is_dir(), (
-            f"Storage directory {self.storage_dir} must be a directory."
+        super().__init__(
+            data_dir=data_dir,
+            storage_dir=storage_dir,
+            config_name=config_name,
+            num_processes=num_processes,
+            name_suffix=name_suffix,
         )
-        (self.storage_dir / self.config_name).mkdir(parents=True, exist_ok=True)
-
-    def split_dir(self, split: DatasetSplitType) -> Path:
-        split_dir = (
-            self.storage_dir
-            / self.config_name
-            / "delta"
-            / split.value
-            / self.name_suffix
-        )
-        split_dir.mkdir(parents=True, exist_ok=True)
-        return split_dir
-
-    def dataset_exists(self) -> bool:
-        return (self.storage_dir / self.config_name / "delta").exists()
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         return (self.split_dir(split) / "_delta_log").exists()
-
-    def get_splits(self) -> list[DatasetSplitType]:
-        return [split for split in DatasetSplitType if self.split_exists(split)]
-
-    def purge_split(self, split: DatasetSplitType) -> None:
-        split_dir = self.split_dir(split)
-        if split_dir.exists():
-            logger.info(
-                f"Purging dataset split {split.value} from storage {split_dir}."
-            )
-            shutil.rmtree(split_dir)
-
-    def write_split(self, split_iterator: SplitIterator) -> None:
-        try:
-            self._write_split_internal(split_iterator)
-        except (Exception, KeyboardInterrupt) as e:
-            self.purge_split(split_iterator.split)
-            error_msg = (
-                "KeyboardInterrupt detected. Stopping dataset preparation..."
-                if isinstance(e, KeyboardInterrupt)
-                else f"Error while writing dataset split {split_iterator.split.value} to storage. Cleaning up..."
-            )
-            raise type(e)(error_msg) from e
 
     def _write_split_internal(self, split_iterator: SplitIterator) -> None:
         split_dir = self.split_dir(split_iterator.split)
@@ -525,9 +484,7 @@ class DeltalakeStorageManager:
         )
 
     def prepare_split_files(self, data_dir: str) -> set[tuple[str, str]]:
-        delta_files = list(
-            (self.storage_dir / self.config_name / "delta").glob("**/*.*")
-        )
+        delta_files = list((self.storage_dir / self.config_name).glob("**/*.*"))
         files_src_tgt = {
             (str(f), str(f.relative_to(self.storage_dir)))
             for f in delta_files

@@ -15,7 +15,6 @@ from atria_types._data_instance._image_instance import ImageInstance
 
 from atria_datasets.core.constants import (
     _DEFAULT_ATRIA_DATASETS_CACHE_DIR,
-    _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR,
     _DEFAULT_DOWNLOAD_PATH,
 )
 from atria_datasets.core.dataset._split_iterators import SplitIterator
@@ -91,9 +90,9 @@ class LoadOutputTransformer:
 def _validate_data_dir(data_dir: str | Path) -> str:
     data_dir = Path(data_dir)
     if data_dir.exists():
-        assert data_dir.is_dir(), (
-            f"Data directory `{data_dir.absolute()}` exists but is not a directory."
-        )
+        assert (
+            data_dir.is_dir()
+        ), f"Data directory `{data_dir.absolute()}` exists but is not a directory."
     else:
         logger.warning(
             f"Data directory `{data_dir.absolute()}` does not exist. Creating it."
@@ -133,22 +132,6 @@ def _resolve_output_data_model(transform: DataTransform | None, fallback: type) 
         except (NotImplementedError, AttributeError):
             pass
     return fallback
-
-
-def _compute_unique_cache_path(
-    dataset: Dataset,
-    data_dir: str | None,
-    preprocess_train_transform: DataTransform | None,
-    preprocess_eval_transform: DataTransform | None,
-) -> Path:
-    resolved = _validate_data_dir(data_dir or _default_data_dir(dataset))
-    storage_dir = Path(resolved) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
-    config_name = dataset.config.config_name + "-" + dataset.config.hash
-    if preprocess_train_transform is not None:
-        config_name += "-" + _get_combined_transform_hash(
-            preprocess_train_transform, preprocess_eval_transform
-        )
-    return storage_dir / config_name
 
 
 def _prepare_downloads(
@@ -192,11 +175,15 @@ def _prepare_split(
     image_max_size: int | None = None,
     user_transform: DataTransform | None = None,
     for_cache: bool = False,
+    base_iterator: object | None = None,
 ) -> SplitIterator:
     """Build a SplitIterator for a dataset split.
 
     for_cache=True  → PreprocessOutputTransformer (load, resize, relativize paths) + user_transform
     for_cache=False → LoadOutputTransformer (sample.load()) + user_transform
+
+    base_iterator: if given, reused instead of calling dataset._split_iterator(...)
+        again — lets cache() reuse the raw iterator a prior load() call already built.
     """
     limits = {
         DatasetSplitType.train: dataset.config.max_train_samples,
@@ -223,7 +210,11 @@ def _prepare_split(
         split=split,
         data_model=dataset.data_model,
         input_transform=dataset.input_transform,
-        base_iterator=dataset._split_iterator(split, data_dir),  # type: ignore[arg-type]
+        base_iterator=(
+            base_iterator
+            if base_iterator is not None
+            else dataset._split_iterator(split, data_dir)  # type: ignore[arg-type]
+        ),
         max_len=limits[split],
         output_transform=output_transform,
     )

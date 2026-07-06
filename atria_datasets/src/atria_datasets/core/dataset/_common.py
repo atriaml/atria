@@ -25,12 +25,7 @@ if TYPE_CHECKING:
 
     from atria_datasets.core.dataset._cached_dataset import CachedDataset
     from atria_datasets.core.dataset._datasets import Dataset
-    from atria_datasets.core.storage._storage_managers._deltalake import (
-        DeltalakeStorageManager,
-    )
-    from atria_datasets.core.storage._storage_managers._msgpack import (
-        MsgpackStorageManager,
-    )
+    from atria_datasets.core.storage._storage_managers._base import StorageManager
 
 logger = get_logger(__name__)
 
@@ -125,6 +120,7 @@ def _save_dataset_info(
 def _save_snapshot(
     storage_dir: Path | str,
     config_name: str,
+    config_hash: str,
     data_model: type,
     storage_type: FileStorageType,
     dataset_name: str | None,
@@ -138,13 +134,32 @@ def _save_snapshot(
         "dataset_name": dataset_name,
         "dataset_class_name": dataset_class_name,
         "config_name": config_name,
-        "config_hash": config_name.rsplit("-", 1)[-1],
+        "config_hash": config_hash,
         "train_transform": train_transform,
         "eval_transform": eval_transform,
     }
     snapshot_path = Path(storage_dir) / config_name / _DEFAULT_SNAPSHOT_PATH
     logger.info("Saving dataset snapshot to %s", snapshot_path)
     _write_yaml(snapshot_path, snapshot)
+
+
+def _resolve_storage_manager_cls(
+    cached_storage_type: FileStorageType,
+) -> type[StorageManager]:
+    if cached_storage_type == FileStorageType.DELTALAKE:
+        from atria_datasets.core.storage._storage_managers._deltalake import (
+            DeltalakeStorageManager,
+        )
+
+        return DeltalakeStorageManager
+    elif cached_storage_type == FileStorageType.MSGPACK:
+        from atria_datasets.core.storage._storage_managers._msgpack import (
+            MsgpackStorageManager,
+        )
+
+        return MsgpackStorageManager
+    else:
+        raise ValueError(f"Unsupported storage type: {cached_storage_type}")
 
 
 def _get_storage_manager(
@@ -154,33 +169,15 @@ def _get_storage_manager(
     config_name: str,
     num_processes: int,
     name_suffix: str = "",
-) -> MsgpackStorageManager | DeltalakeStorageManager:
-    if cached_storage_type == FileStorageType.DELTALAKE:
-        from atria_datasets.core.storage._storage_managers._deltalake import (
-            DeltalakeStorageManager,
-        )
-
-        return DeltalakeStorageManager(
-            data_dir=data_dir,
-            storage_dir=storage_dir,
-            config_name=config_name,
-            num_processes=num_processes,
-            name_suffix=name_suffix,
-        )
-    elif cached_storage_type == FileStorageType.MSGPACK:
-        from atria_datasets.core.storage._storage_managers._msgpack import (
-            MsgpackStorageManager,
-        )
-
-        return MsgpackStorageManager(
-            data_dir=data_dir,
-            storage_dir=storage_dir,
-            config_name=config_name,
-            num_processes=num_processes,
-            name_suffix=name_suffix,
-        )
-    else:
-        raise ValueError(f"Unsupported storage type: {cached_storage_type}")
+) -> StorageManager:
+    storage_manager_cls = _resolve_storage_manager_cls(cached_storage_type)
+    return storage_manager_cls(
+        data_dir=data_dir,
+        storage_dir=storage_dir,
+        config_name=config_name,
+        num_processes=num_processes,
+        name_suffix=name_suffix,
+    )
 
 
 T_DatasetConfig = TypeVar("T_DatasetConfig", bound=DatasetConfig)

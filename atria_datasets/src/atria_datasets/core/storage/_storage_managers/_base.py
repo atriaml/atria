@@ -1,0 +1,150 @@
+"""Abstract base class for dataset storage managers."""
+
+from __future__ import annotations
+
+import shutil
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
+
+from atria_logger import get_logger
+from atria_types import BaseDataInstance, DatasetSplitType
+
+from atria_datasets.core.constants import _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
+from atria_datasets.core.dataset._dataset_builders import (
+    _default_data_dir,
+    _get_combined_transform_hash,
+    _validate_data_dir,
+)
+from atria_datasets.core.dataset._split_iterators import SplitIterator
+
+if TYPE_CHECKING:
+    from atria_transforms.core import DataTransform
+
+    from atria_datasets.core.dataset._datasets import Dataset
+
+logger = get_logger(__name__)
+
+
+class StorageManager(ABC):
+    """Base class for on-disk dataset storage backends.
+
+    Each concrete backend owns a `storage_prefix` that is folded into the
+    top-level unique cache path returned by `compute_cache_path`, which is
+    the single source of truth for cache uniqueness. This guarantees that
+    switching storage backend for the same dataset config never reuses, or
+    collides with, another backend's cache directory.
+    """
+
+    storage_prefix: ClassVar[str]
+
+    def __init__(
+        self,
+        data_dir: str | Path,
+        storage_dir: str | Path,
+        config_name: str,
+        num_processes: int = 8,
+        name_suffix: str = "",
+    ):
+        self.data_dir = data_dir
+        self.storage_dir = Path(storage_dir)
+        self.config_name = config_name
+        self.num_processes = num_processes
+        self.name_suffix = name_suffix
+
+        self._setup_directories()
+
+    def _setup_directories(self) -> None:
+        """Create necessary directory structure."""
+        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        assert self.storage_dir.is_dir(), (
+            f"Storage directory {self.storage_dir} must be a directory."
+        )
+        (self.storage_dir / self.config_name).mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def compute_cache_path(
+        cls,
+        dataset: Dataset,
+        data_dir: str | None,
+        preprocess_train_transform: DataTransform | None = None,
+        preprocess_eval_transform: DataTransform | None = None,
+    ) -> Path:
+        """Single source of truth for cache uniqueness.
+
+        Folds the dataset config name/hash, this backend's storage_prefix,
+        and (if given) a combined preprocess-transform hash into the
+        top-level cache directory name, so caches for different storage
+        backends, or different preprocess transforms, never collide.
+        """
+        resolved = _validate_data_dir(data_dir or _default_data_dir(dataset))
+        storage_dir = Path(resolved) / _DEFAULT_ATRIA_DATASETS_STORAGE_SUBDIR
+        config_name = (
+            f"{dataset.config.config_name}-{dataset.config.hash}-{cls.storage_prefix}"
+        )
+        if (
+            preprocess_train_transform is not None
+            or preprocess_eval_transform is not None
+        ):
+            config_name += "-" + _get_combined_transform_hash(
+                preprocess_train_transform, preprocess_eval_transform
+            )
+        return storage_dir / config_name
+
+    def split_dir(self, split: DatasetSplitType) -> Path:
+        """Get the directory path for a specific split."""
+        split_dir = (
+            self.storage_dir / self.config_name / split.value / self.name_suffix
+        )
+        split_dir.mkdir(parents=True, exist_ok=True)
+        return split_dir
+
+    def dataset_exists(self) -> bool:
+        """Check if the dataset has any cached split written to storage."""
+        return bool(self.get_splits())
+
+    def get_splits(self) -> list[DatasetSplitType]:
+        """Get all available splits in storage."""
+        return [split for split in DatasetSplitType if self.split_exists(split)]
+
+    def purge_split(self, split: DatasetSplitType) -> None:
+        """Remove a split from storage."""
+        split_dir = self.split_dir(split)
+        if split_dir.exists():
+            logger.info(f"Purging dataset split {split.value} from storage {split_dir}")
+            shutil.rmtree(split_dir)
+
+    def write_split(self, split_iterator: SplitIterator) -> None:
+        """Write a dataset split to storage with error handling."""
+        try:
+            self._write_split_internal(split_iterator)
+        except (Exception, KeyboardInterrupt) as e:
+            self.purge_split(split_iterator.split)
+            error_msg = (
+                "KeyboardInterrupt detected. Stopping dataset preparation..."
+                if isinstance(e, KeyboardInterrupt)
+                else f"Error while writing dataset split {split_iterator.split.value} to storage. Cleaning up..."
+            )
+            raise type(e)(error_msg) from e
+
+    @abstractmethod
+    def split_exists(self, split: DatasetSplitType) -> bool:
+        """Check if a specific split exists in storage."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def _write_split_internal(self, split_iterator: SplitIterator) -> None:
+        """Backend-specific split writing logic."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_split(
+        self,
+        split: DatasetSplitType,
+        data_model: type[BaseDataInstance],
+        output_transform: Callable | None = None,
+        allowed_keys: set[str] | None = None,
+    ) -> SplitIterator:
+        """Read a dataset split from storage."""
+        raise NotImplementedError

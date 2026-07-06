@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import shutil
 from collections.abc import Callable
 from pathlib import Path
+from typing import ClassVar
 
 from atria_logger import get_logger
 from atria_types import BaseDataInstance, DatasetSplitType
 
 from atria_datasets.core.dataset._datasets import SplitIterator
 from atria_datasets.core.storage._shard_list_datasets import MsgpackShardListDataset
+from atria_datasets.core.storage._storage_managers._base import StorageManager
 
 logger = get_logger(__name__)
 
@@ -33,8 +34,10 @@ class MsgpackStorageReadTransform:
         return self.data_model(**filtered_sample)
 
 
-class MsgpackStorageManager:
+class MsgpackStorageManager(StorageManager):
     """Manages msgpack storage for dataset splits with parallel writing support."""
+
+    storage_prefix: ClassVar[str] = "msgpack"
 
     def __init__(
         self,
@@ -45,38 +48,14 @@ class MsgpackStorageManager:
         max_shard_size: int = 100_000,
         name_suffix: str = "",
     ):
-        self.data_dir = data_dir
-        self.storage_dir = Path(storage_dir)
-        self.config_name = config_name
-        self.num_processes = num_processes
         self.max_shard_size = max_shard_size
-        self.name_suffix = name_suffix
-
-        self._setup_directories()
-
-    def _setup_directories(self) -> None:
-        """Create necessary directory structure."""
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
-        assert self.storage_dir.is_dir(), (
-            f"Storage directory {self.storage_dir} must be a directory."
+        super().__init__(
+            data_dir=data_dir,
+            storage_dir=storage_dir,
+            config_name=config_name,
+            num_processes=num_processes,
+            name_suffix=name_suffix,
         )
-        (self.storage_dir / self.config_name).mkdir(parents=True, exist_ok=True)
-
-    def split_dir(self, split: DatasetSplitType) -> Path:
-        """Get the directory path for a specific split."""
-        split_dir = (
-            self.storage_dir
-            / self.config_name
-            / "msgpack"
-            / split.value
-            / self.name_suffix
-        )
-        split_dir.mkdir(parents=True, exist_ok=True)
-        return split_dir
-
-    def dataset_exists(self) -> bool:
-        """Check if the dataset exists in storage."""
-        return (self.storage_dir / self.config_name / "msgpack").exists()
 
     def split_exists(self, split: DatasetSplitType) -> bool:
         """Check if a specific split exists in storage."""
@@ -86,30 +65,6 @@ class MsgpackStorageManager:
     def split_files(self, split: DatasetSplitType) -> list[Path]:
         """Get all msgpack files for a specific split."""
         return list(self.split_dir(split).glob("*.msgpack"))
-
-    def get_splits(self) -> list[DatasetSplitType]:
-        """Get all available splits in storage."""
-        return [split for split in DatasetSplitType if self.split_exists(split)]
-
-    def purge_split(self, split: DatasetSplitType) -> None:
-        """Remove a split from storage."""
-        split_dir = self.split_dir(split)
-        if split_dir.exists():
-            logger.info(f"Purging dataset split {split.value} from storage {split_dir}")
-            shutil.rmtree(split_dir)
-
-    def write_split(self, split_iterator: SplitIterator) -> None:
-        """Write a dataset split to storage with error handling."""
-        try:
-            self._write_split_internal(split_iterator)
-        except (Exception, KeyboardInterrupt) as e:
-            self.purge_split(split_iterator.split)
-            error_msg = (
-                "KeyboardInterrupt detected. Stopping dataset preparation..."
-                if isinstance(e, KeyboardInterrupt)
-                else f"Error while writing dataset split {split_iterator.split.value} to storage. Cleaning up..."
-            )
-            raise type(e)(error_msg) from e
 
     def _write_split_internal(self, split_iterator: SplitIterator) -> Path:
         """Internal method to write split data."""
