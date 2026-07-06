@@ -35,7 +35,7 @@ class ComposedTransform:
         return sample
 
     def __repr__(self) -> str:
-        return f"ComposedTransform({self._transforms})"
+        return f"ComposedTransform({[x.__class__.__name__ for x in self._transforms]})"
 
 
 class PreprocessOutputTransformer:

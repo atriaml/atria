@@ -57,6 +57,8 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
     load_image: bool = True
     load_bboxes: bool = True
 
+    explode_instances: bool = False
+
     @property
     def data_model(self):
         return TokenizedDocumentInstance
@@ -165,34 +167,45 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             label=hf_processor_output.label,
         )
 
-        # for each token processed_outputs, create DocumentTensorDataModel
-        return tokenized_instance
+        # validate function
+        self._validate_instance(tokenized_instance)
 
+        # for each token processed_outputs, create DocumentTensorDataModel
+        if self.explode_instances:
+            return [
+                tokenized_instance.resolve_overflow(i, update_sample_id=True)
+                for i in range(tokenized_instance.batch_size)
+            ]
+        else:
+            return tokenized_instance
+
+    def _validate_instance(
+        self, document_instance: TokenizedDocumentInstance
+    ) -> TokenizedDocumentInstance | list[TokenizedDocumentInstance]:
+        return document_instance
 
 @DATA_TRANSFORMS.register("document_tokenizer/sequence_classification")
 class SequenceClassificationDocumentTokenizer(DocumentTokenizer):
-    def __call__(
-        self, document_instance: DocumentInstance
-    ) -> TokenizedDocumentInstance:
-        instance = super().__call__(document_instance)
-        assert instance.label is not None, (
+    def _validate_instance(
+        self, document_instance: TokenizedDocumentInstance
+    ) -> TokenizedDocumentInstance | list[TokenizedDocumentInstance]:
+        assert document_instance.label is not None, (
             f"{self.__class__.__name__} requires the DocumentInstance "
             "to have a classification annotation with a label."
         )
-        return instance
+        return document_instance
 
 
 @DATA_TRANSFORMS.register("document_tokenizer/token_classification")
 class TokenClassificationDocumentTokenizer(DocumentTokenizer):
-    def __call__(
-        self, document_instance: DocumentInstance
+    def _validate_instance(
+        self, document_instance: TokenizedDocumentInstance
     ) -> TokenizedDocumentInstance | list[TokenizedDocumentInstance]:
-        instance = super().__call__(document_instance)
-        assert instance.token_labels is not None, (
+        assert document_instance.token_labels is not None, (
             f"{self.__class__.__name__} requires the DocumentInstance "
             "to have a classification annotation with a token_labels."
         )
-        return instance
+        return document_instance
 
 
 @DATA_TRANSFORMS.register("document_tokenizer/question_answering")

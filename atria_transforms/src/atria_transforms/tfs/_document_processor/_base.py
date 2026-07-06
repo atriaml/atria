@@ -31,7 +31,7 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
     image_transform: StandardImageTransform = StandardImageTransform()
 
     # overflow sampling
-    overflow_strategy: Literal["return_first", "return_random", "return_all"] = (
+    overflow_strategy: Literal["return_first", "return_random", "return_all", "ensure_overflow_resolved"] = (
         "return_all"
     )
 
@@ -51,15 +51,26 @@ class DocumentProcessor(DataTransform[DocumentTensorDataModel]):
             f"{self.__class__.__name__} only supports DocumentInstance inputs, "
             f"but received input of type {type(document_instance)}"
         )
+
+        if self.overflow_strategy == 'ensure_overflow_resolved':
+            assert isinstance(document_instance, TokenizedDocumentInstance) and document_instance.overflow_resolved, (
+                f"With overflow_strategy=ensure_overflow_resolved, the input must already be a resolved overflow TokenizedDocumentInstance, Got = {document_instance}. "
+                "This can be done by preprocessing the dataset with explode_instances=True in the tokenizer."
+            )
+
         if isinstance(document_instance, DocumentInstance):
             tokenized_instance = self._document_tokenizer(document_instance)
         else:
             tokenized_instance = document_instance
 
         if isinstance(tokenized_instance, TokenizedDocumentInstance):
-            overflowed_instances = self._resolve_overflow_for_instance(
-                tokenized_instance
-            )
+            if not tokenized_instance.overflow_resolved:
+                overflowed_instances = self._resolve_overflow_for_instance(
+                    tokenized_instance
+                )
+            else:
+                overflowed_instances = [tokenized_instance]
+
         elif isinstance(tokenized_instance, list):
             overflowed_instances = []
             for instance in tokenized_instance:

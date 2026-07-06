@@ -25,6 +25,7 @@ class TokenizedDocumentInstance(BaseDataInstance):
     label: np.ndarray | None = None
     token_answer_start: np.ndarray | None = None
     token_answer_end: np.ndarray | None = None
+    overflow_resolved: bool = False
 
     @property
     def batch_size(self) -> int:
@@ -116,5 +117,6 @@ class TokenizedDocumentInstance(BaseDataInstance):
                 "label": _get_at_idx(self.label),
                 "token_answer_start": _get_at_idx(self.token_answer_start),
                 "token_answer_end": _get_at_idx(self.token_answer_end),
+                "overflow_resolved": True,
             }
         )
