@@ -146,11 +146,11 @@ dev = [
     "tuna>=0.5.11",
 ]
 torch-cpu = [
-  "torch==2.1.2",
+  "torch>=2.4",
   "torchvision==0.16.2",
 ]
 torch-gpu = [
-  "torch==2.1.2",
+  "torch>=2.4",
   "torchvision==0.16.2",
 ]
 
