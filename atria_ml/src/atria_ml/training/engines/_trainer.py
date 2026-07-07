@@ -633,7 +633,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         from ignite.handlers.checkpoint import BaseSaveHandler, Checkpoint
 
         # setup checkpoint saving if required
-        if self._config.model_checkpoint:
+        if self._config.model_checkpoint.enabled:
             logger.info("Configuring model checkpointing with the following config:")
             logger.info(f"{self._config.model_checkpoint}")
             checkpoint_state_dict = self._to_save_state_dict()
