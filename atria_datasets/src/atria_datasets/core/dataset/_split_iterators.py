@@ -179,6 +179,24 @@ class SplitIterator(
                 "This dataset is not backed by a DataFrame or does not support dataframe representation."
             )
 
+    @property
+    def sample_keys(self) -> list[str]:
+        """
+        Returns sample keys for this split, in the same order as its indices.
+
+        Raises:
+            NotImplementedError: If the base iterator doesn't expose sample_keys
+                (only keyed/shard-backed stores like MsgpackShardListDataset do).
+        """
+        if not hasattr(self._base_iterator, "sample_keys"):
+            raise NotImplementedError(
+                f"{type(self._base_iterator).__name__} does not implement `sample_keys`."
+            )
+        base_keys = self._base_iterator.sample_keys  # type: ignore[attr-defined]
+        if self._subset_indices is not None:
+            return [base_keys[i] for i in self._subset_indices]
+        return base_keys
+
     def fetch_sample_by_id(self, sample_id: str) -> T_BaseDataInstance:
         """
         Retrieves a sample from the dataset by its sample ID.

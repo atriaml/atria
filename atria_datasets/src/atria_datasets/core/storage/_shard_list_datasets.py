@@ -35,11 +35,13 @@ class MsgpackShardListDataset(Sequence[Any]):
         """
         self._shard_files = shard_files
         self._shard_file_readers = [MsgpackFileReader(f) for f in shard_files]
+        self._sample_keys = []
         self._total_size: int = 0
 
         cumulative_sizes: list[int] = []
         for data in self._shard_file_readers:
             self._total_size += len(data)
+            self._sample_keys.extend(data._keys)
             cumulative_sizes.append(self._total_size)
             data._close()
         self._cumulative_sizes = np.array(cumulative_sizes)
@@ -53,6 +55,10 @@ class MsgpackShardListDataset(Sequence[Any]):
             List[DatasetShardInfo]: The list of shard metadata.
         """
         return self._shard_files
+
+    @property
+    def sample_keys(self) -> list[str]:
+        return self._sample_keys
 
     def fetch_sample_by_id(self, sample_id: str) -> tuple[int, dict[str, Any]]:
         """
