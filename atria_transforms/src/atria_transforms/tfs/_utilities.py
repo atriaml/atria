@@ -91,13 +91,66 @@ def _document_instance_to_hf_processor_inputs(
     return inputs
 
 
-def _extract_sequence_and_word_ids(
-    tokenization_data: BatchEncoding,
+def _get_segment_position_ids(token_ids, segment_ids, pad_token_id):
+    position_ids = []
+    for i in range(len(segment_ids)):
+        if i == 0:
+            position_ids.append(2)
+            continue
+
+        if token_ids[i] == pad_token_id:
+            position_ids.append(0)
+            continue
+
+        if segment_ids[i] == segment_ids[i - 1]:
+            position_ids.append(position_ids[-1] + 1)
+        else:
+            position_ids.append(2)
+    return position_ids
+
+
+def _valid_span(segment_ids: np.ndarray):
+    import numpy as np
+
+    segment_ids = np.array(segment_ids)
+    valid_span = np.zeros((segment_ids.shape[0], segment_ids.shape[0]), dtype=bool)
+    for j in range(segment_ids.shape[0]):
+        valid_span[j, :] = segment_ids[:] == segment_ids[j]
+    return valid_span
+
+
+def _get_segment_ids(token_ids, word_ids, pad_token_id: int):
+    segment_ids = []
+    last_segment_id = 0
+    for i in range(len(word_ids)):
+        if i == 0:
+            segment_ids.append(last_segment_id)
+            continue
+
+        if token_ids[i] == pad_token_id:
+            segment_ids.append(last_segment_id + 1)
+            continue
+
+        if word_ids[i - 1] == word_ids[i]:
+            segment_ids.append(last_segment_id)
+        else:
+            segment_ids.append(last_segment_id + 1)
+        last_segment_id = segment_ids[-1]
+
+    print("word_ids", word_ids)
+    return segment_ids
+
+
+def _extract_sequence_info(
+    tokenization_data: BatchEncoding, pad_token_id
 ) -> tuple[np.ndarray, np.ndarray]:
     import numpy as np
 
     sequence_ids = []
     word_ids = []
+    segment_ids = []
+    segment_pos_ids = []
+    valid_spans = []
     input_ids = tokenization_data["input_ids"]
     num_overflow_samples = len(input_ids)  # type: ignore
     for i in range(num_overflow_samples):
@@ -111,12 +164,29 @@ def _extract_sequence_and_word_ids(
         word_ids_per_overflow = [
             -100 if x is None else x for x in word_ids_per_overflow
         ]
+        segment_ids_per_overflow = _get_segment_ids(
+            token_ids=input_ids[i],
+            word_ids=word_ids_per_overflow,
+            pad_token_id=pad_token_id,
+        )
         sequence_ids.append(sequence_ids_per_overflow)
         word_ids.append(word_ids_per_overflow)
+        segment_ids.append(segment_ids_per_overflow)
+        segment_pos_ids.append(
+            _get_segment_position_ids(
+                token_ids=input_ids[i],
+                segment_ids=segment_ids_per_overflow,
+                pad_token_id=pad_token_id,
+            )
+        )
+        valid_spans.append(_valid_span(segment_ids_per_overflow))
 
     sequence_ids = np.array(sequence_ids)
     word_ids = np.array(word_ids)
-    return sequence_ids, word_ids
+    segment_ids = np.array(segment_ids)
+    segment_pos_ids = np.array(segment_pos_ids)
+    valid_spans = np.array(valid_spans)
+    return sequence_ids, word_ids, segment_ids, segment_pos_ids, valid_spans
 
 
 def _extract_token_bboxes_from_word_bboxes(
@@ -125,12 +195,13 @@ def _extract_token_bboxes_from_word_bboxes(
     import numpy as np
 
     token_bboxes = []
+    is_sequence_pair = np.any(sequence_ids > 0)
     for word_ids_per_sample, sequence_ids_per_sample in zip(
         word_ids, sequence_ids, strict=True
     ):
         token_bboxes_per_sample = [
             [0, 0, 0, 0]
-            if word_id == -100 or sequence_id == 0
+            if word_id == -100 or (sequence_id == 0 and is_sequence_pair)
             else word_bboxes[word_id]
             for word_id, sequence_id in zip(
                 word_ids_per_sample, sequence_ids_per_sample, strict=True
@@ -141,7 +212,7 @@ def _extract_token_bboxes_from_word_bboxes(
 
 
 def _extract_token_labels_from_word_labels(
-    word_labels: list[int], word_ids: Any
+    word_labels: list[int], word_ids: Any, label_first: bool = True
 ) -> np.ndarray:
     import numpy as np
 
@@ -150,8 +221,19 @@ def _extract_token_labels_from_word_labels(
         token_labels_per_sample = []
         last_word_id = None
         for word_id in word_ids_per_sample.tolist():
-            if word_id == -100 or word_id == last_word_id:
+            if word_id == -100:
                 token_labels_per_sample.append(-100)  # padding label
+            elif word_id == last_word_id:
+                if label_first:
+                    token_labels_per_sample.append(-100)  # padding label
+                else:
+                    # +1 because in bio we always attach OBI I is alwys B+1 big assumption but this is the only
+                    # easy way to handle this curentyl
+                    token_labels_per_sample.append(
+                        word_labels[word_id] + 1
+                        if word_labels[word_id] > 0  # 0 is O
+                        else word_labels[word_id]
+                    )
             else:
                 token_labels_per_sample.append(word_labels[word_id])
             last_word_id = word_id

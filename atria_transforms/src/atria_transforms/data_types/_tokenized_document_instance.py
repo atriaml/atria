@@ -26,6 +26,9 @@ class TokenizedDocumentInstance(BaseDataInstance):
     token_answer_start: np.ndarray | None = None
     token_answer_end: np.ndarray | None = None
     overflow_resolved: bool = False
+    segment_ids: np.ndarray | None = None
+    segment_position_ids: np.ndarray | None = None
+    valid_spans: np.ndarray | None = None
 
     @property
     def batch_size(self) -> int:
@@ -43,6 +46,9 @@ class TokenizedDocumentInstance(BaseDataInstance):
         "attention_mask",
         "token_answer_start",
         "token_answer_end",
+        "segment_ids",
+        "segment_position_ids",
+        "valid_spans",
         mode="plain",
     )
     @classmethod
@@ -63,6 +69,9 @@ class TokenizedDocumentInstance(BaseDataInstance):
         "attention_mask",
         "token_answer_start",
         "token_answer_end",
+        "segment_ids",
+        "segment_position_ids",
+        "valid_spans",
         mode="before",
     )
     @classmethod
@@ -117,6 +126,9 @@ class TokenizedDocumentInstance(BaseDataInstance):
                 "label": _get_at_idx(self.label),
                 "token_answer_start": _get_at_idx(self.token_answer_start),
                 "token_answer_end": _get_at_idx(self.token_answer_end),
+                "segment_ids": _get_at_idx(self.segment_ids),
+                "segment_position_ids": _get_at_idx(self.segment_position_ids),
+                "valid_spans": _get_at_idx(self.valid_spans),
                 "overflow_resolved": True,
             }
         )

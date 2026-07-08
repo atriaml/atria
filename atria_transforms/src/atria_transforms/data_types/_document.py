@@ -32,6 +32,9 @@ class DocumentTensorDataModel(TensorDataModel):
     token_type_ids: np.ndarray | None = None
     token_labels: np.ndarray | None = None
     attention_mask: np.ndarray | None = None
+    segment_ids: np.ndarray | None = None
+    segment_position_ids: np.ndarray | None = None
+    valid_spans: np.ndarray | None = None
 
     image: np.ndarray | None = None
     label: np.ndarray | None = None
@@ -100,6 +103,10 @@ class DocumentTensorDataModel(TensorDataModel):
             token_labels=tokenized_instance.token_labels,
             attention_mask=tokenized_instance.attention_mask,
             image=image,
+            segment_ids=tokenized_instance.segment_ids,
+            segment_position_ids=tokenized_instance.segment_position_ids,
+            position_ids=tokenized_instance.segment_position_ids,
+            valid_spans=tokenized_instance.valid_spans,
             label=tokenized_instance.label,
             token_answer_start=tokenized_instance.token_answer_start,
             token_answer_end=tokenized_instance.token_answer_end,

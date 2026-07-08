@@ -76,7 +76,13 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
     def _load_word_bboxes(self, content: DocumentContent) -> list[list[float]] | None:
         # add bboxes
         if self.load_bboxes:
-            if self.use_segment_level_bboxes and len(content.segment_bbox_list) > 0:
+            use_segment_boxes = (
+                self.use_segment_level_bboxes or content.is_segment_level
+            )
+            if use_segment_boxes:
+                assert len(content.segment_bbox_list) > 0, (
+                    f"`use_segment_boxes` is True but found no `segment_bbox_list`, found = {content.segment_bbox_list}"
+                )
                 word_bboxes = content.segment_bbox_list
             else:
                 word_bboxes = content.bbox_list
@@ -95,14 +101,23 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
 
     def _get_token_classification_labels(
         self, document_instance: DocumentInstance
-    ) -> list[int] | None:
+    ) -> list[int] | list[list[int]] | None:
         if document_instance.has_annotation_type(AnnotationType.entity_labeling):
             entity_labeling_ann = document_instance.get_annotation_by_type(
                 AnnotationType.entity_labeling
             )
-            if entity_labeling_ann.word_labels is not None:
-                return [label.value for label in entity_labeling_ann.word_labels]
-        return None
+            if document_instance.content.is_segment_level:
+                return (
+                    [label.value for label in entity_labeling_ann.segment_labels]
+                    if entity_labeling_ann.segment_labels is not None
+                    else None
+                )
+            else:
+                return (
+                    [label.value for label in entity_labeling_ann.word_labels]
+                    if entity_labeling_ann.word_labels is not None
+                    else None
+                )
 
     def _prepare_hf_processor_inputs(
         self, document_instance: DocumentInstance
@@ -111,6 +126,7 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             f"{self.__class__.__name__} requires DocumentInstance to have content."
         )
         text = document_instance.content.text_list
+        # check if text is a segment
         boxes = self._load_word_bboxes(document_instance.content)
         label = self._get_classification_annotation_label(document_instance)
         word_labels = self._get_token_classification_labels(document_instance)
@@ -139,9 +155,10 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
     ) -> HuggingfaceProcessorOutput:
         # convert DocumentInstance to Huggingface processor inputs
         hf_processor_input = self._prepare_hf_processor_inputs(document_instance)
-
-        # perform tokenization using the hf_processor
-        return self.hf_processor(hf_processor_input)
+        return self.hf_processor(
+            hf_processor_input,
+            label_first=not document_instance.content.is_segment_level,
+        )
 
     def __call__(
         self, document_instance: DocumentInstance
@@ -165,6 +182,9 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             token_labels=hf_processor_output.token_labels,
             attention_mask=hf_processor_output.attention_mask,
             label=hf_processor_output.label,
+            segment_ids=hf_processor_output.segment_ids,
+            segment_position_ids=hf_processor_output.segment_position_ids,
+            valid_spans=hf_processor_output.valid_spans,
         )
 
         # validate function

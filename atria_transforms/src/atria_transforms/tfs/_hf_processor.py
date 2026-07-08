@@ -8,7 +8,7 @@ from atria_logger import get_logger
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from atria_transforms.tfs._utilities import (
-    _extract_sequence_and_word_ids,
+    _extract_sequence_info,
     _extract_token_bboxes_from_word_bboxes,
     _extract_token_labels_from_word_labels,
 )
@@ -29,7 +29,7 @@ class HuggingfaceProcessorInput(BaseModel):
     text_pair: list[str] | None = None
     boxes: list[list[float]] | None = None
     label: int | None = None
-    word_labels: list[int] | None = None
+    word_labels: list[int] | list[list[int]] | None = None
 
 
 class HuggingfaceProcessorOutput(BaseModel):
@@ -44,6 +44,9 @@ class HuggingfaceProcessorOutput(BaseModel):
     token_bboxes: np.ndarray | None = None
     token_labels: np.ndarray | None = None
     label: np.ndarray | None = None
+    segment_ids: np.ndarray | None = None
+    segment_position_ids: np.ndarray | None = None
+    valid_spans: np.ndarray | None = None
 
     @model_validator(mode="after")
     def validate_lengths(self) -> Self:
@@ -176,7 +179,9 @@ class HuggingfaceProcessor(DataTransform):
         self._call_kwargs = self._prepare_call_kwargs(processor)
         return processor
 
-    def __call__(self, input: HuggingfaceProcessorInput) -> HuggingfaceProcessorOutput:
+    def __call__(
+        self, input: HuggingfaceProcessorInput, label_first: bool = True
+    ) -> HuggingfaceProcessorOutput:
         from transformers import BertTokenizerFast, RobertaTokenizerFast
 
         if not self._hf_processor:
@@ -199,11 +204,16 @@ class HuggingfaceProcessor(DataTransform):
         tokenization_data = self._hf_processor(**filtered_inputs, **self._call_kwargs)
 
         # extract sequence_ids and word_ids
-        sequence_ids, word_ids = _extract_sequence_and_word_ids(tokenization_data)  # noqa: F821
+        sequence_ids, word_ids, segment_ids, segment_position_ids, valid_spans = (
+            _extract_sequence_info(
+                tokenization_data, pad_token_id=self.tokenizer.pad_token_id
+            )
+        )  # noqa: F821
 
         # extract token_bboxes if needed, we always reextract to ensure alignment with word_ids
         token_bboxes = tokenization_data.get("bbox", None)
         if token_bboxes is None and input.boxes is not None:
+            print(input.boxes)
             token_bboxes = _extract_token_bboxes_from_word_bboxes(
                 input.boxes, word_ids, sequence_ids
             )
@@ -212,7 +222,7 @@ class HuggingfaceProcessor(DataTransform):
         token_labels = tokenization_data.get("labels", None)
         if token_labels is None and input.word_labels is not None:
             token_labels = _extract_token_labels_from_word_labels(
-                input.word_labels, word_ids
+                input.word_labels, word_ids, label_first=label_first
             )
 
         # extract label if needed
@@ -229,6 +239,9 @@ class HuggingfaceProcessor(DataTransform):
             offsets_mapping=tokenization_data.get("offset_mapping"),
             sequence_ids=sequence_ids,
             word_ids=word_ids,
+            segment_ids=segment_ids,
+            segment_position_ids=segment_position_ids,
+            valid_spans=valid_spans,
             token_bboxes=token_bboxes if input.boxes is not None else None,
             token_labels=token_labels,
             label=label,
