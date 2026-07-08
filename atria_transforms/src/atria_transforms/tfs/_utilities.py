@@ -137,7 +137,6 @@ def _get_segment_ids(token_ids, word_ids, pad_token_id: int):
             segment_ids.append(last_segment_id + 1)
         last_segment_id = segment_ids[-1]
 
-    print("word_ids", word_ids)
     return segment_ids
 
 
