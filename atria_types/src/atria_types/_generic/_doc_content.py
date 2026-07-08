@@ -93,6 +93,7 @@ class DocumentContent(BaseDataModel):
     text_elements: Annotated[
         list[TextElement] | None, TableSchemaMetadata(pa_type="string")
     ] = None
+    is_segment_level: bool = False
 
     @property
     def text_list(self) -> list[str]:

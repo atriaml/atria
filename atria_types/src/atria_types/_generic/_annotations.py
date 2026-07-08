@@ -27,9 +27,10 @@ class ClassificationAnnotation(BaseDataModel):
 
 class EntityLabelingAnnotation(BaseDataModel):
     type: Literal["entity_labeling"] = AnnotationType.entity_labeling.value
-    word_labels: list[Label]
+    word_labels: list[Label] | None = None
+    segment_labels: list[Label] | None = None
 
-    @field_validator("word_labels", mode="before")
+    @field_validator("word_labels", "segment_labels", mode="before")
     def validate_word_labels(cls, value) -> list[Label] | None:
         if isinstance(value, str):
             import json
@@ -40,7 +41,7 @@ class EntityLabelingAnnotation(BaseDataModel):
                 raise ValueError(f"Invalid JSON string: {value}") from None
         return value
 
-    @field_serializer("word_labels")
+    @field_serializer("word_labels", "segment_labels")
     def serialize_word_labels(self, value: list[Label]) -> str | None:
         import json
 
