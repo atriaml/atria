@@ -23,41 +23,41 @@ logger = get_logger(__name__)
 
 
 class AtriaModelBuilder(ModelBuilder):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        assert self._model_type is not None, (
-            "model_type must be specified for TransformersModelBuilder."
-        )
-        assert self._model_type in {
-            "sequence_classification",
-            "token_classification",
-            "question_answering",
-        }, (
-            f"Unsupported model_type '{self._model_type}' for AtriaModelBuilder. "
-            "Supported types are: 'sequence_classification', 'token_classification', 'question_answering'."
-        )
-
     def get_config(
         self, model_name_or_path: str, **kwargs
     ) -> TransformersEncoderModelConfig:
         config = load_model_config(model_name=model_name_or_path)
-        if self._model_type == "sequence_classification":
-            head_config = SequenceClassificationHeadConfig(
-                num_labels=kwargs.pop("num_labels", 2),
-                sub_task=kwargs.pop(
-                    "sub_task", ClassificationSubTask.single_label_classification
-                ),
+        if isinstance(config, TransformersEncoderModelConfig):
+            assert self._model_type is not None, (
+                "model_type must be specified for TransformersModelBuilder."
             )
-            config = config.model_copy(update={"head_config": head_config})
-        elif self._model_type == "token_classification":
-            head_config = TokenClassificationHeadConfig(
-                num_labels=kwargs.pop("num_labels", 2)
+            assert self._model_type in {
+                "sequence_classification",
+                "token_classification",
+                "question_answering",
+            }, (
+                f"Unsupported model_type '{self._model_type}' for AtriaModelBuilder. "
+                "Supported types are: 'sequence_classification', 'token_classification', 'question_answering'."
             )
-            config = config.model_copy(update={"head_config": head_config})
-        elif self._model_type == "question_answering":
-            head_config = QuestionAnsweringHeadConfig()
-            config = config.model_copy(update={"head_config": head_config})
-        return config.model_validate(config.model_copy(update=kwargs).model_dump())
+            if self._model_type == "sequence_classification":
+                head_config = SequenceClassificationHeadConfig(
+                    num_labels=kwargs.pop("num_labels", 2),
+                    sub_task=kwargs.pop(
+                        "sub_task", ClassificationSubTask.single_label_classification
+                    ),
+                )
+                config = config.model_copy(update={"head_config": head_config})
+            elif self._model_type == "token_classification":
+                head_config = TokenClassificationHeadConfig(
+                    num_labels=kwargs.pop("num_labels", 2)
+                )
+                config = config.model_copy(update={"head_config": head_config})
+            elif self._model_type == "question_answering":
+                head_config = QuestionAnsweringHeadConfig()
+                config = config.model_copy(update={"head_config": head_config})
+            return config.model_validate(config.model_copy(update=kwargs).model_dump())
+        else:
+            return config.model_validate(config.model_copy(update=kwargs).model_dump())
 
     def _build(self, model_name_or_path: str, **kwargs) -> Module:
         config = self.get_config(model_name_or_path=model_name_or_path, **kwargs)
