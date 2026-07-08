@@ -121,8 +121,8 @@ class ModelBuilder:
         # Load pretrained checkpoint if specified.
         if self._pretrained_checkpoint is not None:
             checkpoint = _load_checkpoint_from_path_or_url(self._pretrained_checkpoint)
-            if 'model' in checkpoint:
-                checkpoint = checkpoint['model']
+            if "model" in checkpoint:
+                checkpoint = checkpoint["model"]
             missing_keys, unexpected_keys = model.load_state_dict(
                 checkpoint, strict=False
             )
