@@ -131,10 +131,7 @@ class ConfigurableModule(RepresentationMixin, Generic[T_ModuleConfig], ABC):
     @classmethod
     def get_default_config(cls) -> T_ModuleConfig:
         """Get default config instance. Override in subclasses if needed."""
-        return cast(
-            T_ModuleConfig,
-            cls.__config__(),
-        )
+        return cast(T_ModuleConfig, cls.__config__())
 
     @classmethod
     def get_config_class(cls) -> type[T_ModuleConfig]:
