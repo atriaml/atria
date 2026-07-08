@@ -179,7 +179,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                 "input_ids": batch.token_ids,
                 "token_type_ids": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
+                "position_ids": batch.position_ids,
             }
+            if "valid_span" in self._model_args_list and self.config.use_segment_info:
+                inputs["valid_span"] = batch.valid_spans
 
         if self.config.use_image:
             if isinstance(self._model, TransformersEncoderModel):
