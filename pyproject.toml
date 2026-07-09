@@ -12,6 +12,7 @@ dependencies = [
     "atria-metrics",
     "atria-ml",
     "atria-models",
+    "atria-prv",
     "atria-registry",
     "atria-transforms",
     "atria-types",
@@ -40,10 +41,12 @@ atria-datasets = { path = "atria_datasets", editable = true }
 atria-metrics = { path = "atria_metrics", editable = true }
 atria-insights = { path= "atria_insights", editable = true }
 atria-cli = { workspace = true }
+atria-prv = { workspace = true }
 
 [tool.uv.workspace]
 members = [
     "atria_cli",
+    "atria_prv",
 ]
 
 [dependency-groups]

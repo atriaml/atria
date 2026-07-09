@@ -17,7 +17,6 @@ from atria_types import (
     DocumentInstance,
     ImageInstance,
 )
-from privatekie.datasets.partitioning import PartitionedDataset
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
 from atria_datasets.core.dataset._dataset_builders import (
@@ -27,6 +26,7 @@ from atria_datasets.core.dataset._dataset_builders import (
     _validate_data_dir,
 )
 from atria_datasets.core.dataset._exceptions import SplitNotFoundError
+from atria_datasets.core.dataset._partitioning import PartitionedDataset
 from atria_datasets.core.dataset._split_iterators import SplitIterator
 from atria_datasets.core.storage.utilities import FileStorageType
 
