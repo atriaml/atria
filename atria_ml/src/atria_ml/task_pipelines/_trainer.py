@@ -57,11 +57,11 @@ class TrainerState:
 
 
 class Trainer:
-    def __init__(self, config: TrainingTaskConfig, local_rank: int = 0) -> None:
+    def __init__(self, config: TrainingTaskConfig) -> None:
         self._config = config
-        self._state: TrainerState = self._build(local_rank=local_rank)
+        self._state: TrainerState = self._build()
 
-    def _initialize_runtime(self, local_rank: int) -> None:
+    def _initialize_runtime(self) -> None:
         import ignite.distributed as idist
         import torch
 
@@ -252,8 +252,8 @@ class Trainer:
             ),
         )
 
-    def _build(self, local_rank: int) -> TrainerState:
-        self._initialize_runtime(local_rank=local_rank)
+    def _build(self) -> TrainerState:
+        self._initialize_runtime()
 
         # setup logging
         tb_logger = self._setup_logging()

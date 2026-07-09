@@ -17,6 +17,7 @@ from atria_types import (
     DocumentInstance,
     ImageInstance,
 )
+from privatekie.datasets.partitioning import PartitionedDataset
 
 from atria_datasets.core.dataset._common import T_BaseDataInstance, T_DatasetConfig
 from atria_datasets.core.dataset._dataset_builders import (
@@ -129,12 +130,12 @@ class Dataset(
                 f"Class '{cls.__name__}.__data_model__' must be a type, "
                 f"got {type(data_model).__name__}: {data_model}"
             )
-        assert isinstance(
-            cls.__requires_access_token__, bool
-        ), f"Class '{cls.__name__}' must define __requires_access_token__ as a boolean."
-        assert isinstance(
-            cls.__extract_downloads__, bool
-        ), f"Class '{cls.__name__}' must define __extract_downloads__ as a boolean."
+        assert isinstance(cls.__requires_access_token__, bool), (
+            f"Class '{cls.__name__}' must define __requires_access_token__ as a boolean."
+        )
+        assert isinstance(cls.__extract_downloads__, bool), (
+            f"Class '{cls.__name__}' must define __extract_downloads__ as a boolean."
+        )
 
     @property
     def metadata(self) -> DatasetMetadata:
@@ -163,6 +164,8 @@ class Dataset(
         preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
+        partition_id: int | None = None,
+        partition_cache_dir: int | None = None,
     ) -> Dataset | CachedDataset:
         """Entry point for loading a dataset, live or cached.
 
@@ -190,6 +193,8 @@ class Dataset(
                 preprocess_eval_transform=preprocess_eval_transform,
                 train_transform=train_transform,
                 eval_transform=eval_transform,
+                partition_id=partition_id,
+                partition_cache_dir=partition_cache_dir,
             )
         return self._load_splits(
             data_dir=data_dir,
@@ -259,6 +264,8 @@ class Dataset(
         preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
+        partition_id: int | None = None,
+        partition_cache_dir: str | None = None,
     ) -> CachedDataset:
         """Build (or reuse) an on-disk cached snapshot of this dataset.
 
@@ -305,6 +312,15 @@ class Dataset(
             and CachedDataset.validate_cache(unique_path)
         ):
             logger.info(f"Loading existing cached dataset from {unique_path}")
+            if partition_id is not None:
+                return PartitionedDataset(
+                    path=unique_path,
+                    partition_id=partition_id,
+                    partition_cache_dir=partition_cache_dir,
+                    allowed_keys=allowed_keys,
+                    train_transform=train_transform,
+                    eval_transform=eval_transform,
+                ).load()
             return CachedDataset(
                 path=unique_path,
                 allowed_keys=allowed_keys,
@@ -316,17 +332,19 @@ class Dataset(
             preprocess_train_transform is not None
             or preprocess_eval_transform is not None
         ):
-            assert (
-                cached_storage_type == FileStorageType.MSGPACK
-            ), "Caching with preprocess transforms is only supported for MSGPACK storage type."
+            assert cached_storage_type == FileStorageType.MSGPACK, (
+                "Caching with preprocess transforms is only supported for MSGPACK storage type."
+            )
             preprocess_tf = preprocess_train_transform or preprocess_eval_transform
             try:
                 assert type(preprocess_train_transform) == type(
                     preprocess_eval_transform
-                ), "preprocess_train_transform and preprocess_eval_transform must be of the same type."
-                assert issubclass(
-                    preprocess_tf.data_model, BaseDataInstance
-                ), "preprocess_transform must implement data_model property returning a BaseDataInstance."
+                ), (
+                    "preprocess_train_transform and preprocess_eval_transform must be of the same type."
+                )
+                assert issubclass(preprocess_tf.data_model, BaseDataInstance), (
+                    "preprocess_transform must implement data_model property returning a BaseDataInstance."
+                )
             except NotImplementedError:
                 raise ValueError(
                     "preprocess_transform must implement data_model property returning a BaseDataInstance."

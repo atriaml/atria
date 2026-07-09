@@ -63,7 +63,6 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         self._allowed_keys = allowed_keys
         self._train_transform = train_transform
         self._eval_transform = eval_transform
-        # Populated by load()
         self._snapshot_data: dict | None = None
         self._metadata_data: DatasetMetadata | None = None
         self._data_model_cls: type[T_BaseDataInstance] | None = None
@@ -78,9 +77,9 @@ class CachedDataset(RepresentationMixin, Generic[T_BaseDataInstance]):
         snapshot_file = self._path / _DEFAULT_SNAPSHOT_PATH
         with open(snapshot_file) as f:
             self._snapshot_data = yaml.load(f, Loader=SafeTupleLoader)
-        assert (
-            self._snapshot_data is not None
-        ), f"Snapshot file is empty: {snapshot_file}"
+        assert self._snapshot_data is not None, (
+            f"Snapshot file is empty: {snapshot_file}"
+        )
 
         fqn = self._snapshot_data["data_model"]
         module_name, class_name = fqn.rsplit(".", 1)

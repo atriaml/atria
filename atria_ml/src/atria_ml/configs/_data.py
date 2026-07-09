@@ -72,11 +72,11 @@ class DataConfig(RepresentationMixin, BaseModel):
             dataset.train = train
             dataset.validation = validation
 
-            assert (
-                dataset.train is not None
-            ), "Training split is None in the loaded dataset"  # for our experiments we always make sure we have validation split present
-            assert (
-                dataset.validation is not None
-            ), "Validation split is None in the loaded dataset"  # for our experiments we always make sure we have validation split present
+            assert dataset.train is not None, (
+                "Training split is None in the loaded dataset"
+            )  # for our experiments we always make sure we have validation split present
+            assert dataset.validation is not None, (
+                "Validation split is None in the loaded dataset"
+            )  # for our experiments we always make sure we have validation split present
 
         return dataset

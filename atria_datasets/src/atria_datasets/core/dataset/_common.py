@@ -47,6 +47,8 @@ class DatasetConfig(ModuleConfig):
         preprocess_eval_transform: DataTransform | None = None,
         train_transform: DataTransform | None = None,
         eval_transform: DataTransform | None = None,
+        partition_id: int | None = None,
+        partition_cache_dir: str | None = None,
         **kwargs,
     ) -> Dataset | CachedDataset:
         dataset = super().build(**kwargs)
@@ -65,6 +67,8 @@ class DatasetConfig(ModuleConfig):
             preprocess_eval_transform=preprocess_eval_transform,
             train_transform=train_transform,
             eval_transform=eval_transform,
+            partition_id=partition_id,
+            partition_cache_dir=partition_cache_dir,
         )
 
 

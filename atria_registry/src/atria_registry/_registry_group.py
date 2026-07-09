@@ -22,7 +22,7 @@ from atria_registry._module_base import (
 
 logger = get_logger(__name__)
 
-_BUILD_REGISTRY = os.environ.get("ATRIA_BUILD_REGISTRY", "true").lower() == "true"
+_BUILD_REGISTRY = os.environ.get("ATRIA_BUILD_REGISTRY", "true").lower() == "false"
 
 
 class ConfigSpec(BaseModel):
@@ -123,10 +123,18 @@ class RegistryGroup(Generic[T_ModuleConfig]):
         conn.commit()
         return conn
 
-    def register(
+    def register_module(
         self, module_name: str, configs: dict[str, ModuleConfig | dict] | None = None
     ):
-        if not _BUILD_REGISTRY:
+        return self.register(module_name, configs=configs, force_build=True)
+
+    def register(
+        self,
+        module_name: str,
+        configs: dict[str, ModuleConfig | dict] | None = None,
+        force_build: bool = False,
+    ):
+        if not force_build and not _BUILD_REGISTRY:
 
             def noop(module):
                 return module
