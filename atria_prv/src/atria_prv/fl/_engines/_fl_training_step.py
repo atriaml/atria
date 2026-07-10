@@ -74,22 +74,30 @@ class FLTrainingStep(EngineStep):
         )
 
         accumulated: OrderedDict[str, torch.Tensor] | None = None
+        total_samples = 0
         last_metrics: dict | None = None
         for client_id in selected_client_ids:
             logger.info(f"[Client {client_id}] update starting")
             # initialize the client trainer with the config for this client, which includes its data partition
             trainer = FLClientTrainer(
-                config=self._client_training_task_configs[client_id]
+                config=self._client_training_task_configs[client_id],
+                model_pipeline=self._model_pipeline,
             )
             output: FLClientOutput = trainer.train(global_params)
+            # weight each client's update by its local sample count (FedAvg)
+            n = output.num_samples
+            total_samples += n
             if accumulated is None:
-                accumulated = output.params
+                accumulated = OrderedDict(
+                    (k, v * n) for k, v in output.params.items()
+                )
             else:
                 for k, v in output.params.items():
-                    accumulated[k] += v
+                    accumulated[k] += v * n
             last_metrics = output.metrics
             logger.info(
-                f"[Client {client_id}] update finished; metrics: {output.metrics}"
+                f"[Client {client_id}] update finished; "
+                f"num_samples: {n}; metrics: {output.metrics}"
             )
             del output
             del trainer
@@ -100,10 +108,14 @@ class FLTrainingStep(EngineStep):
                 torch.cuda.synchronize()
             gc.collect()
 
-        averaged = {k: v / len(selected_client_ids) for k, v in accumulated.items()}
+        assert (
+            total_samples > 0
+        ), "Cannot aggregate: selected clients contributed zero samples"
+        averaged = {k: v / total_samples for k, v in accumulated.items()}
         self._model_pipeline._model.load_state_dict(averaged, strict=True)
         logger.info(
-            f"Aggregated updates from {len(selected_client_ids)} client(s) into global model"
+            f"Aggregated updates from {len(selected_client_ids)} client(s) / "
+            f"{total_samples} samples into global model"
         )
         return last_metrics
 

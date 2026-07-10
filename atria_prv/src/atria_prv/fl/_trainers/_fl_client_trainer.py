@@ -18,6 +18,7 @@ from atria_ml.training.engines._trainer import (
     TrainerEngineConfig,
     TrainerEngineDependencies,
 )
+from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
@@ -41,6 +42,7 @@ def suppress_logging(level=logging.CRITICAL):
 class FLClientOutput:
     params: OrderedDict[str, torch.Tensor]
     metrics: dict | None = None
+    num_samples: int = 0
 
 
 @dataclass
@@ -49,8 +51,14 @@ class FLClientTrainerState(TrainerState):
 
 
 class FLClientTrainer(Trainer):
-    def __init__(self, config: FLTrainingTaskConfig) -> None:
+    def __init__(
+        self, config: FLTrainingTaskConfig, model_pipeline: ModelPipeline | None = None
+    ) -> None:
         self._config = config
+
+        # this is useful in case the client is running in the same seqeuntial process
+        # this helps us to avoid creating copies of the model and save memory
+        self._model_pipeline = model_pipeline
         self._state: FLClientTrainerState = self._build()
 
     def _initialize_runtime(self) -> None:
@@ -104,7 +112,10 @@ class FLClientTrainer(Trainer):
 
         # build model pipeline
         with suppress_logging():
-            model_pipeline = self._config.model_pipeline.build(labels=labels)
+            if self._model_pipeline is not None:
+                model_pipeline = self._model_pipeline
+            else:
+                model_pipeline = self._config.model_pipeline.build(labels=labels)
 
             # build data pipeline
             data_pipeline = DataPipeline(dataset=dataset)
@@ -181,4 +192,6 @@ class FLClientTrainer(Trainer):
 
         torch.cuda.empty_cache()
 
-        return FLClientOutput(params=params, metrics=metrics)
+        return FLClientOutput(
+            params=params, metrics=metrics, num_samples=num_train_samples
+        )

@@ -213,7 +213,6 @@ class HuggingfaceProcessor(DataTransform):
         # extract token_bboxes if needed, we always reextract to ensure alignment with word_ids
         token_bboxes = tokenization_data.get("bbox", None)
         if token_bboxes is None and input.boxes is not None:
-            print(input.boxes)
             token_bboxes = _extract_token_bboxes_from_word_bboxes(
                 input.boxes, word_ids, sequence_ids
             )
