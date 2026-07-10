@@ -10,7 +10,11 @@ from atria_ml.training._configs import ModelCheckpointConfig
 from atria_ml.training.engine_steps import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
 
-from atria_prv.fl._engines._fl_training_step import FLTrainingStep
+from atria_prv.fl._engines._fl_aggregation import (
+    FLAggregationConfig,
+    WeightedFedAvgConfig,
+)
+from atria_prv.fl._engines._fl_training_step import CachedFLTrainingStep, FLTrainingStep
 from atria_prv.fl.configs import FLClientTrainingTaskConfig
 
 if TYPE_CHECKING:
@@ -23,6 +27,13 @@ class FLTrainingEngineConfig(EngineConfig):
     total_num_clients: int = 2
     client_fraction: float = 1.0
     seed: int = 42
+    # keep each client's FLClientTrainer (and its built dataset/data pipeline) alive
+    # across rounds instead of rebuilding it every round. Only safe when the model
+    # pipeline is shared (passed directly, not replicated per client), which it is
+    # here; trades higher resident memory for lower per-round setup cost.
+    cache_client_trainers: bool = True
+    # aggregation strategy applied to the collected client updates each round
+    aggregation: FLAggregationConfig = WeightedFedAvgConfig()
     model_checkpoint: ModelCheckpointConfig = ModelCheckpointConfig()
 
 
@@ -58,13 +69,19 @@ class FLTrainingEngine(
         self._attach_handlers()
 
     def _build_engine_step(self) -> EngineStep:
-        return FLTrainingStep(
+        step_cls = (
+            CachedFLTrainingStep
+            if self._config.cache_client_trainers
+            else FLTrainingStep
+        )
+        return step_cls(
             model_pipeline=self._deps.model_pipeline,
             device=self._deps.device,
             client_training_task_configs=self._deps.client_training_task_configs,
             total_num_clients=self._config.total_num_clients,
             client_fraction=self._config.client_fraction,
             seed=self._config.seed,
+            aggregation=self._config.aggregation.build(),
             with_amp=self._config.with_amp,
             test_run=self._config.test_run,
         )

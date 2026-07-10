@@ -10,6 +10,7 @@ import torch
 from atria_logger import get_logger
 from atria_ml.training.engine_steps import EngineStep
 
+from atria_prv.fl._engines._fl_aggregation import FLAggregationStrategy
 from atria_prv.fl._trainers._fl_client_trainer import FLClientOutput, FLClientTrainer
 from atria_prv.fl.configs import FLClientTrainingTaskConfig
 
@@ -33,7 +34,14 @@ def hash_state_dict(state_dict: dict[str, torch.Tensor]) -> str:
     return h.hexdigest()
 
 
-class FLTrainingStep(EngineStep):
+class BaseFLTrainingStep(EngineStep):
+    """Common FL round flow: select clients, run each locally, aggregate.
+
+    Subclasses decide how a client's ``FLClientTrainer`` is obtained and released
+    (fresh every round vs. cached across rounds); the aggregation math itself lives
+    in the injected :class:`FLAggregationStrategy`.
+    """
+
     def __init__(
         self,
         model_pipeline,
@@ -42,6 +50,7 @@ class FLTrainingStep(EngineStep):
         total_num_clients: int,
         client_fraction: float,
         seed: int,
+        aggregation: FLAggregationStrategy,
         with_amp: bool = False,
         test_run: bool = False,
     ):
@@ -56,6 +65,15 @@ class FLTrainingStep(EngineStep):
         self._client_fraction = client_fraction
         self._seed = seed
         self._num_clients_per_round = max(1, round(client_fraction * total_num_clients))
+        self._aggregation = aggregation
+
+    def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
+        """Return the client's trainer for this round. Overridden by subclasses."""
+        raise NotImplementedError
+
+    def _release_trainer(self, client_id: int, trainer: FLClientTrainer) -> None:
+        """Release the client's trainer after its update. Overridden by subclasses."""
+        raise NotImplementedError
 
     @property
     def name(self) -> str:
@@ -73,33 +91,20 @@ class FLTrainingStep(EngineStep):
             for k, v in self._model_pipeline._model.state_dict().items()
         )
 
-        accumulated: OrderedDict[str, torch.Tensor] | None = None
-        total_samples = 0
+        self._aggregation.reset()
         last_metrics: dict | None = None
         for client_id in selected_client_ids:
             logger.info(f"[Client {client_id}] update starting")
-            # initialize the client trainer with the config for this client, which includes its data partition
-            trainer = FLClientTrainer(
-                config=self._client_training_task_configs[client_id],
-                model_pipeline=self._model_pipeline,
-            )
+            trainer = self._acquire_trainer(client_id)
             output: FLClientOutput = trainer.train(global_params)
-            # weight each client's update by its local sample count (FedAvg)
-            n = output.num_samples
-            total_samples += n
-            if accumulated is None:
-                accumulated = OrderedDict(
-                    (k, v * n) for k, v in output.params.items()
-                )
-            else:
-                for k, v in output.params.items():
-                    accumulated[k] += v * n
+            self._aggregation.update(output)
             last_metrics = output.metrics
             logger.info(
                 f"[Client {client_id}] update finished; "
-                f"num_samples: {n}; metrics: {output.metrics}"
+                f"num_samples: {output.num_samples}; metrics: {output.metrics}"
             )
             del output
+            self._release_trainer(client_id, trainer)
             del trainer
 
             # remove gpu cache
@@ -108,14 +113,11 @@ class FLTrainingStep(EngineStep):
                 torch.cuda.synchronize()
             gc.collect()
 
-        assert (
-            total_samples > 0
-        ), "Cannot aggregate: selected clients contributed zero samples"
-        averaged = {k: v / total_samples for k, v in accumulated.items()}
+        averaged = self._aggregation.compute()
         self._model_pipeline._model.load_state_dict(averaged, strict=True)
         logger.info(
-            f"Aggregated updates from {len(selected_client_ids)} client(s) / "
-            f"{total_samples} samples into global model"
+            f"Aggregated updates from {len(selected_client_ids)} client(s) "
+            f"into global model"
         )
         return last_metrics
 
@@ -128,3 +130,45 @@ class FLTrainingStep(EngineStep):
         )
         metrics = self._aggregate(selected)
         return metrics or {}
+
+
+class FLTrainingStep(BaseFLTrainingStep):
+    """Builds a fresh ``FLClientTrainer`` (and its data pipeline) every round."""
+
+    def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
+        # initialize a fresh trainer for this client, which includes its data partition
+        return FLClientTrainer(
+            config=self._client_training_task_configs[client_id],
+            model_pipeline=self._model_pipeline,
+        )
+
+    def _release_trainer(self, client_id: int, trainer: FLClientTrainer) -> None:
+        # nothing to retain; the caller's `del trainer` frees it
+        pass
+
+
+class CachedFLTrainingStep(BaseFLTrainingStep):
+    """Keeps each client's ``FLClientTrainer`` alive across rounds.
+
+    Safe because the model pipeline is shared (passed directly, not replicated per
+    client); trades higher resident memory for avoiding per-round dataset/data
+    pipeline rebuilds.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_trainers: dict[int, FLClientTrainer] = {}
+
+    def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
+        trainer = self._client_trainers.get(client_id)
+        if trainer is None:
+            trainer = FLClientTrainer(
+                config=self._client_training_task_configs[client_id],
+                model_pipeline=self._model_pipeline,
+            )
+            self._client_trainers[client_id] = trainer
+        return trainer
+
+    def _release_trainer(self, client_id: int, trainer: FLClientTrainer) -> None:
+        # keep the trainer (and its built dataset/data pipeline) for the next round
+        pass
