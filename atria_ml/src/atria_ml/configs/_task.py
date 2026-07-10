@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import platform
+import socket
+import sys
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Self
 
@@ -17,6 +23,8 @@ from atria_ml.configs._data import DataConfig
 from atria_ml.configs._env import RuntimeEnvConfig
 from atria_ml.configs._trainer import TrainerConfig
 from atria_ml.training._configs import LoggingConfig
+
+METRICS_SCHEMA_VERSION = 1
 
 logger = get_logger(__name__)
 
@@ -100,12 +108,41 @@ class TaskConfigBase(RepresentationMixin, BaseModel):
         output_file_path = self.get_metrics_file_path()
         return output_file_path.exists()
 
-    def dump_metrics_file(self, data: dict) -> None:
+    def dump_metrics_file(
+        self, data: dict, started_at: datetime | None = None, extra: dict | None = None
+    ) -> None:
+        completed_at = datetime.now(timezone.utc)
         output_file_path = self.get_metrics_file_path()
-        if not output_file_path.parent.exists():
-            output_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file_path, "w") as f:
-            json.dump({"config": self.model_dump(), "data": data}, f, indent=4)
+        output_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        payload = {
+            "schema_version": METRICS_SCHEMA_VERSION,
+            "run": {
+                "id": str(uuid.uuid4()),
+                "started_at": started_at.isoformat() if started_at else None,
+                "completed_at": completed_at.isoformat(),
+                "duration_seconds": (
+                    (completed_at - started_at).total_seconds() if started_at else None
+                ),
+            },
+            "env": {
+                "python": sys.version.split()[0],
+                "platform": platform.platform(),
+                "machine": platform.machine(),
+                "hostname": socket.gethostname(),
+                "cwd": os.getcwd(),
+                "argv": sys.argv,
+            },
+            "config": self.model_dump(),
+            "data": data,
+            **(extra or {}),
+        }
+
+        tmp = output_file_path.with_suffix(output_file_path.suffix + ".tmp")
+        with open(tmp, "w") as f:
+            json.dump(payload, f, indent=4, default=str)
+        tmp.replace(output_file_path)
+
         logger.info(f"Metrics dumped to {output_file_path}")
 
 

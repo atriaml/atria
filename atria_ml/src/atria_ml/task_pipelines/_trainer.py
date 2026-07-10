@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -315,23 +316,40 @@ class Trainer:
             )
             return
 
+        started_at = datetime.now(timezone.utc)
+
         metrics = {}
+        run_info = {}
         for checkpoint_type in ["best", "last"]:
             try:
                 state = test_engine.run_with_checkpoint_type(
                     checkpoint_type=checkpoint_type
                 )
-                if state is not None:
-                    metrics[checkpoint_type] = deepcopy(state.metrics)
+
+                if state is None:
+                    run_info[checkpoint_type] = {"status": "no_state_returned"}
+                    continue
+
+                metrics[checkpoint_type] = deepcopy(state.metrics)
+                run_info[checkpoint_type] = {
+                    "status": "ok",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "elapsed_seconds": state.times["COMPLETED"],
+                    "last_epoch_seconds": state.times["EPOCH_COMPLETED"],
+                    "epoch": state.epoch,
+                    "max_epochs": state.max_epochs,
+                    "iteration": state.iteration,
+                    "epoch_length": state.epoch_length,
+                }
             except NoCheckpointFoundError:
-                pass  # ignore if no checkpoint found
+                run_info[checkpoint_type] = {"status": "no_checkpoint_found"}
 
-        metrics = _format_metrics_for_logging(metrics)
         logger.info("Test metrics:")
-        logger.info(metrics)
+        logger.info(_format_metrics_for_logging(metrics))
 
-        # serialize test metrics
-        self._config.dump_metrics_file(data=metrics)  #  type: ignore
+        self._config.dump_metrics_file(
+            data=metrics, started_at=started_at, extra={"checkpoints": run_info}
+        )
         return metrics
 
     def run(self) -> None:
