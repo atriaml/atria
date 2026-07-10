@@ -65,6 +65,7 @@ class DataConfig(RepresentationMixin, BaseModel):
             try:
                 assert dataset.test is None
             except SplitNotFoundError:
+                logger.info("Using validation set in place of test set.")
                 dataset.test = dataset.validation
                 dataset.split_iterators.pop(DatasetSplitType.validation)
 
