@@ -97,6 +97,16 @@ class BaseFLTrainingStep(EngineStep):
             logger.info(f"[Client {client_id}] update starting")
             trainer = self._acquire_trainer(client_id)
             output: FLClientOutput = trainer.train(global_params)
+
+            # for sanity check lets print first few values of first 10 params of the model
+            for idx, (name, param) in enumerate(output.params.items()):
+                if idx >= 10:
+                    break
+                logger.info(
+                    f"[Client {client_id}] model param {name}: "
+                    f"{param.detach().cpu().numpy().flatten()[:10]}"
+                )
+
             self._aggregation.update(output)
             last_metrics = output.metrics
             logger.info(

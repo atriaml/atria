@@ -177,7 +177,19 @@ class FLClientTrainer(Trainer):
         self._state.model_pipeline._model.load_state_dict(global_params, strict=True)
 
         engine = self._build_train_engine()
-        state = engine.run(checkpoint_path=None)
+
+        # for sanity check lets print first few values of first 10 params of the model
+        for idx, (name, param) in enumerate(
+            self._state.model_pipeline._model.state_dict().items()
+        ):
+            if idx >= 10:
+                break
+            logger.info(
+                f"[Client {self._config.client_id}] model param {name}: "
+                f"{param.detach().cpu().numpy().flatten()[:10]}"
+            )
+
+        state = engine.run(checkpoint_path=None, quiet=True)
         self._state.model_pipeline.ops.to_device(torch.device("cpu"))
 
         params = OrderedDict(

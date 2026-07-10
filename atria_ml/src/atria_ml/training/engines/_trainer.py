@@ -714,7 +714,9 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         )
         logger.info(f"\tTotal warmup steps = {self.total_warmup_steps}")
 
-    def run(self, checkpoint_path: str | Path | None = None) -> State | None:
+    def run(
+        self, checkpoint_path: str | Path | None = None, quiet: bool = False
+    ) -> State | None:
         from atria_ml.training.engines.utilities import FixedBatchIterator
 
         # run engine
@@ -740,12 +742,15 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
         # before running the engine log the first batch
         try:
             first_batch = next(iter(self._deps.dataloader))
-            logger.info(f"First batch input for engine [{self.__class__.__name__}]:")
-            total_elements = len(first_batch)
-            first_sample = first_batch[0]
-            logger.info(
-                f"\tTotal elements in the batch: {total_elements}, First sample input: {first_sample}"
-            )
+            if not quiet:
+                logger.info(
+                    f"First batch input for engine [{self.__class__.__name__}]:"
+                )
+                total_elements = len(first_batch)
+                first_sample = first_batch[0]
+                logger.info(
+                    f"\tTotal elements in the batch: {total_elements}, First sample input: {first_sample}"
+                )
         except Exception as e:
             logger.warning(
                 f"Could not fetch the first batch from dataloader for engine [{self.__class__.__name__}]: {e}"
