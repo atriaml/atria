@@ -86,7 +86,6 @@ def prepare_dataset(
             "Only CachedDataset can be uploaded to hub"
         )
         repo_info = dataset.upload_to_hub(name=name, overwrite_existing=True)
-        print("repo_info", repo_info)
 
         # reload dataset from hub to verify upload
         dataset = CachedDataset.load_from_hub(

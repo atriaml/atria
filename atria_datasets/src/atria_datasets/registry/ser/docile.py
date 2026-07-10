@@ -187,13 +187,14 @@ class Docile(DocumentDataset):
 
     def _prepare_dataset(self, split: DatasetSplitType, data_dir: str | Path) -> tuple:
         split_dir = "annotated-trainval"
-        if not hasattr(self, "_dataset"):
+        split_name = "val" if split == DatasetSplitType.validation else "train"
+        if not hasattr(self, f"_{split_name}_dataset"):
             data_dir = Path(data_dir)
-            split_name = "val" if split == DatasetSplitType.validation else "train"
             docile_dataset = Dataset(
                 split_name, data_dir / split_dir, load_annotations=False, load_ocr=False
             )
             preprocessed_name = f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{self.config.image_shape[0]}x{self.config.image_shape[1]}.json"
+            print("loading", preprocessed_name)
             if not (data_dir / split_dir / split_dir / preprocessed_name).exists():
                 prepare_docile_dataset(
                     docile_dataset,
@@ -207,9 +208,9 @@ class Docile(DocumentDataset):
                 data_dir / split_dir,
                 image_shape=self.config.image_shape,
             )
-            self._dataset = dataset
+            setattr(self, f"_{split_name}_dataset", dataset)
             self._label_names = label_names
-        return self._dataset, self._label_names
+        return getattr(self, f"_{split_name}_dataset"), self._label_names
 
     def _split_iterator(self, split: DatasetSplitType, data_dir: str):
         dataset, label_names = self._prepare_dataset(split, data_dir)

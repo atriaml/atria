@@ -79,10 +79,10 @@ class DocumentTokenizer(DataTransform[TokenizedDocumentInstance]):
             use_segment_boxes = (
                 self.use_segment_level_bboxes or content.is_segment_level
             )
-            if use_segment_boxes:
-                assert len(content.segment_bbox_list) > 0, (
-                    f"`use_segment_boxes` is True but found no `segment_bbox_list`, found = {content.segment_bbox_list}"
-                )
+            if use_segment_boxes and len(content.segment_bbox_list) > 0:
+                # assert len(content.segment_bbox_list) > 0, (
+                #     f"`use_segment_boxes` is True but found no `segment_bbox_list`, found = {content.segment_bbox_list}"
+                # )
                 word_bboxes = content.segment_bbox_list
             else:
                 word_bboxes = content.bbox_list

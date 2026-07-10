@@ -132,6 +132,10 @@ class ModelBuilder:
                     f"Missing keys: {missing_keys}\n"
                     f"Unexpected keys: {unexpected_keys}"
                 )
+            else:
+                logger.info(
+                    f"Pretrained checkpoint loaded: {self._pretrained_checkpoint} with no missing/unexpected keys."
+                )
 
         # Configure BatchNorm layers if specified.
         self._configure_batch_norm_layers(model)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from atria_datasets.api.datasets import load_dataset_config
 from atria_datasets.core.dataset._common import DatasetConfig
 from atria_datasets.core.dataset._datasets import Dataset
+from atria_datasets.core.dataset._exceptions import SplitNotFoundError
 from atria_datasets.core.dataset_splitters._standard_splitter import StandardSplitter
 from atria_datasets.core.storage.utilities import FileStorageType
 from atria_logger import get_logger
@@ -38,6 +39,7 @@ class DataConfig(RepresentationMixin, BaseModel):
     # dataset split args
     splitting_enabled: bool = True
     split_ratio: float = 0.9
+    use_validation_as_test: bool = False
     # preprocess transforms
     preprocess_train_transform: DataTransform | None = None
     preprocess_eval_transform: DataTransform | None = None
@@ -59,6 +61,13 @@ class DataConfig(RepresentationMixin, BaseModel):
         }
 
     def _apply_splits(self, dataset: Dataset) -> Dataset:
+        if self.use_validation_as_test:
+            try:
+                assert dataset.test is None
+            except SplitNotFoundError:
+                dataset.test = dataset.validation
+                dataset.split_iterators.pop(DatasetSplitType.validation)
+
         if (
             DatasetSplitType.validation not in dataset.split_iterators
             and self.splitting_enabled
