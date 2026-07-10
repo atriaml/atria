@@ -10,6 +10,8 @@ from atria_transforms.data_types._tokenized_document_instance import (
     TokenizedDocumentInstance,
 )
 
+np.set_printoptions(threshold=0, edgeitems=1, linewidth=80)
+
 
 class DocumentTensorDataModel(TensorDataModel):
     class Metadata(BaseModel):

@@ -22,7 +22,7 @@ from atria_ml.training.engines._trainer import (
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
 
-    from atria_prv.configs import FLTrainingTaskConfig
+    from atria_prv.fl.configs import FLTrainingTaskConfig
 
 logger = get_logger(__name__)
 
@@ -49,15 +49,8 @@ class FLClientTrainerState(TrainerState):
 
 
 class FLClientTrainer(Trainer):
-    def __init__(
-        self,
-        config: FLTrainingTaskConfig,
-        client_id: int,
-        partition_cache_dir: str | None,
-    ) -> None:
+    def __init__(self, config: FLTrainingTaskConfig) -> None:
         self._config = config
-        self._client_id = client_id
-        self._partition_cache_dir = partition_cache_dir
         self._state: FLClientTrainerState = self._build()
 
     def _initialize_runtime(self) -> None:
@@ -66,7 +59,7 @@ class FLClientTrainer(Trainer):
 
         # initialize training
         _initialize_torch(
-            seed=self._config.env.seed + self._client_id + 1,
+            seed=self._config.env.seed + self._config.client_id + 1,
             deterministic=self._config.env.deterministic,
         )
 
@@ -77,7 +70,7 @@ class FLClientTrainer(Trainer):
             self._device = "cpu"
 
         logger.info(
-            f"Seed set to {self._config.env.seed + self._client_id + 1} and device to {self._device} on client {self._client_id}."
+            f"Seed set to {self._config.env.seed + self._config.client_id + 1} and device to {self._device} on client {self._config.client_id}."
         )
 
     def _setup_logging(self) -> TensorboardLogger | None:
@@ -120,27 +113,15 @@ class FLClientTrainer(Trainer):
             data_pipeline=data_pipeline,
             model_pipeline=model_pipeline,
             tb_logger=tb_logger,
-            client_id=self._client_id,
+            client_id=self._config.client_id,
         )
 
     def _build_train_engine(self) -> TrainerEngine:
-        """Overridable seam: a future DPFLClient overrides ONLY this method (swapping in
-        DPTrainerEngine + a privacy engine), mirroring how DPTrainer overrides
-        Trainer._build_train_engine today. Nothing else on FLClient needs to change.
-
-        Naming note: this runs `trainer.max_epochs` local epochs by default, but
-        `client_update`'s contract doesn't assume that — a different local-update
-        strategy (e.g. a single local step) only needs to change what happens inside
-        this method, not the outer round loop.
-        """
         train_dataloader = self._state.data_pipeline.train_dataloader(
             batch_size=self._config.data.train_batch_size,
             num_workers=self._config.data.num_workers,
             pin_memory=self._config.data.pin_memory,
         )
-        # A client round is ephemeral: only the resulting parameters are returned to the
-        # server for aggregation, so disable checkpointing entirely (nothing to persist,
-        # output_dir=None) and turn off resume-from-checkpoint discovery.
         no_checkpoint_cfg = self._config.trainer.model_checkpoint.model_copy(
             update={"enabled": False, "resume_from_checkpoint": False}
         )
@@ -174,12 +155,10 @@ class FLClientTrainer(Trainer):
             ),
         )
 
-    def client_update(
-        self, global_params: OrderedDict[str, torch.Tensor]
-    ) -> FLClientOutput:
+    def train(self, global_params: OrderedDict[str, torch.Tensor]) -> FLClientOutput:
         num_train_samples = len(self._state.data_pipeline.dataset.train)
         logger.debug(
-            f"[Client {self._client_id}] update starting: loaded global params, "
+            f"[Client {self._config.client_id}] update starting: loaded global params, "
             f"{num_train_samples} local train samples, "
             f"{self._config.trainer.max_epochs} local epoch(s), device={self._device}"
         )
@@ -188,10 +167,6 @@ class FLClientTrainer(Trainer):
 
         engine = self._build_train_engine()
         state = engine.run(checkpoint_path=None)
-
-        # engine.run() moved the model onto self._device (GPU) to train it; move it back
-        # to CPU now that this client's turn is over so it doesn't keep occupying GPU
-        # memory until (possibly many rounds later) it's selected again.
         self._state.model_pipeline.ops.to_device(torch.device("cpu"))
 
         params = OrderedDict(
@@ -200,7 +175,10 @@ class FLClientTrainer(Trainer):
         )
         metrics = dict(state.metrics) if state is not None else None
         logger.debug(
-            f"[Client {self._client_id}] update finished; offloaded model to CPU; "
+            f"[Client {self._config.client_id}] update finished; offloaded model to CPU; "
             f"metrics={metrics}"
         )
+
+        torch.cuda.empty_cache()
+
         return FLClientOutput(params=params, metrics=metrics)

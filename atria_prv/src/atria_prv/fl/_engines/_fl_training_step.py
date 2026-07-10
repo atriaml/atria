@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+import hashlib
 import random
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any
@@ -8,30 +10,35 @@ import torch
 from atria_logger import get_logger
 from atria_ml.training.engine_steps import EngineStep
 
+from atria_prv.fl._trainers._fl_client_trainer import FLClientOutput, FLClientTrainer
+from atria_prv.fl.configs import FLClientTrainingTaskConfig
+
 if TYPE_CHECKING:
     from ignite.engine import Engine
-
-    from atria_prv.trainers._fl_client_trainer import FLClientOutput, FLClientTrainer
 
 logger = get_logger(__name__)
 
 
+def hash_state_dict(state_dict: dict[str, torch.Tensor]) -> str:
+    h = hashlib.sha256()
+
+    for name in sorted(state_dict.keys()):
+        h.update(name.encode())
+
+        tensor = state_dict[name].detach().cpu().contiguous()
+        h.update(str(tensor.dtype).encode())
+        h.update(str(tuple(tensor.shape)).encode())
+        h.update(tensor.numpy().tobytes())
+
+    return h.hexdigest()
+
+
 class FLTrainingStep(EngineStep):
-    """One federated round = one ignite engine step.
-
-    Self-contained: selects the participating clients for this round (seeded, so the
-    selection is reproducible and resume-stable), runs each selected client's local
-    update, FedAvg-aggregates their returned parameters into the shared global
-    ``model_pipeline`` in place, and returns the round metrics as ``engine.state.output``.
-
-    A DP/secure-aggregation variant subclasses this and overrides ``_aggregate`` only.
-    """
-
     def __init__(
         self,
         model_pipeline,
         device,
-        client_trainers: list[FLClientTrainer],
+        client_training_task_configs: list[FLClientTrainingTaskConfig],
         total_num_clients: int,
         client_fraction: float,
         seed: int,
@@ -44,7 +51,7 @@ class FLTrainingStep(EngineStep):
             with_amp=with_amp,
             test_run=test_run,
         )
-        self._client_trainers = client_trainers
+        self._client_training_task_configs = client_training_task_configs
         self._total_num_clients = total_num_clients
         self._client_fraction = client_fraction
         self._seed = seed
@@ -61,11 +68,6 @@ class FLTrainingStep(EngineStep):
         )
 
     def _aggregate(self, selected_client_ids: list[int]) -> dict | None:
-        """FedAvg over the selected clients: sums each client's returned parameters into
-        a running total as it finishes (never holding more than one client's params + the
-        running sum at once), then divides by the number of participating clients. Every
-        selected client starts from the same global parameter snapshot, taken once before
-        the loop, and the average is loaded back into the global model in place."""
         global_params = OrderedDict(
             (k, v.detach().cpu())
             for k, v in self._model_pipeline._model.state_dict().items()
@@ -75,9 +77,11 @@ class FLTrainingStep(EngineStep):
         last_metrics: dict | None = None
         for client_id in selected_client_ids:
             logger.info(f"[Client {client_id}] update starting")
-            output: FLClientOutput = self._client_trainers[client_id].client_update(
-                global_params
+            # initialize the client trainer with the config for this client, which includes its data partition
+            trainer = FLClientTrainer(
+                config=self._client_training_task_configs[client_id]
             )
+            output: FLClientOutput = trainer.train(global_params)
             if accumulated is None:
                 accumulated = output.params
             else:
@@ -88,6 +92,13 @@ class FLTrainingStep(EngineStep):
                 f"[Client {client_id}] update finished; metrics: {output.metrics}"
             )
             del output
+            del trainer
+
+            # remove gpu cache
+            with torch.no_grad():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+            gc.collect()
 
         averaged = {k: v / len(selected_client_ids) for k, v in accumulated.items()}
         self._model_pipeline._model.load_state_dict(averaged, strict=True)
@@ -97,8 +108,6 @@ class FLTrainingStep(EngineStep):
         return last_metrics
 
     def __call__(self, engine: Engine, batch: Any) -> dict:
-        # rounds map 1:1 to epochs (epoch_length == 1); derive the 0-based round index
-        # from engine state so it stays correct across resume (ignite restores state.epoch).
         round_idx = engine.state.epoch - 1
         selected = self._select_clients(round_idx)
         logger.info(

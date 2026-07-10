@@ -21,7 +21,6 @@ class DataConfig(RepresentationMixin, BaseModel):
         default_factory=lambda: load_dataset_config("cifar10/1k")
     )
     data_dir: str | None = None
-
     # caching config
     access_token: str | None = None
     overwrite_existing_cached: bool = False
@@ -31,36 +30,35 @@ class DataConfig(RepresentationMixin, BaseModel):
     enable_cached_splits: bool = True
     store_artifact_content: bool = True
     max_cache_image_size: int | None = None
-
     # dataloader config
     train_batch_size: int = 8
     eval_batch_size: int = 8
     num_workers: int = 4
     pin_memory: bool = True
-
     # dataset split args
     splitting_enabled: bool = True
     split_ratio: float = 0.9
-
     # preprocess transforms
     preprocess_train_transform: DataTransform | None = None
     preprocess_eval_transform: DataTransform | None = None
     preprocess_max_cache_image_size: int | None = None
 
-    def build_dataset(self) -> Dataset:
-        dataset = self.dataset_config.build(
-            data_dir=self.data_dir,
-            access_token=self.access_token,
-            overwrite_existing_cached=self.overwrite_existing_cached,
-            allowed_keys=self.allowed_keys,
-            num_processes=self.num_processes,
-            cached_storage_type=self.cached_storage_type,
-            enable_cached_splits=self.enable_cached_splits,
-            store_artifact_content=self.store_artifact_content,
-            max_cache_image_size=self.preprocess_max_cache_image_size,
-            preprocess_train_transform=self.preprocess_train_transform,
-            preprocess_eval_transform=self.preprocess_eval_transform,
-        )
+    def _build_kwargs(self) -> dict:
+        return {
+            "data_dir": self.data_dir,
+            "access_token": self.access_token,
+            "overwrite_existing_cached": self.overwrite_existing_cached,
+            "allowed_keys": self.allowed_keys,
+            "num_processes": self.num_processes,
+            "cached_storage_type": self.cached_storage_type,
+            "enable_cached_splits": self.enable_cached_splits,
+            "store_artifact_content": self.store_artifact_content,
+            "max_cache_image_size": self.preprocess_max_cache_image_size,
+            "preprocess_train_transform": self.preprocess_train_transform,
+            "preprocess_eval_transform": self.preprocess_eval_transform,
+        }
+
+    def _apply_splits(self, dataset: Dataset) -> Dataset:
         if (
             DatasetSplitType.validation not in dataset.split_iterators
             and self.splitting_enabled
@@ -71,12 +69,14 @@ class DataConfig(RepresentationMixin, BaseModel):
             train, validation = dataset_splitter(dataset.train)
             dataset.train = train
             dataset.validation = validation
-
             assert dataset.train is not None, (
                 "Training split is None in the loaded dataset"
-            )  # for our experiments we always make sure we have validation split present
+            )
             assert dataset.validation is not None, (
                 "Validation split is None in the loaded dataset"
-            )  # for our experiments we always make sure we have validation split present
-
+            )
         return dataset
+
+    def build_dataset(self) -> Dataset:
+        dataset = self.dataset_config.build(**self._build_kwargs())
+        return self._apply_splits(dataset)

@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING
 
 import torch
 from atria_logger import get_logger
-
-from atria_prv.trainers._fl_client import FLClient, FLClientOutput
 from atria_prv.opacus.privacy_engine import _PrivacyEngine
+from atria_prv.trainers._fl_client import FLClient, FLClientOutput
 
 if TYPE_CHECKING:
     from atria_prv.configs import DPConfig
@@ -22,14 +21,16 @@ class FeAmDPClient(FLClient):
         self._dp_config = dp_config
         self._sigma_k = sigma_k
 
-        from opacus.validators import ModuleValidator  # same pattern as existing DPTrainer._build()
+        from opacus.validators import (
+            ModuleValidator,  # same pattern as existing DPTrainer._build()
+        )
 
         if not ModuleValidator.is_valid(self._model_pipeline._model):
-            self._model_pipeline._model = ModuleValidator.fix(self._model_pipeline._model)
+            self._model_pipeline._model = ModuleValidator.fix(
+                self._model_pipeline._model
+            )
 
-    def client_update(
-        self, global_params: OrderedDict[str, torch.Tensor]
-    ) -> FLClientOutput:
+    def train(self, global_params: OrderedDict[str, torch.Tensor]) -> FLClientOutput:
         """Overrides FLClient.client_update entirely (not just _build_train_engine --
         unused here, no internal TrainerEngine needed for a single step) because the
         return semantics also differ: FLClient returns post-step WEIGHTS (full
@@ -80,19 +81,19 @@ class FeAmDPClient(FLClient):
         # step entirely; this client's pseudo-gradient is then all-zero this round.
 
         hooks.cleanup()  # removes opacus's forward/backward hooks + monkey-patched param
-                          # attrs (grad_sample, _forward_counter, ...). Required: since
-                          # self._model_pipeline persists across rounds, skipping this
-                          # would stack hooks from every prior round the client
-                          # participated in, corrupting gradients over time.
+        # attrs (grad_sample, _forward_counter, ...). Required: since
+        # self._model_pipeline persists across rounds, skipping this
+        # would stack hooks from every prior round the client
+        # participated in, corrupting gradients over time.
 
         self._model_pipeline.ops.to_device(torch.device("cpu"))
         pseudo_grad = OrderedDict(
             (name, (global_params[name].cpu() - p.detach().cpu()))
             for name, p in self._model_pipeline._model.named_parameters()
         )  # lr=1 SGD: param_new = param_old - g~  =>  g~ = param_old - param_new.
-           # Only over named_parameters() (trainable) -- NOT full state_dict() (buffers
-           # aren't gradients; not an issue for the BERT-based model this repo trains,
-           # which has no such buffers -- accepted simplification, not fixed).
+        # Only over named_parameters() (trainable) -- NOT full state_dict() (buffers
+        # aren't gradients; not an issue for the BERT-based model this repo trains,
+        # which has no such buffers -- accepted simplification, not fixed).
         return FLClientOutput(
             params=pseudo_grad, metrics={"loss": loss} if loss is not None else None
         )
