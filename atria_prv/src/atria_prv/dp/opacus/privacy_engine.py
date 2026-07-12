@@ -77,10 +77,15 @@ class _PrivacyEngine(PrivacyEngine):
         batch_first: bool = True,
         rand_on_empty: bool = False,
     ) -> DataLoader:
+
+        sample_rate = 1 / len(data_loader)
+        expected_batch_size = int(len(data_loader.dataset) * sample_rate)
+        print("Sample rate = ", sample_rate)
+        print("Expected batch size = ", expected_batch_size)
         if self.dataset is None:
             self.dataset = data_loader.dataset
         elif self.dataset != data_loader.dataset:
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 f"PrivacyEngine detected new dataset object. "
                 f"Was: {self.dataset}, got: {data_loader.dataset}. "
                 f"Privacy accounting works per dataset, please initialize "

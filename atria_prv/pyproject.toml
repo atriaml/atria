@@ -20,7 +20,7 @@ dependencies = [
     "atria-models",
     "atria-metrics",
     "atria-datasets",
-    "opacus==1.6.0",
+    "opacus>=1.6.0",
 ]
 
 [project.optional-dependencies]

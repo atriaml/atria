@@ -10,13 +10,13 @@ from atria_ml.data_pipeline._data_pipeline import DataPipeline
 from atria_ml.task_pipelines._trainer import Trainer
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
-from atria_prv.configs import DPTrainingTaskConfig
-from atria_prv.engines._dp_trainer_engine import (
+from atria_prv.dp._dp_trainer_engine import (
     DPTrainerEngine,
     DPTrainerEngineConfig,
     DPTrainerEngineDependencies,
 )
-from atria_prv.opacus.privacy_engine import _PrivacyEngine
+from atria_prv.dp.configs import DPTrainingTaskConfig
+from atria_prv.dp.opacus.privacy_engine import _PrivacyEngine
 
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
@@ -43,7 +43,6 @@ class DPTrainer(Trainer):
 
     def _build_train_engine(self) -> DPTrainerEngine:
         import torch
-        # from torch.optim import Adam
 
         train_dataloader = self._state.data_pipeline.train_dataloader(
             batch_size=self._config.data.train_batch_size,

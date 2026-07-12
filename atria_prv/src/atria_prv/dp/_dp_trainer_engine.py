@@ -14,9 +14,9 @@ from atria_ml.training.engines._trainer import (
 )
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 
-from atria_prv.configs import DPConfig
-from atria_prv.opacus.metrics import PrivacyLossMetric
-from atria_prv.opacus.privacy_engine import _PrivacyEngine
+from atria_prv.dp.configs import DPConfig
+from atria_prv.dp.opacus.metrics import PrivacyLossMetric
+from atria_prv.dp.opacus.privacy_engine import _PrivacyEngine
 
 if TYPE_CHECKING:
     from ignite.engine import Engine, State
@@ -51,17 +51,6 @@ class DPTrainerEngine(TrainerEngine):
             return len(self._deps.dataloader) * ratio
         else:
             return len(self._deps.dataloader)
-
-    # def _build_engine_step(self) -> EngineStep:
-    #     assert self._optimizers is not None, "Optimizers have not been built yet."
-    #     assert self._config.with_amp is False, "DP Training does not support AMP"
-    #     return DPTrainingStep(
-    #         model_pipeline=self._deps.model_pipeline,
-    #         device=self._deps.device,
-    #         optimizers=self._optimizers,
-    #         gradient_config=self._config.gradient,
-    #         test_run=self._config.test_run,
-    #     )
 
     def _build_engine(self) -> tuple[EngineStep, Engine]:
         # build optimizers
@@ -113,6 +102,7 @@ class DPTrainerEngine(TrainerEngine):
                 target_delta=self._target_delta,
                 max_grad_norm=self._config.dp_config.max_grad_norm,
                 wrap_model=False,
+                # clipping="per_layer",
             )
         else:
             (
@@ -129,16 +119,8 @@ class DPTrainerEngine(TrainerEngine):
                 data_loader=self._deps.dataloader,
                 noise_multiplier=self._config.dp_config.noise_multiplier,
                 max_grad_norm=self._config.dp_config.max_grad_norm,
-                grad_sample_mode="functorch"
-                if self._config.dp_config.use_functorch
-                else "hooks",
                 wrap_model=False,
             )
-
-        print("=== Non-Wrapping Mode ===")
-        print(f"Hooks type: {type(self._hooks).__name__}")
-        print(f"Model type: {type(self._deps.model_pipeline._model).__name__}")
-        print("The model instance remains unchanged and can be used directly.")
 
         for k, opt in self._optimizers.items():
             logger.info(
@@ -156,9 +138,6 @@ class DPTrainerEngine(TrainerEngine):
         metric.attach(self._engine, name="p_loss", usage=BatchWise())
 
         super()._attach_handlers()
-
-        # print engine configuration info
-        self._print_configuration_info()
 
     def _to_load_state_dict(self) -> dict[str, Any]:
         checkpoint_state_dict = super()._to_load_state_dict()

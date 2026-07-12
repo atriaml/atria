@@ -106,9 +106,7 @@ class FLClientTrainer(Trainer):
         labels = dataset.metadata.dataset_labels
 
         # log dataset info
-        logger.info(
-            f"Dataset [Train]: {len(dataset.train)}, [Validation]: {len(dataset.validation)}, [Test]: {len(dataset.test)}"
-        )
+        logger.info(f"[Client {self._config.client_id}] Dataset:\n{dataset}")
 
         # build model pipeline
         with suppress_logging():
