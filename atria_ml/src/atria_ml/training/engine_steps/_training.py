@@ -43,7 +43,9 @@ class TrainingStep(EngineStep):
         self._optimizers = optimizers
         self._gradient_config = gradient_config
         self._grad_scaler = (
-            GradScaler(enabled=True) if grad_scaler is None else grad_scaler
+            GradScaler(enabled=True)
+            if grad_scaler is None and with_amp
+            else grad_scaler
         )
 
     @property
@@ -67,8 +69,27 @@ class TrainingStep(EngineStep):
     def _call_forward(self, engine: Engine, batch: TensorDataModel) -> ModelOutput:
         from torch.amp.autocast_mode import autocast
 
-        with autocast(device_type=self._device.type, enabled=self._with_amp):
-            # forward pass
+        if self._with_amp:
+            with autocast(device_type=self._device.type, enabled=self._with_amp):
+                # forward pass
+                model_output = self._model_pipeline.training_step(
+                    training_engine=engine, batch=batch, test_run=self._test_run
+                )
+
+                # make sure we get a dict from the model
+                assert isinstance(model_output, ModelOutput), (
+                    f"Model must return an instance of ModelOutput. Current type: {type(model_output)}"
+                )
+                assert model_output.loss is not None, (
+                    "Model output 'loss' must not be None during the training step. "
+                )
+
+                return replace(
+                    model_output,
+                    loss=model_output.loss
+                    / self._gradient_config.gradient_accumulation_steps,
+                )
+        else:
             model_output = self._model_pipeline.training_step(
                 training_engine=engine, batch=batch, test_run=self._test_run
             )
