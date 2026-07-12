@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
 from atria_ml.configs._task import TrainingTaskConfig
+from atria_ml.task_pipelines._utilities import _find_checkpoint
 from atria_ml.training._configs import ModelCheckpointConfig
 from atria_ml.training.engine_steps import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
@@ -160,14 +161,60 @@ class FLTrainingEngine(
                 checkpoint_handler,
             )
 
-    def run(self, checkpoint_path: str | Path | None = None) -> State:
-        from atria_ml.task_pipelines._utilities import _find_checkpoint
+    def run(
+        self, checkpoint_path: str | Path | None = None, quiet: bool = False
+    ) -> State | None:
+        from atria_ml.training.engines.utilities import FixedBatchIterator
+
+        # run engine
+        if self._deps.output_dir is not None:
+            logger.info(
+                f"Running {self.__class__.__name__} engine with batch size [{self._deps.dataloader.batch_size}] and output_dir: {self._deps.output_dir}"
+            )
+        else:
+            logger.info(f"Running engine {self.__class__.__name__}.")
+
+        # move model pipeline to device
+        self._deps.model_pipeline.ops.to_device(self._deps.device)
 
         if (
             checkpoint_path is None
             and self._config.model_checkpoint.resume_from_checkpoint
         ):
+            # load resume checkpoint_path for training if none provided
             checkpoint_path = _find_checkpoint(
                 output_dir=self._deps.output_dir, checkpoint_type="last"
             )
-        return super().run(checkpoint_path=checkpoint_path)
+
+        # load checkpoint if provided
+        if checkpoint_path is not None:
+            logger.info(f"Resuming from checkpoint: {checkpoint_path}")
+            self._load_checkpoint(checkpoint_path=checkpoint_path)
+
+            resume_epoch = self._engine.state.epoch
+            if (
+                self._engine._is_done(self._engine.state)
+                and resume_epoch >= self._config.max_epochs
+            ):  # if we are resuming from last checkpoint and training is already finished
+                logger.warning(
+                    f"{self.__class__.__name__} has already been finished! Either increase the number of "
+                    f"epochs (current={self._config.max_epochs}) >= {resume_epoch} "
+                    "OR reset the training from start."
+                )
+                return
+
+            logger.info(
+                f"Resuming {self.__class__.__name__} engine with checkpoint: {checkpoint_path}."
+            )
+
+        return self._engine.run(
+            (
+                FixedBatchIterator(
+                    self._deps.dataloader, self._deps.dataloader.batch_size
+                )
+                if self._config.use_fixed_batch_iterator
+                else self._deps.dataloader
+            ),
+            max_epochs=self._config.max_epochs,
+            epoch_length=self._config.epoch_length,
+        )
