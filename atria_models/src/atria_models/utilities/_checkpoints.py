@@ -89,7 +89,9 @@ def _load_checkpoint_from_path_or_url(path_or_url: str | Path) -> Any:
     fs = _get_filesystem(path_or_url)
     try:
         with fs.open(path_or_url, "rb") as f:
-            return torch.load(f, map_location=map_location)
+            return torch.load(
+                f, map_location=map_location, weights_only=False
+            )  # torch 2.6>= updates put weights_only=True by default
     except Exception as e:
         logger.error(f"Error loading the checkpoint: {e}")
         raise e
