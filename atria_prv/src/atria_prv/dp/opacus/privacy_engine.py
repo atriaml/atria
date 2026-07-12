@@ -78,10 +78,12 @@ class _PrivacyEngine(PrivacyEngine):
         rand_on_empty: bool = False,
     ) -> DataLoader:
 
-        sample_rate = 1 / len(data_loader)
+        # sample_rate = 1 / len(data_loader)
+        # expected_batch_size = int(len(data_loader.dataset) * sample_rate)
+        sample_rate = data_loader.batch_size / len(data_loader.dataset)
         expected_batch_size = int(len(data_loader.dataset) * sample_rate)
-        print("Sample rate = ", sample_rate)
-        print("Expected batch size = ", expected_batch_size)
+        logger.info(f"Sample rate = {sample_rate}")
+        logger.info(f"Expected batch size = {expected_batch_size}")
         if self.dataset is None:
             self.dataset = data_loader.dataset
         elif self.dataset != data_loader.dataset:
