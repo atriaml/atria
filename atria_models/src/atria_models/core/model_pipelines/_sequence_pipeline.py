@@ -66,7 +66,7 @@ logger = get_logger(__name__)
 class SequenceModelPipelineConfig(ModelPipelineConfig):
     use_bbox: bool = True
     use_image: bool = True
-    use_segment_info: bool = True
+    use_segment_info: bool = False
     input_stride: int = 0
 
 
@@ -179,10 +179,10 @@ class SequenceModelPipeline(ModelPipeline[SequenceModelPipelineConfig]):
                 "input_ids": batch.token_ids,
                 "token_type_ids": batch.token_type_ids,
                 "attention_mask": batch.attention_mask,
-                "position_ids": batch.position_ids,
             }
             if "valid_span" in self._model_args_list and self.config.use_segment_info:
                 inputs["valid_span"] = batch.valid_spans
+                inputs["position_ids"] = batch.position_ids
 
         if self.config.use_image:
             if isinstance(self._model, TransformersEncoderModel):
