@@ -19,11 +19,7 @@ from atria_types import (
 
 from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
-from .utilities import (
-    _get_line_bboxes,
-    _normalize_bbox,
-    _sorted_indices_in_reading_order,
-)
+from .utilities import _get_line_bboxes, _normalize_bbox
 
 logger = get_logger(__name__)
 
@@ -52,7 +48,6 @@ _CLASSES = [
 class FUNSDConfig(DatasetConfig):
     dataset_name: str = "funsd"
     config_name: str = "default"
-    apply_reading_order_correction: bool = True
 
 
 class SplitIterator:
@@ -109,16 +104,6 @@ class SplitIterator:
             # add segment level box
             cur_line_bboxes = _get_line_bboxes(cur_line_bboxes)
             word_segment_level_bboxes.extend(cur_line_bboxes)
-
-        # sort the word reading order
-        if self.config.apply_reading_order_correction:
-            sorted_indces = _sorted_indices_in_reading_order(word_bboxes)
-            words = [words[i] for i in sorted_indces]
-            word_bboxes = [word_bboxes[i] for i in sorted_indces]
-            word_labels = [word_labels[i] for i in sorted_indces]
-            word_segment_level_bboxes = [
-                word_segment_level_bboxes[i] for i in sorted_indces
-            ]
 
         return (
             DocumentContent(
