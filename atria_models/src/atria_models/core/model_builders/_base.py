@@ -22,6 +22,39 @@ def pretty_kwargs(kwargs: dict) -> str:
     return ", ".join(f"{k}={v}" for k, v in kwargs.items())
 
 
+def _remove_mismatched_params(model, checkpoint, logger=None):
+    """
+    Remove parameters from a checkpoint whose shapes do not match the model.
+
+    Args:
+        model: torch.nn.Module
+        checkpoint: state_dict-like dict
+        logger: optional logger
+
+    Returns:
+        Filtered checkpoint dict.
+    """
+    model_state = model.state_dict()
+    removed = []
+
+    for key in list(checkpoint.keys()):
+        if key not in model_state:
+            continue
+
+        if checkpoint[key].shape != model_state[key].shape:
+            removed.append(
+                (key, tuple(checkpoint[key].shape), tuple(model_state[key].shape))
+            )
+            checkpoint.pop(key)
+
+    if removed and logger is not None:
+        logger.warning("Ignoring parameters with mismatched shapes:")
+        for name, ckpt_shape, model_shape in removed:
+            logger.warning(f"  {name}: checkpoint={ckpt_shape}, model={model_shape}")
+
+    return checkpoint
+
+
 class ModelBuilder:
     def __init__(
         self,
@@ -123,6 +156,12 @@ class ModelBuilder:
             checkpoint = _load_checkpoint_from_path_or_url(self._pretrained_checkpoint)
             if "model" in checkpoint:
                 checkpoint = checkpoint["model"]
+            if "model_pipeline" in checkpoint:
+                checkpoint = checkpoint["model_pipeline"]["model"]
+
+            # Remove parameters whose shapes don't match.
+            checkpoint = _remove_mismatched_params(model, checkpoint, logger)
+
             missing_keys, unexpected_keys = model.load_state_dict(
                 checkpoint, strict=False
             )
