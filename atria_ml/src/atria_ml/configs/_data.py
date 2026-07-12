@@ -63,7 +63,7 @@ class DataConfig(RepresentationMixin, BaseModel):
     def _apply_splits(self, dataset: Dataset) -> Dataset:
         if self.use_validation_as_test:
             try:
-                assert dataset.test is None
+                _ = dataset.test
             except SplitNotFoundError:
                 logger.info("Using validation set in place of test set.")
                 dataset.test = dataset.validation
