@@ -192,20 +192,6 @@ class DPTrainerEngine(TrainerEngine):
                 output_dir=self._deps.output_dir, checkpoint_type="last"
             )
 
-        # before running the engine log the first batch
-        try:
-            first_batch = next(iter(self._deps.dataloader))
-            logger.info(f"First batch input for engine [{self.__class__.__name__}]:")
-            total_elements = len(first_batch)
-            first_sample = first_batch[0]
-            logger.info(
-                f"\tTotal elements in the batch: {total_elements}, First sample input: {first_sample}"
-            )
-        except Exception as e:
-            logger.warning(
-                f"Could not fetch the first batch from dataloader for engine [{self.__class__.__name__}]: {e}"
-            )
-
         # load checkpoint if provided
         if checkpoint_path is not None:
             logger.info(f"Resuming from checkpoint: {checkpoint_path}")
