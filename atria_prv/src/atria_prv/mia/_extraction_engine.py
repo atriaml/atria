@@ -7,7 +7,7 @@ from atria_logger import get_logger
 from atria_models.core.types.model_outputs import TokenClassificationModelOutput
 from torch.utils.data import DataLoader
 
-from atria_prv.mia._signals import per_document_signals
+from atria_prv.mia._signals import per_document_loss
 
 if TYPE_CHECKING:
     import torch
@@ -23,14 +23,11 @@ class SignalExtractionEngine:
         self._model_pipeline = model_pipeline
         self._device = device
 
-    def extract(
-        self, dataloader: DataLoader
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def extract(self, dataloader: DataLoader) -> np.ndarray:
+        """Return the ``[N]`` per-document losses over ``dataloader``."""
         import torch
         from ignite.engine import Engine, Events
 
-        probs: list[np.ndarray] = []
-        ys: list[np.ndarray] = []
         losses: list[np.ndarray] = []
 
         def step(engine: Engine, batch):
@@ -46,24 +43,15 @@ class SignalExtractionEngine:
 
         @engine.on(Events.ITERATION_COMPLETED)
         def _collect(engine: Engine) -> None:
-            output = engine.state.output  # TokenClassificationModelOutput
+            output = engine.state.output
             assert isinstance(output, TokenClassificationModelOutput), (
                 "This attack is currently only supported for `TokenClassificationModelOutput`"
             )
-            p, y, loss = per_document_signals(
-                output.logits, output.token_labels, reduction=self._reduction
-            )
-            probs.append(p)
-            ys.append(y)
-            losses.append(loss)
+            losses.append(per_document_loss(output.logits, output.token_labels))
 
         self._model_pipeline.ops.to_device(self._device)
         engine.run(dataloader, max_epochs=1)
-        probs_arr = np.concatenate(probs)
-        ys_arr = np.concatenate(ys)
+
         losses_arr = np.concatenate(losses)
-        logger.info(
-            f"Extracted signals for {len(probs_arr)} samples "
-            f"(feature dim = {probs_arr.shape[1] if probs_arr.ndim > 1 else 1})."
-        )
-        return probs_arr, ys_arr, losses_arr
+        logger.info(f"Extracted per-document loss for {len(losses_arr)} samples.")
+        return losses_arr

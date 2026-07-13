@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import copy
 import random
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from atria_datasets.core.dataset._partitioning import group_indices_by_original_id
 from atria_logger import get_logger
 from atria_ml.data_pipeline._utilities import auto_dataloader, default_collate
-from realtime import dataclass
 
 if TYPE_CHECKING:
     from atria_datasets.core.dataset._datasets import Dataset
@@ -34,6 +34,7 @@ class AttackDataPipeline:
         batch_size: int,
         num_workers: int,
         pin_memory: bool,
+        balanced: bool = True,
         seed: int = 42,
     ) -> None:
         self._dataset = dataset
@@ -41,6 +42,7 @@ class AttackDataPipeline:
         self._batch_size = batch_size
         self._num_workers = num_workers
         self._pin_memory = pin_memory
+        self._balanced = balanced
         self._seed = seed
         self._build()
 
@@ -63,49 +65,46 @@ class AttackDataPipeline:
             pin_memory=self._pin_memory,
         )
 
-    def _create_train_eval_splits(self, dataset: SplitIterator):
+    def _shuffled_original_ids(self, dataset: SplitIterator) -> list[str]:
+        ids = sorted(group_indices_by_original_id(dataset.sample_keys))
+        random.Random(self._seed).shuffle(ids)
+        return ids
+
+    def _create_train_eval_splits(
+        self, dataset: SplitIterator, original_ids: list[str]
+    ):
+        """Split a pre-selected list of original ids into attack-train / attack-eval."""
         id_to_indices = group_indices_by_original_id(dataset.sample_keys)
-        original_ids = sorted(id_to_indices)
-        random.Random(self._seed).shuffle(original_ids)
 
         train_size = int(len(original_ids) * self._attack_train_ratio)
         train_ids, eval_ids = original_ids[:train_size], original_ids[train_size:]
 
-        # Sanity check: no original ID should appear in both splits.
-        overlap = set(train_ids) & set(eval_ids)
-        if overlap:
-            raise RuntimeError(
-                f"Train/eval split is not disjoint. Overlapping original IDs: {sorted(overlap)}"
-            )
+        def _subset_for(ids: list[str]) -> SplitIterator:
+            indices = sorted(i for oid in ids for i in id_to_indices.get(oid, []))
+            return self._subset(dataset, indices)
 
-        # assign train indices
-        train_indices: list[int] = []
-        for original_id in train_ids:
-            train_indices.extend(id_to_indices.get(original_id, []))
-        train_indices = sorted(train_indices)
-        train_dataset = copy.deepcopy(dataset)
-        train_dataset.subset_indices = train_indices
-
-        # assign eval indices
-        eval_indices: list[int] = []
-        for original_id in eval_ids:
-            eval_indices.extend(id_to_indices.get(original_id, []))
-        eval_indices = sorted(eval_indices)
-        eval_dataset = copy.deepcopy(dataset)
-        eval_dataset.subset_indices = eval_indices
-
-        return train_dataset, eval_dataset
+        return _subset_for(train_ids), _subset_for(eval_ids)
 
     def _build(self):
-        self._members_dataset, self._non_members_dataset = (
-            self._dataset.train,
-            self._dataset.test,
-        )
+        self._members_dataset = self._dataset.train
+        self._non_members_dataset = self._dataset.test
+
+        member_ids = self._shuffled_original_ids(self._members_dataset)
+        non_member_ids = self._shuffled_original_ids(self._non_members_dataset)
+        print('member_ids', member_ids[:10])
+        print('non_member_ids', non_member_ids[:10])
+
+        # Balance member / non-member DOCUMENT counts (members usually far outnumber
+        # non-members). Subsampling the larger set keeps the attack metrics interpretable.
+        if self._balanced:
+            k = min(len(member_ids), len(non_member_ids))
+            member_ids, non_member_ids = member_ids[:k], non_member_ids[:k]
+
         self._members_train, self._members_test = self._create_train_eval_splits(
-            self._members_dataset
+            self._members_dataset, member_ids
         )
-        self._non_members_train, self._non_members_test = (
-            self._create_train_eval_splits(self._non_members_dataset)
+        self._non_members_train, self._non_members_test = self._create_train_eval_splits(
+            self._non_members_dataset, non_member_ids
         )
 
     def summarize(self):

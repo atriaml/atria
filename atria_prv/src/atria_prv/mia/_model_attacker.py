@@ -128,28 +128,82 @@ class ModelAttacker:
             tb_logger=tb_logger,
         )
 
+    # ------------------------------------------------------------------ extraction cache
+    def _cache_path(self) -> Path:
+        import hashlib
+        import json
+
+        ckpt = Path(self._config.target_checkpoint)
+        key = {
+            "checkpoint": str(ckpt.resolve()),
+            "checkpoint_mtime": ckpt.stat().st_mtime if ckpt.exists() else None,
+            "dataset": self._config.env.dataset_name,
+            "attack_train_ratio": self._config.attack_config.attack_train_ratio,
+            "eval_batch_size": self._config.data.eval_batch_size,
+            "balanced": self._state.data_pipeline._balanced,
+            "data_seed": self._state.data_pipeline._seed,
+        }
+        digest = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[:16]
+        return Path(self._config.env.run_dir) / "attack_cache" / f"losses_{digest}.npz"
+
+    def _extract_losses(self, loaders) -> dict:
+        """Extract (or load from cache) the per-document losses for the four splits."""
+        import numpy as np
+
+        cache_path = self._cache_path()
+        if cache_path.exists():
+            logger.info(f"Loading cached extracted losses from {cache_path}")
+            data = np.load(cache_path)
+            return {k: data[k] for k in data.files}
+
+        extractor = SignalExtractionEngine(self._state.model_pipeline, self._device)
+        losses = {
+            "members_train": extractor.extract(loaders.members_train),
+            "non_members_train": extractor.extract(loaders.non_members_train),
+            "members_test": extractor.extract(loaders.members_test),
+            "non_members_test": extractor.extract(loaders.non_members_test),
+        }
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(cache_path, **losses)
+        logger.info(f"Saved extracted losses to {cache_path}")
+        return losses
+
     # ------------------------------------------------------------------ run
     def run(self) -> dict:
-        dataloaders = self._state.data_pipeline.dataloaders()
-        extractor = SignalExtractionEngine(self._state.model_pipeline, self._device)
+        loaders = self._state.data_pipeline.dataloaders()
+        losses = self._extract_losses(loaders)
 
-        x_members, y_members, _ = extractor.extract(dataloaders.members_train)
-        x_nonmembers, y_nonmembers, _ = extractor.extract(nonmember_loader)
+        # debug: plot the member vs. non-member train-loss distributions
+        if self._config.env.run_dir is not None:
+            from atria_prv.mia._plots import save_loss_distributions
 
-        # 3) run the attack
-        num_labels = len(self._state.model_pipeline._labels.ser)
-        attack = MembershipInferenceAttack(cfg)
-        results = attack.run(
-            num_labels=num_labels,
-            x_members=x_members,
-            y_members=y_members,
-            x_nonmembers=x_nonmembers,
-            y_nonmembers=y_nonmembers,
+            dist_path = Path(self._config.env.run_dir) / "loss_distributions_train.png"
+            save_loss_distributions(
+                losses["members_train"], losses["non_members_train"], dist_path
+            )
+            logger.info(f"Saved train-loss distributions to {dist_path}")
+
+        results = MembershipInferenceAttack(self._config.attack_config).run(
+            num_labels=len(self._state.model_pipeline._labels.ser),
+            loss_members_train=losses["members_train"],
+            loss_nonmembers_train=losses["non_members_train"],
+            loss_members_test=losses["members_test"],
+            loss_nonmembers_test=losses["non_members_test"],
         )
 
+        # draw + save the ROC curve
+        roc = results.get("roc_curve")
+        if roc is not None and self._config.env.run_dir is not None:
+            from atria_prv.mia._plots import save_roc_curve
+
+            roc_path = Path(self._config.env.run_dir) / "roc_curve.png"
+            save_roc_curve(roc["fpr"], roc["tpr"], results["auc"], roc_path)
+            logger.info(f"Saved ROC curve to {roc_path}")
+
+        log_results = {k: v for k, v in results.items() if k != "roc_curve"}
         logger.info(
             f"Membership inference attack results:\n"
-            f"{yaml.dump(results, indent=4, default_flow_style=False)}"
+            f"{yaml.dump(log_results, indent=4, default_flow_style=False)}"
         )
         self._config.dump_metrics_file(data=results)
         return results
