@@ -34,11 +34,6 @@ class TaskConfigBase(RepresentationMixin, BaseModel):
     env: RuntimeEnvConfig = Field(default_factory=RuntimeEnvConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    test_run: bool = False
-    use_fixed_batch_iterator: bool = False
-    save_test_outputs_to_disk: bool = False
-    use_ema_for_evaluation: bool = False
-    with_amp: bool = True
 
     def model_dump(self, *args, **kwargs) -> dict[str, Any]:
         results = super().model_dump()
@@ -154,12 +149,22 @@ class TrainingTaskConfig(TaskConfigBase):
     do_validation: bool = True
     do_visualization: bool = False
     reevaluate_metrics: bool = True
+    test_run: bool = False
+    use_fixed_batch_iterator: bool = False
+    save_test_outputs_to_disk: bool = False
+    use_ema_for_evaluation: bool = False
+    with_amp: bool = True
 
 
 class EvaluationTaskConfig(TaskConfigBase):
     model_pipeline: ModelPipelineConfig
     eval_checkpoint: str
     save_snapshot: bool = True
+    test_run: bool = False
+    use_fixed_batch_iterator: bool = False
+    save_test_outputs_to_disk: bool = False
+    use_ema_for_evaluation: bool = False
+    with_amp: bool = True
 
     @classmethod
     def from_training_config(

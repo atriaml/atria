@@ -138,7 +138,7 @@ class TrainerEngine(EngineBase[TrainerEngineConfig, TrainerEngineDependencies]):
     def _build_optimizers(self) -> dict[str, torch.optim.Optimizer]:
         import ignite.distributed as idist
 
-        trainable_parameters = copy.copy(self._deps.model_pipeline.trainable_parameters)
+        trainable_parameters = self._deps.model_pipeline.trainable_parameters
         optimizer_config_dict = (
             {"default": self._config.optimizer}
             if isinstance(self._config.optimizer, OptimizerConfig)

@@ -5,18 +5,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from atria_logger import get_logger
-from atria_ml.configs._task import TrainingTaskConfig
+from atria_ml.configs._task import TaskConfigBase
 from atria_ml.task_pipelines._utilities import _find_checkpoint
 from atria_ml.training._configs import ModelCheckpointConfig
 from atria_ml.training.engine_steps import EngineStep
 from atria_ml.training.engines._base import EngineBase, EngineConfig, EngineDependencies
 
-from atria_prv.fl._engines._fl_aggregation import (
-    FLAggregationConfig,
-    WeightedFedAvgConfig,
-)
+from atria_prv.fl._engines._fl_aggregation import FLAggregationStrategy, WeightedFedAvg
 from atria_prv.fl._engines._fl_training_step import CachedFLTrainingStep, FLTrainingStep
-from atria_prv.fl.configs import FLClientTrainingTaskConfig
 
 if TYPE_CHECKING:
     from ignite.engine import State
@@ -28,34 +24,19 @@ class FLTrainingEngineConfig(EngineConfig):
     total_num_clients: int = 2
     client_fraction: float = 1.0
     seed: int = 42
-    # keep each client's FLClientTrainer (and its built dataset/data pipeline) alive
-    # across rounds instead of rebuilding it every round. Only safe when the model
-    # pipeline is shared (passed directly, not replicated per client), which it is
-    # here; trades higher resident memory for lower per-round setup cost.
     cache_client_trainers: bool = True
-    # aggregation strategy applied to the collected client updates each round
-    aggregation: FLAggregationConfig = WeightedFedAvgConfig()
     model_checkpoint: ModelCheckpointConfig = ModelCheckpointConfig()
 
 
 class FLTrainingEngineDependencies(EngineDependencies):
-    run_config: TrainingTaskConfig
-    # the client trainers whose local updates this engine aggregates each round
-    client_training_task_configs: list[FLClientTrainingTaskConfig]
+    run_config: TaskConfigBase
+    client_training_task_configs: list[TaskConfigBase]
+    aggregation_strategy: FLAggregationStrategy = WeightedFedAvg()
 
 
 class FLTrainingEngine(
     EngineBase[FLTrainingEngineConfig, FLTrainingEngineDependencies]
 ):
-    """Federated-learning training engine.
-
-    Unlike ``TrainerEngine`` there are no optimizers, LR schedulers, warmup, EMA or
-    gradient accumulation -- in FL the FedAvg *aggregation is the update*. So this
-    inherits the plain ``EngineBase`` (which already gives us the metrics/progress-bar/
-    TB-logger plumbing over epochs == rounds) and adds back only the two things an FL
-    round needs: model checkpointing and the validation-engine hook.
-    """
-
     _config: FLTrainingEngineConfig
     _deps: FLTrainingEngineDependencies
 
@@ -82,8 +63,7 @@ class FLTrainingEngine(
             total_num_clients=self._config.total_num_clients,
             client_fraction=self._config.client_fraction,
             seed=self._config.seed,
-            aggregation=self._config.aggregation.build(),
-            with_amp=self._config.with_amp,
+            aggregation_strategy=self._deps.aggregation_strategy,
             test_run=self._config.test_run,
         )
 
@@ -105,6 +85,7 @@ class FLTrainingEngine(
             CONFIG_KEY: self._deps.run_config,
             MODEL_PIPELINE_CHECKPOINT_KEY: self._deps.model_pipeline,
             TRAINING_ENGINE_KEY: self._engine,
+            "aggregation_strategy": self._deps.aggregation_strategy,
         }
 
     def _to_load_state_dict(self) -> dict[str, Any]:
@@ -116,6 +97,7 @@ class FLTrainingEngine(
         return {
             MODEL_PIPELINE_CHECKPOINT_KEY: self._deps.model_pipeline,
             TRAINING_ENGINE_KEY: self._engine,
+            "aggregation_strategy": self._deps.aggregation_strategy,
         }
 
     def attach_model_checkpointer(self) -> None:
@@ -164,7 +146,6 @@ class FLTrainingEngine(
     def run(
         self, checkpoint_path: str | Path | None = None, quiet: bool = False
     ) -> State | None:
-        from atria_ml.training.engines.utilities import FixedBatchIterator
 
         # run engine
         if self._deps.output_dir is not None:
@@ -208,13 +189,7 @@ class FLTrainingEngine(
             )
 
         return self._engine.run(
-            (
-                FixedBatchIterator(
-                    self._deps.dataloader, self._deps.dataloader.batch_size
-                )
-                if self._config.use_fixed_batch_iterator
-                else self._deps.dataloader
-            ),
+            self._deps.dataloader,
             max_epochs=self._config.max_epochs,
             epoch_length=self._config.epoch_length,
         )

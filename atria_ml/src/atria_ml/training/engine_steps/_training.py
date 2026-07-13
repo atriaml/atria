@@ -8,6 +8,7 @@ from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from atria_models.core.types.model_outputs import ModelOutput
 from atria_transforms.core._data_types._base import TensorDataModel
 
+from atria_ml.training._configs import GradientConfig
 from atria_ml.training.engine_steps._base import EngineStep
 
 if TYPE_CHECKING:
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from ignite.engine import Engine
     from torch.optim import Optimizer
 
-    from atria_ml.training._configs import GradientConfig
 
 logger = get_logger(__name__)
 
@@ -26,7 +26,7 @@ class TrainingStep(EngineStep):
         model_pipeline: ModelPipeline,
         device: str | torch.device,
         optimizers: dict[str, Optimizer],
-        gradient_config: GradientConfig,
+        gradient_config: GradientConfig = GradientConfig(),
         grad_scaler: torch.cuda.amp.grad_scaler.GradScaler | None = None,
         with_amp: bool = False,
         test_run: bool = False,

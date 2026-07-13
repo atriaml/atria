@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -23,7 +24,7 @@ from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
 
-    from atria_prv.fl.configs import FLTrainingTaskConfig
+    from atria_prv.fl.configs import FLClientTrainingTaskConfig
 
 logger = get_logger(__name__)
 
@@ -52,7 +53,9 @@ class FLClientTrainerState(TrainerState):
 
 class FLClientTrainer(Trainer):
     def __init__(
-        self, config: FLTrainingTaskConfig, model_pipeline: ModelPipeline | None = None
+        self,
+        config: FLClientTrainingTaskConfig,
+        model_pipeline: ModelPipeline | None = None,
     ) -> None:
         self._config = config
 
@@ -166,26 +169,27 @@ class FLClientTrainer(Trainer):
 
     def train(self, global_params: OrderedDict[str, torch.Tensor]) -> FLClientOutput:
         num_train_samples = len(self._state.data_pipeline.dataset.train)
-        # logger.debug(
-        #     f"[Client {self._config.client_id}] update starting: loaded global params, "
-        #     f"{num_train_samples} local train samples, "
-        #     f"{self._config.trainer.max_epochs} local epoch(s), device={self._device}"
-        # )
+        logger.debug(
+            f"[Client {self._config.client_id}] update starting: loaded global params, "
+            f"{num_train_samples} local train samples, "
+            f"{self._config.trainer.max_epochs} local epoch(s), device={self._device}"
+        )
 
         self._state.model_pipeline._model.load_state_dict(global_params, strict=True)
 
         engine = self._build_train_engine()
 
-        # # for sanity check lets print first few values of first 10 params of the model
-        # for idx, (name, param) in enumerate(
-        #     self._state.model_pipeline._model.state_dict().items()
-        # ):
-        #     if idx >= 10:
-        #         break
-        #     logger.info(
-        #         f"[Client {self._config.client_id}] model param {name}: "
-        #         f"{param.detach().cpu().numpy().flatten()[:10]}"
-        #     )
+        # for sanity check lets print first few values of first 10 params of the model
+        if os.environ["ATRIA_LOG_LEVEL"] == "DEBUG":
+            for idx, (name, param) in enumerate(
+                self._state.model_pipeline._model.state_dict().items()
+            ):
+                if idx >= 10:
+                    break
+                logger.debug(
+                    f"[Client {self._config.client_id}] model param {name}: "
+                    f"{param.detach().cpu().numpy().flatten()[:10]}"
+                )
 
         state = engine.run(checkpoint_path=None, quiet=True)
         self._state.model_pipeline.ops.to_device(torch.device("cpu"))
@@ -195,10 +199,10 @@ class FLClientTrainer(Trainer):
             for k, v in self._state.model_pipeline._model.state_dict().items()
         )
         metrics = dict(state.metrics) if state is not None else None
-        # logger.debug(
-        #     f"[Client {self._config.client_id}] update finished; offloaded model to CPU; "
-        #     f"metrics={metrics}"
-        # )
+        logger.debug(
+            f"[Client {self._config.client_id}] update finished; offloaded model to CPU; "
+            f"metrics={metrics}"
+        )
 
         torch.cuda.empty_cache()
 

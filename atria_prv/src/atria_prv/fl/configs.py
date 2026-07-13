@@ -1,8 +1,13 @@
-from typing import Self
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Self
 
 from atria_ml.configs._data import DataConfig
 from atria_ml.configs._task import TrainingTaskConfig
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 
 
 class FLConfig(BaseModel):
@@ -75,3 +80,8 @@ class FLClientTrainingTaskConfig(TrainingTaskConfig):
             client_id=client_id,
             partition_cache_dir=partition_cache_dir,
         )
+
+    def build_client(self, model_pipeline: ModelPipeline | None = None):
+        from atria_prv.fl._trainers._fl_client_trainer import FLClientTrainer
+
+        return FLClientTrainer(config=self, model_pipeline=model_pipeline)

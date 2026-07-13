@@ -219,6 +219,7 @@ class DPTrainerEngine(TrainerEngine):
                 max_physical_batch_size=self._config.dp_config.max_physical_batch_size,
                 optimizer=self._optimizers["default"],
             ) as memory_safe_data_loader:
+                logger.info("Running trainer on memory safe dataloader.")
                 state = self._engine.run(
                     memory_safe_data_loader,
                     max_epochs=self._config.max_epochs,

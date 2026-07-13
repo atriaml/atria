@@ -50,22 +50,18 @@ class BaseFLTrainingStep(EngineStep):
         total_num_clients: int,
         client_fraction: float,
         seed: int,
-        aggregation: FLAggregationStrategy,
-        with_amp: bool = False,
+        aggregation_strategy: FLAggregationStrategy,
         test_run: bool = False,
     ):
         super().__init__(
-            model_pipeline=model_pipeline,
-            device=device,
-            with_amp=with_amp,
-            test_run=test_run,
+            model_pipeline=model_pipeline, device=device, test_run=test_run
         )
         self._client_training_task_configs = client_training_task_configs
         self._total_num_clients = total_num_clients
         self._client_fraction = client_fraction
         self._seed = seed
         self._num_clients_per_round = max(1, round(client_fraction * total_num_clients))
-        self._aggregation = aggregation
+        self._aggregation_strategy = aggregation_strategy
 
     def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
         """Return the client's trainer for this round. Overridden by subclasses."""
@@ -91,23 +87,13 @@ class BaseFLTrainingStep(EngineStep):
             for k, v in self._model_pipeline._model.state_dict().items()
         )
 
-        self._aggregation.reset()
+        self._aggregation_strategy.reset()
         last_metrics: dict | None = None
         for client_id in selected_client_ids:
             logger.info(f"[Client {client_id}] update starting")
             trainer = self._acquire_trainer(client_id)
             output: FLClientOutput = trainer.train(global_params)
-
-            # # for sanity check lets print first few values of first 10 params of the model
-            # for idx, (name, param) in enumerate(output.params.items()):
-            #     if idx >= 10:
-            #         break
-            #     logger.info(
-            #         f"[Client {client_id}] model param {name}: "
-            #         f"{param.detach().cpu().numpy().flatten()[:10]}"
-            #     )
-
-            self._aggregation.update(output)
+            self._aggregation_strategy.update(output)
             last_metrics = output.metrics
             logger.info(
                 f"[Client {client_id}] update finished; "
@@ -123,7 +109,8 @@ class BaseFLTrainingStep(EngineStep):
                 torch.cuda.synchronize()
             gc.collect()
 
-        averaged = self._aggregation.compute()
+        self._model_pipeline._model.load_state_dict(global_params, strict=True)
+        averaged = self._aggregation_strategy.compute()
         self._model_pipeline._model.load_state_dict(averaged, strict=True)
         logger.info(
             f"Aggregated updates from {len(selected_client_ids)} client(s) "
@@ -147,9 +134,8 @@ class FLTrainingStep(BaseFLTrainingStep):
 
     def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
         # initialize a fresh trainer for this client, which includes its data partition
-        return FLClientTrainer(
-            config=self._client_training_task_configs[client_id],
-            model_pipeline=self._model_pipeline,
+        return self._client_training_task_configs[client_id].build_client(
+            model_pipeline=self._model_pipeline
         )
 
     def _release_trainer(self, client_id: int, trainer: FLClientTrainer) -> None:
@@ -172,9 +158,8 @@ class CachedFLTrainingStep(BaseFLTrainingStep):
     def _acquire_trainer(self, client_id: int) -> FLClientTrainer:
         trainer = self._client_trainers.get(client_id)
         if trainer is None:
-            trainer = FLClientTrainer(
-                config=self._client_training_task_configs[client_id],
-                model_pipeline=self._model_pipeline,
+            trainer = self._client_training_task_configs[client_id].build_client(
+                model_pipeline=self._model_pipeline
             )
             self._client_trainers[client_id] = trainer
         return trainer

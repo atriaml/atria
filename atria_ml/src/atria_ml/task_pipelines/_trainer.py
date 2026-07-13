@@ -238,11 +238,7 @@ class Trainer:
         )
         return TestEngine(
             config=TestEngineConfig(
-                logging=self._config.logging,
-                test_run=self._config.test_run,
-                use_fixed_batch_iterator=self._config.use_fixed_batch_iterator,
-                with_amp=self._config.with_amp,
-                save_model_outputs_to_disk=self._config.save_test_outputs_to_disk,
+                logging=self._config.logging, test_run=self._config.test_run
             ),
             deps=TestEngineDependencies(
                 model_pipeline=self._state.model_pipeline,

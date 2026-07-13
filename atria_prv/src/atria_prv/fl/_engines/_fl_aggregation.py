@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 
 import torch
-from pydantic import BaseModel
 
 from atria_prv.fl._trainers._fl_client_trainer import FLClientOutput
 
@@ -28,6 +27,14 @@ class FLAggregationStrategy(ABC):
     @abstractmethod
     def compute(self) -> OrderedDict[str, torch.Tensor]:
         """Return the aggregated global params."""
+
+    @abstractmethod
+    def load_state_dict(self, state_dict):
+        """Load the state dict if required"""
+
+    @abstractmethod
+    def state_dict(self):
+        """Return the state dict if required"""
 
 
 class WeightedFedAvg(FLAggregationStrategy):
@@ -56,21 +63,15 @@ class WeightedFedAvg(FLAggregationStrategy):
                 self._accumulated[k] += v * n
 
     def compute(self) -> OrderedDict[str, torch.Tensor]:
-        assert (
-            self._accumulated is not None and self._total_samples > 0
-        ), "Cannot aggregate: no client contributed any samples"
+        assert self._accumulated is not None and self._total_samples > 0, (
+            "Cannot aggregate: no client contributed any samples"
+        )
         return OrderedDict(
             (k, v / self._total_samples) for k, v in self._accumulated.items()
         )
 
+    def load_state_dict(self, state_dict):
+        pass
 
-class FLAggregationConfig(BaseModel):
-    """Base config for selecting an aggregation strategy from config."""
-
-    def build(self) -> FLAggregationStrategy:
-        raise NotImplementedError
-
-
-class WeightedFedAvgConfig(FLAggregationConfig):
-    def build(self) -> FLAggregationStrategy:
-        return WeightedFedAvg()
+    def state_dict(self):
+        return {}
