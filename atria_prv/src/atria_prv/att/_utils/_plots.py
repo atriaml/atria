@@ -90,7 +90,7 @@ def save_feature_distributions(
         if feature_columns is not None
         else [c for c in members_df.columns if c in nonmembers_df.columns]
     )
-    columns = [c for c in columns if "mean" in c]
+    columns = [c for c in columns if "max" in c]
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

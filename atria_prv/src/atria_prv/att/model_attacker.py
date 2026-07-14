@@ -49,14 +49,11 @@ class ModelAttacker:
     # Feature columns the attack model is trained/evaluated on (shared by both modes).
     _FEATURE_COLUMNS = [
         "loss__all__mean",
-        "loss__all__std",
         "loss__entity__mean",
-        "loss__entity__std",
         "loss__span_start__mean",
-        "loss__span_start__std",
-        "scaled_conf__mean",
-        # "loss__span_cont__mean",
-        # "loss__span_cont__std",
+        "scaled_conf__all__mean",
+        "scaled_conf__entity__mean",
+        "scaled_conf__span_start__mean",
     ]
 
     def __init__(
