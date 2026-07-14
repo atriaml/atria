@@ -91,8 +91,8 @@ class AttackDataPipeline:
 
         member_ids = self._shuffled_original_ids(self._members_dataset)
         non_member_ids = self._shuffled_original_ids(self._non_members_dataset)
-        print('member_ids', member_ids[:10])
-        print('non_member_ids', non_member_ids[:10])
+        print("member_ids", member_ids[:10])
+        print("non_member_ids", non_member_ids[:10])
 
         # Balance member / non-member DOCUMENT counts (members usually far outnumber
         # non-members). Subsampling the larger set keeps the attack metrics interpretable.
@@ -103,8 +103,8 @@ class AttackDataPipeline:
         self._members_train, self._members_test = self._create_train_eval_splits(
             self._members_dataset, member_ids
         )
-        self._non_members_train, self._non_members_test = self._create_train_eval_splits(
-            self._non_members_dataset, non_member_ids
+        self._non_members_train, self._non_members_test = (
+            self._create_train_eval_splits(self._non_members_dataset, non_member_ids)
         )
 
     def summarize(self):

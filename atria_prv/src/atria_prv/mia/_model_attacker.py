@@ -143,7 +143,9 @@ class ModelAttacker:
             "balanced": self._state.data_pipeline._balanced,
             "data_seed": self._state.data_pipeline._seed,
         }
-        digest = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[:16]
+        digest = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[
+            :16
+        ]
         return Path(self._config.env.run_dir) / "attack_cache" / f"losses_{digest}.npz"
 
     def _extract_losses(self, loaders) -> dict:
