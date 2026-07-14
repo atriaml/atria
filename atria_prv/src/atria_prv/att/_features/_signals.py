@@ -82,23 +82,25 @@ def token_entropy(
     return entropy, _valid_mask(labels, ignore_index)
 
 
-# def token_rank(
-#     logits: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100
-# ) -> tuple[torch.Tensor, torch.Tensor]:
-#     B, T = labels.shape
-#     # always cut down logits to labels seq length
-#     logits = logits[:, :T, :]
-#     logits = logits.detach().float()
-#     labels = labels.detach()
-#     gold_logit = logits.gather(-1, _safe_labels(labels, ignore_index).unsqueeze(-1))
-#     rank = (logits > gold_logit).sum(dim=-1).float()
-#     return rank, _valid_mask(labels, ignore_index)
+def token_scaled_conf_carlini(
+    logits: torch.Tensor, labels: torch.Tensor, ignore_index: int = -100
+) -> tuple[torch.Tensor, torch.Tensor]:
+    B, T = labels.shape
+    # always cut down logits to labels seq length
+    logits = logits[:, :T, :]
+    logits = logits.detach().float()
+    labels = labels.detach()
+    probs = F.softmax(logits, dim=-1)
+    gold_prob = probs.gather(
+        -1, _safe_labels(labels, ignore_index).unsqueeze(-1)
+    ).squeeze(-1)
+    return torch.log(gold_prob / (1 - gold_prob)), _valid_mask(labels, ignore_index)
 
 
 SIGNAL_FUNCS: dict[str, SignalFn] = {
     "loss": token_loss,
     "prob": token_gold_prob,
+    "scaled_conf": token_scaled_conf_carlini,
     "margin": token_margin,
     "entropy": token_entropy,
-    # "rank": token_rank,
 }
