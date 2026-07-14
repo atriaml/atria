@@ -66,22 +66,73 @@ class AttackDataPipeline:
         random.Random(self._seed).shuffle(ids)
         return ids
 
+    @staticmethod
+    def _subset_by_ids(split: SplitIterator, ids: list[str]) -> SplitIterator:
+        """Deep-copy ``split`` and restrict it to the samples of the given original ids."""
+        id_to_indices = group_indices_by_original_id(split.sample_keys)
+        indices = sorted(i for oid in ids for i in id_to_indices.get(oid, []))
+        subset = copy.deepcopy(split)
+        subset.subset_indices = indices
+        return subset
+
     def _create_train_eval_splits(self, dataset: SplitIterator):
         """Split a pre-selected list of original ids into attack-train / attack-eval."""
         original_ids = self._shuffled_original_ids(dataset)
 
-        id_to_indices = group_indices_by_original_id(dataset.sample_keys)
-
         train_size = int(len(original_ids) * self._attack_train_ratio)
         train_ids, eval_ids = original_ids[:train_size], original_ids[train_size:]
 
-        def _subset_for(split: SplitIterator, ids: list[str]) -> SplitIterator:
-            indices = sorted(i for oid in ids for i in id_to_indices.get(oid, []))
-            subset = copy.deepcopy(split)
-            subset.subset_indices = indices
-            return subset
+        return (
+            self._subset_by_ids(dataset, train_ids),
+            self._subset_by_ids(dataset, eval_ids),
+        )
 
-        return _subset_for(dataset, train_ids), _subset_for(dataset, eval_ids)
+    # ------------------------------------------------------------------ shadow mode
+    def shadow_splits(
+        self, *, num_models: int, in_ratio: float, seed: int
+    ) -> list[tuple[SplitIterator, SplitIterator]]:
+        """Per-shadow (in, out) splits of the target train set.
+
+        For each shadow model the train original-ids are randomly split into an ``in``
+        (member) half and a disjoint ``out`` (non-member) half, seeded per shadow so the
+        splits differ. The ``in`` split trains the shadow; both are queried to build the
+        attack-training features. The target test split is left untouched (it is reserved
+        as target non-members for evaluation).
+        """
+        train = self._dataset.train
+        ids = sorted(group_indices_by_original_id(train.sample_keys))
+
+        splits: list[tuple[SplitIterator, SplitIterator]] = []
+        for i in range(num_models):
+            shuffled = list(ids)
+            random.Random(seed + i).shuffle(shuffled)
+            n_in = int(len(shuffled) * in_ratio)
+            in_ids, out_ids = shuffled[:n_in], shuffled[n_in:]
+            splits.append(
+                (
+                    self._subset_by_ids(train, in_ids),
+                    self._subset_by_ids(train, out_ids),
+                )
+            )
+        return splits
+
+    def target_eval_splits(self) -> tuple[SplitIterator, SplitIterator]:
+        """Full target members (train) and non-members (test), balanced-truncated.
+
+        Used in shadow mode where none of the target data trains the attack model, so the
+        whole train/test pools can be used for evaluation (no ``attack_train_ratio`` split).
+        """
+        members = copy.deepcopy(self._dataset.train)
+        non_members = copy.deepcopy(self._dataset.test)
+        if self._balanced:
+            k = min(len(members), len(non_members))
+            members.subset_indices = list(range(len(members)))[:k]
+            non_members.subset_indices = list(range(len(non_members)))[:k]
+        return members, non_members
+
+    def loader(self, iterator: SplitIterator) -> DataLoader:
+        """Public accessor for a sequential eval dataloader over ``iterator``."""
+        return self._loader(iterator)
 
     def _build(self):
         self._members_train, self._members_test = self._create_train_eval_splits(

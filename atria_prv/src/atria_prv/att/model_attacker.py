@@ -35,6 +35,7 @@ class ModelAttackerState:
     data_pipeline: AttackDataPipeline
     model_pipeline: ModelPipeline
     extractor: TokenSignalExtractor
+    labels: object
     tb_logger: TensorboardLogger | None = None
 
 
@@ -45,6 +46,18 @@ class ModelAttacker:
         "members_test",
         "non_members_test",
     )
+    # Feature columns the attack model is trained/evaluated on (shared by both modes).
+    _FEATURE_COLUMNS = [
+        "loss__all__mean",
+        "loss__all__std",
+        "loss__entity__mean",
+        "loss__entity__std",
+        "loss__span_start__mean",
+        "loss__span_start__std",
+        "scaled_conf__mean",
+        # "loss__span_cont__mean",
+        # "loss__span_cont__std",
+    ]
 
     def __init__(
         self, config: MembershipInferenceTaskConfig, local_rank: int = 0
@@ -140,6 +153,7 @@ class ModelAttacker:
             data_pipeline=data_pipeline,
             model_pipeline=model_pipeline,
             extractor=extractor,
+            labels=labels,
             tb_logger=tb_logger,
         )
 
@@ -156,14 +170,15 @@ class ModelAttacker:
             "checkpoint": str(ckpt.resolve()),
             "checkpoint_mtime": ckpt.stat().st_mtime if ckpt.exists() else None,
             **self._config.attack_config.model_dump(),
+            "shadow": self._config.shadow_config.model_dump(),
         }
-        print("checkpoint_type", checkpoint_type)
-        digest = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[
-            :16
-        ]
+        mode = "shadow" if self._config.shadow_config.enabled else "direct"
+        digest = hashlib.sha256(
+            json.dumps(key, sort_keys=True, default=str).encode()
+        ).hexdigest()[:16]
         return (
             Path(self._config.env.run_dir)
-            / f"checkpoint_type={checkpoint_type}_att_m={self._config.attack_config.attack_model_type}_{digest}"
+            / f"checkpoint_type={checkpoint_type}_mode={mode}_att_m={self._config.attack_config.attack_model_type}_{digest}"
         )
 
     def _build_test_engine(self) -> TestEngine:
@@ -214,18 +229,92 @@ class ModelAttacker:
         logger.info(f"Saved extracted features to {features_dir}")
         return features
 
+    # ------------------------------------------------------------------ shadow mode
+    def _extract_with_model(self, model_pipeline, dataloader):
+        """Run one model over one loader and return its per-sample feature DataFrame."""
+        engine = SignalExtractionEngine(
+            model_pipeline, self._device, self._state.extractor
+        )
+        return engine.extract(dataloader)
+
+    def _build_shadow_features(self) -> dict:
+        """Shadow-model mode: attack-train features come from shadow models, attack-test
+        features come from the target model on its full member / non-member sets."""
+        import pandas as pd
+
+        from atria_prv.att._shadow._shadow_trainer import ShadowModelTrainer
+
+        sc = self._config.shadow_config
+        dp = self._state.data_pipeline
+
+        # --- attack-train: shadow models' in (member) / out (non-member) features ---
+        shadow_dir = self._run_dir / "shadow_features"
+        member_cache = shadow_dir / "shadow_members.parquet"
+        nonmember_cache = shadow_dir / "shadow_nonmembers.parquet"
+        if member_cache.exists() and nonmember_cache.exists():
+            logger.info(f"Loading cached shadow features from {shadow_dir}")
+            shadow_members = pd.read_parquet(member_cache)
+            shadow_nonmembers = pd.read_parquet(nonmember_cache)
+        else:
+            trainer = ShadowModelTrainer(
+                config=self._config,
+                labels=self._state.labels,
+                device=self._device,
+                tb_logger=self._state.tb_logger,
+            )
+            splits = dp.shadow_splits(
+                num_models=sc.num_shadow_models, in_ratio=sc.in_ratio, seed=sc.seed
+            )
+            member_frames, nonmember_frames = [], []
+            for i, (in_split, out_split) in enumerate(splits):
+                model_dir = self._run_dir / "shadows" / f"shadow_{i}"
+                shadow_pipeline = trainer.train(in_split, model_dir)
+                logger.info(f"Extracting shadow {i} in/out features")
+                member_frames.append(
+                    self._extract_with_model(shadow_pipeline, dp.loader(in_split))
+                )
+                nonmember_frames.append(
+                    self._extract_with_model(shadow_pipeline, dp.loader(out_split))
+                )
+            shadow_members = pd.concat(member_frames, ignore_index=True)
+            shadow_nonmembers = pd.concat(nonmember_frames, ignore_index=True)
+            shadow_dir.mkdir(parents=True, exist_ok=True)
+            shadow_members.to_parquet(member_cache)
+            shadow_nonmembers.to_parquet(nonmember_cache)
+
+        # --- attack-test: target model on full members (train) / non-members (test) ---
+        features_dir = self._run_dir / "features"
+        tm_cache = features_dir / "target_members.parquet"
+        tn_cache = features_dir / "target_non_members.parquet"
+        if tm_cache.exists() and tn_cache.exists():
+            logger.info(f"Loading cached target features from {features_dir}")
+            target_members = pd.read_parquet(tm_cache)
+            target_nonmembers = pd.read_parquet(tn_cache)
+        else:
+            members_split, nonmembers_split = dp.target_eval_splits()
+            target_members = self._extract_with_model(
+                self._state.model_pipeline, dp.loader(members_split)
+            )
+            target_nonmembers = self._extract_with_model(
+                self._state.model_pipeline, dp.loader(nonmembers_split)
+            )
+            features_dir.mkdir(parents=True, exist_ok=True)
+            target_members.to_parquet(tm_cache)
+            target_nonmembers.to_parquet(tn_cache)
+
+        return {
+            "members_train": shadow_members,
+            "non_members_train": shadow_nonmembers,
+            "members_test": target_members,
+            "non_members_test": target_nonmembers,
+        }
+
     # ------------------------------------------------------------------ run
-    def run(self) -> dict:
-        # # first run the test
-        # test_engine = self._build_test_engine()
-        # test_engine.run()
-
-        loaders = self._state.data_pipeline.dataloaders()
-        features = self._extract_features(loaders)
-
-        # debug: plot the member vs. non-member train distributions for all features
+    def _run_attack(self, features: dict) -> dict:
+        """Fit + evaluate the attack model over the four feature splits and report."""
         from atria_prv.att._utils._plots import save_feature_distributions
 
+        # debug: plot the member vs. non-member train distributions for all features
         dist_path = self._run_dir / "feature_distributions_train.png"
         written = save_feature_distributions(
             features["members_train"], features["non_members_train"], dist_path
@@ -237,16 +326,7 @@ class ModelAttacker:
             features_nonmembers_train=features["non_members_train"],
             features_members_test=features["members_test"],
             features_nonmembers_test=features["non_members_test"],
-            feature_columns=[
-                "loss__all__mean",
-                "loss__all__std",
-                "loss__entity__mean",
-                "loss__entity__std",
-                "loss__span_start__mean",
-                "loss__span_start__std",
-                # "loss__span_cont__mean",
-                # "loss__span_cont__std",
-            ],
+            feature_columns=self._FEATURE_COLUMNS,
         )
 
         # draw + save the ROC curve
@@ -265,3 +345,15 @@ class ModelAttacker:
         )
         self._config.dump_metrics_file(data=results)
         return results
+
+    def run(self) -> dict:
+        if self._config.shadow_config.enabled:
+            logger.info(
+                f"Running shadow-model attack with "
+                f"{self._config.shadow_config.num_shadow_models} shadow models."
+            )
+            features = self._build_shadow_features()
+        else:
+            loaders = self._state.data_pipeline.dataloaders()
+            features = self._extract_features(loaders)
+        return self._run_attack(features)
