@@ -21,6 +21,7 @@ dependencies = [
     "atria-metrics",
     "atria-datasets",
     "opacus>=1.6.0",
+    "scikit-learn",
     "adversarial-robustness-toolbox>=1.18.0",
 ]
 

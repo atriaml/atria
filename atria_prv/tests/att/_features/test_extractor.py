@@ -96,20 +96,35 @@ def _build_batch(tokenizer) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
 
 def test_build_feature_extractor_dispatch():
-    """build_feature_extractor only supports token_classification pipelines."""
+    """build_feature_extractor dispatches via isinstance(model_pipeline, TokenClassificationPipeline)."""
     from types import SimpleNamespace
+
+    from atria_models.core.model_pipelines import (
+        LayoutTokenClassificationPipeline,
+        TokenClassificationPipeline,
+    )
 
     labels = SimpleNamespace(ser=LABEL_NAMES)
 
-    token_classification_pipeline = SimpleNamespace(
-        __pipeline_name__="token_classification"
+    # __new__ bypasses __init__ (no config/model build needed) but still satisfies isinstance;
+    # _labels is set manually since __init__ (which would normally set it) never runs.
+    token_classification_pipeline = TokenClassificationPipeline.__new__(
+        TokenClassificationPipeline
     )
-    extractor = build_feature_extractor(token_classification_pipeline, labels)
+    token_classification_pipeline._labels = labels
+    extractor = build_feature_extractor(token_classification_pipeline)
     assert isinstance(extractor, TokenSignalExtractor)
 
-    unsupported_pipeline = SimpleNamespace(__pipeline_name__="sequence_classification")
+    # LayoutTokenClassificationPipeline subclasses TokenClassificationPipeline, so it's
+    # accepted too — an intentional simplification, not an oversight.
+    layout_pipeline = LayoutTokenClassificationPipeline.__new__(
+        LayoutTokenClassificationPipeline
+    )
+    layout_pipeline._labels = labels
+    assert isinstance(build_feature_extractor(layout_pipeline), TokenSignalExtractor)
+
     with pytest.raises(ValueError, match="Unsupported model pipeline type"):
-        build_feature_extractor(unsupported_pipeline, labels)
+        build_feature_extractor(object())
 
 
 def test_to_features_on_real_bert_logits(bert_token_classifier):

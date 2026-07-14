@@ -9,7 +9,7 @@ class AttackConfig(BaseModel):
     """Configuration for the loss-based ART membership inference attack."""
 
     # ART attack model trained on the per-document loss feature.
-    attack_model_type: Literal["rf", "gb", "nn", "lr", "mlp"] = "nn"
+    attack_model_type: Literal["rf", "gb", "nn", "lr"] = "nn"
     # AttackDataPipeline attack-train / attack-test split ratio (ART attack_train_size).
     attack_train_ratio: float = 0.5
     # Worst-case membership advantage: report the attack TPR at this target FPR.
