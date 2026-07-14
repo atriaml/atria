@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
+import pandas as pd
 from atria_logger import get_logger
 from atria_models.core.types.model_outputs import TokenClassificationModelOutput
 from torch.utils.data import DataLoader
 
-from atria_prv.mia._signals import per_document_loss
+from atria_prv.att._features._extractor import TokenSignalExtractor
 
 if TYPE_CHECKING:
     import torch
@@ -18,17 +18,21 @@ logger = get_logger(__name__)
 
 class SignalExtractionEngine:
     def __init__(
-        self, model_pipeline: ModelPipeline, device: str | torch.device
+        self,
+        model_pipeline: ModelPipeline,
+        device: str | torch.device,
+        extractor: TokenSignalExtractor,
     ) -> None:
         self._model_pipeline = model_pipeline
         self._device = device
+        self._extractor = extractor
 
-    def extract(self, dataloader: DataLoader) -> np.ndarray:
-        """Return the ``[N]`` per-document losses over ``dataloader``."""
+    def extract(self, dataloader: DataLoader) -> pd.DataFrame:
+        """Return the ``[N, F]`` named feature DataFrame over ``dataloader``."""
         import torch
         from ignite.engine import Engine, Events
 
-        losses: list[np.ndarray] = []
+        frames: list[pd.DataFrame] = []
 
         def step(engine: Engine, batch):
             self._model_pipeline.ops.eval()
@@ -47,11 +51,15 @@ class SignalExtractionEngine:
             assert isinstance(output, TokenClassificationModelOutput), (
                 "This attack is currently only supported for `TokenClassificationModelOutput`"
             )
-            losses.append(per_document_loss(output.logits, output.token_labels))
+            frames.append(
+                self._extractor.to_features(output.logits, output.token_labels)
+            )
 
         self._model_pipeline.ops.to_device(self._device)
         engine.run(dataloader, max_epochs=1)
 
-        losses_arr = np.concatenate(losses)
-        logger.info(f"Extracted per-document loss for {len(losses_arr)} samples.")
-        return losses_arr
+        features = pd.concat(frames, ignore_index=True)
+        logger.info(
+            f"Extracted {features.shape[1]} features for {len(features)} samples."
+        )
+        return features

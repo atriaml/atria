@@ -16,10 +16,12 @@ from atria_ml.task_pipelines._utilities import (
 from atria_models.core.model_pipelines._model_pipeline import ModelPipeline
 from omegaconf import OmegaConf
 
-from atria_prv.mia._attack import MembershipInferenceAttack
-from atria_prv.mia._attack_data_pipeline import AttackDataPipeline
-from atria_prv.mia._extraction_engine import SignalExtractionEngine
-from atria_prv.mia.configs import MembershipInferenceTaskConfig
+from atria_prv.att._attacks._attack import MembershipInferenceAttack
+from atria_prv.att._data._attack_data_pipeline import AttackDataPipeline
+from atria_prv.att._features._extraction_engine import SignalExtractionEngine
+from atria_prv.att._features._extractor import TokenSignalExtractor
+from atria_prv.att._features._factory import build_feature_extractor
+from atria_prv.att.configs import MembershipInferenceTaskConfig
 
 if TYPE_CHECKING:
     from ignite.handlers import TensorboardLogger
@@ -31,10 +33,18 @@ logger = get_logger(__name__)
 class ModelAttackerState:
     data_pipeline: AttackDataPipeline
     model_pipeline: ModelPipeline
+    extractor: TokenSignalExtractor
     tb_logger: TensorboardLogger | None = None
 
 
 class ModelAttacker:
+    _SPLIT_NAMES = (
+        "members_train",
+        "non_members_train",
+        "members_test",
+        "non_members_test",
+    )
+
     def __init__(
         self, config: MembershipInferenceTaskConfig, local_rank: int = 0
     ) -> None:
@@ -95,6 +105,9 @@ class ModelAttacker:
         model_pipeline = self._config.model_pipeline.build(labels=labels)
         logger.info(model_pipeline.ops.summarize())
 
+        # fail fast on an unsupported pipeline type, before paying for checkpoint I/O
+        extractor = build_feature_extractor(model_pipeline, labels)
+
         # load the trained target model checkpoint (the model under attack)
         import torch
         from ignite.handlers.checkpoint import Checkpoint
@@ -125,13 +138,15 @@ class ModelAttacker:
         return ModelAttackerState(
             data_pipeline=data_pipeline,
             model_pipeline=model_pipeline,
+            extractor=extractor,
             tb_logger=tb_logger,
         )
 
     # ------------------------------------------------------------------ extraction cache
-    def _cache_path(self) -> Path:
+    def _cache_dir(self) -> Path:
         import hashlib
         import json
+        from dataclasses import asdict
 
         ckpt = Path(self._config.target_checkpoint)
         key = {
@@ -142,61 +157,70 @@ class ModelAttacker:
             "eval_batch_size": self._config.data.eval_batch_size,
             "balanced": self._state.data_pipeline._balanced,
             "data_seed": self._state.data_pipeline._seed,
+            "signals": self._state.extractor.signal_names,
+            "agg_config": asdict(self._state.extractor.config),
         }
         digest = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()[
             :16
         ]
-        return Path(self._config.env.run_dir) / "attack_cache" / f"losses_{digest}.npz"
+        return Path(self._config.env.run_dir) / "attack_cache" / f"features_{digest}"
 
     def _extract_features(self, loaders) -> dict:
-        """Extract (or load from cache) the per-document losses for the four splits."""
-        import numpy as np
+        """Extract (or load from cache) the per-sample feature DataFrames for the four splits."""
+        import pandas as pd
 
-        cache_path = self._cache_path()
-        if cache_path.exists():
-            logger.info(f"Loading cached extracted losses from {cache_path}")
-            data = np.load(cache_path)
-            return {k: data[k] for k in data.files}
-
-        extractor = SignalExtractionEngine(self._state.model_pipeline, self._device)
-        losses = {
-            "members_train": extractor.extract(loaders.members_train),
-            "non_members_train": extractor.extract(loaders.non_members_train),
-            "members_test": extractor.extract(loaders.members_test),
-            "non_members_test": extractor.extract(loaders.non_members_test),
+        cache_dir = self._cache_dir()
+        cache_files = {
+            split: cache_dir / f"{split}.parquet" for split in self._SPLIT_NAMES
         }
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(cache_path, **losses)
-        logger.info(f"Saved extracted losses to {cache_path}")
-        return losses
+        if all(path.exists() for path in cache_files.values()):
+            logger.info(f"Loading cached extracted features from {cache_dir}")
+            return {split: pd.read_parquet(path) for split, path in cache_files.items()}
+
+        engine = SignalExtractionEngine(
+            self._state.model_pipeline, self._device, self._state.extractor
+        )
+        features = {
+            "members_train": engine.extract(loaders.members_train),
+            "non_members_train": engine.extract(loaders.non_members_train),
+            "members_test": engine.extract(loaders.members_test),
+            "non_members_test": engine.extract(loaders.non_members_test),
+        }
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        for split, df in features.items():
+            df.to_parquet(cache_files[split])
+        logger.info(f"Saved extracted features to {cache_dir}")
+        return features
 
     # ------------------------------------------------------------------ run
     def run(self) -> dict:
         loaders = self._state.data_pipeline.dataloaders()
-        losses = self._extract_features(loaders)
+        features = self._extract_features(loaders)
 
-        # debug: plot the member vs. non-member train-loss distributions
+        # debug: plot the member vs. non-member train mean-loss distributions
         if self._config.env.run_dir is not None:
-            from atria_prv.mia._plots import save_loss_distributions
+            from atria_prv.att._utils._plots import save_loss_distributions
 
             dist_path = Path(self._config.env.run_dir) / "loss_distributions_train.png"
             save_loss_distributions(
-                losses["members_train"], losses["non_members_train"], dist_path
+                features["members_train"]["loss__all__mean"].to_numpy(),
+                features["non_members_train"]["loss__all__mean"].to_numpy(),
+                dist_path,
             )
             logger.info(f"Saved train-loss distributions to {dist_path}")
 
         results = MembershipInferenceAttack(self._config.attack_config).run(
             num_labels=len(self._state.model_pipeline._labels.ser),
-            loss_members_train=losses["members_train"],
-            loss_nonmembers_train=losses["non_members_train"],
-            loss_members_test=losses["members_test"],
-            loss_nonmembers_test=losses["non_members_test"],
+            features_members_train=features["members_train"],
+            features_nonmembers_train=features["non_members_train"],
+            features_members_test=features["members_test"],
+            features_nonmembers_test=features["non_members_test"],
         )
 
         # draw + save the ROC curve
         roc = results.get("roc_curve")
         if roc is not None and self._config.env.run_dir is not None:
-            from atria_prv.mia._plots import save_roc_curve
+            from atria_prv.att._utils._plots import save_roc_curve
 
             roc_path = Path(self._config.env.run_dir) / "roc_curve.png"
             save_roc_curve(roc["fpr"], roc["tpr"], results["auc"], roc_path)

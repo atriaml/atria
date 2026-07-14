@@ -7,7 +7,9 @@ import torch
 from atria_logger import get_logger
 
 if TYPE_CHECKING:
-    from atria_prv.mia.configs import AttackConfig
+    import pandas as pd
+
+    from atria_prv.att.configs import AttackConfig
 
 logger = get_logger(__name__)
 
@@ -15,8 +17,8 @@ logger = get_logger(__name__)
 class _IdentityModel(torch.nn.Module):
     """Surrogate model required only to construct the ART estimator.
 
-    We always pass the per-document loss to ART via ``pred=`` (and ``y=None``), so
-    ART never calls the estimator's ``predict`` / ``compute_loss``; this module just
+    We always pass the extracted feature vector to ART via ``pred=`` (and ``y=None``),
+    so ART never calls the estimator's ``predict`` / ``compute_loss``; this module just
     satisfies the ``PyTorchClassifier`` constructor.
     """
 
@@ -25,13 +27,13 @@ class _IdentityModel(torch.nn.Module):
 
 
 class MembershipInferenceAttack:
-    """Loss-based membership inference attack via ART's black-box attack model.
+    """Feature-based membership inference attack via ART's black-box attack model.
 
-    Each document is reduced to a single scalar — its per-document loss. That loss is
-    fed to ART's ``MembershipInferenceBlackBox`` as the only feature (``input_type=
-    "prediction"``, ``pred=loss``, ``y=None`` so no labels are needed). ART's attack
-    model (rf / gb / nn / lr) is fit on the attack-train halves and scored on the
-    held-out attack-test halves.
+    Each document is reduced to a named feature vector (see ``TokenSignalExtractor``).
+    That vector is fed to ART's ``MembershipInferenceBlackBox`` as the "prediction"
+    (``input_type="prediction"``, ``pred=features``, ``y=None`` so no labels are
+    needed). ART's attack model (rf / gb / nn / lr) is fit on the attack-train halves
+    and scored on the held-out attack-test halves.
     """
 
     def __init__(self, cfg: AttackConfig) -> None:
@@ -41,10 +43,11 @@ class MembershipInferenceAttack:
         self,
         *,
         num_labels: int,
-        loss_members_train: np.ndarray,
-        loss_nonmembers_train: np.ndarray,
-        loss_members_test: np.ndarray,
-        loss_nonmembers_test: np.ndarray,
+        features_members_train: pd.DataFrame,
+        features_nonmembers_train: pd.DataFrame,
+        features_members_test: pd.DataFrame,
+        features_nonmembers_test: pd.DataFrame,
+        feature_columns: list[str] | None = None,
     ) -> dict[str, Any]:
         from art.attacks.inference.membership_inference import (
             MembershipInferenceBlackBox,
@@ -52,40 +55,51 @@ class MembershipInferenceAttack:
         from art.metrics.privacy.worst_case_mia_score import get_roc_for_fpr
         from sklearn.metrics import roc_auc_score, roc_curve
 
-        def col(a: np.ndarray) -> np.ndarray:
-            return a.astype(np.float32).reshape(-1, 1)
+        def to_matrix(df: pd.DataFrame) -> np.ndarray:
+            columns = feature_columns or list(df.columns)
+            return df[columns].to_numpy(dtype=np.float32)
 
-        estimator = self._identity_estimator(num_labels)  # never called; pred supplied
+        num_features = len(feature_columns or features_members_train.columns)
+        estimator = self._identity_estimator(
+            num_labels, num_features
+        )  # never called; pred supplied
         attack = MembershipInferenceBlackBox(
             estimator,
             input_type="prediction",
             attack_model_type=self._cfg.attack_model_type,
         )
 
-        # fit on the attack-train halves; loss is the only feature, y=None (no labels)
+        # fit on the attack-train halves; features are the only input, y=None (no labels)
 
         attack.fit(
             x=None,
             y=None,
             test_x=None,
             test_y=None,
-            pred=col(loss_members_train),
-            test_pred=col(loss_nonmembers_train),
+            pred=to_matrix(features_members_train),
+            test_pred=to_matrix(features_nonmembers_train),
         )
 
         # score the held-out attack-test halves
-        inferred_members = attack.infer(None, pred=col(loss_members_test))  # want 1s
+        inferred_members = attack.infer(
+            None, pred=to_matrix(features_members_test)
+        )  # want 1s
         inferred_nonmembers = attack.infer(
-            None, pred=col(loss_nonmembers_test)
+            None, pred=to_matrix(features_nonmembers_test)
         )  # want 0s
         report = _accuracy_report(inferred_members, inferred_nonmembers)
 
         # AUC + worst-case TPR@FPR on the attack-test halves
         prob_members = np.squeeze(
-            attack.infer(None, pred=col(loss_members_test), probabilities=True), axis=-1
+            attack.infer(
+                None, pred=to_matrix(features_members_test), probabilities=True
+            ),
+            axis=-1,
         )
         prob_nonmembers = np.squeeze(
-            attack.infer(None, pred=col(loss_nonmembers_test), probabilities=True),
+            attack.infer(
+                None, pred=to_matrix(features_nonmembers_test), probabilities=True
+            ),
             axis=-1,
         )
         attack_proba = np.concatenate([prob_members, prob_nonmembers])
@@ -114,14 +128,14 @@ class MembershipInferenceAttack:
         )
         return report
 
-    def _identity_estimator(self, num_labels: int):
+    def _identity_estimator(self, num_labels: int, num_features: int):
         from art.estimators.classification import PyTorchClassifier
 
         return PyTorchClassifier(
             model=_IdentityModel(),
             loss=torch.nn.CrossEntropyLoss(),
             optimizer=None,
-            input_shape=(1,),
+            input_shape=(num_features,),
             nb_classes=num_labels,
         )
 
