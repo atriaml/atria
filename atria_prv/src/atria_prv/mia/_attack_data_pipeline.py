@@ -46,11 +46,6 @@ class AttackDataPipeline:
         self._seed = seed
         self._build()
 
-    def _subset(self, split: SplitIterator, indices: list[int]) -> SplitIterator:
-        subset = copy.deepcopy(split)
-        subset.subset_indices = indices
-        return subset
-
     def _loader(self, iterator: SplitIterator) -> DataLoader:
         from torch.utils.data import SequentialSampler
 
@@ -79,11 +74,13 @@ class AttackDataPipeline:
         train_size = int(len(original_ids) * self._attack_train_ratio)
         train_ids, eval_ids = original_ids[:train_size], original_ids[train_size:]
 
-        def _subset_for(ids: list[str]) -> SplitIterator:
+        def _subset_for(split: SplitIterator, ids: list[str]) -> SplitIterator:
             indices = sorted(i for oid in ids for i in id_to_indices.get(oid, []))
-            return self._subset(dataset, indices)
+            subset = copy.deepcopy(split)
+            subset.subset_indices = indices
+            return subset
 
-        return _subset_for(train_ids), _subset_for(eval_ids)
+        return _subset_for(dataset, train_ids), _subset_for(dataset, eval_ids)
 
     def _build(self):
         self._members_dataset = self._dataset.train
@@ -91,14 +88,6 @@ class AttackDataPipeline:
 
         member_ids = self._shuffled_original_ids(self._members_dataset)
         non_member_ids = self._shuffled_original_ids(self._non_members_dataset)
-        print("member_ids", member_ids[:10])
-        print("non_member_ids", non_member_ids[:10])
-
-        # Balance member / non-member DOCUMENT counts (members usually far outnumber
-        # non-members). Subsampling the larger set keeps the attack metrics interpretable.
-        if self._balanced:
-            k = min(len(member_ids), len(non_member_ids))
-            member_ids, non_member_ids = member_ids[:k], non_member_ids[:k]
 
         self._members_train, self._members_test = self._create_train_eval_splits(
             self._members_dataset, member_ids
@@ -106,6 +95,13 @@ class AttackDataPipeline:
         self._non_members_train, self._non_members_test = (
             self._create_train_eval_splits(self._non_members_dataset, non_member_ids)
         )
+
+        if self._balanced:
+            k = min(len(self._members_test), len(self._non_members_test))
+            self._members_test.subset_indices = self._members_test.subset_indices[:k]
+            self._non_members_test.subset_indices = (
+                self._non_members_test.subset_indices[:k]
+            )
 
     def summarize(self):
         logger.info(

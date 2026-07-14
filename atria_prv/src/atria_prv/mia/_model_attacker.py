@@ -148,7 +148,7 @@ class ModelAttacker:
         ]
         return Path(self._config.env.run_dir) / "attack_cache" / f"losses_{digest}.npz"
 
-    def _extract_losses(self, loaders) -> dict:
+    def _extract_features(self, loaders) -> dict:
         """Extract (or load from cache) the per-document losses for the four splits."""
         import numpy as np
 
@@ -173,7 +173,7 @@ class ModelAttacker:
     # ------------------------------------------------------------------ run
     def run(self) -> dict:
         loaders = self._state.data_pipeline.dataloaders()
-        losses = self._extract_losses(loaders)
+        losses = self._extract_features(loaders)
 
         # debug: plot the member vs. non-member train-loss distributions
         if self._config.env.run_dir is not None:
