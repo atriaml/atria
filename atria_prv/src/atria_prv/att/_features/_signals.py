@@ -29,8 +29,6 @@ def token_loss(
 
     # always cut down logits to labels seq length
     logits = logits[:, :T, :]
-    print("logits", logits.shape, labels.shape)
-
     ce = F.cross_entropy(
         logits.reshape(-1, C),
         labels.reshape(-1),

@@ -69,9 +69,9 @@ class BioScheme:
         self, labels: torch.Tensor, ignore_index: int
     ) -> dict[str, torch.Tensor]:
         return {
-            "all": self.all_mask(labels, ignore_index)
-            # "entity": self.entity_mask(labels, ignore_index),
-            # "span_start": self.span_start_mask(labels, ignore_index),
-            # "span_cont": self.span_continuation_mask(labels, ignore_index),
-            # "other": self.other_mask(labels, ignore_index),
+            "all": self.all_mask(labels, ignore_index),
+            "entity": self.entity_mask(labels, ignore_index),
+            "span_start": self.span_start_mask(labels, ignore_index),
+            "span_cont": self.span_continuation_mask(labels, ignore_index),
+            "other": self.other_mask(labels, ignore_index),
         }

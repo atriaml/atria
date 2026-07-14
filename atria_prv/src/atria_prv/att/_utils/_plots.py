@@ -62,13 +62,128 @@ def save_loss_distributions(
     plt.close()
 
 
+def save_feature_distributions(
+    members_df,
+    nonmembers_df,
+    output_path: str | Path,
+    *,
+    feature_columns: Sequence[str] | None = None,
+    title: str = "MIA feature distributions (train)",
+    bins: int = 100,
+    ncols: int = 4,
+    max_per_image: int = 24,
+) -> list[Path]:
+    """Save member vs. non-member distributions for every feature as a subplot grid.
+
+    One subplot per feature column: overlaid step-histograms of members (red) vs.
+    non-members (blue), each on its own shared bin range so the two curves compare.
+    If there are more than ``max_per_image`` features, they are split across several
+    images (``<stem>_1.png``, ``<stem>_2.png``, ...). Returns the list of paths written.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    columns = (
+        list(feature_columns)
+        if feature_columns is not None
+        else [c for c in members_df.columns if c in nonmembers_df.columns]
+    )
+    columns = [c for c in columns if "mean" in c]
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # split columns into pages of at most max_per_image features
+    pages = [
+        columns[i : i + max_per_image] for i in range(0, len(columns), max_per_image)
+    ] or [[]]
+    multi_page = len(pages) > 1
+
+    written: list[Path] = []
+    for page_idx, page_cols in enumerate(pages, start=1):
+        if multi_page:
+            page_path = output_path.with_name(
+                f"{output_path.stem}_{page_idx}{output_path.suffix}"
+            )
+            page_title = f"{title} ({page_idx}/{len(pages)})"
+        else:
+            page_path = output_path
+            page_title = title
+
+        n = len(page_cols)
+        page_ncols = min(ncols, n) if n else 1
+        nrows = int(np.ceil(n / page_ncols)) if n else 1
+        fig, axes = plt.subplots(
+            nrows, page_ncols, figsize=(4 * page_ncols, 3 * nrows), squeeze=False
+        )
+
+        for idx, col in enumerate(page_cols):
+            ax = axes[idx // page_ncols][idx % page_ncols]
+            members = np.asarray(members_df[col].to_numpy(), dtype=np.float64).reshape(
+                -1
+            )
+            nonmembers = np.asarray(
+                nonmembers_df[col].to_numpy(), dtype=np.float64
+            ).reshape(-1)
+
+            combined = np.concatenate([members, nonmembers])
+            combined = combined[np.isfinite(combined)]
+            if combined.size:
+                lo, hi = float(np.nanmin(combined)), float(np.nanmax(combined))
+            else:
+                lo, hi = 0.0, 1.0
+            if lo == hi:
+                lo, hi = lo - 0.5, hi + 0.5
+            edges = np.linspace(lo, hi, bins + 1)
+
+            for data, color, label in (
+                (members, "tab:red", f"members (n={members.size})"),
+                (nonmembers, "tab:blue", f"non-members (n={nonmembers.size})"),
+            ):
+                ax.hist(
+                    data,
+                    bins=edges,
+                    density=True,
+                    histtype="step",
+                    lw=2,
+                    color=color,
+                    label=f"{label}, μ={np.nanmean(data):.3f}",
+                )
+                ax.hist(data, bins=edges, density=True, color=color, alpha=0.15)
+            ax.set_title(col, fontsize=9)
+            ax.legend(loc="upper right", fontsize=6)
+
+        # blank out unused axes in the grid
+        for idx in range(n, nrows * page_ncols):
+            axes[idx // page_ncols][idx % page_ncols].axis("off")
+
+        fig.suptitle(page_title)
+        fig.tight_layout()
+        fig.savefig(page_path, dpi=150)
+        plt.close(fig)
+        written.append(page_path)
+
+    return written
+
+
 def save_roc_curve(
     fpr: Sequence[float],
     tpr: Sequence[float],
     auc: float,
     output_path: str | Path,
+    *,
+    min_fpr: float = 1e-4,
 ) -> None:
-    """Save the membership-inference ROC curve to ``output_path`` as a PNG."""
+    """Save the membership-inference ROC curve on log-log axes (Carlini et al.).
+
+    Following "Membership Inference Attacks From First Principles" (Carlini et al.,
+    2022), the ROC is drawn on log-log axes so the low-false-positive-rate regime --
+    the region that actually matters for MIA -- is visible instead of being crushed
+    into the bottom-left corner. ``min_fpr`` sets the left/bottom axis floor (the
+    smallest FPR the attack can resolve is roughly 1/#non-members).
+    """
     import matplotlib
 
     matplotlib.use("Agg")
@@ -77,14 +192,37 @@ def save_roc_curve(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    fpr = np.asarray(fpr, dtype=np.float64)
+    tpr = np.asarray(tpr, dtype=np.float64)
+
+    # log axes can't show zeros; clamp both to the floor so the curve stays continuous
+    lo = max(min_fpr, 1e-8)
+    fpr_plot = np.clip(fpr, lo, 1.0)
+    tpr_plot = np.clip(tpr, lo, 1.0)
+
+    # worst-case TPR at a few reference FPRs (report the achievable TPR at/below each)
+    ref_fprs = [1e-3, 1e-2, 1e-1]
+    ref_lines = []
+    for target in ref_fprs:
+        mask = fpr <= target
+        if mask.any():
+            ref_lines.append(f"TPR@FPR={target:g}: {tpr[mask].max():.3f}")
+
     plt.figure(figsize=(5, 5))
-    plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"ROC (AUC = {auc:.3f})")
-    plt.plot([0, 1], [0, 1], color="navy", lw=1, linestyle="--", label="chance")
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
+    plt.plot(
+        fpr_plot, tpr_plot, color="darkorange", lw=2, label=f"ROC (AUC = {auc:.3f})"
+    )
+    plt.plot([lo, 1], [lo, 1], color="navy", lw=1, linestyle="--", label="chance")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlim([lo, 1.0])
+    plt.ylim([lo, 1.0])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.title("Membership Inference ROC")
+    title = "Membership Inference ROC (log-log)"
+    if ref_lines:
+        title += "\n" + "  ".join(ref_lines)
+    plt.title(title, fontsize=9)
     plt.legend(loc="lower right")
     plt.tight_layout()
     plt.savefig(output_path, dpi=150)

@@ -70,7 +70,7 @@ class MembershipInferenceBlackBox:
         self,
         attack_model_type: str = "nn",
         attack_model: ClassifierMixin | None = None,
-        scaler_type: str | None = "standard",
+        scaler_type: str | None = "robust",
         nn_model_epochs: int = 500,
         nn_model_batch_size: int = 16,
         nn_model_learning_rate: float = 0.0001,
@@ -145,37 +145,59 @@ class MembershipInferenceBlackBox:
             else:
                 raise ValueError("Illegal scaler_type: ", self.scaler_type)
 
+        print("self.default_model", self.default_model)
+        print("self.default_model", self.attack_model_type)
         if self.default_model and self.attack_model_type == "nn":
             if self.scaler:
                 self.scaler.fit(x_1)
                 x_1 = self.scaler.transform(x_1)
 
-            num_features = x_1.shape[1]
+            # plot x_1: one subplot per feature, exact per-sample values by class
+            import matplotlib.pyplot as plt
 
-            # class MembershipInferenceAttackModelNoLabel(nn.Module):
-            #     """PyTorch model for learning a membership inference attack from features alone."""
+            n_features = x_1.shape[1]
+            member_mask = y_new == 1
+            fig, axes = plt.subplots(
+                1, n_features, figsize=(4 * n_features, 4), squeeze=False
+            )
+            for j in range(n_features):
+                ax = axes[0, j]
+                ax.scatter(
+                    np.where(member_mask)[0],
+                    x_1[member_mask, j],
+                    s=12,
+                    label="member (y=1)",
+                    color="tab:red",
+                )
+                ax.scatter(
+                    np.where(~member_mask)[0],
+                    x_1[~member_mask, j],
+                    s=12,
+                    label="non-member (y=0)",
+                    color="tab:blue",
+                )
+                # ignore outliers: clip y-axis to 1st–99th percentile, symlog scale
+                lo, hi = np.percentile(x_1[:, j], [1, 99])
+                if hi > lo:
+                    pad = 0.05 * (hi - lo)
+                    ax.set_ylim(lo - pad, hi + pad)
+                ax.set_yscale("symlog")
+                ax.set_title(f"feature {j}")
+                ax.set_xlabel("sample index")
+                ax.set_ylabel("scaled value (symlog)")
+                ax.legend()
+            fig.tight_layout()
+            fig.savefig("x_1_features.png", dpi=150)
+            plt.close(fig)
 
-            #     def __init__(self, num_features):
-            #         self.num_features = num_features
-            #         super().__init__()
-            #         self.features = nn.Sequential(
-            #             nn.Linear(self.num_features, 512),
-            #             nn.ReLU(),
-            #             nn.Linear(512, 100),
-            #             nn.ReLU(),
-            #             nn.Linear(100, 64),
-            #             nn.ReLU(),
-            #             nn.Linear(64, 1),
-            #         )
-            #         self.output = nn.Sigmoid()
-
-            #     def forward(self, x_1):
-            #         out_x1 = self.features(x_1)
-            #         return self.output(out_x1)
             from sklearn.neural_network import MLPClassifier
 
             self.attack_model = MLPClassifier(
-                hidden_layer_sizes=(32, 16), max_iter=500, random_state=0
+                hidden_layer_sizes=(32, 16),
+                max_iter=500,
+                random_state=1,
+                solver="sgd",
+                verbose=True,
             )
             self.attack_model.fit(x_1, y_new)
             # print("self.attack_model", self.attack_model)

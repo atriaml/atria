@@ -69,6 +69,7 @@ class AttackDataPipeline:
     def _create_train_eval_splits(self, dataset: SplitIterator):
         """Split a pre-selected list of original ids into attack-train / attack-eval."""
         original_ids = self._shuffled_original_ids(dataset)
+
         id_to_indices = group_indices_by_original_id(dataset.sample_keys)
 
         train_size = int(len(original_ids) * self._attack_train_ratio)

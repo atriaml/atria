@@ -63,7 +63,6 @@ class TokenSignalExtractor:
     def _aggregate(
         self, values: np.ndarray, mask: np.ndarray, prefix: str, signal_name: str
     ) -> dict[str, np.ndarray]:
-        print("values", values)
         B = values.shape[0]
         cfg = self._config
         stat_names = ["mean", "std", "min", "max", "bottom_k_mean", "top_k_mean"]

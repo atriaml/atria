@@ -223,23 +223,30 @@ class ModelAttacker:
         loaders = self._state.data_pipeline.dataloaders()
         features = self._extract_features(loaders)
 
-        # debug: plot the member vs. non-member train mean-loss distributions
-        from atria_prv.att._utils._plots import save_loss_distributions
+        # debug: plot the member vs. non-member train distributions for all features
+        from atria_prv.att._utils._plots import save_feature_distributions
 
-        dist_path = self._run_dir / "loss_distributions_train.png"
-        save_loss_distributions(
-            features["members_train"]["loss__all__mean"].to_numpy(),
-            features["non_members_train"]["loss__all__mean"].to_numpy(),
-            dist_path,
+        dist_path = self._run_dir / "feature_distributions_train.png"
+        written = save_feature_distributions(
+            features["members_train"], features["non_members_train"], dist_path
         )
-        logger.info(f"Saved train-loss distributions to {dist_path}")
+        logger.info(f"Saved train feature distributions to {written}")
 
         results = MembershipInferenceAttack(self._config.attack_config).run(
             features_members_train=features["members_train"],
             features_nonmembers_train=features["non_members_train"],
             features_members_test=features["members_test"],
             features_nonmembers_test=features["non_members_test"],
-            feature_columns=["loss__all__mean", "loss__all__std"],
+            feature_columns=[
+                "loss__all__mean",
+                "loss__all__std",
+                "loss__entity__mean",
+                "loss__entity__std",
+                "loss__span_start__mean",
+                "loss__span_start__std",
+                # "loss__span_cont__mean",
+                # "loss__span_cont__std",
+            ],
         )
 
         # draw + save the ROC curve
