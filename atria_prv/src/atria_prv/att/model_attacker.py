@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import torch
 import yaml
 from atria_datasets.registry.image_classification.cifar10 import Cifar10  # noqa
 from atria_logger import enable_file_logging
@@ -51,9 +52,9 @@ class ModelAttacker:
         "loss__all__mean",
         "loss__entity__mean",
         "loss__span_start__mean",
-        "scaled_conf__all__mean",
-        "scaled_conf__entity__mean",
-        "scaled_conf__span_start__mean",
+        # "scaled_conf__all__mean",
+        # "scaled_conf__entity__mean",
+        # "scaled_conf__span_start__mean",
     ]
 
     def __init__(
@@ -121,23 +122,11 @@ class ModelAttacker:
         extractor = build_feature_extractor(model_pipeline)
 
         # load the trained target model checkpoint (the model under attack)
-        import torch
 
         if not Path(self._config.target_checkpoint).exists():
             raise FileNotFoundError(
                 f"Target checkpoint not found: {self._config.target_checkpoint}"
             )
-        logger.info(f"Loading target checkpoint: {self._config.target_checkpoint}")
-        checkpoint = torch.load(
-            self._config.target_checkpoint, map_location="cpu", weights_only=False
-        )
-        model_pipeline._model.load_state_dict(checkpoint["model_pipeline"]["model"])
-        # Checkpoint.load_objects(
-        #     to_load={MODEL_PIPELINE_CHECKPOINT_KEY: model_pipeline},
-        #     checkpoint=checkpoint,
-        #     strict=True,
-        # )
-
         data_pipeline = AttackDataPipeline(
             dataset=dataset,
             attack_train_ratio=self._config.attack_config.attack_train_ratio,
@@ -211,6 +200,18 @@ class ModelAttacker:
             logger.info(f"Loading cached extracted features from {features_dir}")
             return {split: pd.read_parquet(path) for split, path in cache_files.items()}
 
+        logger.info(f"Loading target checkpoint: {self._config.target_checkpoint}")
+        checkpoint = torch.load(
+            self._config.target_checkpoint, map_location="cpu", weights_only=False
+        )
+        self._state.model_pipeline._model.load_state_dict(
+            checkpoint["model_pipeline"]["model"]
+        )
+        # Checkpoint.load_objects(
+        #     to_load={MODEL_PIPELINE_CHECKPOINT_KEY: model_pipeline},
+        #     checkpoint=checkpoint,
+        #     strict=True,
+        # )
         engine = SignalExtractionEngine(
             self._state.model_pipeline, self._device, self._state.extractor
         )
@@ -309,14 +310,13 @@ class ModelAttacker:
     # ------------------------------------------------------------------ run
     def _run_attack(self, features: dict) -> dict:
         """Fit + evaluate the attack model over the four feature splits and report."""
-        from atria_prv.att._utils._plots import save_feature_distributions
 
-        # debug: plot the member vs. non-member train distributions for all features
-        dist_path = self._run_dir / "feature_distributions_train.png"
-        written = save_feature_distributions(
-            features["members_train"], features["non_members_train"], dist_path
-        )
-        logger.info(f"Saved train feature distributions to {written}")
+        # # debug: plot the member vs. non-member train distributions for all features
+        # dist_path = self._run_dir / "feature_distributions_train.png"
+        # written = save_feature_distributions(
+        #     features["members_train"], features["non_members_train"], dist_path
+        # )
+        # logger.info(f"Saved train feature distributions to {written}")
 
         results = MembershipInferenceAttack(self._config.attack_config).run(
             features_members_train=features["members_train"],

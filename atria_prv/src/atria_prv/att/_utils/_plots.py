@@ -90,7 +90,7 @@ def save_feature_distributions(
         if feature_columns is not None
         else [c for c in members_df.columns if c in nonmembers_df.columns]
     )
-    columns = [c for c in columns if "max" in c]
+    columns = [c for c in columns if "mean" in c]
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -176,54 +176,78 @@ def save_roc_curve(
     *,
     min_fpr: float = 1e-4,
 ) -> None:
-    """Save the membership-inference ROC curve on log-log axes (Carlini et al.).
+    """Save the membership-inference ROC curve, both linear and log-log (Carlini et al.).
 
-    Following "Membership Inference Attacks From First Principles" (Carlini et al.,
-    2022), the ROC is drawn on log-log axes so the low-false-positive-rate regime --
-    the region that actually matters for MIA -- is visible instead of being crushed
-    into the bottom-left corner. ``min_fpr`` sets the left/bottom axis floor (the
-    smallest FPR the attack can resolve is roughly 1/#non-members).
+    No clamping or transformation of values -- fpr/tpr are plotted exactly as given.
+    ``min_fpr`` only sets the visible axis window on the log-log plot; points below
+    that window are simply outside the frame (matplotlib crops them, same as zooming
+    a linear plot), not moved or rewritten.
     """
-    import matplotlib
 
-    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    print("HERE")
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    stem, suffix = output_path.stem, output_path.suffix or ".png"
 
     fpr = np.asarray(fpr, dtype=np.float64)
     tpr = np.asarray(tpr, dtype=np.float64)
 
-    # log axes can't show zeros; clamp both to the floor so the curve stays continuous
-    lo = max(min_fpr, 1e-8)
-    fpr_plot = np.clip(fpr, lo, 1.0)
-    tpr_plot = np.clip(tpr, lo, 1.0)
-
-    # worst-case TPR at a few reference FPRs (report the achievable TPR at/below each)
     ref_fprs = [1e-3, 1e-2, 1e-1]
     ref_lines = []
     for target in ref_fprs:
         mask = fpr <= target
         if mask.any():
             ref_lines.append(f"TPR@FPR={target:g}: {tpr[mask].max():.3f}")
+    ref_suffix = ("\n" + "  ".join(ref_lines)) if ref_lines else ""
 
+    # --- linear-scale ROC ---
     plt.figure(figsize=(5, 5))
     plt.plot(
-        fpr_plot, tpr_plot, color="darkorange", lw=2, label=f"ROC (AUC = {auc:.3f})"
+        fpr,
+        tpr,
+        color="darkorange",
+        lw=1.5,
+        marker="o",
+        ms=2,
+        label=f"ROC (AUC = {auc:.3f})",
     )
-    plt.plot([lo, 1], [lo, 1], color="navy", lw=1, linestyle="--", label="chance")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.xlim([lo, 1.0])
-    plt.ylim([lo, 1.0])
+    print("HERE")
+    plt.plot([0, 1], [0, 1], color="navy", lw=1, linestyle="--", label="chance")
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    title = "Membership Inference ROC (log-log)"
-    if ref_lines:
-        title += "\n" + "  ".join(ref_lines)
-    plt.title(title, fontsize=9)
+    plt.title("Membership Inference ROC (linear)" + ref_suffix, fontsize=9)
     plt.legend(loc="lower right")
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150)
+    plt.savefig(output_path.parent / f"{stem}_linear{suffix}", dpi=150)
+    plt.close()
+
+    # --- log-log ROC ---
+    plt.figure(figsize=(5, 5))
+    plt.plot(
+        fpr,
+        tpr,
+        color="darkorange",
+        lw=1.5,
+        marker="o",
+        ms=2,
+        label=f"ROC (AUC = {auc:.3f})",
+    )
+    plt.plot(
+        [min_fpr, 1], [min_fpr, 1], color="navy", lw=1, linestyle="--", label="chance"
+    )
+    print("HERE")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlim([min_fpr, 1.0])
+    plt.ylim([min_fpr, 1.0])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Membership Inference ROC (log-log)" + ref_suffix, fontsize=9)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(output_path.parent / f"{stem}_loglog{suffix}", dpi=150)
     plt.close()

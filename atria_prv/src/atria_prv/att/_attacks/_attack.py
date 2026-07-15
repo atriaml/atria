@@ -145,59 +145,57 @@ class MembershipInferenceBlackBox:
             else:
                 raise ValueError("Illegal scaler_type: ", self.scaler_type)
 
-        print("self.default_model", self.default_model)
-        print("self.default_model", self.attack_model_type)
         if self.default_model and self.attack_model_type == "nn":
             if self.scaler:
                 self.scaler.fit(x_1)
                 x_1 = self.scaler.transform(x_1)
 
-            # plot x_1: one subplot per feature, exact per-sample values by class
-            import matplotlib.pyplot as plt
+            # # plot x_1: one subplot per feature, exact per-sample values by class
+            # import matplotlib.pyplot as plt
 
-            n_features = x_1.shape[1]
-            member_mask = y_new == 1
-            fig, axes = plt.subplots(
-                1, n_features, figsize=(4 * n_features, 4), squeeze=False
-            )
-            for j in range(n_features):
-                ax = axes[0, j]
-                ax.scatter(
-                    np.where(member_mask)[0],
-                    x_1[member_mask, j],
-                    s=12,
-                    label="member (y=1)",
-                    color="tab:red",
-                )
-                ax.scatter(
-                    np.where(~member_mask)[0],
-                    x_1[~member_mask, j],
-                    s=12,
-                    label="non-member (y=0)",
-                    color="tab:blue",
-                )
-                # ignore outliers: clip y-axis to 1st–99th percentile, symlog scale
-                lo, hi = np.percentile(x_1[:, j], [1, 99])
-                if hi > lo:
-                    pad = 0.05 * (hi - lo)
-                    ax.set_ylim(lo - pad, hi + pad)
-                ax.set_yscale("symlog")
-                ax.set_title(f"feature {j}")
-                ax.set_xlabel("sample index")
-                ax.set_ylabel("scaled value (symlog)")
-                ax.legend()
-            fig.tight_layout()
-            fig.savefig("x_1_features.png", dpi=150)
-            plt.close(fig)
+            # n_features = x_1.shape[1]
+            # member_mask = y_new == 1
+            # fig, axes = plt.subplots(
+            #     1, n_features, figsize=(4 * n_features, 4), squeeze=False
+            # )
+            # for j in range(n_features):
+            #     ax = axes[0, j]
+            #     ax.scatter(
+            #         np.where(member_mask)[0],
+            #         x_1[member_mask, j],
+            #         s=12,
+            #         label="member (y=1)",
+            #         color="tab:red",
+            #     )
+            #     ax.scatter(
+            #         np.where(~member_mask)[0],
+            #         x_1[~member_mask, j],
+            #         s=12,
+            #         label="non-member (y=0)",
+            #         color="tab:blue",
+            #     )
+            #     # ignore outliers: clip y-axis to 1st–99th percentile, symlog scale
+            #     lo, hi = np.percentile(x_1[:, j], [1, 99])
+            #     if hi > lo:
+            #         pad = 0.05 * (hi - lo)
+            #         ax.set_ylim(lo - pad, hi + pad)
+            #     ax.set_yscale("symlog")
+            #     ax.set_title(f"feature {j}")
+            #     ax.set_xlabel("sample index")
+            #     ax.set_ylabel("scaled value (symlog)")
+            #     ax.legend()
+            # fig.tight_layout()
+            # fig.savefig("x_1_features.png", dpi=150)
+            # plt.close(fig)
 
             from sklearn.neural_network import MLPClassifier
 
             self.attack_model = MLPClassifier(
                 hidden_layer_sizes=(32, 16),
                 max_iter=500,
-                random_state=1,
+                random_state=2,
                 solver="sgd",
-                verbose=True,
+                verbose=False,
             )
             self.attack_model.fit(x_1, y_new)
             # print("self.attack_model", self.attack_model)
@@ -345,14 +343,6 @@ class MembershipInferenceAttack:
             return df[columns].to_numpy(dtype=np.float32)
 
         # fit on the attack-train halves; features are the only input, no labels
-        print(
-            "to_matrix(features_members_train)",
-            to_matrix(features_members_train).tolist(),
-        )
-        print(
-            "to_matrix(features_nonmembers_train)",
-            to_matrix(features_nonmembers_train).tolist(),
-        )
         self._attack.fit(
             members_x=to_matrix(features_members_train),
             non_members_x=to_matrix(features_nonmembers_train),
