@@ -115,6 +115,8 @@ class HuggingfaceProcessor(DataTransform):
 
     @property
     def tokenizer(self) -> Any:
+        if not self._hf_processor:
+            self._hf_processor = self._initialize_transform()
         return (
             self._hf_processor.tokenizer
             if hasattr(self._hf_processor, "tokenizer")
