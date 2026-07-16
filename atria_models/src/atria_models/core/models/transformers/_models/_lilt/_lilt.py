@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 from atria_logger import get_logger
+from torch import nn
 
 from atria_models.core.models.transformers._models._encoder_model import (
     TransformersEncoderModel,
@@ -21,7 +22,10 @@ from atria_models.core.models.transformers._models._lilt._encoder_block import (
 from atria_models.core.models.transformers._outputs import (
     TransformersEncoderModelOutput,
 )
-from atria_models.core.models.transformers._utilities import _resolve_head_mask
+from atria_models.core.models.transformers._utilities import (
+    _pad_to_max_len,
+    _resolve_head_mask,
+)
 from atria_models.registry.registry_groups import MODELS
 
 logger = get_logger(__name__)
@@ -94,6 +98,25 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
         is_embedding: bool = False,
         **head_kwargs,
     ) -> TransformersEncoderModelOutput:
+        if self.config.force_pad_to_max_length > 0:  # type: ignore
+            (
+                token_ids_or_embeddings,
+                layout_ids_or_embeddings,
+                attention_mask,
+                token_type_ids_or_embeddings,
+                head_kwargs["labels"],
+                position_ids_or_embeddings,
+                _,
+            ) = _pad_to_max_len(  # type: ignore
+                input_ids=token_ids_or_embeddings,
+                bbox=layout_ids_or_embeddings,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids_or_embeddings,
+                labels=head_kwargs.get("labels"),
+                position_ids=position_ids_or_embeddings,
+                pad_token_id=self.config.embeddings_config.pad_token_id,
+            )
+
         hidden_state, layout_hidden_state = self._resolve_embeddings(
             token_ids_or_embeddings=token_ids_or_embeddings,
             layout_ids_or_embeddings=layout_ids_or_embeddings,
@@ -110,12 +133,17 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
             attention_mask=attention_mask,
             head_mask=head_mask,
         )
-        last_hidden_state = encoder_outputs.last_hidden_state
 
         # lilt concatenates the last_hidden_state and layout_hidden_state before the head, so we need to do the same for head output
         # but we haven't done this in our initial experiments. For now we assume this is done but fix it later
         # at the moment all results are without concatenation, so we can just pass the last_hidden_state to the head and ignore the layout_hidden_state
-        # layout_hidden_state = torch.cat([last_hidden_state, encoder_outputs.layout_hidden_state], dim=-1)
+        last_hidden_state = torch.cat(
+            [
+                encoder_outputs.last_hidden_state,
+                encoder_outputs.last_layout_hidden_state,
+            ],
+            dim=-1,
+        )
 
         head_output = None
         if self.head is not None:
@@ -136,3 +164,10 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
         if output.attentions is None:
             raise ValueError("Model output contains no attentions.")
         return (output.attentions, output.layout_attentions)
+
+    def _build_head(self) -> nn.Module | None:
+        return super()._build_head(
+            hidden_size=self.config.layers_config.hidden_size
+            + self.config.layers_config.hidden_size
+            // self.config.embeddings_config.channel_shrink_ratio
+        )

@@ -116,3 +116,88 @@ def _resolve_head_mask(
             return head_mask.unsqueeze(-1)
         return head_mask
     return head_mask
+
+
+def _pad_to_max_len(
+    input_ids=None,
+    bbox=None,
+    attention_mask=None,
+    token_type_ids=None,
+    labels=None,
+    position_ids=None,
+    valid_span=None,
+    max_len=512,
+    pad_token_id=1,
+):
+    import torch
+    import torch.nn.functional as F
+
+    if input_ids is not None:
+        seq_len = input_ids.shape[1]
+    else:
+        return (
+            input_ids,
+            bbox,
+            attention_mask,
+            token_type_ids,
+            labels,
+            position_ids,
+            valid_span,
+        )
+
+    pad_len = max_len - seq_len
+    if pad_len <= 0:
+        return (
+            input_ids,
+            bbox,
+            attention_mask,
+            token_type_ids,
+            labels,
+            position_ids,
+            valid_span,
+        )
+
+    input_ids = F.pad(input_ids, (0, pad_len), value=pad_token_id)
+
+    # attention_mask: pad with 0 so padded tokens are ignored
+    if attention_mask is not None:
+        attention_mask = F.pad(attention_mask, (0, pad_len), value=0)
+
+    # token_type_ids: pad with 0
+    if token_type_ids is not None:
+        token_type_ids = F.pad(token_type_ids, (0, pad_len), value=0)
+
+    # bbox: pad with [0, 0, 0, 0] boxes -> pad the sequence dim (dim=1), not the coordinate dim
+    if bbox is not None:
+        pad_boxes = bbox.new_zeros(bbox.shape[0], pad_len, bbox.shape[2])
+        bbox = torch.cat([bbox, pad_boxes], dim=1)
+
+    # labels: pad with -100 so CrossEntropyLoss ignores them
+    if labels is not None:
+        labels = F.pad(labels, (0, pad_len), value=-100)
+
+    if position_ids is not None:
+        position_ids = F.pad(position_ids, (0, pad_len), value=0)
+
+    if valid_span is not None:
+        seq_length = valid_span.shape[1]
+        valid_span_padded = torch.zeros(
+            valid_span.shape[0],
+            max_len,
+            max_len,
+            dtype=torch.bool,
+            device=valid_span.device,
+        )
+        valid_span_padded[:, :seq_length, :seq_length] = valid_span
+        valid_span_padded[:, seq_length:, seq_length:] = False
+        valid_span = valid_span_padded
+
+    return (
+        input_ids,
+        bbox,
+        attention_mask,
+        token_type_ids,
+        labels,
+        position_ids,
+        valid_span,
+    )

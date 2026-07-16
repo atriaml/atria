@@ -81,3 +81,4 @@ class LiLTEncoderModelConfig(TransformersEncoderModelConfig):
         max_position_embeddings=514,
     )
     layers_config: LayersConfig = LayersConfig(layer_norm_eps=1.0e-5)
+    force_pad_to_max_length: int = -1

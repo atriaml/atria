@@ -25,6 +25,7 @@ class LiLTEncoderLayerOutput:
 @dataclass(frozen=True)
 class LiLTEncoderOutput(EncoderOutput):
     layout_attentions: torch.Tensor | None = None
+    last_layout_hidden_state: torch.Tensor | None = None
 
     def attn_dict(self) -> dict[str, tuple[torch.Tensor, ...]]:
         if self.attentions is None:
@@ -243,6 +244,7 @@ class LiLTEncoderBlock(nn.Module):
 
         return LiLTEncoderOutput(
             last_hidden_state=last_hidden_state,
+            last_layout_hidden_state=last_layout_hidden_state,
             hidden_states=all_hidden_states,
             attentions=all_attentions,
             layout_attentions=all_layout_attentions,

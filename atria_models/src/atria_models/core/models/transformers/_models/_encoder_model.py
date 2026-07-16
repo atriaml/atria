@@ -153,40 +153,40 @@ class TransformersEncoderModel(
     def _build_encoder(self) -> nn.Module:
         return EncoderBlock(config=self.config)
 
-    def _build_head(self) -> nn.Module | None:
+    def _build_head(self, **kwargs) -> nn.Module | None:
         if self.config.head_config is None:
             return None
 
+        classifier_dropout = (
+            self.config.layers_config.classifier_dropout
+            if self.config.layers_config.classifier_dropout is not None
+            else self.config.layers_config.hidden_dropout_prob
+        )
+
         if isinstance(self.config.head_config, SequenceClassificationHeadConfig):
-            return SequenceClassificationHead(
-                num_labels=self.config.head_config.num_labels,
-                subtask=self.config.head_config.sub_task,
-                hidden_size=self.config.layers_config.hidden_size,
-                classifier_dropout=(
-                    self.config.layers_config.classifier_dropout
-                    if self.config.layers_config.classifier_dropout is not None
-                    else self.config.layers_config.hidden_dropout_prob
-                ),
-            )
+            default_kwargs = {
+                "num_labels": self.config.head_config.num_labels,
+                "subtask": self.config.head_config.sub_task,
+                "hidden_size": self.config.layers_config.hidden_size,
+                "classifier_dropout": classifier_dropout,
+            }
+            return SequenceClassificationHead(**{**default_kwargs, **kwargs})
+
         elif isinstance(self.config.head_config, TokenClassificationHeadConfig):
-            return TokenClassificationHead(
-                num_labels=self.config.head_config.num_labels,
-                hidden_size=self.config.layers_config.hidden_size,
-                classifier_dropout=(
-                    self.config.layers_config.classifier_dropout
-                    if self.config.layers_config.classifier_dropout is not None
-                    else self.config.layers_config.hidden_dropout_prob
-                ),
-            )
+            default_kwargs = {
+                "num_labels": self.config.head_config.num_labels,
+                "hidden_size": self.config.layers_config.hidden_size,
+                "classifier_dropout": classifier_dropout,
+            }
+            return TokenClassificationHead(**{**default_kwargs, **kwargs})
+
         elif isinstance(self.config.head_config, QuestionAnsweringHeadConfig):
-            return QuestionAnsweringHead(
-                hidden_size=self.config.layers_config.hidden_size,
-                classifier_dropout=(
-                    self.config.layers_config.classifier_dropout
-                    if self.config.layers_config.classifier_dropout is not None
-                    else self.config.layers_config.hidden_dropout_prob
-                ),
-            )
+            default_kwargs = {
+                "hidden_size": self.config.layers_config.hidden_size,
+                "classifier_dropout": classifier_dropout,
+            }
+            return QuestionAnsweringHead(**{**default_kwargs, **kwargs})
+
         else:
             raise ValueError(
                 f"Unsupported head config type: {type(self.config.head_config)}"
