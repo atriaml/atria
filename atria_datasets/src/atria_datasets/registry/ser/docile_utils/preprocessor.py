@@ -1,17 +1,13 @@
-import base64
 import dataclasses
 import json
-import math
 import os
 from bisect import bisect_left, bisect_right
 from collections.abc import Sequence
-from io import BytesIO
 from pathlib import Path
 
 import numpy as np
 from atria_logger import get_logger
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Field
-from PIL import Image
 from tqdm import tqdm
 
 logger = get_logger(__name__)
@@ -247,17 +243,7 @@ def get_data_from_docile(dataset, overlap_thr=0.5, image_shape=(1024, 1024)):
             for field in document.annotation.li_fields
         ]
         for page in range(document.page_count):
-            img = document.page_image(page)
-            W, H = img.size
-            if image_shape is not None:
-                img = img.resize(image_shape, Image.BICUBIC)
-            buffered = BytesIO()
-            img.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
-            # NOTE: to decode:
-            # base64_decoded = base64.b64decode(img_str)
-            # image = Image.open(io.BytesIO(base64_decoded))
-
+            W, H = image_shape
             kile_fields_page = [field for field in kile_fields if field.page == page]
             li_fields_page = [field for field in li_fields if field.page == page]
             kile_fields_page = [
@@ -386,11 +372,9 @@ def get_data_from_docile(dataset, overlap_thr=0.5, image_shape=(1024, 1024)):
                     "i": len(data),
                     "sample_id": sample_id,
                     "page_n": page,
-                    "img_b64": img_str,
+                    "pdf_path": str(document.data_paths.pdf_path(document.docid)),
                     "img_w": W,
                     "img_h": H,
-                    # "table_n": table_i,
-                    # "row_separators": row_sep[table_i]
                 }
             )
             data.append(sorted_fields)
@@ -498,9 +482,8 @@ class DOCILEDataLoader:
             tmp[x] = 1
             return tmp
 
-        for i, (pt, meta) in enumerate(zip(self.processed_tables, self.metadata)):
+        for i, (pt, meta) in enumerate(zip(self.processed_tables, self.metadata)):  # noqa: B905
             pt_tokens, pt_tags, pt_info = list(zip(*pt))
-            img_str = meta["img_b64"]
             W, H = meta["img_w"], meta["img_h"]
             yield {
                 "id": i,
@@ -515,35 +498,14 @@ class DOCILEDataLoader:
                     )
                     for d in pt_info
                 ],
-                "img": img_str,
+                "page_n": meta["page_n"],
+                "pdf_path": meta["pdf_path"],
             }
 
 
 def prepare_docile_dataset(
-    docile_dataset,
-    overlap_thr,
-    preprocessed_dataset_path,
-    chunk_size=10000,
-    image_shape=(1024, 1024),
+    docile_dataset, overlap_thr, preprocessed_dataset_path, image_shape=(1024, 1024)
 ):
-    if len(docile_dataset) > chunk_size:
-        num_chunks = math.ceil(len(docile_dataset) / chunk_size)
-        for chunk in range(num_chunks):
-            chunk_dataset = docile_dataset[
-                chunk * chunk_size : (chunk + 1) * chunk_size
-            ]
-            chunk_dataset.split_name = (
-                f"{docile_dataset.split_name}_chunk_{chunk}_of_{num_chunks}"
-            )
-            # make sure the chunk is stored to disk
-            prepare_docile_dataset(
-                chunk_dataset,
-                overlap_thr,
-                preprocessed_dataset_path,
-                chunk_size,
-                image_shape=image_shape,
-            )
-
     dataset_name = docile_dataset.data_paths.name
     preprocessed_path = preprocessed_dataset_path / dataset_name
     if (

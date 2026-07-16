@@ -1,8 +1,6 @@
-import base64
-import io
+from functools import cached_property
 from pathlib import Path
 
-import PIL
 from atria_logger import get_logger
 from atria_types import (
     BoundingBox,
@@ -17,8 +15,10 @@ from atria_types import (
     TextElement,
 )
 from docile.dataset import KILE_FIELDTYPES, LIR_FIELDTYPES, Dataset
+from docile.dataset.cached_object import CachingConfig
 
 from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
+from atria_datasets.core.dataset._datasets import DatasetInputTransform
 
 from .docile_utils.preprocessor import (
     generate_unique_entities,
@@ -88,6 +88,20 @@ class SplitIterator:
         self.label_names = label_names
         self.config = config
 
+    def __iter__(self):
+        yield from self.dataset
+
+
+class InputTransform(DatasetInputTransform):
+    @cached_property
+    def label_names(self):
+        if self.config.type == "kile":
+            return _KILE_LABELS
+        elif self.config.type == "lir":
+            return _LIR_LABELS
+        else:
+            return _ALL_LABELS
+
     def _remap_labels_to_task_labels(self, labels):
         import numpy as np
 
@@ -109,34 +123,36 @@ class SplitIterator:
                 remapped_labels.append(labels_to_idx[label_map[0]])
         return remapped_labels
 
-    def __iter__(self):
-        for row in self.dataset:
-            row["ner_tags"] = self._remap_labels_to_task_labels(row["ner_tags"])
-            row["tokens"] = list(row["tokens"])
-            bboxes = [[x / 1000.0 for x in box] for box in row["bboxes"]]
-            yield DocumentInstance(
-                sample_id=str(row["id"]),
-                image=Image(
-                    content=PIL.Image.open(io.BytesIO(base64.b64decode(row["img"])))
-                ),
-                content=DocumentContent(
-                    text_elements=[
-                        TextElement(
-                            text=word,
-                            bbox=BoundingBox(value=word_bbox, normalized=True),
-                        )
-                        for word, word_bbox in zip(row["tokens"], bboxes, strict=True)
-                    ]
-                ),
-                annotations=[
-                    EntityLabelingAnnotation(
-                        word_labels=[
-                            Label(value=label, name=self.label_names[label])
-                            for label in row["ner_tags"]
-                        ]
+    def __call__(self, row):
+        from pdf2image import convert_from_path
+
+        row["ner_tags"] = self._remap_labels_to_task_labels(row["ner_tags"])
+        row["tokens"] = list(row["tokens"])
+        bboxes = [[x / 1000.0 for x in box] for box in row["bboxes"]]
+        images = convert_from_path(
+            row["pdf_path"], size=self.config.image_shape, first_page=row["page_n"]
+        )
+
+        return DocumentInstance(
+            sample_id=str(row["id"]),
+            image=Image(content=images[0]),
+            content=DocumentContent(
+                text_elements=[
+                    TextElement(
+                        text=word, bbox=BoundingBox(value=word_bbox, normalized=True)
                     )
-                ],
-            )
+                    for word, word_bbox in zip(row["tokens"], bboxes, strict=True)
+                ]
+            ),
+            annotations=[
+                EntityLabelingAnnotation(
+                    word_labels=[
+                        Label(value=label, name=self.label_names[label])
+                        for label in row["ner_tags"]
+                    ]
+                )
+            ],
+        )
 
 
 @DATASETS.register(
@@ -155,6 +171,7 @@ class SplitIterator:
 class Docile(DocumentDataset):
     __config__ = DocileConfig
     __requires_access_token__ = True
+    __input_transform__ = InputTransform
 
     def _download_urls(self) -> list[str]:
         if self.config.synthetic:
@@ -162,7 +179,10 @@ class Docile(DocumentDataset):
         return _DATA_URLS
 
     def _available_splits(self) -> list[DatasetSplitType]:
-        return [DatasetSplitType.train, DatasetSplitType.validation]
+        if self.config.synthetic:
+            return [DatasetSplitType.train]
+        else:
+            return [DatasetSplitType.train, DatasetSplitType.validation]
 
     def _metadata(self) -> DatasetMetadata:
         if self.config.type == "kile":
@@ -186,15 +206,22 @@ class Docile(DocumentDataset):
             return _ALL_LABELS
 
     def _prepare_dataset(self, split: DatasetSplitType, data_dir: str | Path) -> tuple:
-        split_dir = "annotated-trainval"
-        split_name = "val" if split == DatasetSplitType.validation else "train"
+        if self.config.synthetic and split == DatasetSplitType.train:
+            split_dir = "synthetic"
+            split_name = "synthetic"
+        else:
+            split_dir = "annotated-trainval"
+            split_name = "val" if split == DatasetSplitType.validation else "train"
         if not hasattr(self, f"_{split_name}_dataset"):
             data_dir = Path(data_dir)
             docile_dataset = Dataset(
-                split_name, data_dir / split_dir, load_annotations=False, load_ocr=False
+                split_name,
+                data_dir / split_dir,
+                load_annotations=False,
+                load_ocr=False,
+                cache_images=CachingConfig.OFF,
             )
             preprocessed_name = f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{self.config.image_shape[0]}x{self.config.image_shape[1]}.json"
-            print("loading", preprocessed_name)
             if not (data_dir / split_dir / split_dir / preprocessed_name).exists():
                 prepare_docile_dataset(
                     docile_dataset,
