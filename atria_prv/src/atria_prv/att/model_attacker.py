@@ -52,9 +52,13 @@ class ModelAttacker:
         "loss__all__mean",
         "loss__entity__mean",
         "loss__span_start__mean",
-        # "scaled_conf__all__mean",
-        # "scaled_conf__entity__mean",
-        # "scaled_conf__span_start__mean",
+        "loss__span_cont__mean",
+        "loss__other__mean",
+        "scaled_conf__all__mean",
+        "scaled_conf__entity__mean",
+        "scaled_conf__span_start__mean",
+        "scaled_conf__span_cont__mean",
+        "scaled_conf__other__mean",
     ]
 
     def __init__(
@@ -336,10 +340,9 @@ class ModelAttacker:
             logger.info(f"Saved ROC curve to {roc_path}")
 
         log_results = {k: v for k, v in results.items() if k != "roc_curve"}
-        logger.info(
-            f"Membership inference attack results:\n"
-            f"{yaml.dump(log_results, indent=4, default_flow_style=False)}"
-        )
+        from rich.pretty import pprint
+
+        pprint(log_results)
         self._config.dump_metrics_file(data=results)
         return results
 

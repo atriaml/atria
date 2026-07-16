@@ -72,6 +72,6 @@ class BioScheme:
             "all": self.all_mask(labels, ignore_index),
             "entity": self.entity_mask(labels, ignore_index),
             "span_start": self.span_start_mask(labels, ignore_index),
-            # "span_cont": self.span_continuation_mask(labels, ignore_index),
-            # "other": self.other_mask(labels, ignore_index),
+            "span_cont": self.span_continuation_mask(labels, ignore_index),
+            "other": self.other_mask(labels, ignore_index),
         }
