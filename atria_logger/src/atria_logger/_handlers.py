@@ -16,5 +16,4 @@ class LoggerForwardHandler(logging.Handler):  # noqa: F821
         self.target = target
 
     def emit(self, record):
-        print("Forwarding log record:", record)
         self.target.handle(record)
