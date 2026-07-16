@@ -141,6 +141,8 @@ class FeAmDPTrainerEngine(
         self._register_events()
         self._setup_test_run()
         self._attach_progress_bar()
+
+        self._metrics = None
         self._attach_metrics()
 
         def terminate_on_optimizer_step(
