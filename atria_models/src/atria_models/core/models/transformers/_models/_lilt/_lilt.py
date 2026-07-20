@@ -20,6 +20,7 @@ from atria_models.core.models.transformers._models._lilt._encoder_block import (
     LiLTEncoderOutput,
 )
 from atria_models.core.models.transformers._outputs import (
+    TokenClassificationHeadOutput,
     TransformersEncoderModelOutput,
 )
 from atria_models.core.models.transformers._utilities import (
@@ -98,6 +99,7 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
         is_embedding: bool = False,
         **head_kwargs,
     ) -> TransformersEncoderModelOutput:
+        orig_seq_length = token_ids_or_embeddings.shape[1]
         if self.config.force_pad_to_max_length > 0:  # type: ignore
             (
                 token_ids_or_embeddings,
@@ -148,6 +150,13 @@ class LiLTEncoderModel(TransformersEncoderModel[LiLTEncoderModelConfig]):
         head_output = None
         if self.head is not None:
             head_output = self._head_forward(last_hidden_state, **head_kwargs)
+
+        if self.config.force_pad_to_max_length > 0 and isinstance(
+            head_output, TokenClassificationHeadOutput
+        ):
+            head_output = TokenClassificationHeadOutput(
+                loss=head_output.loss, logits=head_output.logits[:, :orig_seq_length]
+            )
         return TransformersEncoderModelOutput(
             last_hidden_state=last_hidden_state,
             hidden_states=encoder_outputs.hidden_states,

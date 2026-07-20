@@ -452,7 +452,6 @@ class TokenClassificationPipeline(SequenceModelPipeline):
         batch: DocumentTensorDataModel,
     ) -> ModelOutput:
         import torch
-        import torch.nn.functional as F
 
         assert batch.token_labels is not None, "Token labels cannot be None"
         assert self._labels.ser is not None, "Labels must be provided for ser tasks."
@@ -461,10 +460,7 @@ class TokenClassificationPipeline(SequenceModelPipeline):
         logits = self._get_logits(model_output=model_output)
         assert isinstance(logits, torch.Tensor), "Logits must be a torch.Tensor"
         predictions = logits.argmax(-1)
-        seq_length = batch.token_ids.shape[1]
-        pad_len = 512 - seq_length
-        labels = F.pad(batch.token_labels, (0, pad_len), value=-100)
-        for prediction, target in zip(predictions, labels, strict=True):
+        for prediction, target in zip(predictions, batch.token_labels, strict=True):
             curr_target_label_names = [
                 self._labels.ser[i] for i in target[target != -100]
             ]
