@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -180,16 +179,16 @@ class FLClientTrainer(Trainer):
         engine = self._build_train_engine()
 
         # for sanity check lets print first few values of first 10 params of the model
-        if os.environ["ATRIA_LOG_LEVEL"] == "DEBUG":
-            for idx, (name, param) in enumerate(
-                self._state.model_pipeline._model.state_dict().items()
-            ):
-                if idx >= 10:
-                    break
-                logger.debug(
-                    f"[Client {self._config.client_id}] model param {name}: "
-                    f"{param.detach().cpu().numpy().flatten()[:10]}"
-                )
+        # if os.environ["ATRIA_LOG_LEVEL"] == "DEBUG":
+        #     for idx, (name, param) in enumerate(
+        #         self._state.model_pipeline._model.state_dict().items()
+        #     ):
+        #         if idx >= 10:
+        #             break
+        #         logger.debug(
+        #             f"[Client {self._config.client_id}] model param {name}: "
+        #             f"{param.detach().cpu().numpy().flatten()[:10]}"
+        #         )
 
         state = engine.run(checkpoint_path=None, quiet=True)
         self._state.model_pipeline.ops.to_device(torch.device("cpu"))
