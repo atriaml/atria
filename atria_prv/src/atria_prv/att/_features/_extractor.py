@@ -50,22 +50,20 @@ class TokenSignalExtractor:
         """[B, F] one row per sample, columns named '{signal}__{split}__{agg}'."""
         raw = self.raw_signals(logits, labels)
         splits = self._bio_scheme.splits(labels, self._ignore_index)
-
         columns: dict[str, np.ndarray] = {}
         for signal_name, (values, valid_mask) in raw.items():
             values_np = values.cpu().numpy()
             for split_name, split_mask in splits.items():
                 mask_np = (valid_mask & split_mask).cpu().numpy()
                 prefix = f"{signal_name}__{split_name}"
-                columns.update(self._aggregate(values_np, mask_np, prefix, signal_name))
+                columns.update(self._aggregate(values_np, mask_np, prefix))
         return pd.DataFrame(columns)
 
     def _aggregate(
-        self, values: np.ndarray, mask: np.ndarray, prefix: str, signal_name: str
+        self, values: np.ndarray, mask: np.ndarray, prefix: str
     ) -> dict[str, np.ndarray]:
         B = values.shape[0]
-        cfg = self._config
-        stat_names = ["mean", "std", "min", "max", "bottom_k_mean", "top_k_mean"]
+        stat_names = ["mean", "std"]
         out: dict[str, np.ndarray] = {
             f"{prefix}__{name}": np.full(B, 0.0, dtype=np.float32)
             for name in stat_names
@@ -79,12 +77,5 @@ class TokenSignalExtractor:
 
             out[f"{prefix}__mean"][i] = row_values.mean()
             out[f"{prefix}__std"][i] = row_values.std()
-            out[f"{prefix}__min"][i] = row_values.min()
-            out[f"{prefix}__max"][i] = row_values.max()
-
-            sorted_values = np.sort(row_values)
-            k = max(1, int(round(n * cfg.top_k_frac)))
-            out[f"{prefix}__bottom_k_mean"][i] = sorted_values[:k].mean()
-            out[f"{prefix}__top_k_mean"][i] = sorted_values[-k:].mean()
 
         return out

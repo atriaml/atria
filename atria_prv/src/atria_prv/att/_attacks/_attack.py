@@ -46,6 +46,8 @@ behavior, just going through the Pipeline/Bagging machinery uniformly.
 
 from __future__ import annotations
 
+import pickle
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -127,7 +129,7 @@ class MembershipInferenceBlackBox:
         attack_model_type: str = "nn",
         attack_model: ClassifierMixin | None = None,
         scaler_type: str | None = "robust",
-        nn_model_epochs: int = 1000,
+        nn_model_epochs: int = 2000,
         nn_model_batch_size: int = 16,
         nn_model_learning_rate: float = 0.0001,
         # -- ensembling (BaggingClassifier) --
@@ -214,9 +216,9 @@ class MembershipInferenceBlackBox:
             from sklearn.neural_network import MLPClassifier
 
             return MLPClassifier(
-                hidden_layer_sizes=(32, 16),
+                hidden_layer_sizes=(64, 32),
                 max_iter=self.epochs,
-                random_state=None,  # left unseeded on purpose -- see note in fit()
+                random_state=None,
                 verbose=False,
             )
         else:  # pragma: no cover - guarded by _check_params
@@ -336,23 +338,7 @@ class MembershipInferenceBlackBox:
 
 class MembershipInferenceAttack:
     """Runs a ``MembershipInferenceBlackBox`` end-to-end and reports results.
-
-    Not part of ART -- this is the class ``ModelAttacker`` calls directly.
-
-    New optional ``AttackConfig`` fields this now reads (all via `getattr`
-    with the original single-model behavior as the default, so this doesn't
-    break until you actually add them to `AttackConfig`):
-        n_estimators: int = 1
-        bootstrap: bool = False
-        max_samples: float = 1.0
-        max_features: float = 1.0
-        random_state: int | None = None
-        n_jobs: int | None = -1
-        tune_hyperparameters: bool = False
-        param_distributions: dict | None = None
-        search_n_iter: int = 25
-        search_cv: int = 5
-        search_scoring: str = "roc_auc"
+    ... (docstring unchanged) ...
     """
 
     def __init__(self, cfg: AttackConfig) -> None:
@@ -367,9 +353,9 @@ class MembershipInferenceAttack:
             n_jobs=getattr(cfg, "n_jobs", -1),
             tune_hyperparameters=getattr(cfg, "tune_hyperparameters", False),
             param_distributions=getattr(cfg, "param_distributions", None),
-            search_n_iter=getattr(cfg, "search_n_iter", 250),
+            search_n_iter=getattr(cfg, "search_n_iter", 50),
             search_cv=getattr(cfg, "search_cv", 5),
-            search_scoring=getattr(cfg, "search_scoring", "roc_auc"),
+            search_scoring=getattr(cfg, "search_scoring", "precision"),
         )
 
     def run(
@@ -380,8 +366,22 @@ class MembershipInferenceAttack:
         features_members_test: pd.DataFrame,
         features_nonmembers_test: pd.DataFrame,
         feature_columns: list[str] | None = None,
+        output_dir: str | Path | None = None,
+        cache_key: str = "membership_inference",
+        force_rerun: bool = False,
     ) -> dict[str, Any]:
         from sklearn.metrics import roc_auc_score, roc_curve
+
+        out_dir = Path(output_dir) if output_dir is not None else None
+        cache_path = out_dir / f"{cache_key}.pkl" if out_dir else None
+
+        # --- cache check: skip the run entirely if results already exist ---
+        if out_dir is not None and not force_rerun and cache_path.exists():
+            logger.info(
+                f"Found cached membership inference results at {cache_path}, skipping run"
+            )
+            with open(cache_path, "rb") as f:
+                return pickle.load(f)
 
         def to_matrix(df: pd.DataFrame) -> np.ndarray:
             columns = feature_columns or list(df.columns)
@@ -424,12 +424,6 @@ class MembershipInferenceAttack:
 
         from art.metrics.privacy.worst_case_mia_score import get_roc_for_fpr
 
-        # get_roc_for_fpr recomputes its own ROC internally from attack_proba /
-        # attack_true (rather than reusing roc_fpr/roc_tpr/roc_thresholds above),
-        # and picks the operating point closest to -- without exceeding --
-        # targeted_fpr. Without `target_model_labels` it returns a single
-        # (fpr, tpr, threshold) result; we don't have per-sample target-model
-        # class labels in this features-only attack, so no per-class breakdown.
         achieved_fpr, achieved_tpr, threshold = get_roc_for_fpr(
             attack_proba=attack_proba,
             attack_true=attack_true,
@@ -448,7 +442,25 @@ class MembershipInferenceAttack:
                 self._attack.search_results_.best_score_
             )
 
+        # stash the raw arrays (probs, preds) into the report so they get cached too
+        report["_raw"] = {
+            "prob_members": prob_members,
+            "prob_nonmembers": prob_nonmembers,
+            "attack_proba": attack_proba,
+            "attack_true": attack_true,
+            "inferred_members": inferred_members,
+            "inferred_nonmembers": inferred_nonmembers,
+        }
+
         logger.info(
             f"Membership inference attack ({self._attack.attack_model_type}): {report}"
         )
+
+        # --- write cache ---
+        if out_dir is not None:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            with open(cache_path, "wb") as f:
+                pickle.dump(report, f)
+            logger.info(f"Cached membership inference results to {cache_path}")
+
         return report

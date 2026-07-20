@@ -52,3 +52,4 @@ class MembershipInferenceTaskConfig(TaskConfigBase):
     shadow_config: ShadowConfig = ShadowConfig()
     with_amp: bool = False
     test_run: bool = False
+    feature_set: str

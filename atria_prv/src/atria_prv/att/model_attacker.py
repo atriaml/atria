@@ -47,19 +47,6 @@ class ModelAttacker:
         "members_test",
         "non_members_test",
     )
-    # Feature columns the attack model is trained/evaluated on (shared by both modes).
-    _FEATURE_COLUMNS = [
-        "loss__all__mean",
-        "loss__entity__mean",
-        "loss__span_start__mean",
-        "loss__span_cont__mean",
-        "loss__other__mean",
-        "scaled_conf__all__mean",
-        "scaled_conf__entity__mean",
-        "scaled_conf__span_start__mean",
-        "scaled_conf__span_cont__mean",
-        "scaled_conf__other__mean",
-    ]
 
     def __init__(
         self, config: MembershipInferenceTaskConfig, local_rank: int = 0
@@ -67,6 +54,26 @@ class ModelAttacker:
         self._config = config
         self._run_dir = self._compute_run_dir()
         self._state: ModelAttackerState = self._build(local_rank=local_rank)
+
+        if self._config.feature_set == "A":
+            # Feature columns the attack model is trained/evaluated on (shared by both modes).
+            self._feature_columns = ["loss__all__mean", "prob__all__mean"]
+        elif self._config.feature_set == "B":
+            # Feature columns the attack model is trained/evaluated on (shared by both modes).
+            self._feature_columns = [
+                "loss__all__mean",
+                "loss__entity__mean",
+                "loss__span_start__mean",
+                "loss__span_cont__mean",
+                "loss__other__mean",
+                "prob__all__mean",
+                "prob__entity__mean",
+                "prob__span_start__mean",
+                "prob__span_cont__mean",
+                "prob__other__mean",
+            ]
+        else:
+            raise RuntimeError()
 
     # ------------------------------------------------------------------ setup
     def _initialize_runtime(self, local_rank: int) -> None:
@@ -137,6 +144,8 @@ class ModelAttacker:
             batch_size=self._config.data.eval_batch_size,
             num_workers=self._config.data.num_workers,
             pin_memory=self._config.data.pin_memory,
+            seed_train_val=42,
+            seed_train_reshuffle=self._config.env.seed,
         )
         data_pipeline.summarize()
         return ModelAttackerState(
@@ -314,7 +323,6 @@ class ModelAttacker:
     # ------------------------------------------------------------------ run
     def _run_attack(self, features: dict) -> dict:
         """Fit + evaluate the attack model over the four feature splits and report."""
-
         # # debug: plot the member vs. non-member train distributions for all features
         # dist_path = self._run_dir / "feature_distributions_train.png"
         # written = save_feature_distributions(
@@ -322,12 +330,15 @@ class ModelAttacker:
         # )
         # logger.info(f"Saved train feature distributions to {written}")
 
+        print("self._feature_columns", self._feature_columns)
         results = MembershipInferenceAttack(self._config.attack_config).run(
             features_members_train=features["members_train"],
             features_nonmembers_train=features["non_members_train"],
             features_members_test=features["members_test"],
             features_nonmembers_test=features["non_members_test"],
-            feature_columns=self._FEATURE_COLUMNS,
+            feature_columns=self._feature_columns,
+            output_dir=self._run_dir / "attack_results",
+            cache_key=self._config.attack_config.attack_model_type,
         )
 
         # draw + save the ROC curve
@@ -342,11 +353,23 @@ class ModelAttacker:
         log_results = {k: v for k, v in results.items() if k != "roc_curve"}
         from rich.pretty import pprint
 
-        pprint(log_results)
+        pprint({k: v for k, v in log_results.items() if k not in ["_raw"]})
         self._config.dump_metrics_file(data=results)
         return results
 
     def run(self) -> dict:
+        do_test = False
+        if do_test:
+            logger.info(f"Loading target checkpoint: {self._config.target_checkpoint}")
+            checkpoint = torch.load(
+                self._config.target_checkpoint, map_location="cpu", weights_only=False
+            )
+            self._state.model_pipeline._model.load_state_dict(
+                checkpoint["model_pipeline"]["model"]
+            )
+            test_engine = self._build_test_engine()
+            test_engine.run()
+
         if self._config.shadow_config.enabled:
             logger.info(
                 f"Running shadow-model attack with "

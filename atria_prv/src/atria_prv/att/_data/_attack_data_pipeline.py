@@ -36,7 +36,8 @@ class AttackDataPipeline:
         num_workers: int,
         pin_memory: bool,
         balanced: bool = True,
-        seed: int = 42,
+        seed_train_val: int = 42,
+        seed_train_reshuffle: int = 0,
     ) -> None:
         self._dataset = dataset
         self._attack_train_ratio = attack_train_ratio
@@ -44,7 +45,8 @@ class AttackDataPipeline:
         self._num_workers = num_workers
         self._pin_memory = pin_memory
         self._balanced = balanced
-        self._seed = seed
+        self._seed_train_val = seed_train_val
+        self._seed_train_reshuffle = seed_train_reshuffle
         self._build()
 
     def _loader(self, iterator: SplitIterator) -> DataLoader:
@@ -63,14 +65,14 @@ class AttackDataPipeline:
 
     def _shuffled_original_ids(self, dataset: SplitIterator) -> list[str]:
         ids = sorted(group_indices_by_original_id(dataset.sample_keys))
-        random.Random(self._seed).shuffle(ids)
+        random.Random(self._seed_train_val).shuffle(ids)
         return ids
 
     @staticmethod
     def _subset_by_ids(split: SplitIterator, ids: list[str]) -> SplitIterator:
         """Deep-copy ``split`` and restrict it to the samples of the given original ids."""
         id_to_indices = group_indices_by_original_id(split.sample_keys)
-        indices = sorted(i for oid in ids for i in id_to_indices.get(oid, []))
+        indices = [i for oid in ids for i in id_to_indices.get(oid, [])]
         subset = copy.deepcopy(split)
         subset.subset_indices = indices
         return subset
@@ -81,6 +83,12 @@ class AttackDataPipeline:
 
         train_size = int(len(original_ids) * self._attack_train_ratio)
         train_ids, eval_ids = original_ids[:train_size], original_ids[train_size:]
+
+        if self._seed_train_reshuffle:
+            random.Random(self._seed_train_reshuffle).shuffle(train_ids)
+
+        logger.info(f"Train ids: {train_ids[:10]}")
+        logger.info(f"Test ids: {eval_ids[:10]}")
 
         return (
             self._subset_by_ids(dataset, train_ids),
@@ -153,6 +161,32 @@ class AttackDataPipeline:
             self._members_test.subset_indices = self._members_test.subset_indices[:k]
             self._non_members_test.subset_indices = (
                 self._non_members_test.subset_indices[:k]
+            )
+
+            logger.info(
+                "Member train subset ids: %s", self._members_train.subset_indices[:10]
+            )
+            logger.info(
+                "Non-member train subset ids: %s",
+                self._non_members_train.subset_indices[:10],
+            )
+            logger.info(
+                "Member test subset ids: %s", self._members_test.subset_indices[:10]
+            )
+            logger.info(
+                "Non-member test subset ids: %s",
+                self._non_members_test.subset_indices[:10],
+            )
+
+            # for sanity check see subset ids dont overlap
+            set1 = set(self._members_train.subset_indices).intersection(
+                self._members_test.subset_indices
+            )
+            set2 = set(self._non_members_train.subset_indices).intersection(
+                self._non_members_test.subset_indices
+            )
+            assert len(set1) == 0 and len(set2) == 0, (
+                "The member and non-member train and test sets must not overlap."
             )
 
     def summarize(self):
