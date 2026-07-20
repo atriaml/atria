@@ -221,7 +221,7 @@ class Docile(DocumentDataset):
                 load_ocr=False,
                 cache_images=CachingConfig.OFF,
             )
-            preprocessed_name = f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{self.config.image_shape[0]}x{self.config.image_shape[1]}.json"
+            preprocessed_name = f"{docile_dataset.split_name}_new_multilabel_preprocessed_withImgs_{self.config.image_shape[0]}x{self.config.image_shape[1]}.json"
             if not (data_dir / split_dir / split_dir / preprocessed_name).exists():
                 prepare_docile_dataset(
                     docile_dataset,

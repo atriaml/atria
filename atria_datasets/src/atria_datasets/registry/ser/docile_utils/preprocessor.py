@@ -243,7 +243,8 @@ def get_data_from_docile(dataset, overlap_thr=0.5, image_shape=(1024, 1024)):
             for field in document.annotation.li_fields
         ]
         for page in range(document.page_count):
-            W, H = image_shape
+            img = document.page_image(page)
+            W, H = img.size
             kile_fields_page = [field for field in kile_fields if field.page == page]
             li_fields_page = [field for field in li_fields if field.page == page]
             kile_fields_page = [
@@ -511,11 +512,11 @@ def prepare_docile_dataset(
     if (
         Path(
             preprocessed_path
-            / f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json"
+            / f"{docile_dataset.split_name}_new_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json"
         ).exists()
         and Path(
             preprocessed_path
-            / f"{docile_dataset.split_name}_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json"
+            / f"{docile_dataset.split_name}_new_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json"
         ).exists()
     ):
         return
@@ -528,12 +529,12 @@ def prepare_docile_dataset(
     os.makedirs(preprocessed_dataset_path / dataset_name, exist_ok=True)
     store_data(
         preprocessed_path
-        / f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json",
+        / f"{docile_dataset.split_name}_new_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json",
         data,
     )
     store_metadata(
         preprocessed_path
-        / f"{docile_dataset.split_name}_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json",
+        / f"{docile_dataset.split_name}_new_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json",
         metadata,
     )
 
@@ -549,11 +550,11 @@ def load_docile_dataset(
     try:
         data = load_data(
             preprocessed_path
-            / f"{docile_dataset.split_name}_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json"
+            / f"{docile_dataset.split_name}_new_multilabel_preprocessed_withImgs_{image_shape[0]}x{image_shape[1]}.json"
         )
         metadata = load_metadata(
             preprocessed_path
-            / f"{docile_dataset.split_name}_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json"
+            / f"{docile_dataset.split_name}_new_multilabel_metadata_withImgs_{image_shape[0]}x{image_shape[1]}.json"
         )
     except Exception as e:
         raise RuntimeError(

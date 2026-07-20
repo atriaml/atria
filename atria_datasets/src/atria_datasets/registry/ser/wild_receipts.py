@@ -17,7 +17,7 @@ from atria_types import (
 
 from atria_datasets import DATASETS, DatasetConfig, DocumentDataset
 
-from .utilities import _normalize_bbox, _sorted_indices_in_reading_order
+from .utilities import _normalize_bbox
 
 # Find for instance the citation on arxiv or on the dataset repo/website
 _CITATION = """"""
@@ -119,15 +119,15 @@ class SplitIterator:
                 )
             )
 
-        # sort the word reading order
-        if self.config.apply_reading_order_correction:
-            sorted_indices = _sorted_indices_in_reading_order(bboxes)
-            words = [words[i] for i in sorted_indices]
-            word_labels = [labels[i] for i in sorted_indices]
-            word_bboxes = [bboxes[i] for i in sorted_indices]
-        else:
-            word_labels = labels
-            word_bboxes = bboxes
+        # # sort the word reading order
+        # if self.config.apply_reading_order_correction:
+        #     sorted_indices = _sorted_indices_in_reading_order(bboxes)
+        #     words = [words[i] for i in sorted_indices]
+        #     word_labels = [labels[i] for i in sorted_indices]
+        #     word_bboxes = [bboxes[i] for i in sorted_indices]
+        # else:
+        word_labels = labels
+        word_bboxes = bboxes
 
         return (
             DocumentContent(
